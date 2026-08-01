@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a1420">
+<script>(function(){try{var t=localStorage.getItem('raffyca-theme');if(t==='sun')t='day';if(t==='day'||t==='night')document.documentElement.classList.add(t);}catch(e){}})();</script>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Impostazioni · ProVela</title>
+<!--
+  NB (produzione): questo file è un mockup autonomo. In produzione i token e le
+  primitive .rf-* vanno serviti da raffyca.css condiviso:
+      <link rel="stylesheet" href="../raffyca.css">
+  e si può rimuovere il blocco <style data-rf-inline> qui sotto.
+  I valori dei token qui sono RICOSTRUITI dalla memoria di progetto: da
+  verificare contro raffyca.css reale (vedi note in chat).
+-->
+<style data-rf-inline>
+:root{
+  /* ---- accenti (HSL triplette per compatibilità shadcn) ---- */
+  --teal: 173 70% 51%;    /* #2BD9C4 */
+  --amber: 40 100% 65%;   /* #FFC24B */
+  --coral: 0 100% 71%;    /* #FF6B6B */
+  --green: 148 64% 56%;   /* #46d68a */
+
+  /* ---- superfici / strumento ---- */
+  --bg: 210 46% 7%;
+  --surface: 210 40% 11%;
+  --bezel-hi: 210 28% 20%;
+  --bezel-lo: 212 44% 5%;
+  --display: 200 55% 5%;
+  --display-line: 190 60% 12%;
+  --line: 210 30% 18%;
+  --surface2: 210 42% 9%;   /* fondo del gradiente pannello */
+  --glow: 210 45% 12%;      /* alone dietro l'header */
+
+  /* ---- inchiostri ---- */
+  --ink: 174 38% 84%;     /* testo LCD */
+  --muted: 208 16% 56%;
+  --screw: 210 22% 30%;
+
+  --radius: 14px;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", "Roboto Mono", Menlo, Consolas, monospace;
+}
+/* ---- TEMA GIORNO (alto contrasto per il sole) ---- */
+html.day{
+  --teal:173 90% 26%; --amber:34 100% 30%; --coral:0 72% 44%; --green:148 70% 30%;
+  --bg:210 40% 94%; --surface:0 0% 100%; --bezel-hi:0 0% 100%; --bezel-lo:210 22% 76%;
+  --display:210 40% 97%; --display-line:210 22% 80%; --line:210 24% 74%;
+  --ink:210 45% 12%; --muted:210 22% 34%; --screw:210 16% 62%;
+  --surface2:210 30% 88%; --glow:210 40% 84%;
+}
+/* ---- TEMA NOTTE (rosso, visione notturna) ---- */
+html.night{
+  --teal:0 90% 62%; --amber:14 92% 58%; --coral:0 92% 66%; --green:0 55% 44%;
+  --bg:0 60% 3%; --surface:0 52% 6%; --bezel-hi:0 40% 14%; --bezel-lo:0 60% 2%;
+  --display:0 60% 3%; --display-line:0 45% 12%; --line:0 42% 14%;
+  --ink:0 90% 68%; --muted:0 45% 46%; --screw:0 30% 32%;
+  --surface2:0 50% 4%; --glow:0 45% 9%;
+}
+
+/* ============ SUN MODE (alta leggibilità esterna) ============ */
+/* accenti scuriti + contrasto alzato, come da convenzione ProVela */
+body.sun{
+  --teal: 176 84% 30%;
+  --amber: 36 96% 44%;
+  --coral: 2 78% 48%;
+  --green: 150 70% 30%;
+
+  --bg: 205 40% 4%;
+  --surface: 208 42% 8%;
+  --bezel-hi: 205 22% 16%;
+  --bezel-lo: 210 50% 2%;
+  --display: 200 60% 3%;
+  --display-line: 190 50% 9%;
+  --line: 205 34% 14%;
+
+  --ink: 172 30% 92%;
+  --muted: 205 16% 66%;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:
+    radial-gradient(120% 90% at 50% -10%, hsl(var(--glow) / .55), transparent 60%),
+    hsl(var(--bg));
+  color:hsl(var(--ink));
+  font-family:system-ui,-apple-system,"Segoe UI","Helvetica Neue",sans-serif;
+  -webkit-font-smoothing:antialiased;
+  min-height:100dvh;
+  padding:
+    calc(env(safe-area-inset-top) + 12px)
+    calc(env(safe-area-inset-right) + 14px)
+    calc(env(safe-area-inset-bottom) + 28px)
+    calc(env(safe-area-inset-left) + 14px);
+}
+.wrap{max-width:560px;margin:0 auto}
+
+/* ---------------- header ---------------- */
+.top{
+  display:flex;align-items:center;gap:12px;margin-bottom:18px;
+}
+.back{
+  flex:0 0 auto;text-decoration:none;color:hsl(var(--teal));
+  border:1px solid hsl(var(--line));border-radius:10px;
+  width:42px;height:42px;display:grid;place-items:center;
+  background:hsl(var(--surface));font-size:20px;line-height:1;
+  transition:border-color .15s, color .15s;
+}
+.back:hover{border-color:hsl(var(--teal) / .6)}
+.back:focus-visible{outline:2px solid hsl(var(--teal));outline-offset:2px}
+.top-txt{min-width:0}
+.top-txt .eyebrow{
+  font-size:11px;letter-spacing:.28em;text-transform:uppercase;
+  color:hsl(var(--muted));
+}
+.top-txt h1{
+  margin:2px 0 0;font-size:20px;font-weight:600;letter-spacing:.04em;
+  color:hsl(var(--ink));
+}
+.boat{
+  margin-top:2px;font-size:12px;color:hsl(var(--teal));
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+
+/* ---------------- strumento / bezel ---------------- */
+.rf-instr{
+  position:relative;
+  background:
+    linear-gradient(hsl(var(--surface)), hsl(var(--surface2)));
+  border:1px solid hsl(var(--bezel-lo));
+  border-radius:var(--radius);
+  padding:16px 16px 18px;
+  margin-bottom:16px;
+  box-shadow:
+    inset 0 1px 0 hsl(var(--bezel-hi) / .7),
+    inset 0 0 0 1px hsl(210 40% 4% / .6),
+    0 8px 22px hsl(210 60% 2% / .5);
+}
+.rf-instr > .rf-title{
+  display:flex;align-items:center;gap:8px;
+  font-size:11px;letter-spacing:.24em;text-transform:uppercase;
+  color:hsl(var(--muted));margin:2px 2px 14px;
+}
+.rf-instr > .rf-title::before{
+  content:"";width:7px;height:7px;border-radius:50%;
+  background:hsl(var(--teal));box-shadow:0 0 8px hsl(var(--teal) / .8);
+}
+.rf-instr[data-accent="amber"] > .rf-title::before{background:hsl(var(--amber));box-shadow:0 0 8px hsl(var(--amber) / .8)}
+.rf-instr[data-accent="coral"] > .rf-title::before{background:hsl(var(--coral));box-shadow:0 0 8px hsl(var(--coral) / .8)}
+.rf-instr[data-accent="green"] > .rf-title::before{background:hsl(var(--green));box-shadow:0 0 8px hsl(var(--green) / .8)}
+
+/* viti agli angoli */
+.rf-viti::before,.rf-viti::after,
+.rf-viti > .rf-viti-b::before,.rf-viti > .rf-viti-b::after{
+  content:"";position:absolute;width:9px;height:9px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%, hsl(var(--bezel-hi)), hsl(var(--bezel-lo)));
+  box-shadow:inset 0 0 0 1px hsl(210 40% 3%), 0 1px 0 hsl(var(--bezel-hi) / .4);
+}
+.rf-viti::before{top:7px;left:7px}
+.rf-viti::after{top:7px;right:7px}
+.rf-viti > .rf-viti-b::before{bottom:7px;left:7px;top:auto}
+.rf-viti > .rf-viti-b::after{bottom:7px;right:7px;top:auto}
+
+/* ---------------- righe impostazione ---------------- */
+.field{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+  padding:11px 2px;border-top:1px solid hsl(var(--line) / .55);
+}
+.field:first-of-type{border-top:0}
+.field .lbl{min-width:0}
+.field .lbl .k{font-size:13.5px;color:hsl(var(--ink))}
+.field .lbl .h{font-size:11px;color:hsl(var(--muted));margin-top:2px;line-height:1.35}
+.field .ctl{flex:0 0 auto}
+
+/* display LCD per input testo/numero */
+.rf-dp{
+  position:relative;
+  background:
+    repeating-linear-gradient(hsl(var(--display-line) / .0) 0 2px, hsl(var(--display-line) / .35) 2px 3px),
+    hsl(var(--display));
+  border:1px solid hsl(210 45% 3%);
+  border-radius:8px;
+  box-shadow:inset 0 2px 6px hsl(210 60% 1% / .8);
+}
+input.rf-num, input.rf-txt, select.rf-sel{
+  font-family:var(--font-mono);
+  background:transparent;border:0;color:hsl(var(--teal));
+  padding:9px 11px;font-size:14px;width:100%;
+  text-align:right;letter-spacing:.02em;
+}
+.rf-num{font-variant-numeric:tabular-nums;letter-spacing:.06em}
+input.rf-txt{text-align:left;color:hsl(var(--ink))}
+input::placeholder{color:hsl(var(--muted) / .7)}
+input:focus,select:focus{outline:none}
+.rf-dp:focus-within{box-shadow:inset 0 2px 6px hsl(210 60% 1% / .8), 0 0 0 1px hsl(var(--teal) / .55)}
+.dp-txt{min-width:150px;flex:1}
+.dp-num{width:96px}
+select.rf-sel{color:hsl(var(--ink));text-align:left;appearance:none;padding-right:26px}
+.dp-sel{min-width:150px;position:relative}
+.dp-sel::after{
+  content:"▾";position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  color:hsl(var(--teal));pointer-events:none;font-size:12px;
+}
+
+/* toggle segmentato LCD */
+.seg{
+  display:inline-flex;background:hsl(var(--display));
+  border:1px solid hsl(210 45% 3%);border-radius:9px;padding:3px;
+  box-shadow:inset 0 2px 6px hsl(210 60% 1% / .7);
+}
+.seg button{
+  font-family:var(--font-mono);font-size:12.5px;letter-spacing:.04em;
+  border:0;background:transparent;color:hsl(var(--muted));
+  padding:7px 13px;border-radius:6px;cursor:pointer;transition:.14s;
+  min-width:56px;
+}
+.seg button[aria-pressed="true"]{
+  background:hsl(var(--teal) / .16);color:hsl(var(--teal));
+  box-shadow:inset 0 0 0 1px hsl(var(--teal) / .45), 0 0 10px hsl(var(--teal) / .18);
+}
+.seg[data-accent="amber"] button[aria-pressed="true"]{
+  background:hsl(var(--amber) / .16);color:hsl(var(--amber));
+  box-shadow:inset 0 0 0 1px hsl(var(--amber) / .45), 0 0 10px hsl(var(--amber) / .18);
+}
+.seg button:focus-visible{outline:2px solid hsl(var(--teal));outline-offset:2px}
+
+/* pulsanti azione */
+.actions{display:flex;flex-wrap:wrap;gap:10px}
+.btn{
+  font-family:var(--font-mono);font-size:13px;letter-spacing:.06em;
+  text-transform:uppercase;cursor:pointer;
+  border:1px solid hsl(var(--line));background:hsl(var(--surface));
+  color:hsl(var(--ink));padding:11px 15px;border-radius:10px;flex:1;
+  min-width:130px;transition:.15s;text-align:center;
+}
+.btn:hover{border-color:hsl(var(--teal) / .5)}
+.btn:focus-visible{outline:2px solid hsl(var(--teal));outline-offset:2px}
+.btn.teal{color:hsl(var(--teal));border-color:hsl(var(--teal) / .4)}
+.btn.coral{color:hsl(var(--coral));border-color:hsl(var(--coral) / .4)}
+.btn.coral:hover{border-color:hsl(var(--coral) / .7)}
+
+/* info */
+.info-grid{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:12.5px}
+.info-grid dt{color:hsl(var(--muted))}
+.info-grid dd{margin:0;color:hsl(var(--ink));text-align:right;font-variant-numeric:tabular-nums}
+
+/* toast */
+.toast{
+  position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 20px);
+  transform:translate(-50%, 20px);
+  background:hsl(var(--surface));border:1px solid hsl(var(--teal) / .5);
+  color:hsl(var(--teal));padding:10px 18px;border-radius:10px;font-size:13px;
+  letter-spacing:.04em;box-shadow:0 8px 24px hsl(210 60% 1% / .6);
+  opacity:0;pointer-events:none;transition:.25s;z-index:50;
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast.warn{border-color:hsl(var(--coral) / .6);color:hsl(var(--coral))}
+
+.foot{text-align:center;color:hsl(var(--muted));font-size:11px;margin-top:20px;letter-spacing:.1em}
+
+@media (prefers-reduced-motion: reduce){
+  *{transition:none !important}
+}
+</style>
+</head>
+<body>
+<!-- ===== rf-topbar: barra fissa trasversale ProVela (inietta subito dopo <body>) ===== -->
+<style>
+.rf-topbar{position:fixed;top:0;left:0;right:0;height:40px;z-index:9000;display:flex;align-items:center;gap:9px;
+  padding:0 10px;background:linear-gradient(#0c1c2e,#081521);border-bottom:1px solid #1a3248;
+  font-family:ui-monospace,"SF Mono","Roboto Mono",Menlo,Consolas,monospace;color:var(--sub,#5a7a94);font-size:11.5px;
+  letter-spacing:.02em;-webkit-user-select:none;user-select:none;box-shadow:0 2px 10px -6px rgba(0,0,0,.8);}
+.rf-topbar a.rf-home{display:flex;align-items:center;justify-content:center;width:30px;height:30px;flex:none;
+  border-radius:8px;background:rgba(43,217,196,.1);border:1px solid rgba(43,217,196,.35);text-decoration:none;}
+.rf-topbar a.rf-home:active{transform:scale(.92);}
+.rf-topbar .rf-boat{display:flex;align-items:center;gap:5px;flex:none;color:var(--ink,#deedf5);font-weight:600;white-space:nowrap;}
+.rf-topbar .rf-boat svg{flex:none;}
+.rf-topbar .rf-gps{flex:none;display:flex;align-items:center;}
+.rf-topbar .rf-gps .gdot{width:9px;height:9px;border-radius:50%;background:#5a6b7a;box-shadow:0 0 0 2px rgba(90,107,122,.25);transition:background .3s,box-shadow .3s;}
+.rf-topbar .rf-gps .gdot.ok{background:var(--teal,#2BD9C4);box-shadow:0 0 6px rgba(43,217,196,.6);}
+.rf-topbar .rf-gps .gdot.old{background:var(--amber,#FFC24B);box-shadow:0 0 5px rgba(255,194,75,.5);}
+.rf-topbar .rf-pol{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;color:var(--sub,#5a7a94);}
+.rf-topbar .rf-pol .mod{color:var(--ink,#cfe2ee);}
+.rf-topbar .rf-pol .pol{color:var(--amber,#FFC24B);font-weight:600;}
+.rf-topbar .rf-pol .pol.warn{color:var(--coral,#FF6B6B);}
+.rf-topbar .rf-spacer{flex:1;}
+html.day .rf-topbar{background:linear-gradient(#ffffff,#e7ecf1);border-bottom-color:#a7b5c2;}
+html.night .rf-topbar{background:linear-gradient(#150404,#0e0303);border-bottom-color:#3a1010;}
+.rf-topbar .rf-status{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:44%;flex:none;color:var(--sub,#5a7a94);}
+.rf-topbar .rf-status.wp b{color:var(--teal,#2BD9C4);font-weight:600;}
+.rf-topbar .rf-status.rec{color:var(--coral,#FF6B6B);font-weight:600;}
+.rf-topbar .rf-status .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#FF6B6B;margin-right:5px;vertical-align:middle;animation:rfblink 1s steps(2,start) infinite;}
+@keyframes rfblink{50%{opacity:.25}}
+body{padding-top:40px!important;}
+@media (max-width:480px){.rf-topbar .rf-pol .mod{display:none;}}
+@media (max-width:360px){.rf-topbar .rf-boat .bn{display:none;}}
+</style>
+<div class="rf-topbar" role="banner">
+  <a class="rf-home" href="../" aria-label="Menu ProVela" title="Menu ProVela">
+    <svg viewBox="0 0 64 64" width="19" height="19" aria-hidden="true"><path d="M32 8 L32 56 L10 56 Z" fill="#2BD9C4" opacity=".95"/><path d="M32 26 L54 56 L32 56 Z" fill="#2BD9C4" opacity=".45"/><line x1="32" y1="6" x2="32" y2="58" stroke="#1a4a42" stroke-width="3"/></svg>
+  </a>
+  <span class="rf-boat" id="rfBoat"></span>
+  <span class="rf-gps" id="rfGps" title="Stato GPS"><span class="gdot"></span></span>
+  <span class="rf-pol" id="rfPol" title=""></span>
+  <span class="rf-spacer"></span>
+  <span class="rf-status" id="rfStatus"></span>
+</div>
+<script>
+(function(){
+  function esc(x){return String(x).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  var elBoat=document.getElementById("rfBoat"),elGps=document.getElementById("rfGps"),
+      elPol=document.getElementById("rfPol"),elSt=document.getElementById("rfStatus");
+  var SAIL='<svg viewBox="0 0 64 64" width="13" height="13" aria-hidden="true"><path d="M34 6 L34 52 L14 52 Z" fill="#2BD9C4"/><line x1="34" y1="4" x2="34" y2="54" stroke="#1a4a42" stroke-width="3"/></svg>';
+  function tickBoat(){
+    if(!elBoat)return;
+    var pr=null;try{pr=JSON.parse(localStorage.getItem("raffyca-profile")||"null");}catch(e){}
+    var boat=(pr&&pr.boat)||"ProVela";
+    elBoat.innerHTML=SAIL+'<span class="bn">'+esc(boat)+'</span>';
+  }
+  function polarLabel(){
+    var p=null;try{p=JSON.parse(localStorage.getItem("raffyca-polar")||"null");}catch(e){}
+    if(!p||!p.twa||!p.data||!p.twa.length)return{txt:"integrata",cls:"warn",boat:""};
+    var m=p.meta||{};
+    if(m.source==="generica"||m.generic)return{txt:"generica",cls:"warn",boat:(m.boat||"generica")};
+    return{txt:(m.source||"attiva"),cls:"",boat:(m.boat||"")};
+  }
+  function tickPolar(){
+    if(!elPol)return;
+    var pr=null;try{pr=JSON.parse(localStorage.getItem("raffyca-profile")||"null");}catch(e){}
+    var L=polarLabel();
+    var model=L.boat||((pr&&pr.model)||"");
+    var h="";
+    if(model)h+='<span class="mod">'+esc(model)+'</span>';
+    h+=(h?" · ":"")+'<span class="pol '+L.cls+'">pol '+esc(L.txt)+'</span>';
+    elPol.innerHTML=h; elPol.title=[model,"polare: "+L.txt].filter(Boolean).join(" · ");
+  }
+  function tickGps(){
+    if(!elGps)return;
+    var dot=elGps.querySelector(".gdot"),pos=null;
+    try{pos=JSON.parse(localStorage.getItem("raffyca-pos")||"null");}catch(e){}
+    var cls="",title="GPS: nessun dato";
+    if(pos&&isFinite(pos.lat)&&isFinite(pos.lon)){
+      if(pos.ts&&isFinite(pos.ts)){
+        var age=Math.round((Date.now()-pos.ts)/1000);
+        if(age<25){cls="ok";title="GPS: fix "+age+" s fa";}
+        else if(age<900){cls="old";title="GPS: ultimo fix "+(age<120?(age+" s"):(Math.round(age/60)+" min"))+" fa";}
+        else{cls="";title="GPS: fix vecchio";}
+      }else{cls="old";title="GPS: posizione senza orario";}
+    }
+    if(dot)dot.className="gdot"+(cls?(" "+cls):"");
+    elGps.title=title;
+  }
+  function tickStatus(){
+    if(!elSt)return;
+    var rec=null;try{rec=JSON.parse(localStorage.getItem("raffyca-rec")||"null");}catch(e){}
+    if(rec&&rec.on){elSt.className="rf-status rec";elSt.innerHTML='<span class="dot"></span>REC GPX'+(rec.pts?(" · "+rec.pts+" pt"):"");return;}
+    var tid="";try{tid=localStorage.getItem("raffyca-active-track")||"";}catch(e){}
+    if(tid){var tk=null;try{tk=(JSON.parse(localStorage.getItem("raffyca-tracks")||"[]")).find(function(x){return x.id===tid;});}catch(e){}
+      if(tk&&tk.pts&&tk.pts.length>=2){elSt.className="rf-status wp";elSt.innerHTML="&#9654; <b>"+esc(tk.name)+"</b>";return;}}
+    var id="";try{id=localStorage.getItem("raffyca-active-wp")||"";}catch(e){}
+    if(id){var w=null;try{w=(JSON.parse(localStorage.getItem("raffyca-waypoints")||"[]")).find(function(x){return x.id===id;});}catch(e){}
+      if(w){elSt.className="rf-status wp";elSt.innerHTML="&#9873; WP: <b>"+esc(w.name)+"</b>";return;}}
+    elSt.className="rf-status";elSt.textContent="";
+  }
+  function all(){tickBoat();tickPolar();tickGps();tickStatus();}
+  all();
+  setInterval(tickGps,3000);setInterval(tickStatus,3000);setInterval(tickPolar,5000);setInterval(tickBoat,10000);
+  window.addEventListener("storage",all);
+  document.addEventListener("visibilitychange",function(){if(!document.hidden)all();});
+})();
+</script>
+<!-- ===== /rf-topbar ===== -->
+
+<div class="wrap">
+
+  <div class="top">
+    <div class="top-txt">
+      <div class="eyebrow">ProVela</div>
+      <h1>Impostazioni</h1>
+      <div class="boat" id="boatLine">—</div>
+    </div>
+  </div>
+
+  <!-- PROFILO -->
+  <section class="rf-instr rf-viti" data-accent="teal">
+    <span class="rf-viti-b"></span>
+    <div class="rf-title">Profilo barca</div>
+
+    <div class="field">
+      <div class="lbl">
+        <div class="k">Nome barca</div>
+        <div class="h">Mostrato nelle intestazioni dei moduli</div>
+      </div>
+      <div class="ctl rf-dp dp-txt">
+        <input class="rf-txt" id="boat" type="text" maxlength="40" placeholder="es. Raffyca" autocomplete="off">
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="lbl"><div class="k">Modello</div></div>
+      <div class="ctl rf-dp dp-txt">
+        <input class="rf-txt" id="model" type="text" maxlength="40" placeholder="es. First 31.7" autocomplete="off">
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="lbl"><div class="k">Zona di navigazione</div></div>
+      <div class="ctl rf-dp dp-sel">
+        <select class="rf-sel" id="zone">
+          <option value="">—</option>
+          <option>Alto Adriatico</option>
+          <option>Medio Adriatico</option>
+          <option>Basso Adriatico</option>
+          <option>Mar Ionio</option>
+          <option>Basso Tirreno</option>
+          <option>Alto Tirreno</option>
+          <option>Mar Ligure</option>
+          <option>Sardegna</option>
+          <option>Sicilia</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <!-- ASPETTO -->
+  <section class="rf-instr rf-viti" data-accent="amber">
+    <span class="rf-viti-b"></span>
+    <div class="rf-title">Aspetto</div>
+
+    <div class="field">
+      <div class="lbl">
+        <div class="k">Tema</div>
+        <div class="h">Giorno = alto contrasto per il sole · Notte = rosso (visione notturna)</div>
+      </div>
+      <div class="ctl">
+        <div class="seg seg3" data-accent="amber" role="group" aria-label="Tema">
+          <button type="button" id="themeDark" aria-pressed="true">Scuro</button>
+          <button type="button" id="themeDay" aria-pressed="false">Giorno</button>
+          <button type="button" id="themeNight" aria-pressed="false">Notte</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NAVIGAZIONE -->
+  <section class="rf-instr rf-viti" data-accent="teal">
+    <span class="rf-viti-b"></span>
+    <div class="rf-title">Navigazione</div>
+
+    <div class="field">
+      <div class="lbl">
+        <div class="k">Unità velocità</div>
+      </div>
+      <div class="ctl">
+        <div class="seg" role="group" aria-label="Unità velocità">
+          <button type="button" id="unitKn" aria-pressed="true">nodi</button>
+          <button type="button" id="unitKmh" aria-pressed="false">km/h</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="lbl">
+        <div class="k">Sorgente velocità</div>
+        <div class="h">Predefinita: GPS (SOG) o solcometro (STW)</div>
+      </div>
+      <div class="ctl">
+        <div class="seg" role="group" aria-label="Sorgente velocità">
+          <button type="button" id="spdSog" aria-pressed="true">SOG</button>
+          <button type="button" id="spdStw" aria-pressed="false">STW</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="lbl">
+        <div class="k">Media SOG</div>
+        <div class="h">Finestra di smoothing della velocità GPS nel Cruscotto (1–30 s)</div>
+      </div>
+      <div class="ctl rf-dp dp-num">
+        <input class="rf-num" id="sogSmooth" type="number" min="1" max="30" step="1" inputmode="numeric" placeholder="5">
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="lbl">
+        <div class="k">Intervallo traccia</div>
+        <div class="h">Cadenza di registrazione dei punti (s)</div>
+      </div>
+      <div class="ctl rf-dp dp-num">
+        <input class="rf-num" id="trackInterval" type="number" min="1" max="600" step="1" inputmode="numeric" placeholder="10">
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="lbl">
+        <div class="k">Intervallo lettura vocale</div>
+        <div class="h">Secondi tra un valore e l'altro nel Cruscotto (3–30)</div>
+      </div>
+      <div class="ctl rf-dp dp-num">
+        <input class="rf-num" id="voiceInterval" type="number" min="3" max="30" step="1" inputmode="numeric" placeholder="10">
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="lbl">
+        <div class="k">Sorgente vento</div>
+        <div class="h">Predefinita per il Cruscotto</div>
+      </div>
+      <div class="ctl rf-dp dp-sel">
+        <select class="rf-sel" id="windSource">
+          <option value="stima">Stima</option>
+          <option value="signalk">Signal K</option>
+          <option value="manuale">Manuale</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field" id="skRow">
+      <div class="lbl">
+        <div class="k">Endpoint Signal K</div>
+        <div class="h">URL del server (ws:// o http://)</div>
+      </div>
+      <div class="ctl rf-dp dp-txt">
+        <input class="rf-txt" id="signalkUrl" type="text" placeholder="ws://192.168.1.10:3000" autocomplete="off" spellcheck="false">
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="lbl">
+        <div class="k">Fine countdown regata</div>
+        <div class="h">Cosa fa Regata quando il conto alla rovescia arriva a zero</div>
+      </div>
+      <div class="ctl rf-dp dp-sel">
+        <select class="rf-sel" id="raceEnd">
+          <option value="cruscotto">Apri il Cruscotto</option>
+          <option value="none">Non fare nulla</option>
+          <option value="url">Apri un URL</option>
+        </select>
+      </div>
+    </div>
+    <div class="field" id="raceUrlRow">
+      <div class="lbl">
+        <div class="k">URL da aprire</div>
+        <div class="h">Usato solo se sopra scegli «Apri un URL»</div>
+      </div>
+      <div class="ctl rf-dp dp-txt">
+        <input class="rf-txt" id="raceEndUrl" type="text" placeholder="https://…" autocomplete="off" spellcheck="false">
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="lbl">
+        <div class="k">Partenza · soglia verde</div>
+        <div class="h">Entro questa distanza dalla linea lo sfondo della Partenza è verde (m)</div>
+      </div>
+      <div class="ctl rf-dp dp-num">
+        <input class="rf-num" id="startDistG" type="number" min="2" max="500" step="1" inputmode="numeric" placeholder="50">
+      </div>
+    </div>
+    <div class="field">
+      <div class="lbl">
+        <div class="k">Partenza · soglia gialla</div>
+        <div class="h">Più vicino di così lo sfondo è giallo; oltre la linea diventa rosso (m)</div>
+      </div>
+      <div class="ctl rf-dp dp-num">
+        <input class="rf-num" id="startDistY" type="number" min="1" max="499" step="1" inputmode="numeric" placeholder="20">
+      </div>
+    </div>
+  </section>
+
+  <!-- DATI -->
+  <section class="rf-instr rf-viti" data-accent="green">
+    <span class="rf-viti-b"></span>
+    <div class="rf-title">Dati</div>
+
+    <div class="field">
+      <div class="lbl">
+        <div class="k">Backup</div>
+        <div class="h">Esporta o ripristina i dati ProVela (JSON)</div>
+      </div>
+    </div>
+    <div class="actions" style="margin-top:4px">
+      <button class="btn teal" id="btnExport">Esporta backup</button>
+      <button class="btn" id="btnImport">Importa backup</button>
+      <input type="file" id="fileImport" accept="application/json,.json" hidden>
+    </div>
+
+    <div class="field" style="margin-top:6px">
+      <div class="lbl">
+        <div class="k">Ripristino</div>
+        <div class="h">Azzera i dati locali di questo dispositivo</div>
+      </div>
+    </div>
+    <div class="actions" style="margin-top:4px">
+      <button class="btn coral" id="btnReset">Azzera dati…</button>
+    </div>
+  </section>
+
+  <!-- POLARE -->
+  <style>
+  @keyframes rfGlow{0%,100%{box-shadow:0 0 0 0 rgba(43,217,196,0);}50%{box-shadow:0 0 0 3px rgba(43,217,196,.55),0 0 22px rgba(43,217,196,.35);}}
+  #polarSection.rf-highlight{animation:rfGlow 1.3s ease-in-out 3;border-color:#2BD9C4!important;}
+  </style>
+<style>
+  .gps-btn{font:600 13px/1 var(--font-mono);padding:9px 18px;border-radius:999px;cursor:pointer;
+    border:1px solid hsl(var(--teal));background:hsl(var(--teal) / .12);color:hsl(var(--teal));transition:.15s;}
+  .gps-btn.on{border-color:hsl(var(--coral));background:hsl(var(--coral) / .12);color:hsl(var(--coral));}
+  .gps-btn:active{transform:scale(.97);}
+  .gps-panel{margin-top:8px;}
+  .gps-panel[hidden]{display:none;}
+  .gps-fix{display:flex;align-items:center;gap:9px;font:700 14px/1 var(--font-mono);color:hsl(var(--ink));margin:2px 2px 12px;}
+  .gps-dot{width:11px;height:11px;border-radius:50%;flex:0 0 auto;background:hsl(var(--muted));box-shadow:0 0 0 3px hsl(var(--muted) / .18);}
+  .gps-dot.ok{background:hsl(var(--green));box-shadow:0 0 0 3px hsl(var(--green) / .22);}
+  .gps-dot.warn{background:hsl(var(--amber));box-shadow:0 0 0 3px hsl(var(--amber) / .22);}
+  .gps-dot.err{background:hsl(var(--coral));box-shadow:0 0 0 3px hsl(var(--coral) / .22);}
+  .gps-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .gps-cell{background:hsl(var(--display));border:1px solid hsl(var(--line));border-radius:10px;padding:8px 10px;}
+  .gps-cell .c-k{font:600 10px/1 var(--font-mono);letter-spacing:.06em;color:hsl(var(--muted));text-transform:uppercase;}
+  .gps-cell .c-v{font:700 15px/1.2 var(--font-mono);color:hsl(var(--ink));margin-top:5px;}
+  .gps-cell .c-q{font:600 11px/1 var(--font-mono);margin-top:3px;min-height:11px;}
+  .gps-cell .c-q.ok{color:hsl(var(--green));}
+  .gps-cell .c-q.warn{color:hsl(var(--amber));}
+  .gps-cell .c-q.err{color:hsl(var(--coral));}
+</style>
+
+  <!-- CIELO GPS -->
+  <section class="rf-instr rf-viti" data-accent="green">
+    <span class="rf-viti-b"></span>
+    <div class="rf-title">Stato GPS</div>
+    <div class="field">
+      <div class="lbl">
+        <div class="k">Stato del ricevitore</div>
+        <div class="h">Fix e accuratezza dal GPS del dispositivo.</div>
+      </div>
+      <div class="ctl">
+        <button type="button" class="gps-btn" id="gpsToggle">Attiva</button>
+      </div>
+    </div>
+    <div class="gps-panel" id="gpsPanel" hidden>
+      <div class="gps-fix"><span class="gps-dot" id="gpsDot"></span><span id="gpsFixTxt">In attesa del fix\u2026</span></div>
+      <div class="gps-grid">
+        <div class="gps-cell"><div class="c-k">Accuratezza</div><div class="c-v" id="gpsAcc">\u2014</div><div class="c-q" id="gpsAccQ"></div></div>
+        <div class="gps-cell"><div class="c-k">Aggiornato</div><div class="c-v" id="gpsAge">\u2014</div><div class="c-q">&nbsp;</div></div>
+        <div class="gps-cell"><div class="c-k">Latitudine</div><div class="c-v" id="gpsLat">\u2014</div></div>
+        <div class="gps-cell"><div class="c-k">Longitudine</div><div class="c-v" id="gpsLon">\u2014</div></div>
+        <div class="gps-cell"><div class="c-k">Altitudine</div><div class="c-v" id="gpsAlt">\u2014</div></div>
+        <div class="gps-cell"><div class="c-k">Velocit\u00e0</div><div class="c-v" id="gpsSpd">\u2014</div></div>
+        <div class="gps-cell"><div class="c-k">Rotta (COG)</div><div class="c-v" id="gpsHdg">\u2014</div></div>
+        <div class="gps-cell"><div class="c-k">Sorgente</div><div class="c-v" id="gpsSrc">device</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="polarSection" class="rf-instr rf-viti" data-accent="teal">
+    <span class="rf-viti-b"></span>
+    <div class="rf-title">Polare della barca</div>
+    <div id="polarInvite" hidden style="margin:2px 0 10px;padding:9px 11px;border-radius:9px;border:1px solid #2BD9C4;background:rgba(43,217,196,.10);font-size:12.5px;line-height:1.42">
+      <b>Benvenuto a bordo.</b> Per iniziare, cerca qui la polare della tua barca (o una simile): migliora rotte, cruscotto e stime di performance.
+    </div>
+    <div class="field">
+      <div class="lbl">
+        <div class="k">Polare condivisa</div>
+        <div class="h" id="polState">Nessuna polare caricata — i moduli usano quella integrata.</div>
+      </div>
+    </div>
+    <div class="field" style="margin-top:6px">
+      <div class="lbl">
+        <div class="k">Cerca la mia barca in ORC</div>
+        <div class="h">Database mediterraneo. Scrivi nome o tipo (es. <code>First 36.7</code>) e tocca il risultato.</div>
+      </div>
+    </div>
+    <input id="orcQ" type="search" autocomplete="off" placeholder="nome o tipo barca…" style="width:100%;font-family:var(--font-mono);font-size:13px;padding:9px 11px;border-radius:9px;border:1px solid hsl(var(--line));background:hsl(var(--bg));box-shadow:inset 0 2px 6px hsl(210 60% 1% / .55);color:hsl(var(--ink));outline:none;margin-top:4px;box-sizing:border-box">
+    <ul id="orcRes" hidden style="list-style:none;margin:6px 0 0;padding:0;border:1px solid hsl(var(--line));border-radius:9px;overflow:hidden;background:hsl(var(--surface))"></ul>
+    <div class="field" style="margin-top:10px">
+      <div class="lbl">
+        <div class="k">Carica da CSV</div>
+        <div class="h">Intestazione: <code>twa/tws;6;8;10;12;14;16;20</code> · righe: <code>angolo;vel;vel;…</code></div>
+      </div>
+    </div>
+    <textarea id="polCsv" rows="4" placeholder="twa/tws;6;8;10;12;14;16;20&#10;52;5.4;6.3;6.7;6.8;6.9;7.0;7.0" style="width:100%;font-family:var(--font-mono);font-size:12px;padding:9px 11px;border-radius:9px;border:1px solid hsl(var(--line));background:hsl(var(--surface));color:hsl(var(--ink));outline:none;margin-top:4px;resize:vertical;box-sizing:border-box"></textarea>
+    <div class="actions" style="margin-top:6px">
+      <button class="btn teal" id="btnPolLoad">Applica CSV</button>
+      <button class="btn" id="btnPolFile">Da file .csv</button>
+      <button class="btn coral" id="btnPolClear">Rimuovi</button>
+      <input type="file" id="polFile" accept=".csv,text/csv" hidden>
+    </div>
+  </section>
+
+  <!-- INFO -->
+  <section class="rf-instr rf-viti" data-accent="amber">
+    <span class="rf-viti-b"></span>
+    <div class="rf-title">Info</div>
+    <dl class="info-grid">
+      <dt>Modulo</dt><dd>Impostazioni</dd>
+      <dt>Versione</dt><dd>v1.0</dd>
+      <dt>Suite</dt><dd>ProVela</dd>
+    </dl>
+  </section>
+
+  <div class="foot">PROVELA · NAVIGAZIONE</div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- chiavi condivise (contratto dati ProVela) ---------- */
+  var K_PROFILE  = "raffyca-profile";   // {boat, model, zone}
+  var K_SETTINGS = "raffyca-settings";  // merge-safe (trackInterval, units, ...)
+  var K_THEME    = "raffyca-theme";     // 'dark' | 'day' | 'night'
+
+  /* chiavi possedute da QUESTO modulo dentro raffyca-settings.
+     La scrittura è merge-safe: tocchiamo solo queste, il resto resta intatto. */
+  var OWNED = ["units", "trackInterval", "voiceInterval", "windSource", "signalkUrl", "raceEndAction", "raceEndUrl", "speedSrc", "sogSmooth", "startDistG", "startDistY"];
+
+  /* prefisso per backup/reset: tutto ciò che appartiene alla suite */
+  var RF_PREFIX = "raffyca-";
+
+  var $ = function(id){ return document.getElementById(id); };
+
+  /* ---------- storage helpers (difensivi) ---------- */
+  function readJSON(key, fallback){
+    try{
+      var raw = localStorage.getItem(key);
+      if(raw === null || raw === "") return fallback;
+      var v = JSON.parse(raw);
+      return (v && typeof v === "object") ? v : fallback;
+    }catch(e){ return fallback; }
+  }
+  function writeJSON(key, obj){
+    try{ localStorage.setItem(key, JSON.stringify(obj)); return true; }
+    catch(e){ return false; }
+  }
+
+  /* scrittura MERGE-SAFE di raffyca-settings:
+     legge lo stato attuale, applica solo le chiavi in patch, riscrive.
+     Non rimuove né sovrascrive chiavi possedute da altri moduli. */
+  function patchSettings(patch){
+    var cur = readJSON(K_SETTINGS, {});
+    Object.keys(patch).forEach(function(k){
+      var val = patch[k];
+      if(val === undefined || val === null || val === ""){ delete cur[k]; }
+      else { cur[k] = val; }
+    });
+    writeJSON(K_SETTINGS, cur);
+    return cur;
+  }
+  function patchProfile(patch){
+    var cur = readJSON(K_PROFILE, {});
+    Object.keys(patch).forEach(function(k){ cur[k] = patch[k]; });
+    writeJSON(K_PROFILE, cur);
+    return cur;
+  }
+
+  /* ---------- tema (3 stati: dark | day | night) ---------- */
+  function applyTheme(theme){
+    if(theme!=="day"&&theme!=="night")theme="dark";
+    var r=document.documentElement;
+    r.classList.remove("day","night");
+    if(theme!=="dark")r.classList.add(theme);
+    $("themeDark").setAttribute("aria-pressed", String(theme==="dark"));
+    $("themeDay").setAttribute("aria-pressed", String(theme==="day"));
+    $("themeNight").setAttribute("aria-pressed", String(theme==="night"));
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if(meta) meta.setAttribute("content", theme==="day"?"#eef1f4":theme==="night"?"#0a0202":"#0a1420");
+  }
+
+  /* ---------- toast ---------- */
+  var toastT;
+  function toast(msg, warn){
+    var el = $("toast");
+    el.textContent = msg;
+    el.classList.toggle("warn", !!warn);
+    el.classList.add("show");
+    clearTimeout(toastT);
+    toastT = setTimeout(function(){ el.classList.remove("show"); }, 1900);
+  }
+
+  /* ---------- segmented helper ---------- */
+  function setSeg(pressedBtn, otherBtn){
+    pressedBtn.setAttribute("aria-pressed","true");
+    otherBtn.setAttribute("aria-pressed","false");
+  }
+
+  /* ================= INIT ================= */
+  function load(){
+    var p = readJSON(K_PROFILE, {});
+    var s = readJSON(K_SETTINGS, {});
+    var _t = localStorage.getItem(K_THEME); if(_t==="sun")_t="day";
+    var theme = (_t==="day"||_t==="night") ? _t : "dark";
+
+    // profilo
+    $("boat").value  = p.boat  || "";
+    $("model").value = p.model || "";
+    $("zone").value  = p.zone  || "";
+    refreshBoatLine(p);
+
+    // tema
+    applyTheme(theme);
+
+    // navigazione
+    var units = (s.units === "kmh") ? "kmh" : "kn";
+    if(units === "kmh") setSeg($("unitKmh"), $("unitKn"));
+    else setSeg($("unitKn"), $("unitKmh"));
+
+    var spd = (s.speedSrc === "stw") ? "stw" : "sog";
+    if(spd === "stw") setSeg($("spdStw"), $("spdSog"));
+    else setSeg($("spdSog"), $("spdStw"));
+    $("sogSmooth").value = (s.sogSmooth != null) ? s.sogSmooth : "";
+
+    $("trackInterval").value = (s.trackInterval != null) ? s.trackInterval : "";
+    $("voiceInterval").value = (s.voiceInterval != null) ? s.voiceInterval : "";
+    $("windSource").value = ["stima","signalk","manuale"].indexOf(s.windSource) >= 0 ? s.windSource : "stima";
+    $("signalkUrl").value = s.signalkUrl || "";
+    refreshSkRow();
+    $("raceEnd").value = ["cruscotto","none","url"].indexOf(s.raceEndAction) >= 0 ? s.raceEndAction : "cruscotto";
+    $("raceEndUrl").value = s.raceEndUrl || "";
+    refreshRaceUrlRow();
+    $("startDistG").value = (s.startDistG != null) ? s.startDistG : "";
+    $("startDistY").value = (s.startDistY != null) ? s.startDistY : "";
+  }
+
+  function refreshBoatLine(p){
+    p = p || readJSON(K_PROFILE, {});
+    var parts = [];
+    if(p.boat) parts.push(p.boat);
+    if(p.model) parts.push(p.model);
+    $("boatLine").textContent = parts.length ? parts.join(" · ") : "Nessuna barca configurata";
+  }
+
+  function refreshSkRow(){
+    $("skRow").style.display = ($("windSource").value === "signalk") ? "" : "none";
+  }
+  function refreshRaceUrlRow(){
+    $("raceUrlRow").style.display = ($("raceEnd").value === "url") ? "" : "none";
+  }
+
+  /* ================= EVENTI ================= */
+  function bind(){
+    // --- profilo (salva su blur/change) ---
+    ["boat","model"].forEach(function(id){
+      $(id).addEventListener("change", function(){
+        var patch = {}; patch[id] = this.value.trim();
+        var p = patchProfile(patch);
+        refreshBoatLine(p);
+        toast("Profilo salvato");
+      });
+    });
+    $("zone").addEventListener("change", function(){
+      patchProfile({ zone: this.value });
+      toast("Profilo salvato");
+    });
+
+    // --- tema ---
+    $("themeDark").addEventListener("click", function(){
+      localStorage.setItem(K_THEME, "dark"); applyTheme("dark"); toast("Tema: scuro");
+    });
+    $("themeDay").addEventListener("click", function(){
+      localStorage.setItem(K_THEME, "day"); applyTheme("day"); toast("Tema: giorno");
+    });
+    $("themeNight").addEventListener("click", function(){
+      localStorage.setItem(K_THEME, "night"); applyTheme("night"); toast("Tema: notte");
+    });
+
+    // --- unità ---
+    $("unitKn").addEventListener("click", function(){
+      setSeg(this, $("unitKmh")); patchSettings({units:"kn"}); toast("Unità: nodi");
+    });
+    $("unitKmh").addEventListener("click", function(){
+      setSeg(this, $("unitKn")); patchSettings({units:"kmh"}); toast("Unità: km/h");
+    });
+    $("spdSog").addEventListener("click", function(){
+      setSeg(this, $("spdStw")); patchSettings({speedSrc:"sog"}); toast("Velocità: SOG (GPS)");
+    });
+    $("spdStw").addEventListener("click", function(){
+      setSeg(this, $("spdSog")); patchSettings({speedSrc:"stw"}); toast("Velocità: STW (log)");
+    });
+    $("sogSmooth").addEventListener("change", function(){
+      var v = parseInt(this.value, 10);
+      if(isNaN(v)){ this.value = ""; patchSettings({sogSmooth: undefined}); toast("Media SOG predefinita (5 s)"); return; }
+      v = Math.max(1, Math.min(30, v)); this.value = v;
+      patchSettings({sogSmooth: v}); toast("Media SOG: " + v + " s");
+    });
+    $("startDistG").addEventListener("change", function(){
+      var v = parseInt(this.value, 10);
+      if(isNaN(v) || v < 2){ this.value = ""; patchSettings({startDistG: undefined}); toast("Soglia verde predefinita (50 m)"); return; }
+      v = Math.max(2, Math.min(500, v)); this.value = v;
+      patchSettings({startDistG: v}); toast("Soglia verde: " + v + " m");
+    });
+    $("startDistY").addEventListener("change", function(){
+      var v = parseInt(this.value, 10);
+      if(isNaN(v) || v < 1){ this.value = ""; patchSettings({startDistY: undefined}); toast("Soglia gialla predefinita (20 m)"); return; }
+      v = Math.max(1, Math.min(499, v)); this.value = v;
+      patchSettings({startDistY: v}); toast("Soglia gialla: " + v + " m");
+    });
+
+    // --- intervallo traccia ---
+    $("trackInterval").addEventListener("change", function(){
+      var v = parseInt(this.value, 10);
+      if(isNaN(v) || v < 1){ this.value = ""; patchSettings({trackInterval: undefined}); toast("Intervallo azzerato"); return; }
+      v = Math.min(600, v); this.value = v;
+      patchSettings({trackInterval: v}); toast("Intervallo: " + v + " s");
+    });
+    $("voiceInterval").addEventListener("change", function(){
+      var v = parseInt(this.value, 10);
+      if(isNaN(v)){ this.value = ""; patchSettings({voiceInterval: undefined}); toast("Intervallo vocale predefinito (10 s)"); return; }
+      v = Math.max(3, Math.min(30, v)); this.value = v;
+      patchSettings({voiceInterval: v}); toast("Voce: " + v + " s");
+    });
+
+    // --- sorgente vento ---
+    $("windSource").addEventListener("change", function(){
+      patchSettings({windSource: this.value}); refreshSkRow(); toast("Sorgente vento aggiornata");
+    });
+    $("signalkUrl").addEventListener("change", function(){
+      patchSettings({signalkUrl: this.value.trim()}); toast("Endpoint salvato");
+    });
+    $("raceEnd").addEventListener("change", function(){
+      patchSettings({raceEndAction: this.value}); refreshRaceUrlRow(); toast("Fine countdown aggiornata");
+    });
+    $("raceEndUrl").addEventListener("change", function(){
+      patchSettings({raceEndUrl: this.value.trim()}); toast("URL salvato");
+    });
+
+    // --- backup export ---
+    $("btnExport").addEventListener("click", exportBackup);
+    // --- backup import ---
+    $("btnImport").addEventListener("click", function(){ $("fileImport").click(); });
+    $("fileImport").addEventListener("change", importBackup);
+    // --- reset ---
+    $("btnReset").addEventListener("click", resetData);
+  }
+
+  /* ================= BACKUP ================= */
+  function collectRaffycaKeys(){
+    var out = {};
+    for(var i=0; i<localStorage.length; i++){
+      var k = localStorage.key(i);
+      if(k && k.indexOf(RF_PREFIX) === 0){ out[k] = localStorage.getItem(k); }
+    }
+    return out;
+  }
+
+  function exportBackup(){
+    var data = {
+      _raffyca: true,
+      _version: 1,
+      _exported: new Date().toISOString(),
+      keys: collectRaffycaKeys()
+    };
+    var blob = new Blob([JSON.stringify(data, null, 2)], {type:"application/json"});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    var stamp = new Date().toISOString().slice(0,10);
+    a.href = url; a.download = "provela-backup-" + stamp + ".json";
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    toast("Backup esportato");
+  }
+
+  function importBackup(ev){
+    var file = ev.target.files && ev.target.files[0];
+    ev.target.value = ""; // consente reimport dello stesso file
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      var data;
+      try{ data = JSON.parse(reader.result); }
+      catch(e){ toast("File non valido", true); return; }
+      if(!data || !data.keys || typeof data.keys !== "object" || !data._raffyca){
+        toast("Backup non riconosciuto", true); return;
+      }
+      var count = 0;
+      Object.keys(data.keys).forEach(function(k){
+        if(k.indexOf(RF_PREFIX) === 0){
+          try{ localStorage.setItem(k, String(data.keys[k])); count++; }catch(e){}
+        }
+      });
+      toast(count + " voci ripristinate");
+      load();
+    };
+    reader.onerror = function(){ toast("Lettura fallita", true); };
+    reader.readAsText(file);
+  }
+
+  /* ================= RESET ================= */
+  function resetData(){
+    var ok = window.confirm(
+      "Azzerare tutti i dati ProVela su questo dispositivo?\n\n" +
+      "Profilo, waypoint, tracce e impostazioni verranno eliminati. " +
+      "L'operazione non è reversibile. Ti consigliamo di esportare prima un backup."
+    );
+    if(!ok) return;
+    var toDelete = [];
+    for(var i=0; i<localStorage.length; i++){
+      var k = localStorage.key(i);
+      if(k && k.indexOf(RF_PREFIX) === 0) toDelete.push(k);
+    }
+    toDelete.forEach(function(k){ localStorage.removeItem(k); });
+    toast("Dati azzerati", true);
+    load();
+  }
+
+  /* ---------- go ---------- */
+  document.addEventListener("DOMContentLoaded", function(){
+    load();
+    bind();
+  });
+
+  // esporto per test (jsdom); no-op nel browser normale
+  if(typeof module !== "undefined" && module.exports){
+    module.exports = { patchSettings: patchSettings, patchProfile: patchProfile, OWNED: OWNED };
+  }
+})();
+</script>
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id);};
+  function parseCSV(text){
+    var lines=String(text||'').trim().split(/\r?\n/).filter(function(l){return l.trim();});
+    if(lines.length<2)return{error:"Servono l'intestazione e almeno una riga."};
+    var d=lines[0].indexOf(';')>=0?';':(lines[0].indexOf('\t')>=0?'\t':(lines[0].indexOf(',')>=0?',':null));
+    function cells(l){return (d?l.split(d):l.trim().split(/\s+/)).map(function(c){return c.trim();});}
+    var hd=cells(lines[0]);
+    var tws=hd.slice(1).map(parseFloat).filter(function(x){return isFinite(x);});
+    var twa=[],data=[];
+    for(var i=1;i<lines.length;i++){var c=cells(lines[i]);var a=parseFloat(c[0]);if(!isFinite(a))continue;
+      var row=c.slice(1,tws.length+1).map(function(x){var v=parseFloat(x);return isFinite(v)?v:0;});
+      while(row.length<tws.length)row.push(0);twa.push(a);data.push(row);}
+    if(!twa.length||!tws.length)return{error:"Formato non riconosciuto: controlla intestazione e separatori."};
+    return{twa:twa,tws:tws,data:data};
+  }
+  function toastMsg(m){var t=$('toast');if(t){t.textContent=m;t.classList.add('on');setTimeout(function(){t.classList.remove('on');},2400);}else alert(m);}
+  function showState(){var st=$('polState');if(!st)return;
+    try{var s=JSON.parse(localStorage.getItem('raffyca-polar')||'null');
+      if(s&&s.twa&&s.tws&&s.data){var src=(s.meta&&s.meta.source)||'condivisa';var boat=s.meta&&s.meta.boat?s.meta.boat+' · ':'';
+        st.textContent=(src==='generica')?'⚠ Polare GENERICA ~11 m attiva — sostituiscila con la tua (ORC o CSV). La usano Traversata e Performance.':('Attiva: '+boat+s.twa.length+' angoli x '+s.tws.length+' TWS ('+src+'). La usano Traversata e Performance.');}
+      else st.textContent='Nessuna polare caricata — i moduli usano quella integrata.';
+    }catch(e){}}
+  function apply(text){var r=parseCSV(text);if(r.error){toastMsg(r.error);return;}
+    localStorage.setItem('raffyca-polar',JSON.stringify({twa:r.twa,tws:r.tws,data:r.data,meta:{source:'csv'},ts:Date.now()}));
+    showState();toastMsg('Polare caricata e condivisa nella suite.');}
+  /* ── ricerca barca nel DB ORC (../routing/orc_med.json) ── */
+  var ORC=null,ORCLOAD=false,ORCFAIL=false;
+  var GENERIC_POLAR={twa:[40, 45, 52, 60, 70, 80, 90, 100, 110, 120, 135, 150, 165, 180],tws:[4, 6, 8, 10, 12, 14, 16, 20],data:[[3.2, 4.3, 5.0, 5.4, 5.7, 5.8, 5.9, 6.0], [3.6, 4.8, 5.6, 6.0, 6.3, 6.5, 6.6, 6.7], [4.0, 5.2, 6.0, 6.5, 6.8, 7.0, 7.1, 7.2], [4.3, 5.5, 6.4, 6.9, 7.2, 7.4, 7.5, 7.6], [4.6, 5.8, 6.7, 7.2, 7.5, 7.7, 7.9, 8.1], [4.7, 5.9, 6.9, 7.4, 7.7, 7.9, 8.1, 8.4], [4.7, 5.9, 6.9, 7.5, 7.8, 8.0, 8.2, 8.6], [4.6, 5.8, 6.8, 7.4, 7.8, 8.0, 8.3, 8.7], [4.4, 5.6, 6.6, 7.2, 7.6, 7.9, 8.2, 8.8], [4.1, 5.3, 6.3, 6.9, 7.4, 7.7, 8.0, 8.7], [3.6, 4.7, 5.7, 6.4, 6.9, 7.3, 7.6, 8.4], [3.1, 4.1, 5.0, 5.7, 6.3, 6.7, 7.1, 7.9], [2.7, 3.6, 4.4, 5.1, 5.7, 6.1, 6.5, 7.3], [2.5, 3.3, 4.1, 4.7, 5.3, 5.7, 6.1, 6.9]]};
+  function orcApplyGeneric(){
+    var g=GENERIC_POLAR;
+    localStorage.setItem('raffyca-polar',JSON.stringify({twa:g.twa,tws:g.tws,data:g.data,meta:{source:'generica',boat:'generica ~11 m',generic:true},ts:Date.now()}));
+    var r=$('orcRes');if(r)r.hidden=true;showState();
+    toastMsg('Polare GENERICA ~11 m caricata — sostituiscila appena hai quella della tua barca.');
+  }
+  function orcGenLi(head){
+    return '<li style="padding:9px 11px;color:hsl(var(--muted));font-size:12px;border-bottom:1px solid hsl(var(--line))">'+head+'</li>'+
+      '<li data-gen="1" style="padding:9px 11px;cursor:pointer;color:#FFC24B"><b>Carica polare generica ~11 m</b>'+
+      '<div style="font-size:11px;color:hsl(var(--muted))">crociera-regata · segnalata in rosso finché non la sostituisci</div></li>';
+  }
+  function escH(x){return String(x).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function orcVppToPolar(v){
+    var tws=(v.speeds||[]).map(Number);
+    var A=(v.angles||[]).map(Number);
+    var ncol=tws.length;
+    var tbl={};
+    A.forEach(function(a){tbl[a]=(v[String(a)]||[]).map(function(x){var n=parseFloat(x);return isFinite(n)?n:0;});});
+    var ba=v.beat_angle||[],bv=v.beat_vmg||[],ra=v.run_angle||[],rv=v.run_vmg||[];
+    var D2R=Math.PI/180;
+    // per ogni colonna (velocità vento) costruisce i nodi angolo->velocità includendo bolina e lasco
+    function knots(j){
+      var k=[];
+      var baj=parseFloat(ba[j]),bvj=parseFloat(bv[j]);
+      if(isFinite(baj)&&isFinite(bvj)&&baj>0&&baj<90){k.push([baj,bvj/Math.cos(baj*D2R)]);} // punto di bolina (angolo/velocità reali)
+      A.forEach(function(a){var s=tbl[a]&&tbl[a][j];if(isFinite(s))k.push([a,s]);});
+      var raj=parseFloat(ra[j]),rvj=parseFloat(rv[j]);
+      if(isFinite(raj)&&isFinite(rvj)){
+        var den=Math.cos((180-raj)*D2R),rs=(Math.abs(den)>1e-3)?rvj/den:rvj;
+        if(raj<180)k.push([raj,rs]);       // punto di lasco ottimale
+        k.push([180,rvj]);                 // chiusura in poppa piena ~ VMG di lasco
+      }
+      k.sort(function(p,q){return p[0]-q[0];});
+      var out=[];for(var i=0;i<k.length;i++){if(out.length&&Math.abs(out[out.length-1][0]-k[i][0])<1e-6){if(k[i][1]>out[out.length-1][1])out[out.length-1]=k[i];}else out.push(k[i]);}
+      return out;
+    }
+    function sample(k,q){
+      if(!k.length)return 0;
+      if(q<=k[0][0])return (Math.abs(q-k[0][0])<1e-6)?k[0][1]:0; // oltre l'angolo di bolina = in prua: velocità 0
+      if(q>=k[k.length-1][0])return k[k.length-1][1];
+      for(var i=1;i<k.length;i++){if(q<=k[i][0]){var a0=k[i-1],a1=k[i],t=(q-a0[0])/(a1[0]-a0[0]);return a0[1]+(a1[1]-a0[1])*t;}}
+      return k[k.length-1][1];
+    }
+    // asse TWA comune: angoli tabellari + riempimenti verso bolina e poppa, così si formano i due lobi
+    var AX=[30,36,40,44,48,52,60,70,75,80,90,100,110,120,130,135,140,150,160,170,180];
+    if(!ba.length&&!ra.length){var twa=[],d2=[];A.forEach(function(a){twa.push(a);d2.push(tbl[a]);});return {twa:twa,tws:tws,data:d2};}
+    var cols=[];for(var j=0;j<ncol;j++)cols.push(knots(j));
+    var data=AX.map(function(q){return cols.map(function(k){var s=sample(k,q);return +((s>0?s:0).toFixed(3));});});
+    return {twa:AX,tws:tws,data:data};
+  }
+  function orcApply(b){
+    var p=orcVppToPolar(b.vpp||{});
+    if(!p.twa.length||!p.tws.length){toastMsg('Polare ORC illeggibile per questa barca.');return;}
+    var nm=b.type||b.name||'barca ORC';
+    localStorage.setItem('raffyca-polar',JSON.stringify({twa:p.twa,tws:p.tws,data:p.data,meta:{source:'ORC',boat:nm},ts:Date.now()}));
+    $('orcRes').hidden=true;$('orcQ').value=nm;showState();
+    toastMsg('Polare \u00ab'+nm+'\u00bb trovata e condivisa nella suite.');
+  }
+  function orcMsg(t){return '<li style="padding:9px 11px;color:hsl(var(--muted));font-size:12px">'+t+'</li>';}
+  function orcRender(q){
+    var ul=$('orcRes');
+    if(ORCFAIL){ul.hidden=false;ul.innerHTML=orcGenLi('Database ORC non raggiungibile (routing/orc_med.json). Puoi intanto caricare una polare generica.');return;}
+    if(!ORC){ul.hidden=false;ul.innerHTML=orcMsg('Carico il database\u2026');return;}
+    q=(q||'').trim().toLowerCase();
+    if(q.length<2){ul.hidden=true;ul.innerHTML='';return;}
+    var hits=[];
+    for(var i=0;i<ORC.length&&hits.length<30;i++){var b=ORC[i];
+      if((b.type||'').toLowerCase().indexOf(q)>=0||(b.name||'').toLowerCase().indexOf(q)>=0)hits.push(i);}
+    if(!hits.length){ul.hidden=false;ul.innerHTML=orcGenLi('Nessuna barca «'+escH(q)+'» nel DB ORC mediterraneo. Controlla nome o modello; in mancanza carica una generica e sostituiscila poi.');return;}
+    ul.hidden=false;
+    ul.innerHTML=hits.map(function(i){var b=ORC[i];
+      return '<li data-k="'+i+'" style="padding:8px 11px;border-top:1px solid hsl(var(--line));cursor:pointer">'+
+        '<b>'+escH(b.type||b.name)+'</b><div style="font-size:11px;color:hsl(var(--muted))">'+
+        escH(b.name||'')+' · '+escH(b.year||'')+' · '+escH(b.country||'')+'</div></li>';}).join('');
+  }
+  function orcEnsure(cb){
+    if(ORC){cb&&cb();return;}
+    if(ORCLOAD||ORCFAIL)return;
+    ORCLOAD=true;
+    fetch('../routing/orc_med.json',{cache:'force-cache'})
+      .then(function(r){if(!r.ok)throw 0;return r.json();})
+      .then(function(j){ORC=j;ORCLOAD=false;cb&&cb();})
+      .catch(function(){ORCLOAD=false;ORCFAIL=true;orcRender(($('orcQ')||{}).value);});
+  }
+  var oq=$('orcQ'),oul=$('orcRes');
+  if(oq&&oul){
+    oq.addEventListener('focus',function(){orcEnsure(function(){orcRender(oq.value);});});
+    oq.addEventListener('input',function(){orcEnsure(function(){orcRender(oq.value);});orcRender(oq.value);});
+    oul.addEventListener('click',function(e){var g=e.target.closest('li[data-gen]');if(g){orcApplyGeneric();return;}var li=e.target.closest('li[data-k]');if(li)orcApply(ORC[+li.getAttribute('data-k')]);});
+  }
+  /* ── arrivo dall'onboarding: invito caldo a cercare la polare ── */
+  (function(){
+    try{
+      if(new URLSearchParams(location.search).get('polar')!=='1')return;
+      var pr=null;try{pr=JSON.parse(localStorage.getItem('raffyca-profile')||'null');}catch(e){}
+      var model=(pr&&pr.model)||'';
+      var inv=document.getElementById('polarInvite');if(inv)inv.hidden=false;
+      var sec=document.getElementById('polarSection');
+      if(sec){sec.classList.add('rf-highlight');setTimeout(function(){sec.classList.remove('rf-highlight');},5200);
+        setTimeout(function(){sec.scrollIntoView({behavior:'smooth',block:'start'});},120);}
+      var q=$('orcQ');
+      if(q){orcEnsure(function(){if(model){q.value=model;orcRender(model);}});
+        setTimeout(function(){try{q.focus({preventScroll:true});}catch(e){q.focus();}},650);}
+      history.replaceState(null,'',location.pathname); // pulisce l'URL: no ri-trigger al refresh
+    }catch(e){}
+  })();
+  var b1=$('btnPolLoad'),b2=$('btnPolFile'),b3=$('btnPolClear'),bf=$('polFile');
+  if(b1)b1.addEventListener('click',function(){apply($('polCsv').value);});
+  if(b2&&bf){b2.addEventListener('click',function(){bf.click();});bf.addEventListener('change',function(e){var f=e.target.files[0];if(!f)return;var rd=new FileReader();rd.onload=function(){$('polCsv').value=rd.result;apply(rd.result);};rd.readAsText(f);e.target.value='';});}
+  if(b3)b3.addEventListener('click',function(){if(confirm('Rimuovere la polare condivisa? I moduli torneranno a quella integrata.')){localStorage.removeItem('raffyca-polar');showState();toastMsg('Polare condivisa rimossa.');}});
+  showState();
+})();
+</script>
+<script>
+(function(){
+  var btn=document.getElementById('gpsToggle'), panel=document.getElementById('gpsPanel');
+  if(!btn||!panel) return;
+  function q(id){return document.getElementById(id);}
+  var watchId=null, last=null, ageTimer=null;
+  function fmtLL(v,pos,neg){var h=v>=0?pos:neg;v=Math.abs(v);var d=Math.floor(v),m=(v-d)*60;return d+'\u00b0 '+m.toFixed(3)+"' "+h;}
+  function setDot(cls){var d=q('gpsDot');if(d)d.className='gps-dot'+(cls?(' '+cls):'');}
+  function accQual(a){if(a<10)return{c:'ok',t:'ottimo'};if(a<25)return{c:'ok',t:'buono'};if(a<50)return{c:'warn',t:'discreto'};return{c:'err',t:'scarso'};}
+  function tickAge(){
+    if(!last){q('gpsAge').textContent='\u2014';return;}
+    var s=Math.round((Date.now()-last)/1000);
+    q('gpsAge').textContent = s<1?'ora':(s<60?(s+' s fa'):(Math.floor(s/60)+' min fa'));
+    if(s>15){setDot('warn');q('gpsFixTxt').textContent='Fix vecchio';}
+  }
+  function onPos(p){
+    var c=p.coords; last=Date.now();
+    setDot('ok'); q('gpsFixTxt').textContent='Fix acquisito';
+    var a=c.accuracy, Q=accQual(a);
+    q('gpsAcc').textContent='\u00b1 '+(a<10?a.toFixed(1):Math.round(a))+' m';
+    var qe=q('gpsAccQ'); qe.textContent=Q.t; qe.className='c-q '+Q.c;
+    q('gpsLat').textContent=fmtLL(c.latitude,'N','S');
+    q('gpsLon').textContent=fmtLL(c.longitude,'E','W');
+    q('gpsAlt').textContent=(c.altitude!=null&&isFinite(c.altitude))?(Math.round(c.altitude)+' m'+(c.altitudeAccuracy!=null&&isFinite(c.altitudeAccuracy)?(' \u00b1'+Math.round(c.altitudeAccuracy)):'')):'\u2014';
+    q('gpsSpd').textContent=(c.speed!=null&&isFinite(c.speed))?((c.speed*1.94384).toFixed(1)+' kn'):'\u2014';
+    q('gpsHdg').textContent=(c.heading!=null&&isFinite(c.heading)&&c.speed!=null&&c.speed>0.3)?(Math.round(c.heading)+'\u00b0'):'\u2014';
+    tickAge();
+  }
+  function onErr(e){
+    setDot('err');
+    var m=(e&&e.code===1)?'Permesso negato':(e&&e.code===2)?'Posizione non disponibile':(e&&e.code===3)?'Timeout, riprovo\u2026':'Errore GPS';
+    q('gpsFixTxt').textContent=m;
+  }
+  function start(){
+    panel.hidden=false;
+    if(!('geolocation' in navigator)){setDot('err');q('gpsFixTxt').textContent='GPS non supportato dal browser';return;}
+    btn.textContent='Disattiva'; btn.classList.add('on');
+    setDot(''); q('gpsFixTxt').textContent='Ricerca del fix\u2026';
+    try{watchId=navigator.geolocation.watchPosition(onPos,onErr,{enableHighAccuracy:true,maximumAge:0,timeout:15000});}
+    catch(e){onErr({code:2});}
+    ageTimer=setInterval(tickAge,1000);
+  }
+  function stop(){
+    if(watchId!=null){try{navigator.geolocation.clearWatch(watchId);}catch(e){}watchId=null;}
+    if(ageTimer){clearInterval(ageTimer);ageTimer=null;}
+    last=null; btn.textContent='Attiva'; btn.classList.remove('on');
+    setDot(''); q('gpsFixTxt').textContent='Spento';
+  }
+  btn.addEventListener('click',function(){ if(watchId==null) start(); else stop(); });
+})();
+</script>
+</body>
+</html>

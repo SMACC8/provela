@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Info · ProVela</title>
+<script>(function(){try{var t=localStorage.getItem('raffyca-theme');if(t==='sun')t='day';if(t==='day'||t==='night')document.documentElement.classList.add(t);}catch(e){}})();</script>
+<style>
+:root{--bg:#060e18;--panel:#0e2036;--dp:#040c14;--line:#1a3248;--ink:#deedf5;--sub:#5a7a94;
+  --teal:#2BD9C4;--amber:#FFC24B;--mono:ui-monospace,"SF Mono","Roboto Mono",Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI","Helvetica Neue",sans-serif;}
+html.day{--bg:#eef1f4;--panel:#ffffff;--dp:#f3f6f9;--line:#c2ccd6;--ink:#0a1420;--sub:#3b4e60;--teal:#067d70;--amber:#8f5600;}
+html.night{--bg:#0a0202;--panel:#160404;--dp:#0a0101;--line:#3a1010;--ink:#ff5b5b;--sub:#b04040;--teal:#ff4d4d;--amber:#ff7a45;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);min-height:100dvh;padding:16px;
+  max-width:620px;margin:0 auto;line-height:1.55;}
+h1{font-size:20px;letter-spacing:.02em;margin-bottom:4px;}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--teal);margin-bottom:14px;}
+p{color:#c3d4e2;margin-bottom:13px;font-size:14.5px;}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:15px 16px;margin-bottom:12px;}
+.card h3{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);margin-bottom:10px;}
+.mod{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid rgba(26,50,72,.6);font-size:14px;}
+.mod:last-child{border-bottom:0;}
+.mod b{color:var(--ink);min-width:118px;flex:0 0 auto;}
+.mod span{color:var(--sub);}
+.foot{font-family:var(--mono);font-size:11px;color:var(--sub);margin-top:8px;letter-spacing:.03em;}
+</style>
+</head>
+<body>
+<!-- ===== rf-topbar: barra fissa trasversale ProVela (inietta subito dopo <body>) ===== -->
+<style>
+.rf-topbar{position:fixed;top:0;left:0;right:0;height:40px;z-index:9000;display:flex;align-items:center;gap:9px;
+  padding:0 10px;background:linear-gradient(#0c1c2e,#081521);border-bottom:1px solid #1a3248;
+  font-family:ui-monospace,"SF Mono","Roboto Mono",Menlo,Consolas,monospace;color:var(--sub,#5a7a94);font-size:11.5px;
+  letter-spacing:.02em;-webkit-user-select:none;user-select:none;box-shadow:0 2px 10px -6px rgba(0,0,0,.8);}
+.rf-topbar a.rf-home{display:flex;align-items:center;justify-content:center;width:30px;height:30px;flex:none;
+  border-radius:8px;background:rgba(43,217,196,.1);border:1px solid rgba(43,217,196,.35);text-decoration:none;}
+.rf-topbar a.rf-home:active{transform:scale(.92);}
+.rf-topbar .rf-boat{display:flex;align-items:center;gap:5px;flex:none;color:var(--ink,#deedf5);font-weight:600;white-space:nowrap;}
+.rf-topbar .rf-boat svg{flex:none;}
+.rf-topbar .rf-gps{flex:none;display:flex;align-items:center;}
+.rf-topbar .rf-gps .gdot{width:9px;height:9px;border-radius:50%;background:#5a6b7a;box-shadow:0 0 0 2px rgba(90,107,122,.25);transition:background .3s,box-shadow .3s;}
+.rf-topbar .rf-gps .gdot.ok{background:var(--teal,#2BD9C4);box-shadow:0 0 6px rgba(43,217,196,.6);}
+.rf-topbar .rf-gps .gdot.old{background:var(--amber,#FFC24B);box-shadow:0 0 5px rgba(255,194,75,.5);}
+.rf-topbar .rf-pol{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;color:var(--sub,#5a7a94);}
+.rf-topbar .rf-pol .mod{color:var(--ink,#cfe2ee);display:inline;border:0;padding:0;margin:0;font-size:inherit;}
+.rf-topbar .rf-pol .pol{color:var(--amber,#FFC24B);font-weight:600;}
+.rf-topbar .rf-pol .pol.warn{color:var(--coral,#FF6B6B);}
+.rf-topbar .rf-spacer{flex:1;}
+html.day .rf-topbar{background:linear-gradient(#ffffff,#e7ecf1);border-bottom-color:#a7b5c2;}
+html.night .rf-topbar{background:linear-gradient(#150404,#0e0303);border-bottom-color:#3a1010;}
+.rf-topbar .rf-status{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:44%;flex:none;color:var(--sub,#5a7a94);}
+.rf-topbar .rf-status.wp b{color:var(--teal,#2BD9C4);font-weight:600;}
+.rf-topbar .rf-status.rec{color:var(--coral,#FF6B6B);font-weight:600;}
+.rf-topbar .rf-status .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#FF6B6B;margin-right:5px;vertical-align:middle;animation:rfblink 1s steps(2,start) infinite;}
+@keyframes rfblink{50%{opacity:.25}}
+body{padding-top:40px!important;}
+@media (max-width:480px){.rf-topbar .rf-pol .mod{display:none;}}
+@media (max-width:360px){.rf-topbar .rf-boat .bn{display:none;}}
+</style>
+<div class="rf-topbar" role="banner">
+  <a class="rf-home" href="index.html" aria-label="Menu ProVela" title="Menu ProVela">
+    <svg viewBox="0 0 64 64" width="19" height="19" aria-hidden="true"><path d="M32 8 L32 56 L10 56 Z" fill="#2BD9C4" opacity=".95"/><path d="M32 26 L54 56 L32 56 Z" fill="#2BD9C4" opacity=".45"/><line x1="32" y1="6" x2="32" y2="58" stroke="#1a4a42" stroke-width="3"/></svg>
+  </a>
+  <span class="rf-boat" id="rfBoat"></span>
+  <span class="rf-gps" id="rfGps" title="Stato GPS"><span class="gdot"></span></span>
+  <span class="rf-pol" id="rfPol" title=""></span>
+  <span class="rf-spacer"></span>
+  <span class="rf-status" id="rfStatus"></span>
+</div>
+<script>
+(function(){
+  function esc(x){return String(x).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  var elBoat=document.getElementById("rfBoat"),elGps=document.getElementById("rfGps"),
+      elPol=document.getElementById("rfPol"),elSt=document.getElementById("rfStatus");
+  var SAIL='<svg viewBox="0 0 64 64" width="13" height="13" aria-hidden="true"><path d="M34 6 L34 52 L14 52 Z" fill="#2BD9C4"/><line x1="34" y1="4" x2="34" y2="54" stroke="#1a4a42" stroke-width="3"/></svg>';
+  function tickBoat(){
+    if(!elBoat)return;
+    var pr=null;try{pr=JSON.parse(localStorage.getItem("raffyca-profile")||"null");}catch(e){}
+    var boat=(pr&&pr.boat)||"ProVela";
+    elBoat.innerHTML=SAIL+'<span class="bn">'+esc(boat)+'</span>';
+  }
+  function polarLabel(){
+    var p=null;try{p=JSON.parse(localStorage.getItem("raffyca-polar")||"null");}catch(e){}
+    if(!p||!p.twa||!p.data||!p.twa.length)return{txt:"integrata",cls:"warn",boat:""};
+    var m=p.meta||{};
+    if(m.source==="generica"||m.generic)return{txt:"generica",cls:"warn",boat:(m.boat||"generica")};
+    return{txt:(m.source||"attiva"),cls:"",boat:(m.boat||"")};
+  }
+  function tickPolar(){
+    if(!elPol)return;
+    var pr=null;try{pr=JSON.parse(localStorage.getItem("raffyca-profile")||"null");}catch(e){}
+    var L=polarLabel();
+    var model=L.boat||((pr&&pr.model)||"");
+    var h="";
+    if(model)h+='<span class="mod">'+esc(model)+'</span>';
+    h+=(h?" · ":"")+'<span class="pol '+L.cls+'">pol '+esc(L.txt)+'</span>';
+    elPol.innerHTML=h; elPol.title=[model,"polare: "+L.txt].filter(Boolean).join(" · ");
+  }
+  function tickGps(){
+    if(!elGps)return;
+    var dot=elGps.querySelector(".gdot"),pos=null;
+    try{pos=JSON.parse(localStorage.getItem("raffyca-pos")||"null");}catch(e){}
+    var cls="",title="GPS: nessun dato";
+    if(pos&&isFinite(pos.lat)&&isFinite(pos.lon)){
+      if(pos.ts&&isFinite(pos.ts)){
+        var age=Math.round((Date.now()-pos.ts)/1000);
+        if(age<25){cls="ok";title="GPS: fix "+age+" s fa";}
+        else if(age<900){cls="old";title="GPS: ultimo fix "+(age<120?(age+" s"):(Math.round(age/60)+" min"))+" fa";}
+        else{cls="";title="GPS: fix vecchio";}
+      }else{cls="old";title="GPS: posizione senza orario";}
+    }
+    if(dot)dot.className="gdot"+(cls?(" "+cls):"");
+    elGps.title=title;
+  }
+  function tickStatus(){
+    if(!elSt)return;
+    var rec=null;try{rec=JSON.parse(localStorage.getItem("raffyca-rec")||"null");}catch(e){}
+    if(rec&&rec.on){elSt.className="rf-status rec";elSt.innerHTML='<span class="dot"></span>REC GPX'+(rec.pts?(" · "+rec.pts+" pt"):"");return;}
+    var tid="";try{tid=localStorage.getItem("raffyca-active-track")||"";}catch(e){}
+    if(tid){var tk=null;try{tk=(JSON.parse(localStorage.getItem("raffyca-tracks")||"[]")).find(function(x){return x.id===tid;});}catch(e){}
+      if(tk&&tk.pts&&tk.pts.length>=2){elSt.className="rf-status wp";elSt.innerHTML="&#9654; <b>"+esc(tk.name)+"</b>";return;}}
+    var id="";try{id=localStorage.getItem("raffyca-active-wp")||"";}catch(e){}
+    if(id){var w=null;try{w=(JSON.parse(localStorage.getItem("raffyca-waypoints")||"[]")).find(function(x){return x.id===id;});}catch(e){}
+      if(w){elSt.className="rf-status wp";elSt.innerHTML="&#9873; WP: <b>"+esc(w.name)+"</b>";return;}}
+    elSt.className="rf-status";elSt.textContent="";
+  }
+  function all(){tickBoat();tickPolar();tickGps();tickStatus();}
+  all();
+  setInterval(tickGps,3000);setInterval(tickStatus,3000);setInterval(tickPolar,5000);setInterval(tickBoat,10000);
+  window.addEventListener("storage",all);
+  document.addEventListener("visibilitychange",function(){if(!document.hidden)all();});
+})();
+</script>
+<!-- ===== /rf-topbar ===== -->
+
+  <div class="eyebrow">◈ La suite</div>
+  <h1>Una cassetta degli attrezzi per navigare a vela</h1>
+  <p>Una suite modulare, pensata per il telefono e usabile anche <b>offline</b>. Riunisce in un unico menu strumenti indipendenti che condividono lo stesso profilo barca, gli stessi waypoint e le stesse tracce. Ogni strumento funziona per conto suo; il menu li tiene insieme.</p>
+  <p>Non è un'app da scaricare da uno store: sono pagine web che il telefono può conservare in memoria e aprire anche senza rete. Puoi aggiungerla alla schermata home e usarla come una normale app. Imposti una volta la barca e la zona di navigazione e ogni strumento parte già configurato — nessun account, nessuna registrazione.</p>
+  <p>È nata per la navigazione da diporto costiera e d'altura breve: privilegia dati chiari e leggibili sotto il sole, con l'incertezza delle previsioni resa esplicita anziché nascosta. Non sostituisce la cartografia ufficiale né gli strumenti di bordo omologati: è un supporto tattico, non uno strumento di sicurezza certificato.</p>
+
+  <div class="card">
+    <h3>Gli strumenti</h3>
+    <div class="mod"><b>Meteo</b><span>previsione tattica multi-modello, con l'incertezza resa visibile</span></div>
+    <div class="mod"><b>Cruscotto</b><span>pannello strumenti configurabile (vento, rotta, velocità, XTE…)</span></div>
+    <div class="mod"><b>Naviga XTE</b><span>navigazione verso un waypoint con scarto di rotta</span></div>
+    <div class="mod"><b>Performance</b><span>velocità reale contro polare della barca</span></div>
+    <div class="mod"><b>Regata</b><span>timer di partenza e tattica sulla linea</span></div>
+    <div class="mod"><b>Traversata</b><span>routing meteo sulla previsione vento</span></div>
+    <div class="mod"><b>Posizione Live</b><span>trasmetti la tua posizione a chi ti segue da terra</span></div>
+    <div class="mod"><b>Carta Nautica</b><span>waypoint e tracce su carta</span></div>
+  </div>
+
+  <div class="card">
+    <h3>Abbreviazioni</h3>
+    <div class="mod"><b>SOG</b><span>velocità al fondo (Speed Over Ground)</span></div>
+    <div class="mod"><b>COG</b><span>rotta al fondo (Course Over Ground)</span></div>
+    <div class="mod"><b>STW</b><span>velocità sull'acqua (Speed Through Water)</span></div>
+    <div class="mod"><b>BRG</b><span>rilevamento a un punto (Bearing)</span></div>
+    <div class="mod"><b>TWD / TWS</b><span>direzione e intensità del vento reale</span></div>
+    <div class="mod"><b>TWA</b><span>angolo del vento reale rispetto alla prua</span></div>
+    <div class="mod"><b>AWA / AWS</b><span>angolo e intensità del vento apparente</span></div>
+    <div class="mod"><b>VMG</b><span>velocità utile / Velocity Made Good (verso il vento o la linea)</span></div>
+    <div class="mod"><b>XTE</b><span>scarto di rotta (Cross-Track Error)</span></div>
+    <div class="mod"><b>DTW / TTG</b><span>distanza e tempo al waypoint</span></div>
+    <div class="mod"><b>ETA</b><span>orario stimato d'arrivo</span></div>
+    <div class="mod"><b>RC</b><span>barca comitato, estremità destra della linea di partenza</span></div>
+    <div class="mod"><b>PIN</b><span>boa di partenza, estremità sinistra della linea</span></div>
+    <div class="mod"><b>OCS</b><span>oltre la linea prima del via (On Course Side)</span></div>
+    <div class="mod"><b>TTL</b><span>tempo alla linea alla velocità attuale (Time To Line)</span></div>
+    <div class="mod"><b>TTK</b><span>tempo da bruciare prima del via (Time To Kill)</span></div>
+  </div>
+
+  <div class="card">
+    <h3>Come sono fatti i dati</h3>
+    <p style="margin:0">Profilo, waypoint e tracce vivono sul tuo dispositivo e sono condivisi tra gli strumenti. Niente account, niente server: quello che salvi resta tuo. La Posizione Live è l'unica funzione che, se la attivi tu, trasmette dati all'esterno: chi riceve il link vede solo la tua posizione, in sola lettura, e soltanto finché tieni attiva la trasmissione.</p>
+  </div>
+
+  <div class="foot">Dati meteo: modelli pubblici · Cartografia: OpenStreetMap / OpenSeaMap · Polari: ORC</div>
+  <div class="foot" style="margin-top:14px">Svilup<b>PPA</b>ta da Sergio Moro</div>
+</body>
+</html>

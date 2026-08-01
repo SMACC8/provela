@@ -1,0 +1,792 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Ancoraggio · ProVela</title>
+<script>(function(){try{var t=localStorage.getItem('raffyca-theme');if(t==='sun')t='day';if(t==='day'||t==='night')document.documentElement.classList.add(t);}catch(e){}})();</script>
+<meta name="theme-color" content="#060e18">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/boat-icon-256.png">
+<style>
+:root{--bg:#060e18;--panel:#0e2036;--panel2:#0b1a2c;--dp:#040c14;--line:#1a3248;--dim:#122030;
+  --ink:#deedf5;--sub:#5a7a94;--teal:#2BD9C4;--amber:#FFC24B;--coral:#FF6B6B;--green:#46d68a;
+  --mono:ui-monospace,"SF Mono","Roboto Mono",Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",sans-serif;}
+/* TEMA GIORNO (alto contrasto per il sole) */
+html.day{
+  --bg:#eef1f4; --bg-grad-top:#dbe3ea; --panel:#ffffff; --panel2:#e7ecf1; --dp:#f3f6f9;
+  --line:#a7b5c2; --dim:#cdd6de;
+  --ink:#0a1420; --sub:#3b4e60; --sub2:#54697b;
+  --teal:#067d70; --amber:#8f5600; --coral:#c62020; --green:#12894f;
+  --bezel-hi:#ffffff; --bezel-mid:#d6dde4; --bezel-lo:#b6c2ce;
+}
+/* TEMA NOTTE (rosso, visione notturna) */
+html.night{
+  --bg:#0a0202; --bg-grad-top:#180404; --panel:#150404; --panel2:#0e0303; --dp:#0a0101;
+  --line:#3a1010; --dim:#200707;
+  --ink:#ff5b5b; --sub:#b04040; --sub2:#8a3030;
+  --teal:#ff4d4d; --amber:#ff7a45; --coral:#ff5555; --green:#c23a3a;
+  --bezel-hi:#3a1010; --bezel-mid:#200707; --bezel-lo:#120404;
+}
+/* topbar: sfondo per Giorno/Notte (in Scuro resta il gradiente originale) */
+html.day .rf-topbar{background:linear-gradient(#ffffff,#e7ecf1);border-bottom-color:#a7b5c2;}
+html.night .rf-topbar{background:linear-gradient(#150404,#0e0303);border-bottom-color:#3a1010;}
+/* icone SVG: rimappa i fill standard per Giorno/Notte (selettore su attributo, no markup) */
+html.day [fill="#2BD9C4"]{fill:#067d70;} html.night [fill="#2BD9C4"]{fill:#ff4d4d;}
+html.day [fill="#FFC24B"]{fill:#8f5600;} html.night [fill="#FFC24B"]{fill:#ff7a45;}
+html.day [fill="#FF6B6B"]{fill:#c62020;} html.night [fill="#FF6B6B"]{fill:#ff5555;}
+html.day [fill="#5a7a94"]{fill:#3b4e60;} html.night [fill="#5a7a94"]{fill:#b04040;}
+html.day [fill="#46d68a"]{fill:#12894f;} html.night [fill="#46d68a"]{fill:#c23a3a;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);min-height:100dvh;
+  padding:48px 10px 14px;display:flex;flex-direction:column;gap:10px;overflow-x:hidden;}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;}
+h3{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);}
+.lbl{font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--sub);margin-bottom:3px;}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:700;line-height:1;}
+.unit{font-size:12px;color:var(--sub);font-family:var(--mono);}
+.dp{background:var(--dp);border:1px solid var(--line);border-radius:9px;padding:9px 11px;}
+button{font-family:var(--sans);font-size:14px;padding:11px 14px;border-radius:10px;border:1px solid var(--line);
+  background:var(--panel2);color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px;}
+button:active{transform:scale(.97);}
+button.primary{background:var(--teal);color:#04121a;border-color:var(--teal);font-weight:700;}
+button.warn{background:var(--coral);border-color:var(--coral);color:#fff;font-weight:700;}
+button.ghost{background:transparent;color:var(--sub);}
+input.mono,select{font-family:var(--mono);font-size:14px;padding:9px 10px;border-radius:9px;
+  border:1px solid var(--line);background:var(--dp);color:var(--ink);width:100%;}
+
+/* canvas plotter */
+#wrap{position:relative;width:100%;}
+#wrap{max-width:460px;margin-left:auto;margin-right:auto;min-height:200px;}
+#cv{width:100%;height:auto;aspect-ratio:1/1;min-height:180px;display:block;border-radius:12px;background:radial-gradient(120% 90% at 50% 40%,#0a1826,#050c16);
+  border:1px solid var(--line);touch-action:none;}
+.ovl{position:absolute;font-family:var(--mono);font-size:11px;color:#cfe2ee;background:rgba(6,14,24,.82);
+  border:1px solid var(--line);border-radius:8px;padding:4px 8px;pointer-events:none;}
+.ovl.tl{top:8px;left:8px;} .ovl.tr{top:8px;right:8px;color:#ffc24b;border-color:#5a4a18;}
+
+/* status */
+#status{border-radius:12px;padding:13px;text-align:center;border:2px solid var(--green);
+  background:rgba(70,214,138,.08);}
+#status.idle{border-color:var(--line);background:var(--panel2);}
+#status.alarm{border-color:var(--coral);background:rgba(255,107,107,.12);animation:flash .7s steps(2,start) infinite;}
+@keyframes flash{50%{background:rgba(255,107,107,.30);}}
+#status .big{font-size:22px;font-weight:800;letter-spacing:.04em;}
+#status.ok .big{color:var(--green);} #status.alarm .big{color:var(--coral);} #status.idle .big{color:var(--sub);}
+#status .sub{font-size:12px;color:var(--sub);margin-top:3px;}
+
+.grid4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.metric .num{font-size:22px;}
+.metric .unit{font-size:11px;margin-left:2px;}
+.warnb{font-size:11px;color:var(--amber);line-height:1.4;}
+.disc{font-size:11px;color:var(--sub);line-height:1.45;border:1px dashed #3a3050;border-radius:10px;
+  padding:9px 11px;background:rgba(255,194,75,.05);}
+.disc b{color:var(--amber);}
+.rowbtn{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.hz{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line);font-size:13px;}
+.hz:first-of-type{border-top:0;}
+.hz .tag{font-family:var(--mono);font-size:11px;color:var(--coral);border:1px solid #5a2530;border-radius:6px;padding:2px 6px;}
+.hz .x{margin-left:auto;color:var(--sub);cursor:pointer;padding:4px 8px;}
+.collap>.hd{display:flex;align-items:center;justify-content:space-between;cursor:pointer;}
+.collap .body{margin-top:11px;}
+.collap.closed .body{display:none;}
+.chev{color:var(--sub);font-family:var(--mono);}
+.field{margin-bottom:9px;} .field:last-child{margin-bottom:0;}
+.stepr{display:grid;grid-template-columns:46px 1fr 46px;gap:6px;align-items:center;}
+.stepr button{padding:9px 0;font-size:20px;font-weight:700;}
+.stepr .v{text-align:center;font-family:var(--mono);font-size:20px;font-weight:700;}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;}
+.seg button{border:0;border-radius:0;background:var(--dp);color:var(--sub);font-size:13px;}
+.seg button.on{background:rgba(43,217,196,.14);color:var(--teal);font-weight:700;}
+.chips{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;}
+.chips button{padding:9px 0;font-size:12px;}
+.chips button.on{background:rgba(255,107,107,.14);border-color:var(--coral);color:var(--coral);font-weight:700;}
+
+/* sheet */
+#sheet{position:fixed;inset:0;background:rgba(3,8,14,.6);display:none;align-items:flex-end;z-index:9500;}
+#sheet.on{display:flex;}
+#sheet .inner{width:100%;background:#13202c;border-top-left-radius:20px;border-top-right-radius:20px;
+  border-top:1px solid var(--line);padding:14px 14px calc(14px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto;}
+.handle{width:44px;height:5px;border-radius:3px;background:#3a4a5a;margin:0 auto 12px;}
+html.day #sheet .inner{background:#f3f6f9;}
+html.day .handle{background:#c2ccd6;}
+</style>
+</head>
+<body>
+<!-- ===== rf-topbar: barra fissa trasversale ProVela (inietta subito dopo <body>) ===== -->
+<style>
+.rf-topbar{position:fixed;top:0;left:0;right:0;height:40px;z-index:9000;display:flex;align-items:center;gap:9px;
+  padding:0 10px;background:linear-gradient(#0c1c2e,#081521);border-bottom:1px solid #1a3248;
+  font-family:ui-monospace,"SF Mono","Roboto Mono",Menlo,Consolas,monospace;color:var(--sub,#5a7a94);font-size:11.5px;
+  letter-spacing:.02em;-webkit-user-select:none;user-select:none;box-shadow:0 2px 10px -6px rgba(0,0,0,.8);}
+.rf-topbar a.rf-home{display:flex;align-items:center;justify-content:center;width:30px;height:30px;flex:none;
+  border-radius:8px;background:rgba(43,217,196,.1);border:1px solid rgba(43,217,196,.35);text-decoration:none;}
+.rf-topbar a.rf-home:active{transform:scale(.92);}
+.rf-topbar .rf-boat{display:flex;align-items:center;gap:5px;flex:none;color:var(--ink,#deedf5);font-weight:600;white-space:nowrap;}
+.rf-topbar .rf-boat svg{flex:none;}
+.rf-topbar .rf-gps{flex:none;display:flex;align-items:center;}
+.rf-topbar .rf-gps .gdot{width:9px;height:9px;border-radius:50%;background:#5a6b7a;box-shadow:0 0 0 2px rgba(90,107,122,.25);transition:background .3s,box-shadow .3s;}
+.rf-topbar .rf-gps .gdot.ok{background:var(--teal,#2BD9C4);box-shadow:0 0 6px rgba(43,217,196,.6);}
+.rf-topbar .rf-gps .gdot.old{background:var(--amber,#FFC24B);box-shadow:0 0 5px rgba(255,194,75,.5);}
+.rf-topbar .rf-pol{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;color:var(--sub,#5a7a94);}
+.rf-topbar .rf-pol .mod{color:var(--ink,#cfe2ee);}
+.rf-topbar .rf-pol .pol{color:var(--amber,#FFC24B);font-weight:600;}
+.rf-topbar .rf-pol .pol.warn{color:var(--coral,#FF6B6B);}
+.rf-topbar .rf-spacer{flex:1;}
+.rf-topbar .rf-status{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:44%;flex:none;color:var(--sub,#5a7a94);}
+.rf-topbar .rf-status.wp b{color:var(--teal,#2BD9C4);font-weight:600;}
+.rf-topbar .rf-status.rec{color:var(--coral,#FF6B6B);font-weight:600;}
+.rf-topbar .rf-status .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#FF6B6B;margin-right:5px;vertical-align:middle;animation:rfblink 1s steps(2,start) infinite;}
+@keyframes rfblink{50%{opacity:.25}}
+body{padding-top:40px!important;}
+@media (max-width:480px){.rf-topbar .rf-pol .mod{display:none;}}
+@media (max-width:360px){.rf-topbar .rf-boat .bn{display:none;}}
+</style>
+<div class="rf-topbar" role="banner">
+  <a class="rf-home" href="../" aria-label="Menu ProVela" title="Menu ProVela">
+    <svg viewBox="0 0 64 64" width="19" height="19" aria-hidden="true"><path d="M32 8 L32 56 L10 56 Z" fill="#2BD9C4" opacity=".95"/><path d="M32 26 L54 56 L32 56 Z" fill="#2BD9C4" opacity=".45"/><line x1="32" y1="6" x2="32" y2="58" stroke="#1a4a42" stroke-width="3"/></svg>
+  </a>
+  <span class="rf-boat" id="rfBoat"></span>
+  <span class="rf-gps" id="rfGps" title="Stato GPS"><span class="gdot"></span></span>
+  <span class="rf-pol" id="rfPol" title=""></span>
+  <span class="rf-spacer"></span>
+  <span class="rf-status" id="rfStatus"></span>
+</div>
+<script>
+(function(){
+  function esc(x){return String(x).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  var elBoat=document.getElementById("rfBoat"),elGps=document.getElementById("rfGps"),
+      elPol=document.getElementById("rfPol"),elSt=document.getElementById("rfStatus");
+  var SAIL='<svg viewBox="0 0 64 64" width="13" height="13" aria-hidden="true"><path d="M34 6 L34 52 L14 52 Z" fill="#2BD9C4"/><line x1="34" y1="4" x2="34" y2="54" stroke="#1a4a42" stroke-width="3"/></svg>';
+  function tickBoat(){
+    if(!elBoat)return;
+    var pr=null;try{pr=JSON.parse(localStorage.getItem("raffyca-profile")||"null");}catch(e){}
+    var boat=(pr&&pr.boat)||"ProVela";
+    elBoat.innerHTML=SAIL+'<span class="bn">'+esc(boat)+'</span>';
+  }
+  function polarLabel(){
+    var p=null;try{p=JSON.parse(localStorage.getItem("raffyca-polar")||"null");}catch(e){}
+    if(!p||!p.twa||!p.data||!p.twa.length)return{txt:"integrata",cls:"warn",boat:""};
+    var m=p.meta||{};
+    if(m.source==="generica"||m.generic)return{txt:"generica",cls:"warn",boat:(m.boat||"generica")};
+    return{txt:(m.source||"attiva"),cls:"",boat:(m.boat||"")};
+  }
+  function tickPolar(){
+    if(!elPol)return;
+    var pr=null;try{pr=JSON.parse(localStorage.getItem("raffyca-profile")||"null");}catch(e){}
+    var L=polarLabel();
+    var model=L.boat||((pr&&pr.model)||"");
+    var h="";
+    if(model)h+='<span class="mod">'+esc(model)+'</span>';
+    h+=(h?" · ":"")+'<span class="pol '+L.cls+'">pol '+esc(L.txt)+'</span>';
+    elPol.innerHTML=h; elPol.title=[model,"polare: "+L.txt].filter(Boolean).join(" · ");
+  }
+  function tickGps(){
+    if(!elGps)return;
+    var dot=elGps.querySelector(".gdot"),pos=null;
+    try{pos=JSON.parse(localStorage.getItem("raffyca-pos")||"null");}catch(e){}
+    var cls="",title="GPS: nessun dato";
+    if(pos&&isFinite(pos.lat)&&isFinite(pos.lon)){
+      if(pos.ts&&isFinite(pos.ts)){
+        var age=Math.round((Date.now()-pos.ts)/1000);
+        if(age<25){cls="ok";title="GPS: fix "+age+" s fa";}
+        else if(age<900){cls="old";title="GPS: ultimo fix "+(age<120?(age+" s"):(Math.round(age/60)+" min"))+" fa";}
+        else{cls="";title="GPS: fix vecchio";}
+      }else{cls="old";title="GPS: posizione senza orario";}
+    }
+    if(dot)dot.className="gdot"+(cls?(" "+cls):"");
+    elGps.title=title;
+  }
+  function tickStatus(){
+    if(!elSt)return;
+    var rec=null;try{rec=JSON.parse(localStorage.getItem("raffyca-rec")||"null");}catch(e){}
+    if(rec&&rec.on){elSt.className="rf-status rec";elSt.innerHTML='<span class="dot"></span>REC GPX'+(rec.pts?(" · "+rec.pts+" pt"):"");return;}
+    var tid="";try{tid=localStorage.getItem("raffyca-active-track")||"";}catch(e){}
+    if(tid){var tk=null;try{tk=(JSON.parse(localStorage.getItem("raffyca-tracks")||"[]")).find(function(x){return x.id===tid;});}catch(e){}
+      if(tk&&tk.pts&&tk.pts.length>=2){elSt.className="rf-status wp";elSt.innerHTML="&#9654; <b>"+esc(tk.name)+"</b>";return;}}
+    var id="";try{id=localStorage.getItem("raffyca-active-wp")||"";}catch(e){}
+    if(id){var w=null;try{w=(JSON.parse(localStorage.getItem("raffyca-waypoints")||"[]")).find(function(x){return x.id===id;});}catch(e){}
+      if(w){elSt.className="rf-status wp";elSt.innerHTML="&#9873; WP: <b>"+esc(w.name)+"</b>";return;}}
+    elSt.className="rf-status";elSt.textContent="";
+  }
+  function all(){tickBoat();tickPolar();tickGps();tickStatus();}
+  all();
+  setInterval(tickGps,3000);setInterval(tickStatus,3000);setInterval(tickPolar,5000);setInterval(tickBoat,10000);
+  window.addEventListener("storage",all);
+  document.addEventListener("visibilitychange",function(){if(!document.hidden)all();});
+})();
+</script>
+<!-- ===== /rf-topbar ===== -->
+
+<div class="disc" id="disc">
+  <b>Veglia attiva, non allarme in background.</b> In una pagina web l'allarme suona solo con
+  <b>app in primo piano e schermo acceso</b>: il browser sospende timer e audio quando esci o blocchi il telefono.
+  Tieni ProVela aperto in pozzetto; per la notte fai turni di guardia. Lo schermo resta acceso (Wake Lock) quando l'ancora è calata.
+</div>
+
+<div id="wrap" class="card" style="padding:0;overflow:hidden;">
+  <canvas id="cv"></canvas>
+  <div class="ovl tl" id="ovlClock">—</div>
+  <div class="ovl tr" id="ovlFix">no fix</div>
+</div>
+
+<div id="status" class="idle ok">
+  <div class="big" id="stBig">ANCORA NON CALATA</div>
+  <div class="sub" id="stSub">Premi «Cala ancora» quando l'ancora tocca il fondo.</div>
+</div>
+
+<div class="grid4">
+  <div class="dp metric"><div class="lbl">Distanza</div><span class="num" id="mDist">—</span><span class="unit">m</span></div>
+  <div class="dp metric"><div class="lbl">Deriva ancora</div><span class="num" id="mDrift">—</span><span class="unit">m/h</span></div>
+  <div class="dp metric"><div class="lbl">Alba</div><span class="num" id="mSunR" style="font-size:17px">—</span></div>
+  <div class="dp metric"><div class="lbl">Tramonto</div><span class="num" id="mSunS" style="font-size:17px">—</span></div>
+</div>
+
+<div class="grid2">
+  <div class="dp"><div class="lbl">Catena / Fondo</div><span class="num" id="mScope" style="font-size:17px">—</span></div>
+  <div class="dp"><div class="lbl">Rischio tocco (bassa marea)</div><span class="num" id="mTouch" style="font-size:15px">—</span></div>
+</div>
+
+<div class="rowbtn">
+  <button id="btnDrop" class="primary">⚓ Cala ancora</button>
+  <button id="btnWeigh" class="ghost" style="display:none">Salpa</button>
+  <button id="btnSilence" class="warn" style="display:none">🔇 Tacita 5 min</button>
+</div>
+
+<!-- Parametri -->
+<div class="card collap closed" id="parCard">
+  <div class="hd" onclick="this.parentNode.classList.toggle('closed')">
+    <h3 style="margin:0">Parametri</h3><span class="chev">▾</span>
+  </div>
+  <div class="body">
+    <div class="field">
+      <div class="lbl">Raggio d'allarme (manuale) — governa l'allarme</div>
+      <div class="stepr"><button data-step="rAlarm:-5">−</button><span class="v"><span id="vAlarm">40</span> m</span><button data-step="rAlarm:5">+</button></div>
+      <div class="warnb" id="rSuggest" style="margin-top:5px">consiglio: —</div>
+    </div>
+    <div class="grid2">
+      <div class="field"><div class="lbl">Catena filata (m)</div><input class="mono" id="inChain" inputmode="numeric" placeholder="30"></div>
+      <div class="field"><div class="lbl">Fondo (m)</div><input class="mono" id="inDepth" inputmode="decimal" placeholder="8"></div>
+      <div class="field"><div class="lbl">Pescaggio (m)</div><input class="mono" id="inDraft" inputmode="decimal" placeholder="1.8"></div>
+      <div class="field"><div class="lbl">Escursione bassa marea (m)</div><input class="mono" id="inTide" inputmode="decimal" placeholder="0.4"></div>
+    </div>
+    <div class="field">
+      <div class="lbl">Vento previsto — provenienza (° da nord), per il cono</div>
+      <input class="mono" id="inFcast" inputmode="numeric" placeholder="es. 315 (NW) — vuoto = nessun cono">
+    </div>
+    <div class="field" style="display:flex;align-items:center;justify-content:space-between">
+      <div class="lbl" style="margin:0">Mostra costa (GeoJSON, se vicina)</div>
+      <button id="tgCoast" class="ghost">off</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pericoli -->
+<div class="card collap closed" id="hzCard">
+  <div class="hd" onclick="this.parentNode.classList.toggle('closed')">
+    <h3 style="margin:0">Pericoli <span id="hzCount" style="color:var(--sub)">(0)</span></h3><span class="chev">▾</span>
+  </div>
+  <div class="body">
+    <div id="hzList"></div>
+    <button id="btnAddHz" style="width:100%;margin-top:10px">+ Aggiungi pericolo</button>
+  </div>
+</div>
+
+<div style="height:6px"></div>
+
+<!-- editor pericolo -->
+<div id="sheet"><div class="inner">
+  <div class="handle"></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <h3 style="margin:0;font-size:15px;color:var(--ink)">Nuovo pericolo</h3>
+    <span style="color:var(--sub);cursor:pointer;font-size:20px" id="hzClose">✕</span>
+  </div>
+  <div class="seg" style="margin-bottom:12px">
+    <button id="segBrg" class="on">Rilevamento + distanza</button>
+    <button id="segTap">Tocca sulla carta</button>
+  </div>
+  <div id="brgFields">
+    <div class="grid2">
+      <div class="field"><div class="lbl">Rilevamento (° da nord)</div>
+        <div class="stepr"><button data-step="hzBrg:-5">−</button><span class="v"><span id="vHzBrg">0</span>°</span><button data-step="hzBrg:5">+</button></div></div>
+      <div class="field"><div class="lbl">Distanza dall'ancora (m)</div>
+        <div class="stepr"><button data-step="hzDist:-5">−</button><span class="v"><span id="vHzDist">50</span> m</span><button data-step="hzDist:5">+</button></div></div>
+    </div>
+  </div>
+  <div id="tapHint" class="warnb" style="display:none;margin-bottom:10px">Tocca la carta per posizionare il pericolo.</div>
+  <div class="field"><div class="lbl">Tipo</div>
+    <div class="chips" id="hzChips">
+      <button data-hztype="Scoglio" class="on">Scoglio</button>
+      <button data-hztype="Secca">Secca</button>
+      <button data-hztype="Boa">Boa</button>
+      <button data-hztype="Ostacolo">Ostacolo</button>
+    </div>
+  </div>
+  <div class="field"><div class="lbl">Raggio pericolo (m)</div>
+    <div class="stepr"><button data-step="hzR:-2">−</button><span class="v"><span id="vHzR">10</span> m</span><button data-step="hzR:2">+</button></div>
+  </div>
+  <div class="rowbtn" style="margin-top:12px">
+    <button id="hzCancel" class="ghost">Annulla</button>
+    <button id="hzSave" class="primary">Salva pericolo</button>
+  </div>
+</div></div>
+
+<script>
+"use strict";
+/* ============================ ANCORAGGIO — motore ============================ */
+var KEY="raffyca-anchor";
+var DEG=Math.PI/180;
+
+/* ---- stato ---- */
+var S=load()||freshState();
+function freshState(){return{
+  active:false, drop:null, center:null, fitValid:false,
+  rAlarm:40, chain:null, depth:null, draft:null, tide:null, fcast:null, coast:false,
+  hazards:[], track:[], centerHist:[], silenceUntil:0
+};}
+function load(){try{return JSON.parse(localStorage.getItem(KEY)||"null");}catch(e){return null;}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+
+/* ---- geometria: frame locale in metri centrato sull'ancora (o sul drop) ---- */
+function frameOrigin(){return S.drop||{lat:0,lon:0};}
+function toXY(lat,lon){var o=frameOrigin();
+  return{x:(lon-o.lon)*Math.cos(o.lat*DEG)*111320, y:(lat-o.lat)*110540};}
+function toLL(x,y){var o=frameOrigin();
+  return{lat:o.lat+y/110540, lon:o.lon+x/(Math.cos(o.lat*DEG)*111320)};}
+function dist2(ax,ay,bx,by){var dx=ax-bx,dy=ay-by;return Math.sqrt(dx*dx+dy*dy);}
+function brgDistToXY(brg,d){var a=brg*DEG;return{x:d*Math.sin(a),y:d*Math.cos(a)};}
+
+/* ---- fit del cerchio (Kåsa, minimi quadrati algebrici) ---- */
+function kasaFit(pts){
+  if(pts.length<5)return null;
+  var n=pts.length,sx=0,sy=0,sxx=0,syy=0,sxy=0,sxz=0,syz=0,sz=0;
+  for(var i=0;i<n;i++){var x=pts[i].x,y=pts[i].y,z=x*x+y*y;
+    sx+=x;sy+=y;sxx+=x*x;syy+=y*y;sxy+=x*y;sxz+=x*z;syz+=y*z;sz+=z;}
+  // sistema normale 3x3 per [A,B,C]: minimizza (z - A x - B y - C)
+  var m=[[sxx,sxy,sx],[sxy,syy,sy],[sx,sy,n]], v=[sxz,syz,sz];
+  var sol=solve3(m,v); if(!sol)return null;
+  var cx=sol[0]/2, cy=sol[1]/2, r2=sol[2]+cx*cx+cy*cy;
+  if(r2<=0)return null; return{x:cx,y:cy,r:Math.sqrt(r2)};
+}
+function solve3(m,v){
+  var a=m.map(function(r,i){return r.concat([v[i]]);});
+  for(var c=0;c<3;c++){
+    var p=c;for(var r=c+1;r<3;r++)if(Math.abs(a[r][c])>Math.abs(a[p][c]))p=r;
+    if(Math.abs(a[p][c])<1e-9)return null;
+    var t=a[p];a[p]=a[c];a[c]=t;
+    for(var r2=0;r2<3;r2++){if(r2===c)continue;var f=a[r2][c]/a[c][c];
+      for(var k=c;k<4;k++)a[r2][k]-=f*a[c][k];}
+  }
+  return[a[0][3]/a[0][0],a[1][3]/a[1][1],a[2][3]/a[2][2]];
+}
+/* copertura angolare dei punti attorno a un centro (gradi) */
+function angularSpread(pts,cx,cy){
+  if(pts.length<3)return 0;
+  var ang=pts.map(function(p){return Math.atan2(p.y-cy,p.x-cx)/DEG;}).map(function(a){return(a+360)%360;});
+  ang.sort(function(a,b){return a-b;});
+  var maxgap=(360-ang[ang.length-1])+ang[0];
+  for(var i=1;i<ang.length;i++)maxgap=Math.max(maxgap,ang[i]-ang[i-1]);
+  return 360-maxgap;
+}
+
+/* ---- alba/tramonto (equazione del sole, offline) ---- */
+function sunTimes(date,lat,lon){var rad=DEG,deg=1/DEG,J2000=2451545;
+  var dayMs=Date.UTC(date.getFullYear(),date.getMonth(),date.getDate());
+  var n=Math.round(dayMs/86400000-0.5+2440588-J2000+0.0008),Jstar=n-lon/360;
+  var M=(357.5291+0.98560028*Jstar)%360;
+  var C=1.9148*Math.sin(M*rad)+0.02*Math.sin(2*M*rad)+0.0003*Math.sin(3*M*rad);
+  var lam=(M+C+180+102.9372)%360;
+  var Jtr=J2000+Jstar+0.0053*Math.sin(M*rad)-0.0069*Math.sin(2*lam*rad);
+  var dec=Math.asin(Math.sin(lam*rad)*Math.sin(23.44*rad));
+  var co=(Math.sin(-0.833*rad)-Math.sin(lat*rad)*Math.sin(dec))/(Math.cos(lat*rad)*Math.cos(dec));
+  if(co>1||co<-1)return{rise:null,set:null};
+  var w=Math.acos(co)*deg,toD=function(J){return new Date((J-2440588+0.5)*86400000);};
+  return{rise:toD(Jtr-w/360),set:toD(Jtr+w/360)};}
+function hhmm(d){return d?d.toLocaleTimeString("it",{hour:"2-digit",minute:"2-digit"}):"—";}
+
+/* ---- posizione corrente ---- */
+var cur=null, watchId=null, lastFixT=0;
+function startWatch(){
+  if(!navigator.geolocation)return;
+  if(watchId!=null)return;
+  watchId=navigator.geolocation.watchPosition(onFix,onErr,{enableHighAccuracy:true,maximumAge:1000,timeout:15000});
+}
+function onErr(){ /* mantiene ultimo fix */ }
+function onFix(p){
+  var c=p.coords; cur={lat:c.latitude,lon:c.longitude,acc:c.accuracy,
+    sog:(c.speed!=null&&isFinite(c.speed))?c.speed:null, t:Date.now()};
+  try{localStorage.setItem("raffyca-pos",JSON.stringify({lat:cur.lat,lon:cur.lon,ts:Date.now()}));}catch(e){}
+  if(cur.sog==null&&lastFixLL){var d=haversine(lastFixLL.lat,lastFixLL.lon,cur.lat,cur.lon),
+      dt=(cur.t-lastFixT)/1000; cur.sog=dt>0?d/dt:0;}
+  lastFixLL={lat:cur.lat,lon:cur.lon,ts:Date.now()}; lastFixT=cur.t;
+  if(S.active)ingest();
+  draw();updateUI();
+}
+var lastFixLL=null;
+function haversine(la1,lo1,la2,lo2){var R=6371000,d1=(la2-la1)*DEG,d2=(lo2-lo1)*DEG,
+  a=Math.sin(d1/2)*Math.sin(d1/2)+Math.cos(la1*DEG)*Math.cos(la2*DEG)*Math.sin(d2/2)*Math.sin(d2/2);
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
+
+/* ---- ingest fix quando ancorati: track + fit + allarmi ---- */
+function ingest(){
+  if(!cur||!S.drop)return;
+  var xy=toXY(cur.lat,cur.lon), now=cur.t;
+  // gating rumore: usa per il FIT solo fix con moto reale (SOG >= 0.2 kn = 0.103 m/s)
+  var moving=(cur.sog!=null&&cur.sog>=0.103);
+  if(moving){
+    S.track.push({x:xy.x,y:xy.y,t:now});
+    // finestra: 30 min o 200 punti
+    var cutoff=now-30*60000;
+    while(S.track.length&&(S.track[0].t<cutoff))S.track.shift();
+    if(S.track.length>200)S.track.splice(0,S.track.length-200);
+    refitCenter(now);
+  }
+  save();
+}
+function refitCenter(now){
+  var fit=kasaFit(S.track);
+  if(fit){
+    var spread=angularSpread(S.track,fit.x,fit.y);
+    if(spread>=60){
+      // reiezione outlier ~3σ sul residuo, poi refit
+      var res=S.track.map(function(p){return Math.abs(dist2(p.x,p.y,fit.x,fit.y)-fit.r);});
+      var mean=res.reduce(function(a,b){return a+b;},0)/res.length;
+      var sd=Math.sqrt(res.reduce(function(a,b){return a+(b-mean)*(b-mean);},0)/res.length)||0;
+      var clean=S.track.filter(function(p,i){return res[i]<=mean+3*sd;});
+      var fit2=kasaFit(clean)||fit;
+      S.center={x:fit2.x,y:fit2.y,r:fit2.r};S.fitValid=true;
+      // storico centro per la deriva
+      S.centerHist.push({t:now,x:fit2.x,y:fit2.y});
+      var ch=now-30*60000;while(S.centerHist.length&&S.centerHist[0].t<ch)S.centerHist.shift();
+      return;
+    }
+  }
+  S.fitValid=false; // spread insufficiente -> fallback su drop
+}
+/* deriva centro su 10 min (m); null se storico troppo corto */
+function centerDrift(){
+  if(!S.fitValid||S.centerHist.length<2)return null;
+  var now=Date.now(),ref=null;
+  for(var i=0;i<S.centerHist.length;i++){if(now-S.centerHist[i].t>=10*60000)ref=S.centerHist[i];}
+  if(!ref)return null;
+  var last=S.centerHist[S.centerHist.length-1];
+  return dist2(last.x,last.y,ref.x,ref.y); // su ~10 min
+}
+
+/* ---- allarmi ---- */
+var alarmOn=false;
+function evalAlarms(){
+  if(!S.active||!cur){alarmOn=false;return{on:false};}
+  var cxy=S.fitValid?S.center:{x:0,y:0}; // centro fittato o drop (origine)
+  var pxy=toXY(cur.lat,cur.lon);
+  var dCenter=dist2(pxy.x,pxy.y,cxy.x,cxy.y);
+  var over=dCenter>S.rAlarm;
+  var drift=centerDrift(); var dragging=(drift!=null&&drift>6);
+  var on=over||dragging;
+  alarmOn=on;
+  return{on:on,over:over,dragging:dragging,dCenter:dCenter,drift:drift};
+}
+
+/* ============================ AUDIO + WAKE LOCK ============================ */
+var actx=null,beepTimer=null;
+function armAudio(){try{actx=actx||new(window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume();}catch(e){}}
+function beep(){if(!actx)return;try{var o=actx.createOscillator(),g=actx.createGain();
+  o.type="square";o.frequency.value=880;g.gain.value=0.0001;o.connect(g);g.connect(actx.destination);
+  var t=actx.currentTime;g.gain.exponentialRampToValueAtTime(0.25,t+0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+0.35);o.start(t);o.stop(t+0.36);}catch(e){}}
+function startAlarmSound(){if(beepTimer)return;beep();beepTimer=setInterval(function(){
+  beep();if(navigator.vibrate)navigator.vibrate(200);},900);}
+function stopAlarmSound(){if(beepTimer){clearInterval(beepTimer);beepTimer=null;}}
+
+var wakeLock=null;
+async function acquireWake(){try{if("wakeLock" in navigator){wakeLock=await navigator.wakeLock.request("screen");}}catch(e){}}
+function releaseWake(){try{if(wakeLock){wakeLock.release();wakeLock=null;}}catch(e){}}
+document.addEventListener("visibilitychange",function(){if(!document.hidden&&S.active)acquireWake();});
+
+/* ============================ CANVAS ============================ */
+var cv=document.getElementById("cv"),ctx=cv.getContext("2d"),DPR=Math.min(window.devicePixelRatio||1,2.5);
+var coastData=null,coastLoading=false;
+function fitCanvas(){var r=cv.getBoundingClientRect();
+  var w=Math.round(r.width)||cv.clientWidth||Math.min((window.innerWidth||400)-20,460);
+  var h=Math.round(r.height)||w;
+  if(w<40)w=Math.min((window.innerWidth||400)-20,460);
+  if(h<40)h=w;
+  cv.width=Math.round(w*DPR);cv.height=Math.round(h*DPR);}
+function viewRadius(){
+  var r=S.rAlarm*1.15;
+  if(cur&&S.drop){var p=toXY(cur.lat,cur.lon);r=Math.max(r,dist2(p.x,p.y,0,0)*1.12);}
+  S.hazards.forEach(function(h){var p=toXY(h.lat,h.lon);r=Math.max(r,dist2(p.x,p.y,0,0)*1.08);});
+  return Math.max(r,15);
+}
+function _cv(n,fb){try{var v=getComputedStyle(document.documentElement).getPropertyValue(n).trim();return v||fb;}catch(e){return fb;}}
+function _rgba(n,fb,al){var c=_cv(n,fb).replace('#','');if(c.length===3)c=c[0]+c[0]+c[1]+c[1]+c[2]+c[2];var r=parseInt(c.slice(0,2),16),g=parseInt(c.slice(2,4),16),b=parseInt(c.slice(4,6),16);return 'rgba('+r+','+g+','+b+','+al+')';}
+function draw(){
+  fitCanvas();
+  var W=cv.width,H=cv.height,cx=W/2,cy=H/2;ctx.clearRect(0,0,W,H);
+  var TH={faint:_cv('--sub','#5a7a94'),grid:_cv('--line','#3a5266'),mark:_cv('--teal','#2BD9C4'),alarm:_cv('--coral','#e2483a'),coral:_cv('--coral','#FF6B6B'),ok:_cv('--green','#46d68a'),wp:_cv('--amber','#FFC24B'),boat:_cv('--ink','#cfd8e0'),halo:_cv('--dp','#060e18'),track:_rgba('--teal','#2BD9C4',0.22),coneF:_rgba('--amber','#FFC24B',0.13),coneS:_rgba('--amber','#FFC24B',0.6),heading:_rgba('--ink','#dce6f0',0.6),acc:_rgba('--sub','#5a7a94',0.4)};
+  var half=Math.min(W,H)*0.5,pad=half*0.14,R=half-pad;
+  var vr=viewRadius(),scale=R/vr; // px per metro
+  var cc=S.fitValid?S.center:{x:0,y:0};   // centro (fit o calata) = centro del box
+  function px(x,y){return[cx+(x-cc.x)*scale,cy-(y-cc.y)*scale];} // metri(E,N)->pixel, centrato sul centro
+
+  if(!S.drop){ctx.fillStyle=TH.faint;ctx.font=(14*DPR)+"px system-ui";ctx.textAlign="center";
+    ctx.fillText("Ancora non calata",cx,cy);return;}
+
+  // costa opzionale
+  if(S.coast&&coastData)drawCoast(px,scale);
+
+  // impronta di swing (track)
+  if(S.track.length>1){ctx.lineWidth=Math.max(2,10*scale);ctx.lineCap="round";ctx.strokeStyle=TH.track;
+    ctx.beginPath();for(var i=0;i<S.track.length;i++){var q=px(S.track[i].x,S.track[i].y);if(i===0)ctx.moveTo(q[0],q[1]);else ctx.lineTo(q[0],q[1]);}ctx.stroke();}
+
+  var A=evalAlarms();
+  var cCtr=px(cc.x,cc.y);
+
+  // cono forecast (vento previsto)
+  if(S.fcast!=null&&isFinite(S.fcast)){
+    var lee=(S.fcast+180)%360,sp=25; // barca sottovento
+    ctx.fillStyle=TH.coneF;ctx.beginPath();ctx.moveTo(cCtr[0],cCtr[1]);
+    for(var a=lee-sp;a<=lee+sp;a+=3){var e=brgDistToXY(a,S.rAlarm),pp=px(cc.x+e.x,cc.y+e.y);ctx.lineTo(pp[0],pp[1]);}
+    ctx.closePath();ctx.fill();
+    ctx.strokeStyle=TH.coneS;ctx.setLineDash([6*DPR,5*DPR]);ctx.lineWidth=1.5*DPR;
+    [lee-sp,lee+sp].forEach(function(a){var e=brgDistToXY(a,S.rAlarm),pp=px(cc.x+e.x,cc.y+e.y);
+      ctx.beginPath();ctx.moveTo(cCtr[0],cCtr[1]);ctx.lineTo(pp[0],pp[1]);ctx.stroke();});
+    ctx.setLineDash([]);
+  }
+
+  // rosa dei venti + anello allarme (centrato sul centro fittato)
+  ctx.strokeStyle=TH.grid;ctx.lineWidth=1*DPR;
+  for(var b=0;b<360;b+=15){var e0=brgDistToXY(b,S.rAlarm),e1=brgDistToXY(b,S.rAlarm*(b%90===0?1.09:1.05));
+    var p0=px(cc.x+e0.x,cc.y+e0.y),p1=px(cc.x+e1.x,cc.y+e1.y);
+    ctx.beginPath();ctx.moveTo(p0[0],p0[1]);ctx.lineTo(p1[0],p1[1]);ctx.stroke();}
+  ctx.fillStyle=TH.faint;ctx.font=(11*DPR)+"px "+"ui-monospace,monospace";ctx.textAlign="center";ctx.textBaseline="middle";
+  [[0,"N"],[90,"E"],[180,"S"],[270,"W"]].forEach(function(t){var e=brgDistToXY(t[0],S.rAlarm*1.16),p=px(cc.x+e.x,cc.y+e.y);ctx.fillText(t[1],p[0],p[1]);});
+  ctx.strokeStyle=A.on?TH.coral:TH.ok;ctx.lineWidth=3*DPR;
+  ctx.beginPath();ctx.arc(cCtr[0],cCtr[1],S.rAlarm*scale,0,7);ctx.stroke();
+  // cerchio piccolo = marker (tratteggiato)
+  ctx.strokeStyle=TH.mark;ctx.lineWidth=2*DPR;ctx.setLineDash([5*DPR,6*DPR]);
+  var rInner=Math.min(S.rAlarm*0.45,S.rAlarm*scale*0.45/scale);
+  ctx.beginPath();ctx.arc(cCtr[0],cCtr[1],rInner*scale,0,7);ctx.stroke();ctx.setLineDash([]);
+  // etichette distanza sui cerchi (raggio in metri)
+  ctx.textAlign="center";ctx.textBaseline="middle";ctx.font=(11*DPR)+"px ui-monospace,monospace";
+  function ringLbl(rMet,col){var py=cCtr[1]+rMet*scale-9*DPR,s=Math.round(rMet)+" m";
+    ctx.lineWidth=3.5*DPR;ctx.strokeStyle=TH.halo;ctx.strokeText(s,cCtr[0],py);
+    ctx.fillStyle=col;ctx.fillText(s,cCtr[0],py);}
+  ringLbl(rInner,TH.mark);
+  ringLbl(S.rAlarm,A.on?TH.coral:TH.ok);
+
+  // punto di calata (drop) — crocetta dim
+  var dp=px(0,0);ctx.strokeStyle=TH.faint;ctx.lineWidth=1.5*DPR;
+  ctx.beginPath();ctx.moveTo(dp[0]-7*DPR,dp[1]);ctx.lineTo(dp[0]+7*DPR,dp[1]);
+  ctx.moveTo(dp[0],dp[1]-7*DPR);ctx.lineTo(dp[0],dp[1]+7*DPR);ctx.stroke();
+
+  // pericoli
+  S.hazards.forEach(function(h){var q=toXY(h.lat,h.lon),p=px(q.x,q.y),rr=h.r*scale;
+    ctx.strokeStyle=TH.alarm;ctx.setLineDash([5*DPR,5*DPR]);ctx.lineWidth=2*DPR;
+    ctx.beginPath();ctx.arc(p[0],p[1],rr,0,7);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle=TH.alarm;ctx.beginPath();ctx.moveTo(p[0],p[1]-7*DPR);ctx.lineTo(p[0]-6*DPR,p[1]+5*DPR);ctx.lineTo(p[0]+6*DPR,p[1]+5*DPR);ctx.closePath();ctx.fill();
+  });
+
+  // ancora (centro fittato)
+  ctx.fillStyle=TH.wp;ctx.font=(20*DPR)+"px system-ui";ctx.textAlign="center";ctx.textBaseline="middle";
+  ctx.fillText("⚓",cCtr[0],cCtr[1]);
+
+  // catena + barca
+  if(cur){var bp=px(toXY(cur.lat,cur.lon).x,toXY(cur.lat,cur.lon).y);
+    ctx.strokeStyle=TH.heading;ctx.setLineDash([2*DPR,5*DPR]);ctx.lineWidth=2*DPR;
+    ctx.beginPath();ctx.moveTo(cCtr[0],cCtr[1]);ctx.lineTo(bp[0],bp[1]);ctx.stroke();ctx.setLineDash([]);
+    drawBoat(bp[0],bp[1]);
+    // cerchio accuratezza GPS
+    if(cur.acc){ctx.strokeStyle=TH.acc;ctx.lineWidth=1*DPR;
+      ctx.beginPath();ctx.arc(bp[0],bp[1],cur.acc*scale,0,7);ctx.stroke();}
+  }
+  // scala
+  drawScaleBar(scale,W,H,DPR);
+}
+var boatImg=new Image();boatImg.src="assets/boat-icon-128.png";boatImg.onload=draw;
+function drawBoat(x,y){
+  var heading=0; // prua verso l'ancora (upwind); se non ho centro uso su
+  if(cur&&S.drop){var cc=S.fitValid?S.center:{x:0,y:0},p=toXY(cur.lat,cur.lon);
+    heading=Math.atan2(cc.x-p.x,cc.y-p.y);}
+  var w=26*DPR,h=w*(148/128);
+  ctx.save();ctx.translate(x,y);ctx.rotate(heading);
+  if(boatImg.complete&&boatImg.naturalWidth)ctx.drawImage(boatImg,-w/2,-h/2,w,h);
+  else{ctx.fillStyle=_cv('--ink','#cfd8e0');ctx.beginPath();ctx.moveTo(0,-h/2);ctx.lineTo(w/2,h/2);ctx.lineTo(-w/2,h/2);ctx.closePath();ctx.fill();}
+  ctx.restore();
+}
+function drawScaleBar(scale,W,H,DPR){var m=Math.max(5,Math.round(20/scale/5)*5),len=m*scale;
+  var x=W-len-18*DPR,y=H-16*DPR;ctx.strokeStyle=_cv('--sub','#5a7a94');ctx.lineWidth=2*DPR;
+  ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+len,y);ctx.moveTo(x,y-4*DPR);ctx.lineTo(x,y+4*DPR);
+  ctx.moveTo(x+len,y-4*DPR);ctx.lineTo(x+len,y+4*DPR);ctx.stroke();
+  ctx.fillStyle=_cv('--sub','#5a7a94');ctx.font=(10*DPR)+"px ui-monospace,monospace";ctx.textAlign="center";ctx.textBaseline="bottom";
+  ctx.fillText(m+" m",x+len/2,y-5*DPR);}
+
+/* costa opzionale (lazy) */
+function loadCoast(){if(coastData||coastLoading)return;coastLoading=true;
+  fetch("../routing/mediterranean_land_10m.geojson").then(function(r){return r.json();}).then(function(j){
+    coastData=j;coastLoading=false;draw();}).catch(function(){coastLoading=false;});}
+function drawCoast(px,scale){if(!S.drop)return;
+  var o=frameOrigin(),degM=1/110540,vr=viewRadius(),dLat=vr*1.5*degM;
+  ctx.fillStyle="rgba(60,66,44,.55)";ctx.strokeStyle="rgba(120,132,88,.8)";ctx.lineWidth=1.2*DPR;
+  var feats=(coastData.features||[]);
+  for(var f=0;f<feats.length;f++){var g=feats[f].geometry;if(!g)continue;
+    var polys=g.type==="Polygon"?[g.coordinates]:g.type==="MultiPolygon"?g.coordinates:[];
+    for(var pi=0;pi<polys.length;pi++){var ring=polys[pi][0];if(!ring)continue;
+      // rapido bbox test sul primo vertice vicino
+      var near=false;for(var k=0;k<ring.length;k+=8){if(Math.abs(ring[k][1]-o.lat)<dLat&&Math.abs(ring[k][0]-o.lon)<dLat/Math.cos(o.lat*DEG)){near=true;break;}}
+      if(!near)continue;
+      ctx.beginPath();for(var v=0;v<ring.length;v++){var q=toXY(ring[v][1],ring[v][0]),p=px(q.x,q.y);if(v===0)ctx.moveTo(p[0],p[1]);else ctx.lineTo(p[0],p[1]);}
+      ctx.closePath();ctx.fill();ctx.stroke();}
+  }
+}
+
+/* ============================ UI ============================ */
+function $(id){return document.getElementById(id);}
+function updateUI(){
+  var A=evalAlarms();
+  // status
+  var st=$("status"),big=$("stBig"),sub=$("stSub");
+  if(!S.active){st.className="idle";big.textContent="ANCORA NON CALATA";sub.textContent="Premi «Cala ancora» quando l'ancora tocca il fondo.";}
+  else if(A.on){st.className="alarm";big.textContent="⚠ ARANDO ⚠";
+    sub.textContent=A.dragging?("l'ancora deriva "+Math.round(A.drift)+" m in ~10 min"):("fuori area: "+Math.round(A.dCenter)+" m > "+S.rAlarm+" m");}
+  else{st.className="ok";big.textContent="● IN AREA";
+    var extra=S.fitValid?("tenuta ok · deriva "+ (centerDrift()!=null?Math.round(centerDrift())+" m/10min":"—")):"fit non ancora valido (poco swing)";
+    sub.textContent=extra;}
+  // metriche
+  $("mDist").textContent=(S.active&&cur)?Math.round(A.dCenter):"—";
+  var dr=centerDrift();$("mDrift").textContent=(dr!=null)?Math.round(dr*6):"—"; // m/10min -> m/h
+  // sole
+  var c=posOrDefault();var s=sunTimes(new Date(),c.lat,c.lon);$("mSunR").textContent=hhmm(s.rise);$("mSunS").textContent=hhmm(s.set);
+  // scope
+  if(S.chain&&S.depth){$("mScope").textContent=(S.chain/S.depth).toFixed(1)+":1";}else $("mScope").textContent="—";
+  // rischio tocco
+  if(S.depth&&S.draft!=null){var margin=S.depth-(S.tide||0)-S.draft;
+    $("mTouch").innerHTML=margin<0.5?('<span style="color:var(--coral)">SÌ · '+margin.toFixed(1)+' m</span>'):('<span style="color:var(--green)">no · '+margin.toFixed(1)+' m</span>');}
+  else $("mTouch").textContent="—";
+  // consiglio raggio (scarroccio ≈ catena + lunghezza barca, stima grezza)
+  if(S.chain){var sugg=Math.round(S.chain+8);$("rSuggest").textContent="consiglio: ~"+sugg+" m (catena "+S.chain+" + margine barca)";}
+  else $("rSuggest").textContent="consiglio: inserisci catena filata";
+  // ovl
+  $("ovlClock").textContent=new Date().toLocaleTimeString("it",{hour:"2-digit",minute:"2-digit"});
+  $("ovlFix").textContent=cur?("±"+Math.round(cur.acc||0)+" m"):"no fix";
+  $("ovlFix").style.color=cur?"#FFC24B":"#FF6B6B";
+  // topbar status
+  if(window.rfSetStatus)window.rfSetStatus(S.active?(A.on?"ARANDO":"ancora "+Math.round(A.dCenter)+" m"):"", A.on);
+  // pulsanti
+  $("btnDrop").style.display=S.active?"none":"";
+  $("btnWeigh").style.display=S.active?"":"none";
+  $("btnSilence").style.display=(A.on&&Date.now()>S.silenceUntil)?"":"none";
+  $("vAlarm").textContent=S.rAlarm;
+  // suono
+  if(S.active&&A.on&&Date.now()>S.silenceUntil)startAlarmSound();else stopAlarmSound();
+  // pericoli list
+  renderHz();
+}
+function posOrDefault(){if(cur)return cur;if(S.drop)return S.drop;
+  try{var p=JSON.parse(localStorage.getItem("raffyca-pos")||"null");if(p&&isFinite(p.lat))return p;}catch(e){}
+  return{lat:45.65,lon:13.77};}
+
+function renderHz(){var list=$("hzList");$("hzCount").textContent="("+S.hazards.length+")";
+  if(!S.hazards.length){list.innerHTML='<div class="warnb">Nessun pericolo. Aggiungi scogli, secche o boe che conosci.</div>';return;}
+  list.innerHTML="";
+  S.hazards.forEach(function(h){var o=frameOrigin(),q=toXY(h.lat,h.lon),d=Math.round(dist2(q.x,q.y,0,0)),
+    brg=Math.round((Math.atan2(q.x,q.y)/DEG+360)%360);
+    var row=document.createElement("div");row.className="hz";
+    row.innerHTML='<span class="tag">'+h.type+'</span> <span class="num" style="font-size:13px">'+brg+'° · '+d+' m · r'+h.r+'</span><span class="x" data-del="'+h.id+'">✕</span>';
+    list.appendChild(row);});
+  list.querySelectorAll("[data-del]").forEach(function(x){x.addEventListener("click",function(){
+    S.hazards=S.hazards.filter(function(h){return h.id!==x.getAttribute("data-del");});save();draw();updateUI();});});
+}
+
+/* ---- azioni principali ---- */
+$("btnDrop").addEventListener("click",function(){
+  armAudio();
+  if(!cur){alert("Nessun fix GPS: attendi la posizione prima di calare.");return;}
+  S=freshState();S.active=true;S.drop={lat:cur.lat,lon:cur.lon,t:Date.now()};
+  S.center=null;S.fitValid=false;
+  // reidrata parametri dagli input
+  readParams();
+  save();acquireWake();draw();updateUI();
+});
+$("btnWeigh").addEventListener("click",function(){
+  if(!confirm("Salpare? La sessione d'ancoraggio e i pericoli verranno azzerati."))return;
+  stopAlarmSound();releaseWake();S=freshState();readParams();save();draw();updateUI();
+});
+$("btnSilence").addEventListener("click",function(){S.silenceUntil=Date.now()+5*60000;stopAlarmSound();save();updateUI();});
+
+/* ---- parametri ---- */
+function readParams(){
+  S.chain=numOr($("inChain").value,null);S.depth=numOr($("inDepth").value,null);
+  S.draft=numOr($("inDraft").value,null);S.tide=numOr($("inTide").value,null);
+  S.fcast=numOr($("inFcast").value,null);
+}
+function numOr(v,d){v=parseFloat(String(v).replace(",","."));return isFinite(v)?v:d;}
+["inChain","inDepth","inDraft","inTide","inFcast"].forEach(function(id){
+  $(id).addEventListener("input",function(){readParams();save();draw();updateUI();});});
+$("tgCoast").addEventListener("click",function(){S.coast=!S.coast;this.textContent=S.coast?"on":"off";
+  this.classList.toggle("primary",S.coast);if(S.coast)loadCoast();save();draw();});
+
+/* stepper generico */
+document.addEventListener("click",function(e){var b=e.target.closest("[data-step]");if(!b)return;
+  var parts=b.getAttribute("data-step").split(":"),k=parts[0],d=parseFloat(parts[1]);
+  if(k==="rAlarm"){S.rAlarm=Math.max(10,S.rAlarm+d);$("vAlarm").textContent=S.rAlarm;save();draw();updateUI();}
+  if(k==="hzBrg"){HZ.brg=(HZ.brg+d+360)%360;$("vHzBrg").textContent=HZ.brg;}
+  if(k==="hzDist"){HZ.dist=Math.max(2,HZ.dist+d);$("vHzDist").textContent=HZ.dist;}
+  if(k==="hzR"){HZ.r=Math.max(2,HZ.r+d);$("vHzR").textContent=HZ.r;}
+});
+
+/* ---- editor pericolo ---- */
+var HZ={brg:0,dist:50,r:10,type:"Scoglio",mode:"brg",tapXY:null};
+$("btnAddHz").addEventListener("click",function(){
+  if(!S.drop){alert("Cala prima l'ancora: i pericoli sono relativi al punto d'ancoraggio.");return;}
+  HZ={brg:0,dist:50,r:10,type:"Scoglio",mode:"brg",tapXY:null};
+  $("vHzBrg").textContent=0;$("vHzDist").textContent=50;$("vHzR").textContent=10;
+  setSeg("brg");syncChips();$("sheet").classList.add("on");});
+$("hzClose").addEventListener("click",closeSheet);$("hzCancel").addEventListener("click",closeSheet);
+function closeSheet(){$("sheet").classList.remove("on");HZ.tapXY=null;}
+$("segBrg").addEventListener("click",function(){setSeg("brg");});
+$("segTap").addEventListener("click",function(){setSeg("tap");});
+function setSeg(m){HZ.mode=m;$("segBrg").classList.toggle("on",m==="brg");$("segTap").classList.toggle("on",m==="tap");
+  $("brgFields").style.display=m==="brg"?"":"none";$("tapHint").style.display=m==="tap"?"":"none";}
+$("hzChips").addEventListener("click",function(e){var b=e.target.closest("[data-hztype]");if(!b)return;
+  HZ.type=b.getAttribute("data-hztype");syncChips();});
+function syncChips(){$("hzChips").querySelectorAll("[data-hztype]").forEach(function(b){
+  b.classList.toggle("on",b.getAttribute("data-hztype")===HZ.type);});}
+$("hzSave").addEventListener("click",function(){
+  var xy;if(HZ.mode==="tap"&&HZ.tapXY)xy=HZ.tapXY;else xy=brgDistToXY(HZ.brg,HZ.dist);
+  var ll=toLL(xy.x,xy.y);
+  S.hazards.push({id:"h"+Date.now(),type:HZ.type,r:HZ.r,lat:ll.lat,lon:ll.lon});
+  save();closeSheet();draw();updateUI();});
+
+/* tap sulla carta per posizionare pericolo */
+cv.addEventListener("pointerdown",function(e){
+  if(!($("sheet").classList.contains("on")&&HZ.mode==="tap"))return;
+  var rect=cv.getBoundingClientRect(),W=cv.width,H=cv.height,cx=W/2,cy=H/2;
+  var mxp=(e.clientX-rect.left)/rect.width*W,myp=(e.clientY-rect.top)/rect.height*H;
+  var half=Math.min(W,H)*0.5,R=half-half*0.14,scale=R/viewRadius();
+  var cc=S.fitValid?S.center:{x:0,y:0};
+  HZ.tapXY={x:(mxp-cx)/scale+cc.x,y:-(myp-cy)/scale+cc.y};
+  $("tapHint").textContent="Posizione acquisita. Premi Salva.";});
+
+/* ---- boot ---- */
+function boot(){
+  // reidrata input dai parametri salvati
+  if(S.chain!=null)$("inChain").value=S.chain;if(S.depth!=null)$("inDepth").value=S.depth;
+  if(S.draft!=null)$("inDraft").value=S.draft;if(S.tide!=null)$("inTide").value=S.tide;
+  if(S.fcast!=null)$("inFcast").value=S.fcast;
+  $("vAlarm").textContent=S.rAlarm;$("tgCoast").textContent=S.coast?"on":"off";$("tgCoast").classList.toggle("primary",S.coast);
+  if(S.coast)loadCoast();
+  if(S.active)acquireWake();
+  startWatch();fitCanvas();draw();updateUI();
+  setInterval(function(){draw();updateUI();},1000);
+  window.addEventListener("resize",function(){fitCanvas();draw();});
+}
+boot();
+
+/* PWA */
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}
+</script>
+</body>
+</html>

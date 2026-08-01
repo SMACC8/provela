@@ -1,0 +1,660 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Performance · ProVela</title>
+<script>(function(){try{var t=localStorage.getItem('raffyca-theme');if(t==='sun')t='day';if(t==='day'||t==='night')document.documentElement.classList.add(t);}catch(e){}})();</script>
+<style>
+:root{
+  --bg:#060e18; --bezel-hi:#2c4256; --bezel-lo:#0c1b28;
+  --dp:#040c14; --ink:#deedf5; --sub:#4a6a82; --dim:#1a2e3e;
+  --teal:#2BD9C4; --amber:#FFC24B; --coral:#FF6B6B; --green:#46d68a;
+  --mono:ui-monospace,"SF Mono","Roboto Mono",Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --pf-panel:#0e2036; --pf-panel2:#0b1a2c;
+}
+html.day{
+  --bg:#eef1f4; --dp:#f3f6f9; --ink:#0a1420; --sub:#3b4e60; --dim:#cdd6de;
+  --bezel-hi:#ffffff; --bezel-lo:#c2ccd6;
+  --teal:#067d70; --amber:#8f5600; --coral:#c62020; --green:#12894f;
+  --pf-panel:#ffffff; --pf-panel2:#e9eef3;
+}
+html.night{
+  --bg:#0a0202; --dp:#0a0101; --ink:#ff5b5b; --sub:#b04040; --dim:#200707;
+  --bezel-hi:#3a1010; --bezel-lo:#120404;
+  --teal:#ff4d4d; --amber:#ff7a45; --coral:#ff5555; --green:#c23a3a;
+  --pf-panel:#160404; --pf-panel2:#100303;
+}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0;}
+html,body{min-height:100%;}
+body{font-family:var(--sans);color:var(--ink);background:var(--bg);padding-top:40px;}
+.wrap{max-width:560px;margin:0 auto;padding:12px 12px 48px;}
+.tabs{display:flex;gap:4px;background:var(--pf-panel2);border:1px solid var(--dim);border-radius:12px;padding:4px;margin-bottom:12px;}
+.tab{flex:1;padding:9px 4px;border-radius:9px;border:0;background:transparent;color:var(--sub);font:600 12px var(--sans);cursor:pointer;white-space:nowrap;transition:.15s;}
+.tab.on{background:var(--pf-panel);color:var(--ink);box-shadow:inset 0 0 0 1px var(--dim);}
+.pane{display:none;}.pane.on{display:block;}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px;}
+@media(max-width:480px){.kpis{grid-template-columns:repeat(3,1fr);}}
+.kpi{background:var(--pf-panel);border:1px solid var(--dim);border-radius:10px;padding:9px 10px;min-width:0;}
+.kpi .k{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin-bottom:4px;white-space:nowrap;}
+.kpi .v{font:700 20px var(--mono);line-height:1;}
+.kpi .u{font-size:11px;color:var(--sub);font-family:var(--mono);}
+.kpi .s{font-size:10px;color:var(--sub);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tl{color:var(--teal);}.ta{color:var(--amber);}.tg{color:var(--green);}.ts{color:var(--sub);}
+.card{background:var(--pf-panel);border:1px solid var(--dim);border-radius:12px;padding:14px;margin-bottom:12px;}
+.card h3{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--teal);margin-bottom:14px;}
+.seg{display:flex;gap:6px;margin-bottom:14px;}
+.seg button{flex:1;padding:11px;border-radius:10px;border:1px solid var(--dim);background:var(--pf-panel2);color:var(--sub);font:700 13px var(--sans);cursor:pointer;transition:.15s;}
+.seg button.on.re{border-color:var(--teal);color:var(--teal);}
+.seg button.on.ap{border-color:var(--amber);color:var(--amber);}
+.groups{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+@media(max-width:440px){.groups{grid-template-columns:1fr;}}
+.grp{border-radius:11px;padding:12px;border:1px solid var(--dim);background:var(--pf-panel2);}
+.grp.src.re{border-color:var(--teal);box-shadow:inset 0 0 0 1px var(--teal);}
+.grp.src.ap{border-color:var(--amber);box-shadow:inset 0 0 0 1px var(--amber);}
+.grp .gh{font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;display:flex;justify-content:space-between;margin-bottom:11px;}
+.grp.re .gh{color:var(--teal);}.grp.ap .gh{color:var(--amber);}
+.grp .gh .badge{font-size:8.5px;padding:2px 7px;border-radius:20px;border:1px solid var(--sub);color:var(--sub);font-weight:600;}
+.grp.re .gh .badge.in{border-color:var(--teal);color:var(--teal);}
+.grp.ap .gh .badge.in{border-color:var(--amber);color:var(--amber);}
+.f{margin-bottom:10px;}.f:last-child{margin-bottom:0;}
+.f label{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--sub);display:block;margin-bottom:5px;font-weight:600;}
+.in{width:100%;font:16px var(--mono);padding:10px 12px;border-radius:9px;border:1px solid var(--dim);background:var(--bg);color:var(--ink);outline:none;}
+.in:focus{border-color:var(--teal);}
+.calc{font:700 22px var(--mono);padding:8px 12px;border-radius:9px;background:var(--bg);border:1px solid var(--dim);display:flex;align-items:baseline;gap:5px;line-height:1;}
+.calc .u{font-size:12px;color:var(--sub);}
+.grp.re .calc .num{color:var(--teal);}.grp.ap .calc .num{color:var(--amber);}.calc .num.dash{color:var(--sub);}
+.shared{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;padding-top:12px;border-top:1px dashed var(--dim);}
+.shared label{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);display:block;margin-bottom:5px;font-weight:700;}
+.sel{width:100%;font:14px var(--sans);padding:10px 12px;border-radius:9px;border:1px solid var(--dim);background:var(--pf-panel2);color:var(--ink);outline:none;}
+.note{width:100%;min-height:60px;resize:vertical;font:13px var(--sans);padding:10px 12px;border-radius:9px;border:1px solid var(--dim);background:var(--pf-panel2);color:var(--ink);outline:none;margin-bottom:12px;}
+.acts{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:8px;}
+@media(max-width:440px){.acts{grid-template-columns:1fr;}}
+.btn{padding:12px;border-radius:10px;border:1px solid var(--dim);background:var(--pf-panel2);color:var(--ink);font:600 13px var(--sans);cursor:pointer;transition:.15s;}
+.btn:active{transform:scale(.98);}
+.btn.primary{background:var(--teal);color:#04121a;border-color:var(--teal);font-weight:700;}
+.btn.warn{border-color:var(--coral);color:var(--coral);}
+.btn:disabled{opacity:.4;cursor:default;}
+.slider label{font-size:11px;color:var(--sub);display:flex;justify-content:space-between;margin-bottom:8px;}
+.slider label b{color:var(--teal);font-family:var(--mono);font-size:15px;}
+input[type=range]{-webkit-appearance:none;width:100%;height:6px;background:var(--dim);border-radius:3px;outline:none;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--teal);cursor:pointer;}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border:0;border-radius:50%;background:var(--teal);cursor:pointer;}
+.scale{display:flex;justify-content:space-between;font-size:10px;color:var(--sub);margin-top:6px;}
+.hint{font-size:11px;color:var(--sub);line-height:1.5;margin-top:10px;}
+.hint code{font-family:var(--mono);color:var(--ink);font-size:10.5px;}
+.vmg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.sess{display:flex;flex-direction:column;gap:6px;margin-top:4px;}
+.sess .row{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:9px;background:var(--pf-panel2);border:1px solid var(--dim);font-size:12.5px;}
+.sess .row.off{opacity:.45;}
+.sess .row .dt{font-family:var(--mono);color:var(--ink);}
+.sess .row .np{margin-left:auto;font-family:var(--mono);color:var(--sub);}
+.sess .row input{width:16px;height:16px;accent-color:var(--teal);}
+.sess .row .del{background:none;border:0;color:var(--coral);cursor:pointer;font-size:15px;padding:0 4px;}
+.leg{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;font-size:11px;color:var(--sub);margin-top:6px;}
+.leg label{display:flex;align-items:center;gap:5px;cursor:pointer;}
+.empty{text-align:center;padding:40px 20px;color:var(--sub);}
+.empty h4{color:var(--ink);font-size:15px;margin:0 0 6px;}
+svg.polar{width:100%;max-width:330px;display:block;margin:0 auto;}
+.filerow{display:none;}
+</style>
+</head>
+<body>
+<!-- ===== rf-topbar: barra fissa trasversale ProVela (inietta subito dopo <body>) ===== -->
+<style>
+.rf-topbar{position:fixed;top:0;left:0;right:0;height:40px;z-index:9000;display:flex;align-items:center;gap:9px;
+  padding:0 10px;background:linear-gradient(#0c1c2e,#081521);border-bottom:1px solid #1a3248;
+  font-family:ui-monospace,"SF Mono","Roboto Mono",Menlo,Consolas,monospace;color:var(--sub,#5a7a94);font-size:11.5px;
+  letter-spacing:.02em;-webkit-user-select:none;user-select:none;box-shadow:0 2px 10px -6px rgba(0,0,0,.8);}
+.rf-topbar a.rf-home{display:flex;align-items:center;justify-content:center;width:30px;height:30px;flex:none;
+  border-radius:8px;background:rgba(43,217,196,.1);border:1px solid rgba(43,217,196,.35);text-decoration:none;}
+.rf-topbar a.rf-home:active{transform:scale(.92);}
+.rf-topbar .rf-boat{display:flex;align-items:center;gap:5px;flex:none;color:var(--ink,#deedf5);font-weight:600;white-space:nowrap;}
+.rf-topbar .rf-boat svg{flex:none;}
+.rf-topbar .rf-gps{flex:none;display:flex;align-items:center;}
+.rf-topbar .rf-gps .gdot{width:9px;height:9px;border-radius:50%;background:#5a6b7a;box-shadow:0 0 0 2px rgba(90,107,122,.25);transition:background .3s,box-shadow .3s;}
+.rf-topbar .rf-gps .gdot.ok{background:var(--teal,#2BD9C4);box-shadow:0 0 6px rgba(43,217,196,.6);}
+.rf-topbar .rf-gps .gdot.old{background:var(--amber,#FFC24B);box-shadow:0 0 5px rgba(255,194,75,.5);}
+.rf-topbar .rf-pol{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;color:var(--sub,#5a7a94);}
+.rf-topbar .rf-pol .mod{color:var(--ink,#cfe2ee);}
+.rf-topbar .rf-pol .pol{color:var(--amber,#FFC24B);font-weight:600;}
+.rf-topbar .rf-pol .pol.warn{color:var(--coral,#FF6B6B);}
+.rf-topbar .rf-spacer{flex:1;}
+html.day .rf-topbar{background:linear-gradient(#ffffff,#e7ecf1);border-bottom-color:#a7b5c2;}
+html.night .rf-topbar{background:linear-gradient(#150404,#0e0303);border-bottom-color:#3a1010;}
+.rf-topbar .rf-status{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:44%;flex:none;color:var(--sub,#5a7a94);}
+.rf-topbar .rf-status.wp b{color:var(--teal,#2BD9C4);font-weight:600;}
+.rf-topbar .rf-status.rec{color:var(--coral,#FF6B6B);font-weight:600;}
+.rf-topbar .rf-status .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#FF6B6B;margin-right:5px;vertical-align:middle;animation:rfblink 1s steps(2,start) infinite;}
+@keyframes rfblink{50%{opacity:.25}}
+body{padding-top:40px!important;}
+@media (max-width:480px){.rf-topbar .rf-pol .mod{display:none;}}
+@media (max-width:360px){.rf-topbar .rf-boat .bn{display:none;}}
+</style>
+<div class="rf-topbar" role="banner">
+  <a class="rf-home" href="../" aria-label="Menu ProVela" title="Menu ProVela">
+    <svg viewBox="0 0 64 64" width="19" height="19" aria-hidden="true"><path d="M32 8 L32 56 L10 56 Z" fill="#2BD9C4" opacity=".95"/><path d="M32 26 L54 56 L32 56 Z" fill="#2BD9C4" opacity=".45"/><line x1="32" y1="6" x2="32" y2="58" stroke="#1a4a42" stroke-width="3"/></svg>
+  </a>
+  <span class="rf-boat" id="rfBoat"></span>
+  <span class="rf-gps" id="rfGps" title="Stato GPS"><span class="gdot"></span></span>
+  <span class="rf-pol" id="rfPol" title=""></span>
+  <span class="rf-spacer"></span>
+  <span class="rf-status" id="rfStatus"></span>
+</div>
+<script>
+(function(){
+  function esc(x){return String(x).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  var elBoat=document.getElementById("rfBoat"),elGps=document.getElementById("rfGps"),
+      elPol=document.getElementById("rfPol"),elSt=document.getElementById("rfStatus");
+  var SAIL='<svg viewBox="0 0 64 64" width="13" height="13" aria-hidden="true"><path d="M34 6 L34 52 L14 52 Z" fill="#2BD9C4"/><line x1="34" y1="4" x2="34" y2="54" stroke="#1a4a42" stroke-width="3"/></svg>';
+  function tickBoat(){
+    if(!elBoat)return;
+    var pr=null;try{pr=JSON.parse(localStorage.getItem("raffyca-profile")||"null");}catch(e){}
+    var boat=(pr&&pr.boat)||"ProVela";
+    elBoat.innerHTML=SAIL+'<span class="bn">'+esc(boat)+'</span>';
+  }
+  function polarLabel(){
+    var p=null;try{p=JSON.parse(localStorage.getItem("raffyca-polar")||"null");}catch(e){}
+    if(!p||!p.twa||!p.data||!p.twa.length)return{txt:"integrata",cls:"warn",boat:""};
+    var m=p.meta||{};
+    if(m.source==="generica"||m.generic)return{txt:"generica",cls:"warn",boat:(m.boat||"generica")};
+    return{txt:(m.source||"attiva"),cls:"",boat:(m.boat||"")};
+  }
+  function tickPolar(){
+    if(!elPol)return;
+    var pr=null;try{pr=JSON.parse(localStorage.getItem("raffyca-profile")||"null");}catch(e){}
+    var L=polarLabel();
+    var model=L.boat||((pr&&pr.model)||"");
+    var h="";
+    if(model)h+='<span class="mod">'+esc(model)+'</span>';
+    h+=(h?" · ":"")+'<span class="pol '+L.cls+'">pol '+esc(L.txt)+'</span>';
+    elPol.innerHTML=h; elPol.title=[model,"polare: "+L.txt].filter(Boolean).join(" · ");
+  }
+  function tickGps(){
+    if(!elGps)return;
+    var dot=elGps.querySelector(".gdot"),pos=null;
+    try{pos=JSON.parse(localStorage.getItem("raffyca-pos")||"null");}catch(e){}
+    var cls="",title="GPS: nessun dato";
+    if(pos&&isFinite(pos.lat)&&isFinite(pos.lon)){
+      if(pos.ts&&isFinite(pos.ts)){
+        var age=Math.round((Date.now()-pos.ts)/1000);
+        if(age<25){cls="ok";title="GPS: fix "+age+" s fa";}
+        else if(age<900){cls="old";title="GPS: ultimo fix "+(age<120?(age+" s"):(Math.round(age/60)+" min"))+" fa";}
+        else{cls="";title="GPS: fix vecchio";}
+      }else{cls="old";title="GPS: posizione senza orario";}
+    }
+    if(dot)dot.className="gdot"+(cls?(" "+cls):"");
+    elGps.title=title;
+  }
+  function tickStatus(){
+    if(!elSt)return;
+    var rec=null;try{rec=JSON.parse(localStorage.getItem("raffyca-rec")||"null");}catch(e){}
+    if(rec&&rec.on){elSt.className="rf-status rec";elSt.innerHTML='<span class="dot"></span>REC GPX'+(rec.pts?(" · "+rec.pts+" pt"):"");return;}
+    var tid="";try{tid=localStorage.getItem("raffyca-active-track")||"";}catch(e){}
+    if(tid){var tk=null;try{tk=(JSON.parse(localStorage.getItem("raffyca-tracks")||"[]")).find(function(x){return x.id===tid;});}catch(e){}
+      if(tk&&tk.pts&&tk.pts.length>=2){elSt.className="rf-status wp";elSt.innerHTML="&#9654; <b>"+esc(tk.name)+"</b>";return;}}
+    var id="";try{id=localStorage.getItem("raffyca-active-wp")||"";}catch(e){}
+    if(id){var w=null;try{w=(JSON.parse(localStorage.getItem("raffyca-waypoints")||"[]")).find(function(x){return x.id===id;});}catch(e){}
+      if(w){elSt.className="rf-status wp";elSt.innerHTML="&#9873; WP: <b>"+esc(w.name)+"</b>";return;}}
+    elSt.className="rf-status";elSt.textContent="";
+  }
+  function all(){tickBoat();tickPolar();tickGps();tickStatus();}
+  all();
+  setInterval(tickGps,3000);setInterval(tickStatus,3000);setInterval(tickPolar,5000);setInterval(tickBoat,10000);
+  window.addEventListener("storage",all);
+  document.addEventListener("visibilitychange",function(){if(!document.hidden)all();});
+})();
+</script>
+<!-- ===== /rf-topbar ===== -->
+<script>
+(function(){try{
+  if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(function(rs){
+    rs.forEach(function(r){if(r.scope&&r.scope.indexOf('/performance/')>=0)r.unregister();});}).catch(function(){});}
+  if(window.caches&&caches.keys){caches.keys().then(function(ks){
+    ks.forEach(function(k){if(/workbox|precache|vite|-perf-|performance/i.test(k))caches.delete(k);});}).catch(function(){});}
+}catch(e){}})();
+</script>
+
+<div class="wrap">
+  <div class="tabs">
+    <button class="tab on" data-t="ins">Inserimento</button>
+    <button class="tab" data-t="polare">Polare</button>
+    <button class="tab" data-t="traccia">Traccia polare</button>
+    <button class="tab" data-t="conv">Converti</button>
+  </div>
+
+  <!-- INSERIMENTO -->
+  <section id="pane-ins" class="pane on">
+    <div class="kpis">
+      <div class="kpi"><div class="k">VMG</div><div class="v tl"><span id="k-vmg">—</span><span class="u"> kn</span></div></div>
+      <div class="kpi"><div class="k"><span id="k-sog-lab">SOG</span></div><div class="v tl"><span id="k-sog">—</span><span class="u"> kn</span></div></div>
+      <div class="kpi"><div class="k">Target</div><div class="v ta"><span id="k-tgt">—</span><span class="u"> kn</span></div><div class="s">polare</div></div>
+      <div class="kpi"><div class="k">Perf</div><div class="v"><span id="k-perf">—</span><span class="u"> %</span></div></div>
+      <div class="kpi"><div class="k">Record</div><div class="v" id="i-count">0</div></div>
+    </div>
+    <div class="card">
+      <h3>Nuovo rilevamento</h3>
+      <div class="seg"><button id="seg-re" class="on re">Inserisco il REALE</button><button id="seg-ap">Inserisco l'APPARENTE</button></div>
+      <div class="groups">
+        <div id="grp-re" class="grp re src">
+          <div class="gh"><span>Vento reale</span><span id="bd-re" class="badge in">inserito</span></div>
+          <div class="f"><label>TWA · angolo (°)</label><input id="i-twa" class="in" inputmode="decimal" placeholder="0.0"><div id="twa-ca" class="calc" style="display:none"></div></div>
+          <div class="f"><label>TWS · intensità (kn)</label><input id="i-tws" class="in" inputmode="decimal" placeholder="0.0"><div id="tws-ca" class="calc" style="display:none"></div></div>
+        </div>
+        <div id="grp-ap" class="grp ap">
+          <div class="gh"><span>Vento apparente</span><span id="bd-ap" class="badge">calcolato</span></div>
+          <div class="f"><label>AWA · angolo (°)</label><input id="i-awa" class="in" inputmode="decimal" placeholder="0.0" style="display:none"><div id="awa-ca" class="calc"></div></div>
+          <div class="f"><label>AWS · intensità (kn)</label><input id="i-aws" class="in" inputmode="decimal" placeholder="0.0" style="display:none"><div id="aws-ca" class="calc"></div></div>
+        </div>
+      </div>
+      <div class="seg" style="margin-bottom:8px"><button id="src-sog" class="on re">SOG · GPS</button><button id="src-stw">STW · log</button></div>
+      <div class="shared">
+        <div><label>Velocità barca (kn)</label><input id="i-stw" class="in" inputmode="decimal" placeholder="0.0"></div>
+        <div><label>Mura</label><select id="i-mura" class="sel"><option value="dx">Dritta (Dx)</option><option value="sx">Sinistra (Sx)</option></select></div>
+      </div>
+      <div class="hint" style="margin-top:0;margin-bottom:12px">Senza solcometro usa <b>SOG</b> (GPS): funziona subito. Con log a bordo scegli <b>STW</b> — più preciso, esclude la corrente.</div>
+      <textarea id="i-note" class="note" placeholder="Condizioni, vele, regolazioni…"></textarea>
+      <div class="acts"><button id="i-save" class="btn primary">Salva record</button><button id="i-reset" class="btn warn">Reset</button><button id="i-csv" class="btn">Esporta CSV</button></div>
+      <div class="hint">Scegli se ragionare per <b style="color:var(--teal)">reale</b> o per <b style="color:var(--amber)">apparente</b>: l'app riempie l'altra coppia usando STW e Mura.</div>
+    </div>
+  </section>
+
+  <!-- POLARE -->
+  <section id="pane-polare" class="pane">
+    <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+      <div class="kpi"><div class="k">TWS curva</div><div class="v tl"><span id="p-tws">12.0</span><span class="u"> kn</span></div>
+        <input id="p-twsr" type="range" min="4" max="30" step="1" value="12" style="margin-top:8px"></div>
+      <div class="kpi"><div class="k">Ultimo TWA</div><div class="v ta"><span id="p-utwa">—</span><span class="u">°</span></div></div>
+      <div class="kpi"><div class="k">Ultimo STW</div><div class="v"><span id="p-ustw">—</span><span class="u"> kn</span></div></div>
+    </div>
+    <div class="vmg">
+      <div class="kpi"><div class="k">↑ VMG bolina</div><div class="v tg"><span id="p-vb">—</span><span class="u"> kn</span></div></div>
+      <div class="kpi"><div class="k">↓ VMG lasco</div><div class="v tg"><span id="p-vl">—</span><span class="u"> kn</span></div></div>
+    </div>
+    <div class="card"><h3>Diagramma polare</h3><div id="polare-body"></div>
+      <div class="leg"><span><span style="color:var(--green)">▬</span> mura dritta</span><span><span style="color:var(--coral)">▬</span> mura sinistra</span><span><span style="color:var(--amber)">●</span> ultimo punto</span></div>
+    </div>
+  </section>
+
+  <!-- TRACCIA POLARE -->
+  <section id="pane-traccia" class="pane">
+    <div class="card">
+      <h3>Sorgenti dati</h3>
+      <div class="acts" style="grid-template-columns:1fr 1fr"><button id="t-import" class="btn">Importa CSV</button><button class="btn">Collega NMEA</button></div>
+      <input id="t-file" type="file" accept=".csv,text/csv" class="filerow">
+      <div class="hint" style="margin-bottom:8px">Sessioni accumulate:</div>
+      <div id="t-sess" class="sess"></div>
+      <div class="hint" id="t-saved"></div>
+    </div>
+    <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+      <div class="kpi"><div class="k">Fascia TWS</div><div class="v tl"><span id="t-tws">12</span><span class="u"> kn</span></div>
+        <input id="t-twsr" type="range" min="4" max="30" step="1" value="12" style="margin-top:8px"></div>
+      <div class="kpi"><div class="k">Punti in fascia</div><div class="v" id="t-npts">—</div><div class="s">da <span id="t-nout">—</span> uscite</div></div>
+      <div class="kpi"><div class="k">Copertura</div><div class="v tg"><span id="t-cov">—</span><span class="u"> /15</span></div><div class="s">settori 10°</div></div>
+    </div>
+    <div class="card">
+      <h3>Nuvola punti + inviluppo</h3>
+      <div id="t-graph"></div>
+      <div class="leg" id="t-legenda"></div>
+      <div class="leg"><label><input id="t-ref" type="checkbox" checked> rif. ORC</label></div>
+      <div class="acts" style="grid-template-columns:1fr 1fr;margin-top:12px">
+        <button id="t-toggle" class="btn primary">◉ Traccia polare definitiva (arrotondata)</button>
+        <button id="t-csv" class="btn" style="display:none">Esporta CSV</button>
+      </div>
+      <div class="acts" style="grid-template-columns:1fr;margin-top:8px">
+        <button id="t-savepol" class="btn" style="display:none">Salva come polare della suite</button>
+      </div>
+      <div class="hint" id="t-saved2"></div>
+    </div>
+  </section>
+
+  <!-- CONVERTI -->
+  <section id="pane-conv" class="pane">
+    <div class="card"><h3>Da apparente a reale</h3>
+      <p class="hint" style="margin-top:0;margin-bottom:12px">Angolo <b>con segno</b> (− a sinistra, + a dritta).</p>
+      <div class="groups" style="margin-bottom:0">
+        <div class="grp"><div class="f"><label>AWA (°)</label><input id="c1-awa" class="in" inputmode="decimal"></div>
+          <div class="f"><label>AWS (kn)</label><input id="c1-aws" class="in" inputmode="decimal"></div>
+          <div class="f"><label>STW (kn)</label><input id="c1-stw" class="in" inputmode="decimal"></div></div>
+        <div class="grp re"><div class="f"><label>TWA</label><div id="c1-twa" class="calc"><span class="num dash">—</span><span class="u">°</span></div></div>
+          <div class="f"><label>TWS</label><div id="c1-tws" class="calc"><span class="num dash">—</span><span class="u">kn</span></div></div></div>
+      </div>
+    </div>
+    <div class="card"><h3>Da reale ad apparente</h3>
+      <div class="groups" style="margin-bottom:0">
+        <div class="grp"><div class="f"><label>TWA (°)</label><input id="c2-twa" class="in" inputmode="decimal"></div>
+          <div class="f"><label>TWS (kn)</label><input id="c2-tws" class="in" inputmode="decimal"></div>
+          <div class="f"><label>STW (kn)</label><input id="c2-stw" class="in" inputmode="decimal"></div></div>
+        <div class="grp ap"><div class="f"><label>AWA</label><div id="c2-awa" class="calc"><span class="num dash">—</span><span class="u">°</span></div></div>
+          <div class="f"><label>AWS</label><div id="c2-aws" class="calc"><span class="num dash">—</span><span class="u">kn</span></div></div></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+
+(function(){
+'use strict';
+var $=function(s,r){return (r||document).querySelector(s);};
+var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s));};
+var rad=function(d){return d*Math.PI/180;}, deg=function(r){return r*180/Math.PI;};
+var num=function(s){var v=parseFloat(String(s).replace(',','.'));return isFinite(v)?v:null;};
+var f1=function(v){return v==null?null:v.toFixed(1);};
+function LS_get(k,def){try{var s=localStorage.getItem(k);return s==null?def:JSON.parse(s);}catch(e){return def;}}
+function LS_set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+
+/* ---- fisica vento ---- */
+function realeToApp(twa,tws,stw){var a=rad(twa);
+  return {aws:Math.sqrt(tws*tws+stw*stw+2*tws*stw*Math.cos(a)),
+          awa:Math.abs(deg(Math.atan2(tws*Math.sin(a),tws*Math.cos(a)+stw)))};}
+function appToReale(awa,aws,stw){var a=rad(awa);
+  return {tws:Math.sqrt(aws*aws+stw*stw-2*aws*stw*Math.cos(a)),
+          twa:Math.abs(deg(Math.atan2(aws*Math.sin(a),aws*Math.cos(a)-stw)))};}
+function percentile(arr,p){if(!arr.length)return null;var s=arr.slice().sort(function(a,b){return a-b;});
+  var i=(s.length-1)*p,lo=Math.floor(i),hi=Math.ceil(i);return s[lo]+(s[hi]-s[lo])*(i-lo);}
+
+/* ==== TAB SWITCH ==== */
+$$('.tab').forEach(function(b){b.addEventListener('click',function(){
+  $$('.tab').forEach(function(x){x.classList.remove('on');});
+  $$('.pane').forEach(function(x){x.classList.remove('on');});
+  b.classList.add('on'); $('#pane-'+b.dataset.t).classList.add('on');
+  if(b.dataset.t==='polare'){POL_MANUAL=false;drawSharedPolar();}
+  if(b.dataset.t==='traccia')renderTraccia();
+});});
+
+/* ==== INSERIMENTO ==== */
+var SRC='reale';
+var SPD='sog';{var _st=LS_get('raffyca-settings',{})||{};if(_st.speedSrc==='stw')SPD='stw';}
+function spdRender(){$('#src-sog').className=SPD==='sog'?'on re':'';$('#src-stw').className=SPD==='stw'?'on re':'';}
+$('#src-sog').addEventListener('click',function(){SPD='sog';spdRender();insKPI();});
+$('#src-stw').addEventListener('click',function(){SPD='stw';spdRender();insKPI();});
+spdRender();
+function insDerived(){
+  var stw=num($('#i-stw').value);
+  if(SRC==='reale'){var twa=num($('#i-twa').value),tws=num($('#i-tws').value);
+    if(twa==null||tws==null||stw==null)return {};return realeToApp(twa,tws,stw);}
+  var awa=num($('#i-awa').value),aws=num($('#i-aws').value);
+  if(awa==null||aws==null||stw==null)return {};return appToReale(awa,aws,stw);}
+function setCalc(id,v,u){var e=$(id);e.innerHTML='<span class="num'+(v==null?' dash':'')+'">'+(f1(v)!=null?f1(v):'—')+'</span><span class="u">'+u+'</span>';}
+function insResolved(){
+  var stw=num($('#i-stw').value);
+  if(SRC==='reale')return {twa:num($('#i-twa').value),tws:num($('#i-tws').value),stw:stw,src:SPD};
+  var d=insDerived();return {twa:(d.twa==null?null:d.twa),tws:(d.tws==null?null:d.tws),stw:stw,src:SPD};
+}
+function insKPI(){
+  var r=insResolved();
+  if(r.twa==null||r.tws==null||r.stw==null){var log=LS_get('raffyca-perf-log',[]);
+    if(log&&log.length){var L=log[0];r={twa:L.twa,tws:L.tws,stw:L.stw,src:L.spdSrc||'sog'};}}
+  $('#k-sog-lab').textContent=(r.src==='stw')?'STW':'SOG';
+  $('#k-sog').textContent=(r.stw!=null)?r.stw.toFixed(1):'—';
+  var vmg=(r.twa!=null&&r.stw!=null)?r.stw*Math.cos(rad(r.twa)):null;
+  $('#k-vmg').textContent=(vmg!=null)?vmg.toFixed(2):'—';
+  var P=LS_get('raffyca-polar',null),tgt=null;
+  if(P&&P.twa&&P.data&&P.twa.length&&r.twa!=null&&r.tws!=null)tgt=polarTarget(P,r.twa,r.tws);
+  $('#k-tgt').textContent=(tgt!=null&&tgt>0)?tgt.toFixed(2):'—';
+  var perf=(tgt!=null&&tgt>0&&r.stw!=null)?(r.stw/tgt*100):null;
+  var pe=$('#k-perf');pe.textContent=(perf!=null)?String(Math.round(perf)):'—';
+  pe.style.color=(perf==null)?'':(perf>=98?'var(--green)':(perf>=90?'var(--amber)':'var(--coral)'));
+}
+function insRender(){
+  var re=SRC==='reale';
+  $('#seg-re').classList.toggle('on',re);$('#seg-re').classList.toggle('re',re);
+  $('#seg-ap').classList.toggle('on',!re);$('#seg-ap').classList.toggle('ap',!re);
+  $('#grp-re').classList.toggle('src',re);
+  $('#grp-ap').classList.toggle('src',!re);
+  $('#bd-re').textContent=re?'inserito':'calcolato';$('#bd-re').classList.toggle('in',re);
+  $('#bd-ap').textContent=!re?'inserito':'calcolato';$('#bd-ap').classList.toggle('in',!re);
+  // mostra input veri o display calcolato
+  $('#i-twa').style.display=re?'':'none';$('#twa-ca').style.display=re?'none':'';
+  $('#i-tws').style.display=re?'':'none';$('#tws-ca').style.display=re?'none':'';
+  $('#i-awa').style.display=re?'none':'';$('#awa-ca').style.display=re?'':'none';
+  $('#i-aws').style.display=re?'none':'';$('#aws-ca').style.display=re?'':'none';
+  var d=insDerived();
+  setCalc('#twa-ca',d.twa,'°');setCalc('#tws-ca',d.tws,'kn');
+  setCalc('#awa-ca',d.awa,'°');setCalc('#aws-ca',d.aws,'kn');
+  var stw=num($('#i-stw').value);
+  var ok=stw!=null&&(re?(num($('#i-twa').value)!=null&&num($('#i-tws').value)!=null):(num($('#i-awa').value)!=null&&num($('#i-aws').value)!=null));
+  $('#i-save').disabled=!ok;
+  insKPI();
+}
+$('#seg-re').addEventListener('click',function(){SRC='reale';insRender();});
+$('#seg-ap').addEventListener('click',function(){SRC='app';insRender();});
+['i-twa','i-tws','i-awa','i-aws','i-stw'].forEach(function(id){$('#'+id).addEventListener('input',insRender);});
+$('#i-reset').addEventListener('click',function(){['i-twa','i-tws','i-awa','i-aws','i-stw','i-note'].forEach(function(id){$('#'+id).value='';});insRender();});
+$('#i-save').addEventListener('click',function(){
+  var stw=num($('#i-stw').value),mura=$('#i-mura').value,d=insDerived(),rec;
+  if(SRC==='reale')rec={twa:num($('#i-twa').value),tws:num($('#i-tws').value),awa:d.awa,aws:d.aws};
+  else rec={awa:num($('#i-awa').value),aws:num($('#i-aws').value),twa:d.twa,tws:d.tws};
+  rec.stw=stw;rec.spdSrc=SPD;rec.mura=mura;rec.note=$('#i-note').value;rec.ts=Date.now();
+  var log=LS_get('raffyca-perf-log',[]);log.unshift(rec);LS_set('raffyca-perf-log',log);
+  $('#i-count').textContent=log.length;
+  ['i-twa','i-tws','i-awa','i-aws','i-stw','i-note'].forEach(function(id){$('#'+id).value='';});insRender();
+});
+$('#i-csv').addEventListener('click',function(){
+  var log=LS_get('raffyca-perf-log',[]);
+  var head=['ts','mura','TWA','TWS','AWA','AWS','STW','note'];
+  var rows=[head].concat(log.map(function(r){return [new Date(r.ts).toISOString(),r.mura,f1(r.twa),f1(r.tws),f1(r.awa),f1(r.aws),f1(r.stw),(r.note||'').replace(/[\n,;]/g,' ')];}));
+  dl('perf-log.csv',rows.map(function(r){return r.join(',');}).join('\n'));
+});
+$('#i-count').textContent=(LS_get('raffyca-perf-log',[])||[]).length;
+
+/* ==== POLARE (legge raffyca-polar) ==== */
+function polSpan(arr,x){if(x<=arr[0])return[0,0];if(x>=arr[arr.length-1])return[arr.length-2,1];
+  for(var i=0;i<arr.length-1;i++)if(x<=arr[i+1])return[i,(x-arr[i])/(arr[i+1]-arr[i])];return[arr.length-2,1];}
+function polarTarget(P,twa,tws){var A=P.twa,W=P.tws,D=P.data;var a=Math.abs(twa)%360;if(a>180)a=360-a;
+  var ai=polSpan(A,a),wi=polSpan(W,Math.max(0,tws));
+  var cell=function(i,j){var r=D[i]||[];var v=+r[j];return isFinite(v)?v:0;};
+  var top=cell(ai[0],wi[0])+(cell(ai[0],wi[0]+1)-cell(ai[0],wi[0]))*wi[1];
+  var bot=cell(ai[0]+1,wi[0])+(cell(ai[0]+1,wi[0]+1)-cell(ai[0]+1,wi[0]))*wi[1];
+  return top+(bot-top)*ai[1];}
+var POL_MANUAL=false;
+function polPoint(){
+  var r=insResolved();
+  if(r&&r.twa!=null&&r.stw!=null&&isFinite(r.stw))return {twa:r.twa,tws:r.tws,stw:r.stw,mura:$('#i-mura').value};
+  var log=LS_get('raffyca-perf-log',[]);var L=(log&&log.length)?log[0]:null;
+  return L?{twa:L.twa,tws:L.tws,stw:L.stw,mura:L.mura}:null;
+}
+function drawSharedPolar(){
+  var P=LS_get('raffyca-polar',null);
+  var host=$('#polare-body');
+  if(!P||!P.twa||!P.data||!P.twa.length){host.innerHTML='<div class="empty"><h4>Nessuna polare salvata</h4><p>Traccia la polare sul campo nella scheda Traccia polare, oppure importala da Impostazioni.</p></div>';
+    $('#p-tws').textContent='—';$('#p-utwa').textContent='—';$('#p-ustw').textContent='—';$('#p-vb').textContent='—';$('#p-vl').textContent='—';return;}
+  var pt=polPoint();var tws;
+  if(!POL_MANUAL&&pt&&pt.tws!=null&&isFinite(pt.tws)){tws=Math.max(4,Math.min(30,Math.round(pt.tws)));$('#p-twsr').value=tws;}
+  else{tws=num($('#p-twsr').value)||12;}
+  $('#p-tws').textContent=tws.toFixed(1);
+  var pts=[];for(var t=0;t<=180;t+=3){pts.push({twa:t,stw:polarTarget(P,t,tws)});}
+  var vb=-1,vbT=0,vl=-1,vlT=0;pts.forEach(function(p){var vmg=p.stw*Math.cos(rad(p.twa));
+    if(p.twa<90&&vmg>vb){vb=vmg;vbT=p.twa;} if(p.twa>90&&-vmg>vl){vl=-vmg;vlT=p.twa;}});
+  $('#p-vb').textContent=vb>0?vb.toFixed(2):'—';$('#p-vl').textContent=vl>0?vl.toFixed(2):'—';
+  $('#p-utwa').textContent=(pt&&pt.twa!=null)?String(Math.round(pt.twa)):'—';
+  $('#p-ustw').textContent=(pt&&pt.stw!=null)?(+pt.stw).toFixed(1):'—';
+  host.innerHTML=svgShared(pts,pt,vbT,vlT);
+}
+$('#p-twsr').addEventListener('input',function(){POL_MANUAL=true;drawSharedPolar();});
+
+/* diagramma polare condivisa: bicolore + VMG + barchetta orientata + ultimo punto */
+function svgShared(pts,last,vbT,vlT){
+  var cx=165,cy=170,R=138,maxV=5;
+  pts.forEach(function(p){if(p.stw>maxV)maxV=p.stw;});maxV=Math.ceil(maxV);
+  var rr=function(v){return Math.min(v,maxV)/maxV*R;};
+  var s='<svg class="polar" viewBox="0 0 330 340">';
+  for(var v=1;v<=maxV;v++){s+='<circle cx="'+cx+'" cy="'+cy+'" r="'+rr(v).toFixed(1)+'" fill="none" stroke="var(--sub)" stroke-opacity=".32" stroke-dasharray="2 3"/>';
+    s+='<text x="'+(cx+3)+'" y="'+(cy-rr(v)+3).toFixed(1)+'" fill="var(--sub)" font-size="8" font-family="ui-monospace">'+v+'</text>';}
+  s+='<line x1="'+cx+'" y1="'+(cy-R)+'" x2="'+cx+'" y2="'+(cy+R)+'" stroke="var(--sub)" stroke-opacity=".3"/><line x1="'+(cx-R)+'" y1="'+cy+'" x2="'+(cx+R)+'" y2="'+cy+'" stroke="var(--sub)" stroke-opacity=".3"/>';
+  [30,60,90,120,150].forEach(function(d){var a=rad(d);[-1,1].forEach(function(sign){
+    var x=cx+sign*R*Math.sin(a),y=cy-R*Math.cos(a);
+    s+='<line x1="'+cx+'" y1="'+cy+'" x2="'+x.toFixed(1)+'" y2="'+y.toFixed(1)+'" stroke="var(--sub)" stroke-opacity=".16"/>';
+    s+='<text x="'+(cx+sign*(R+13)*Math.sin(a)).toFixed(1)+'" y="'+(cy-(R+13)*Math.cos(a)+3).toFixed(1)+'" fill="var(--sub)" font-size="9" text-anchor="middle">'+d+'\u00b0</text>';});});
+  function poly(sign){return pts.map(function(p,i){var r=rr(p.stw),a=rad(p.twa);return (i?'L':'M')+(cx+sign*r*Math.sin(a)).toFixed(1)+','+(cy-r*Math.cos(a)).toFixed(1);}).join(' ');}
+  s+='<path d="'+poly(-1)+'" fill="none" stroke="var(--green)" stroke-width="2.6" stroke-linejoin="round"/>';
+  s+='<path d="'+poly(1)+'" fill="none" stroke="var(--coral)" stroke-width="2.6" stroke-linejoin="round"/>';
+  function vmgDot(twa,sign,col){if(twa<=0)return;var i=Math.round(twa/3),p=pts[i];if(!p)return;var r=rr(p.stw),a=rad(p.twa);
+    s+='<circle cx="'+(cx+sign*r*Math.sin(a)).toFixed(1)+'" cy="'+(cy-r*Math.cos(a)).toFixed(1)+'" r="3.4" fill="'+col+'"/>';}
+  vmgDot(vbT,-1,'var(--green)');vmgDot(vbT,1,'var(--coral)');vmgDot(vlT,-1,'var(--green)');vmgDot(vlT,1,'var(--coral)');
+  var ang=0;
+  if(last&&last.twa!=null&&isFinite(last.stw)){var sign=last.mura==='sx'?1:-1,r=rr(last.stw),a=rad(last.twa);
+    var x=cx+sign*r*Math.sin(a),y=cy-r*Math.cos(a);
+    s+='<line x1="'+cx+'" y1="'+cy+'" x2="'+x.toFixed(1)+'" y2="'+y.toFixed(1)+'" stroke="var(--amber)" stroke-width="1.3" stroke-dasharray="4 3" opacity=".85"/>';
+    s+='<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="4.6" fill="var(--amber)" stroke="var(--bg)" stroke-width="1.5"/>';
+    s+='<text x="'+(x+(sign<0?-7:7)).toFixed(1)+'" y="'+(y-9).toFixed(1)+'" fill="var(--amber)" font-size="11" font-family="ui-monospace" text-anchor="'+(sign<0?'end':'start')+'">'+Math.round(last.twa)+'\u00b0 / '+(+last.stw).toFixed(2)+' kn</text>';
+    ang=sign*last.twa;
+  }
+  var s0=0.95;
+  s+='<g transform="rotate('+ang.toFixed(1)+' '+cx+' '+cy+')">';
+  s+='<path d="M'+cx+','+(cy-23*s0)+' C'+(cx+10*s0)+','+(cy-13*s0)+' '+(cx+11*s0)+','+(cy+8*s0)+' '+(cx+9*s0)+','+(cy+18*s0)+' L'+(cx-9*s0)+','+(cy+18*s0)+' C'+(cx-11*s0)+','+(cy+8*s0)+' '+(cx-10*s0)+','+(cy-13*s0)+' '+cx+','+(cy-23*s0)+' Z" fill="var(--bezel-hi)" stroke="var(--sub)" stroke-width="1.2" stroke-linejoin="round"/>';
+  s+='<line x1="'+cx+'" y1="'+(cy-19*s0)+'" x2="'+cx+'" y2="'+(cy+16*s0)+'" stroke="var(--ink)" stroke-width="1.2" opacity=".55"/>';
+  s+='<path d="M'+(cx-4*s0)+','+(cy-21*s0)+' L'+cx+','+(cy-30*s0)+' L'+(cx+4*s0)+','+(cy-21*s0)+'" fill="none" stroke="var(--ink)" stroke-width="1.2" opacity=".55" stroke-linejoin="round" stroke-linecap="round"/>';
+  s+='</g></svg>';return s;
+}
+
+/* ==== TRACCIA POLARE ==== */
+function vBoatDemo(twa,tws){var a=rad(twa);var base=Math.pow(Math.sin(a),0.8);
+  var up=Math.max(0,1-Math.abs(twa-45)/60)*0.15;var reach=Math.exp(-Math.pow(twa-110,2)/(2*35*35));
+  return Math.max(0.2,(0.55*base+0.65*reach+up)*(0.5+tws/24)*6.6);}
+function mulberry32(a){return function(){a|=0;a=(a+0x6D2B79F5)|0;var t=Math.imul(a^(a>>>15),1|a);
+  t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296;};}
+var FINALE=false;
+function sessions(){return LS_get('raffyca-polar-cloud',{sessions:[
+  {id:'s1',d:'27/07/26',z:'Golfo di Trieste',n:64,on:true},
+  {id:'s2',d:'20/07/26',z:'Alto Adriatico',n:51,on:true},
+  {id:'s3',d:'12/06/26',z:'Golfo di Trieste',n:45,on:false}]});}
+function saveSessions(o){LS_set('raffyca-polar-cloud',o);}
+function cloudFor(tws){var o=sessions();var n=o.sessions.filter(function(s){return s.on;}).reduce(function(a,s){return a+s.n;},0);
+  var rnd=mulberry32(7*Math.round(tws)+n),pts=[];
+  for(var i=0;i<n;i++){var twa=30+rnd()*140,side=rnd()<0.5?-1:1,cap=vBoatDemo(twa,tws);
+    pts.push({twa:twa,side:side,stw:cap*(0.62+0.36*Math.pow(rnd(),0.6))});}
+  return pts;}
+function envelope(cloud){var step=7.5,b={};cloud.forEach(function(p){var k=Math.round(p.twa/step)*step;if(!b[k]||p.stw>b[k])b[k]=p.stw;});
+  return Object.keys(b).map(Number).sort(function(x,y){return x-y;}).map(function(t){return {twa:t,stw:b[t]};});}
+function definitiva(cloud){var step=10,g={},MIN=3;cloud.forEach(function(p){var k=Math.round(p.twa/step)*step;(g[k]=g[k]||[]).push(p.stw);});
+  var ser=Object.keys(g).map(Number).sort(function(x,y){return x-y;}).filter(function(t){return g[t].length>=MIN;}).map(function(t){return {twa:t,stw:percentile(g[t],0.9)};});
+  for(var pass=0;pass<2;pass++)ser=ser.map(function(p,i){var a=ser[i-1]||p,b=ser[i+1]||p;return {twa:p.twa,stw:0.25*a.stw+0.5*p.stw+0.25*b.stw};});
+  return ser;}
+function renderTraccia(){
+  var o=sessions();
+  $('#t-sess').innerHTML=o.sessions.map(function(s){return '<label class="row'+(s.on?'':' off')+'" data-id="'+s.id+'">'+
+    '<input type="checkbox" '+(s.on?'checked':'')+'><span class="dt">'+s.d+'</span><span style="color:var(--sub)">· '+s.z+'</span>'+
+    '<span class="np">'+s.n+' pt</span><button class="del" title="Elimina">✕</button></label>';}).join('');
+  $$('#t-sess .row').forEach(function(row){
+    row.querySelector('input').addEventListener('change',function(){var id=row.dataset.id,ck=this.checked;var oo=sessions();
+      oo.sessions=oo.sessions.map(function(s){return s.id===id?Object.assign({},s,{on:ck}):s;});saveSessions(oo);renderTraccia();});
+    row.querySelector('.del').addEventListener('click',function(e){e.preventDefault();var id=row.dataset.id;var oo=sessions();
+      oo.sessions=oo.sessions.filter(function(s){return s.id!==id;});saveSessions(oo);renderTraccia();});
+  });
+  var tws=num($('#t-twsr').value)||12;$('#t-tws').textContent=tws;
+  var cloud=cloudFor(tws),env=envelope(cloud),def=definitiva(cloud);
+  var cov=(new Set(cloud.map(function(p){return Math.round(p.twa/10)*10;}))).size;
+  $('#t-npts').textContent=cloud.length;$('#t-cov').textContent=cov;
+  $('#t-nout').textContent=o.sessions.filter(function(s){return s.on;}).length;
+  $('#t-graph').innerHTML=svgPolar(FINALE?null:cloud,FINALE?null:env,FINALE?def:null,$('#t-ref').checked);
+  $('#t-legenda').innerHTML=FINALE
+    ?'<span><span style="color:var(--teal)">▬</span> definitiva (P90·arrotondata·simmetrica)</span>'
+    :'<span><span style="color:var(--teal)">●</span> dritta</span><span><span style="color:var(--coral)">●</span> sinistra</span><span><span style="color:var(--amber)">▬</span> inviluppo grezzo</span>';
+  $('#t-toggle').textContent=FINALE?'↺ Torna al campione':'◉ Traccia polare definitiva (arrotondata)';
+  $('#t-toggle').classList.toggle('primary',!FINALE);
+  $('#t-csv').style.display=FINALE?'':'none';
+  $('#t-savepol').style.display=FINALE?'':'none';
+}
+function svgPolar(cloud,env,def,ref){
+  var cx=165,cy=170,R=140,VMAX=8,rr=function(v){return Math.min(v,VMAX)/VMAX*R;};
+  var s='<svg class="polar" viewBox="0 0 330 330">';
+  [2,4,6,8].forEach(function(v){s+='<circle cx="'+cx+'" cy="'+cy+'" r="'+rr(v)+'" fill="none" stroke="var(--sub)" stroke-opacity=".32" stroke-dasharray="2 3"/>';});
+  [2,4,6,8].forEach(function(v){s+='<text x="'+(cx+3)+'" y="'+(cy-rr(v))+'" fill="var(--sub)" font-size="8" font-family="ui-monospace">'+v+'</text>';});
+  s+='<line x1="'+cx+'" y1="'+(cy-R)+'" x2="'+cx+'" y2="'+(cy+R)+'" stroke="var(--sub)" stroke-opacity=".3"/><line x1="'+(cx-R)+'" y1="'+cy+'" x2="'+(cx+R)+'" y2="'+cy+'" stroke="var(--sub)" stroke-opacity=".3"/>';
+  [30,60,90,120,150].forEach(function(d){var a=rad(d);
+    s+='<line x1="'+cx+'" y1="'+cy+'" x2="'+(cx+R*Math.sin(a)).toFixed(1)+'" y2="'+(cy-R*Math.cos(a)).toFixed(1)+'" stroke="var(--sub)" stroke-opacity=".16"/>';
+    s+='<line x1="'+cx+'" y1="'+cy+'" x2="'+(cx-R*Math.sin(a)).toFixed(1)+'" y2="'+(cy-R*Math.cos(a)).toFixed(1)+'" stroke="var(--sub)" stroke-opacity=".16"/>';});
+  function poly(arr,sign){return arr.map(function(p,i){var r=rr(p.stw),a=rad(p.twa);return (i?'L':'M')+(cx+sign*r*Math.sin(a)).toFixed(1)+','+(cy-r*Math.cos(a)).toFixed(1);}).join(' ');}
+  function smooth(arr,sign){if(arr.length<2)return '';var P=arr.map(function(p){var r=rr(p.stw),a=rad(p.twa);return [cx+sign*r*Math.sin(a),cy-r*Math.cos(a)];});
+    var d='M'+P[0][0].toFixed(1)+','+P[0][1].toFixed(1);
+    for(var i=0;i<P.length-1;i++){var p0=P[i-1]||P[i],p1=P[i],p2=P[i+1],p3=P[i+2]||p2;
+      var c1x=p1[0]+(p2[0]-p0[0])/6,c1y=p1[1]+(p2[1]-p0[1])/6,c2x=p2[0]-(p3[0]-p1[0])/6,c2y=p2[1]-(p3[1]-p1[1])/6;
+      d+=' C'+c1x.toFixed(1)+','+c1y.toFixed(1)+' '+c2x.toFixed(1)+','+c2y.toFixed(1)+' '+p2[0].toFixed(1)+','+p2[1].toFixed(1);}return d;}
+  if(ref){var refA=[];for(var t=30;t<=170;t+=5)refA.push({twa:t,stw:vBoatDemo(t,num(($('#t-twsr')||{}).value)||12)});
+    s+='<path d="'+poly(refA,-1)+'" fill="none" stroke="var(--sub)" stroke-width="1.2" stroke-dasharray="4 4" opacity=".7"/>';
+    s+='<path d="'+poly(refA,1)+'" fill="none" stroke="var(--sub)" stroke-width="1.2" stroke-dasharray="4 4" opacity=".7"/>';}
+  if(cloud){cloud.forEach(function(p){var r=rr(p.stw),a=rad(p.twa),x=cx+p.side*r*Math.sin(a),y=cy-r*Math.cos(a);
+    s+='<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="1.9" fill="'+(p.side<0?'var(--coral)':'var(--teal)')+'" opacity=".55"/>';});}
+  if(env){s+='<path d="'+poly(env,-1)+'" fill="none" stroke="var(--amber)" stroke-width="2" opacity=".85"/><path d="'+poly(env,1)+'" fill="none" stroke="var(--amber)" stroke-width="2" opacity=".85"/>';}
+  if(def){s+='<path d="'+smooth(def,-1)+'" fill="none" stroke="var(--teal)" stroke-width="2.8" stroke-linecap="round"/><path d="'+smooth(def,1)+'" fill="none" stroke="var(--teal)" stroke-width="2.8" stroke-linecap="round"/>';}
+  var s0=0.85;
+  s+='<path d="M'+cx+','+(cy-23*s0)+' C'+(cx+10*s0)+','+(cy-13*s0)+' '+(cx+11*s0)+','+(cy+8*s0)+' '+(cx+9*s0)+','+(cy+18*s0)+' L'+(cx-9*s0)+','+(cy+18*s0)+' C'+(cx-11*s0)+','+(cy+8*s0)+' '+(cx-10*s0)+','+(cy-13*s0)+' '+cx+','+(cy-23*s0)+' Z" fill="var(--bezel-hi)" stroke="var(--sub)" stroke-width="1.2" stroke-linejoin="round"/>';
+  s+='<line x1="'+cx+'" y1="'+(cy-19*s0)+'" x2="'+cx+'" y2="'+(cy+16*s0)+'" stroke="var(--ink)" stroke-width="1.2" opacity=".55"/>';
+  s+='</svg>';return s;}
+$('#t-twsr').addEventListener('input',function(){FINALE=false;renderTraccia();});
+$('#t-ref').addEventListener('change',renderTraccia);
+$('#t-toggle').addEventListener('click',function(){FINALE=!FINALE;renderTraccia();});
+$('#t-csv').addEventListener('click',function(){var tws=num($('#t-twsr').value)||12;var def=definitiva(cloudFor(tws));
+  var rows=[['TWA_deg','STW_kn','TWS_kn']].concat(def.map(function(p){return [p.twa,p.stw.toFixed(2),tws];}));
+  dl('polare-definitiva-TWS'+tws+'.csv',rows.map(function(r){return r.join(',');}).join('\n'));});
+$('#t-savepol').addEventListener('click',function(){
+  var tws=num($('#t-twsr').value)||12;var def=definitiva(cloudFor(tws));
+  if(!def.length){$('#t-saved2').textContent='Campione insufficiente per questa fascia.';return;}
+  var store=LS_get('raffyca-polar-def',{});store[String(tws)]={twa:def.map(function(p){return p.twa;}),stw:def.map(function(p){return +p.stw.toFixed(2);})};
+  LS_set('raffyca-polar-def',store);
+  var fasce=Object.keys(store).map(Number).sort(function(a,b){return a-b;});
+  var twaSet={};fasce.forEach(function(w){store[String(w)].twa.forEach(function(t){twaSet[t]=1;});});
+  var twa=Object.keys(twaSet).map(Number).sort(function(a,b){return a-b;});
+  var data=twa.map(function(t){return fasce.map(function(w){var d=store[String(w)];var i=d.twa.indexOf(t);
+    if(i>=0)return d.stw[i];
+    var lo=-1,hi=-1;for(var k=0;k<d.twa.length;k++){if(d.twa[k]<=t)lo=k;if(d.twa[k]>=t&&hi<0)hi=k;}
+    if(lo<0)return d.stw[0];if(hi<0)return d.stw[d.stw.length-1];if(lo===hi)return d.stw[lo];
+    var f=(t-d.twa[lo])/(d.twa[hi]-d.twa[lo]);return +(d.stw[lo]+(d.stw[hi]-d.stw[lo])*f).toFixed(2);});});
+  var pol={twa:twa,tws:fasce,data:data,meta:{source:'campo',boat:(LS_get('raffyca-profile',{})||{}).boat||''},ts:Date.now()};
+  LS_set('raffyca-polar',pol);
+  $('#t-saved2').textContent='Salvata come polare della suite · '+fasce.length+' fascia/e ('+fasce.join(', ')+' kn).';
+});
+/* import CSV (v1: conteggio punti validi; aggancio nuvola reale col formato strumento definitivo) */
+$('#t-import').addEventListener('click',function(){$('#t-file').click();});
+$('#t-file').addEventListener('change',function(ev){var file=ev.target.files[0];if(!file)return;
+  var rd=new FileReader();rd.onload=function(){var added=parseCSV(rd.result);
+    var o=sessions();o.sessions.unshift({id:'imp'+Date.now(),d:new Date().toLocaleDateString('it-IT'),z:'CSV importato',n:added,on:true});saveSessions(o);
+    $('#t-saved').textContent=added+' punti validi nel CSV.';renderTraccia();};rd.readAsText(file);ev.target.value='';});
+function parseCSV(txt){
+  var lines=txt.split(/\r?\n/).filter(function(l){return l.trim();});if(!lines.length)return 0;
+  var sep=lines[0].indexOf(';')>=0?';':',';var head=lines[0].split(sep).map(function(h){return h.trim().toLowerCase();});
+  function col(){for(var i=0;i<arguments.length;i++){var idx=head.indexOf(arguments[i]);if(idx>=0)return idx;}return -1;}
+  var iStw=col('stw','stw_kn','sog','sog_kn');
+  var n=0;for(var r=1;r<lines.length;r++){var c=lines[r].split(sep);var v=parseFloat((c[iStw]||'').replace(',','.'));if(isFinite(v))n++;}
+  return n;
+}
+function dl(name,txt){try{var url=URL.createObjectURL(new Blob([txt],{type:'text/csv'}));
+  var a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},500);}catch(e){}}
+
+/* init */
+insRender();
+window.__perf={realeToApp:realeToApp,appToReale:appToReale,percentile:percentile,definitiva:definitiva,polarTarget:polarTarget,cloudFor:cloudFor};
+})();
+
+</script>
+<script>
+
+(function(){
+var $=function(s){return document.querySelector(s);};
+var num=function(s){var v=parseFloat(String(s).replace(',','.'));return isFinite(v)?v:null;};
+var rad=function(d){return d*Math.PI/180;},deg=function(r){return r*180/Math.PI;};
+function set(id,v,u){var e=$(id);if(v==null){e.innerHTML='<span class="num dash">—</span><span class="u">'+u+'</span>';return;}
+  e.innerHTML='<span class="num">'+v.toFixed(1)+'</span><span class="u">'+u+'</span>';}
+function ar(){var awa=num($('#c1-awa').value),aws=num($('#c1-aws').value),stw=num($('#c1-stw').value);
+  if(awa==null||aws==null||stw==null){set('#c1-twa',null,'°');set('#c1-tws',null,'kn');return;}
+  var sg=awa<0?-1:1,a=rad(Math.abs(awa));
+  var tws=Math.sqrt(aws*aws+stw*stw-2*aws*stw*Math.cos(a));
+  var twa=Math.abs(deg(Math.atan2(aws*Math.sin(a),aws*Math.cos(a)-stw)));
+  set('#c1-twa',sg*twa,'°');set('#c1-tws',tws,'kn');}
+function ra(){var twa=num($('#c2-twa').value),tws=num($('#c2-tws').value),stw=num($('#c2-stw').value);
+  if(twa==null||tws==null||stw==null){set('#c2-awa',null,'°');set('#c2-aws',null,'kn');return;}
+  var sg=twa<0?-1:1,a=rad(Math.abs(twa));
+  var aws=Math.sqrt(tws*tws+stw*stw+2*tws*stw*Math.cos(a));
+  var awa=Math.abs(deg(Math.atan2(tws*Math.sin(a),tws*Math.cos(a)+stw)));
+  set('#c2-awa',sg*awa,'°');set('#c2-aws',aws,'kn');}
+['#c1-awa','#c1-aws','#c1-stw'].forEach(function(s){$(s).addEventListener('input',ar);});
+['#c2-twa','#c2-tws','#c2-stw'].forEach(function(s){$(s).addEventListener('input',ra);});
+})();
+
+</script>
+</body>
+</html>

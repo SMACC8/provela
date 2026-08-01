@@ -1,0 +1,1362 @@
+<!doctype html>
+<html lang="it"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ProVela · Traversata su mappa</title>
+<script>(function(){try{var t=localStorage.getItem('raffyca-theme');if(t==='sun')t='day';if(t==='day'||t==='night')document.documentElement.classList.add(t);}catch(e){}})();</script>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0A1628">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ProVela">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%230A1628'/%3E%3Cpath d='M262 92 L262 388 L150 388 Z' fill='%232BD9C4'/%3E%3Cpath d='M286 150 L378 388 L286 388 Z' fill='%23FFC24B'/%3E%3Crect x='140' y='388' width='250' height='24' rx='12' fill='%237B93AC'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  :root{--bg:#0A1628;--bg2:#0E1F33;--ink:#E8EEF2;--sub:#7B93AC;--line:#1C3349;
+    --teal:#2BD9C4;--amber:#FFC24B;--coral:#FF6B6B;--panel:#0C1C30;--panel2:#0A1828;--dp:#07121F;--green:#46d68a;
+    --sans:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",sans-serif;
+    --mono:ui-monospace,"SF Mono","Roboto Mono",Menlo,Consolas,monospace;}
+/* TEMA GIORNO */
+html.day{
+  --bg:#eef1f4; --bg2:#dbe3ea; --panel:#ffffff; --panel2:#e7ecf1; --dp:#f3f6f9;
+  --line:#a7b5c2; --ink:#0a1420; --sub:#3b4e60;
+  --teal:#067d70; --amber:#8f5600; --coral:#c62020; --green:#12894f;
+}
+/* TEMA NOTTE (rosso) */
+html.night{
+  --bg:#0a0202; --bg2:#180404; --panel:#150404; --panel2:#0e0303; --dp:#0a0101;
+  --line:#3a1010; --ink:#ff5b5b; --sub:#b04040;
+  --teal:#ff4d4d; --amber:#ff7a45; --coral:#ff5555; --green:#c23a3a;
+}
+/* topbar: sfondo per Giorno/Notte (in Scuro resta il gradiente originale) */
+html.day .rf-topbar{background:linear-gradient(#ffffff,#e7ecf1);border-bottom-color:#a7b5c2;}
+html.night .rf-topbar{background:linear-gradient(#150404,#0e0303);border-bottom-color:#3a1010;}
+/* icone SVG: rimappa i fill standard per Giorno/Notte (selettore su attributo, no markup) */
+html.day [fill="#2BD9C4"]{fill:#067d70;} html.night [fill="#2BD9C4"]{fill:#ff4d4d;}
+html.day [fill="#FFC24B"]{fill:#8f5600;} html.night [fill="#FFC24B"]{fill:#ff7a45;}
+html.day [fill="#FF6B6B"]{fill:#c62020;} html.night [fill="#FF6B6B"]{fill:#ff5555;}
+html.day [fill="#5a7a94"]{fill:#3b4e60;} html.night [fill="#5a7a94"]{fill:#b04040;}
+html.day [fill="#46d68a"]{fill:#12894f;} html.night [fill="#46d68a"]{fill:#c23a3a;}
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(120% 80% at 50% -10%,var(--bg2),var(--bg) 60%);
+    color:var(--ink);font-family:var(--mono);-webkit-font-smoothing:antialiased;padding:20px 14px 60px;}
+  .wrap{max-width:780px;margin:0 auto;}
+  .eyebrow{font-size:12px;letter-spacing:.22em;color:var(--sub);text-transform:uppercase;}
+  h1{font-size:22px;margin:6px 0 2px;font-weight:700;}
+  .lede{color:var(--sub);font-size:13.5px;line-height:1.6;margin:0 0 14px;max-width:62ch;}
+  .lede b{color:var(--ink);font-weight:600;}.boat{color:var(--teal);font-weight:700;}
+  .bar{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:0 0 12px;}
+  .bar button{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--sub);
+    font-family:var(--mono);font-size:13px;padding:8px 11px;border-radius:999px;cursor:pointer;transition:.18s;}
+  .bar button:hover{border-color:var(--sub);color:var(--ink);}
+  .bar button.on{background:rgba(43,217,196,.12);border-color:var(--teal);color:var(--teal);}
+  .load{background:rgba(255,194,75,.12)!important;border-color:var(--amber)!important;color:var(--amber)!important;}
+  .pill{font-size:11px;padding:5px 10px;border-radius:999px;border:1px solid var(--line);color:var(--sub);}
+  .pill.live{color:var(--teal);border-color:rgba(43,217,196,.4);}.pill.demo{color:var(--amber);border-color:rgba(255,194,75,.4);}
+  .toggle{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:0 0 10px;font-size:13px;color:var(--sub);}
+  .toggle label{display:flex;align-items:center;gap:6px;cursor:pointer;}
+  .mapwrap{position:relative;border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 10px 40px -20px #000;margin:0 28px;}
+  @media(max-width:560px){.mapwrap{margin:0 34px;}}
+  #map{width:100%;height:520px;background:var(--bg);}
+  #rfOverlay{position:absolute;left:0;top:0;pointer-events:none;z-index:500;}
+  .busy{position:absolute;inset:0;z-index:700;display:flex;align-items:center;justify-content:center;
+    background:rgba(10,22,40,.55);backdrop-filter:blur(1px);}
+  .busy[hidden]{display:none!important;}   /* fix: l'attributo hidden deve vincere sul display:flex */
+  .busy span{font-family:var(--mono);font-size:13px;color:var(--amber);background:var(--bg2);
+    border:1px solid var(--line);border-radius:999px;padding:9px 16px;box-shadow:0 8px 30px -10px #000;}
+  .leaflet-container{background:var(--bg);font-family:var(--mono);}
+  .leaflet-control-attribution{background:rgba(10,22,40,.7)!important;color:var(--sub)!important;font-size:10px;}
+  .leaflet-control-attribution a{color:var(--teal)!important;}
+  .ctrls{display:grid;grid-template-columns:1fr 1fr;gap:12px 18px;margin:14px 2px 2px;}
+  @media(max-width:560px){.ctrls{grid-template-columns:1fr;}}
+  .ctrl{display:flex;flex-direction:column;gap:5px;}
+  .ctrl .row{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;}
+  .ctrl .k{color:var(--sub);}.ctrl .v{color:var(--ink);font-weight:700;}
+  input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:4px;border-radius:3px;background:var(--line);outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--teal);border:3px solid var(--dp);cursor:pointer;}
+  input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--teal);border:3px solid var(--dp);cursor:pointer;}
+  input[type=range]:disabled{opacity:.4;}
+  .togg{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--ink);cursor:pointer;}
+  .togg input{appearance:none;width:38px;height:21px;border-radius:999px;background:var(--line);position:relative;outline:none;cursor:pointer;transition:.18s;flex:0 0 auto;}
+  .togg input:checked{background:rgba(255,194,75,.55);}
+  .togg input::after{content:"";position:absolute;top:2.5px;left:2.5px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.18s;}
+  .togg input:checked::after{transform:translateX(17px);}
+  .hint{font-size:12px;color:var(--sub);line-height:1.5;}
+  .read{font-size:13.5px;color:var(--sub);margin:12px 2px 0;line-height:1.7;}.read b{color:var(--ink);}
+  .foot{color:var(--sub);font-size:12px;margin-top:16px;line-height:1.6;}
+  /* ricerca località A/B */
+  .find{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:0 0 12px;}
+  .find .seg{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;}
+  .find .seg button{border:0;border-radius:0;background:var(--panel);color:var(--sub);font-family:var(--mono);font-size:13px;padding:8px 13px;cursor:pointer;transition:.15s;}
+  .find .seg button.on{color:var(--dp);font-weight:700;}
+  .find .seg button[data-ab="A"].on{background:var(--teal);}
+  .find .seg button[data-ab="B"].on{background:var(--coral);color:#fff;}
+  .find input[type=text]{flex:1;min-width:140px;background:var(--panel);border:1px solid var(--line);border-radius:999px;color:var(--ink);font-family:var(--mono);font-size:13.5px;padding:8px 13px;outline:none;}
+  .find input[type=text]:focus{border-color:var(--sub);}
+  .find input::placeholder{color:var(--sub);}
+  .find .go{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--sub);font-family:var(--mono);font-size:13px;padding:8px 12px;border-radius:999px;cursor:pointer;transition:.15s;}
+  .find .go:hover{border-color:var(--sub);color:var(--ink);}
+  .find .go:disabled{opacity:.4;cursor:not-allowed;}
+  .find .hintab{flex-basis:100%;font-size:12px;color:var(--sub);line-height:1.5;margin-top:-2px;}
+  .find .seglbl{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--sub);padding:0 2px;}
+  /* pin A/B sulla mappa */
+  .ab-pin{background:none;border:0;}
+  .abdot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-weight:700;font-size:14px;color:var(--dp);border:2px solid var(--dp);box-shadow:0 2px 8px -2px #000;cursor:grab;}
+  .abdot:active{cursor:grabbing;}
+  /* toast */
+  #toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(12px);background:var(--bg2);border:1px solid var(--line);
+    color:var(--ink);font-size:12.5px;padding:9px 15px;border-radius:999px;opacity:0;pointer-events:none;transition:.22s;z-index:9999;box-shadow:0 8px 30px -10px #000;}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  /* diario di bordo */
+  .diag{margin:16px 0 0;border:1px solid var(--line);border-radius:14px;overflow:hidden;}
+  .wprof{margin:12px 0 0;border:1px solid var(--line);border-radius:14px;background:var(--panel2);overflow:hidden;}
+  .wprof-h{display:flex;justify-content:space-between;align-items:baseline;padding:9px 14px 4px;}
+  .wprof-h b{font-size:12px;color:var(--ink);font-weight:700;letter-spacing:.03em;}
+  .wprof-h span{font-size:10.5px;color:var(--sub);}
+  .wprof svg{display:block;width:100%;height:118px;}
+  .navbar{display:flex;gap:8px 14px;align-items:center;flex-wrap:wrap;margin:14px 0 0;}
+  .navbtn{appearance:none;border:1px solid var(--teal);background:rgba(43,217,196,.12);color:var(--teal);font-family:var(--mono);font-size:13px;font-weight:700;padding:9px 16px;border-radius:999px;cursor:pointer;transition:.15s;}
+  .navbtn.on{background:var(--teal);color:var(--dp);}
+  .navbar label{font-size:12px;color:var(--sub);display:flex;align-items:center;gap:5px;cursor:pointer;}
+  .navp{display:none;margin:10px 0 0;border:1px solid var(--line);border-radius:14px;background:var(--panel2);padding:11px 14px;}
+  .navp.on{display:block;}
+  .navp .ng{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;}
+  .navp .ng span{color:var(--sub);}.navp .ng b{color:var(--ink);font-variant-numeric:tabular-nums;}
+  .navp .xte{margin-top:7px;font-size:12px;color:var(--sub);}
+  .navp .xte b{font-variant-numeric:tabular-nums;}
+  .boat-pin{background:none;border:0;}
+  .boatdot{width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:18px solid var(--teal);filter:drop-shadow(0 1px 2px #000);}
+  .polbox{margin:16px 0 0;border:1px solid var(--line);border-radius:14px;background:var(--panel2);overflow:hidden;}
+  .polbox>summary{padding:11px 14px;cursor:pointer;font-size:13.5px;color:var(--ink);font-weight:700;letter-spacing:.02em;list-style:none;}
+  .polbox>summary::-webkit-details-marker{display:none;}
+  .polbox>summary::before{content:'▸ ';color:var(--sub);}
+  .polbox[open]>summary::before{content:'▾ ';}
+  .polbox>summary span{color:var(--sub);font-weight:400;}
+  .polin{padding:0 14px 14px;}
+  .polin .hint{font-size:11px;color:var(--sub);line-height:1.55;margin:2px 0 9px;}
+  .polin code{background:var(--panel);padding:1px 5px;border-radius:5px;color:#9fd8ff;font-size:11px;}
+  .polin textarea{width:100%;box-sizing:border-box;min-height:120px;resize:vertical;background:var(--panel);border:1px solid var(--line);border-radius:10px;color:var(--ink);font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.5;padding:9px 11px;outline:none;}
+  .polin textarea:focus{border-color:var(--sub);}
+  .orcq{width:100%;box-sizing:border-box;background:var(--panel);border:1px solid var(--line);border-radius:10px;color:var(--ink);font-family:var(--mono);font-size:13.5px;padding:10px 12px;outline:none;}
+  .orcq:focus{border-color:var(--teal);}
+  .orcres{list-style:none;margin:8px 0 0;padding:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel);max-height:240px;overflow-y:auto;}
+  .orcres li{padding:9px 12px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;justify-content:space-between;gap:10px;align-items:baseline;}
+  .orcres li:last-child{border-bottom:0;}
+  .orcres li:hover{background:var(--panel2);}
+  .orcres b{color:var(--teal);font-weight:600;font-size:13px;}
+  .orcres .sub{color:var(--sub);font-size:11.5px;white-space:nowrap;}
+  .orcres .none{color:var(--sub);cursor:default;}
+  .topo{background:none!important;border:0!important;width:auto!important;height:auto!important;}
+  .polbtns{display:flex;gap:8px;margin:9px 0 4px;}
+  #polPrev{margin-top:8px;}
+  .scanbox{display:none;margin:10px 0 0;border:1px solid var(--line);border-radius:14px;background:var(--panel2);padding:10px 14px;}
+  .scanbox.on{display:block;}
+  .scan-h{font-size:12.5px;color:var(--ink);margin-bottom:4px;}
+  .scan-h b{font-variant-numeric:tabular-nums;}
+  .scan-h button{margin-left:8px;padding:3px 12px;font-size:11px;}
+  .diag-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--line);}
+  .diag-h b{font-size:12px;letter-spacing:.04em;color:var(--ink);font-weight:700;}
+  .diag-h span{font-size:10.5px;color:var(--sub);}
+  .diag-sum{display:flex;flex-wrap:wrap;gap:5px 9px;padding:9px 14px;background:var(--panel2);border-bottom:1px solid var(--line);font-size:11px;color:var(--sub);}
+  .diag-sum span{white-space:nowrap;}
+  .diag-sum b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums;}
+  .diag-body{max-height:300px;overflow:auto;}
+  .drow{display:grid;grid-template-columns:58px 82px 1fr;gap:10px;align-items:baseline;padding:8px 14px;border-bottom:1px solid #142838;font-size:12px;}
+  .drow .dt{display:flex;flex-direction:column;line-height:1.15;}
+  .drow .dt b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums;font-size:12px;}
+  .drow .dt i{color:var(--sub);font-style:normal;font-size:10px;}
+  .dsub{display:block;margin-top:3px;color:#7d94a8;font-size:10.5px;font-variant-numeric:tabular-nums;letter-spacing:.01em;}
+  .drow:last-child{border-bottom:0;}
+  .drow .dtag{font-size:10.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;}
+  .drow .dtx{color:var(--ink);line-height:1.45;}
+  .drow .dtx em{color:var(--sub);font-style:normal;}
+  .tag-sx{color:var(--coral);} .tag-dx{color:var(--teal);}
+  .tag-vir{color:#9fd8ff;} .tag-str{color:var(--amber);}
+  .tag-rif{color:var(--coral);} .tag-alz{color:#7BD88A;} .tag-mot{color:var(--amber);} .tag-info{color:var(--sub);}
+  .diag-leg{padding:9px 14px;background:var(--panel2);border-top:1px solid var(--line);font-size:10.5px;color:var(--sub);line-height:1.6;}
+  .diag-leg b{color:#9fb6cc;font-weight:600;}
+  /* --- allineamento al resto dell'app: testo in sans, numeri in mono --- */
+  body{font-family:var(--sans);}
+  .bar button,.busy span,.find .seg button,.find input[type=text],.find .go,
+  .navbtn,.orcq{font-family:var(--sans);}
+  .ctrl .v,.read b,.navp .ng b,.navp .xte b,.scan-h b,.diag-sum b{font-family:var(--mono);}
+</style></head>
+<body>
+<!-- ===== rf-topbar: barra fissa trasversale ProVela (inietta subito dopo <body>) ===== -->
+<style>
+.rf-topbar{position:fixed;top:0;left:0;right:0;height:40px;z-index:9000;display:flex;align-items:center;gap:9px;
+  padding:0 10px;background:linear-gradient(#0c1c2e,#081521);border-bottom:1px solid #1a3248;
+  font-family:ui-monospace,"SF Mono","Roboto Mono",Menlo,Consolas,monospace;color:var(--sub,#5a7a94);font-size:11.5px;
+  letter-spacing:.02em;-webkit-user-select:none;user-select:none;box-shadow:0 2px 10px -6px rgba(0,0,0,.8);}
+.rf-topbar a.rf-home{display:flex;align-items:center;justify-content:center;width:30px;height:30px;flex:none;
+  border-radius:8px;background:rgba(43,217,196,.1);border:1px solid rgba(43,217,196,.35);text-decoration:none;}
+.rf-topbar a.rf-home:active{transform:scale(.92);}
+.rf-topbar .rf-boat{display:flex;align-items:center;gap:5px;flex:none;color:var(--ink,#deedf5);font-weight:600;white-space:nowrap;}
+.rf-topbar .rf-boat svg{flex:none;}
+.rf-topbar .rf-gps{flex:none;display:flex;align-items:center;}
+.rf-topbar .rf-gps .gdot{width:9px;height:9px;border-radius:50%;background:#5a6b7a;box-shadow:0 0 0 2px rgba(90,107,122,.25);transition:background .3s,box-shadow .3s;}
+.rf-topbar .rf-gps .gdot.ok{background:var(--teal,#2BD9C4);box-shadow:0 0 6px rgba(43,217,196,.6);}
+.rf-topbar .rf-gps .gdot.old{background:var(--amber,#FFC24B);box-shadow:0 0 5px rgba(255,194,75,.5);}
+.rf-topbar .rf-pol{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;color:var(--sub,#5a7a94);}
+.rf-topbar .rf-pol .mod{color:var(--ink,#cfe2ee);}
+.rf-topbar .rf-pol .pol{color:var(--amber,#FFC24B);font-weight:600;}
+.rf-topbar .rf-pol .pol.warn{color:var(--coral,#FF6B6B);}
+.rf-topbar .rf-spacer{flex:1;}
+.rf-topbar .rf-status{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:44%;flex:none;color:var(--sub,#5a7a94);}
+.rf-topbar .rf-status.wp b{color:var(--teal,#2BD9C4);font-weight:600;}
+.rf-topbar .rf-status.rec{color:var(--coral,#FF6B6B);font-weight:600;}
+.rf-topbar .rf-status .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#FF6B6B;margin-right:5px;vertical-align:middle;animation:rfblink 1s steps(2,start) infinite;}
+@keyframes rfblink{50%{opacity:.25}}
+body{padding-top:40px!important;}
+@media (max-width:480px){.rf-topbar .rf-pol .mod{display:none;}}
+@media (max-width:360px){.rf-topbar .rf-boat .bn{display:none;}}
+</style>
+<div class="rf-topbar" role="banner">
+  <a class="rf-home" href="../" aria-label="Menu ProVela" title="Menu ProVela">
+    <svg viewBox="0 0 64 64" width="19" height="19" aria-hidden="true"><path d="M32 8 L32 56 L10 56 Z" fill="#2BD9C4" opacity=".95"/><path d="M32 26 L54 56 L32 56 Z" fill="#2BD9C4" opacity=".45"/><line x1="32" y1="6" x2="32" y2="58" stroke="#1a4a42" stroke-width="3"/></svg>
+  </a>
+  <span class="rf-boat" id="rfBoat"></span>
+  <span class="rf-gps" id="rfGps" title="Stato GPS"><span class="gdot"></span></span>
+  <span class="rf-pol" id="rfPol" title=""></span>
+  <span class="rf-spacer"></span>
+  <span class="rf-status" id="rfStatus"></span>
+</div>
+<script>
+(function(){
+  function esc(x){return String(x).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  var elBoat=document.getElementById("rfBoat"),elGps=document.getElementById("rfGps"),
+      elPol=document.getElementById("rfPol"),elSt=document.getElementById("rfStatus");
+  var SAIL='<svg viewBox="0 0 64 64" width="13" height="13" aria-hidden="true"><path d="M34 6 L34 52 L14 52 Z" fill="#2BD9C4"/><line x1="34" y1="4" x2="34" y2="54" stroke="#1a4a42" stroke-width="3"/></svg>';
+  function tickBoat(){
+    if(!elBoat)return;
+    var pr=null;try{pr=JSON.parse(localStorage.getItem("raffyca-profile")||"null");}catch(e){}
+    var boat=(pr&&pr.boat)||"ProVela";
+    elBoat.innerHTML=SAIL+'<span class="bn">'+esc(boat)+'</span>';
+  }
+  function polarLabel(){
+    var p=null;try{p=JSON.parse(localStorage.getItem("raffyca-polar")||"null");}catch(e){}
+    if(!p||!p.twa||!p.data||!p.twa.length)return{txt:"integrata",cls:"warn",boat:""};
+    var m=p.meta||{};
+    if(m.source==="generica"||m.generic)return{txt:"generica",cls:"warn",boat:(m.boat||"generica")};
+    return{txt:(m.source||"attiva"),cls:"",boat:(m.boat||"")};
+  }
+  function tickPolar(){
+    if(!elPol)return;
+    var pr=null;try{pr=JSON.parse(localStorage.getItem("raffyca-profile")||"null");}catch(e){}
+    var L=polarLabel();
+    var model=L.boat||((pr&&pr.model)||"");
+    var h="";
+    if(model)h+='<span class="mod">'+esc(model)+'</span>';
+    h+=(h?" · ":"")+'<span class="pol '+L.cls+'">pol '+esc(L.txt)+'</span>';
+    elPol.innerHTML=h; elPol.title=[model,"polare: "+L.txt].filter(Boolean).join(" · ");
+  }
+  function tickGps(){
+    if(!elGps)return;
+    var dot=elGps.querySelector(".gdot"),pos=null;
+    try{pos=JSON.parse(localStorage.getItem("raffyca-pos")||"null");}catch(e){}
+    var cls="",title="GPS: nessun dato";
+    if(pos&&isFinite(pos.lat)&&isFinite(pos.lon)){
+      if(pos.ts&&isFinite(pos.ts)){
+        var age=Math.round((Date.now()-pos.ts)/1000);
+        if(age<25){cls="ok";title="GPS: fix "+age+" s fa";}
+        else if(age<900){cls="old";title="GPS: ultimo fix "+(age<120?(age+" s"):(Math.round(age/60)+" min"))+" fa";}
+        else{cls="";title="GPS: fix vecchio";}
+      }else{cls="old";title="GPS: posizione senza orario";}
+    }
+    if(dot)dot.className="gdot"+(cls?(" "+cls):"");
+    elGps.title=title;
+  }
+  function tickStatus(){
+    if(!elSt)return;
+    var rec=null;try{rec=JSON.parse(localStorage.getItem("raffyca-rec")||"null");}catch(e){}
+    if(rec&&rec.on){elSt.className="rf-status rec";elSt.innerHTML='<span class="dot"></span>REC GPX'+(rec.pts?(" · "+rec.pts+" pt"):"");return;}
+    var tid="";try{tid=localStorage.getItem("raffyca-active-track")||"";}catch(e){}
+    if(tid){var tk=null;try{tk=(JSON.parse(localStorage.getItem("raffyca-tracks")||"[]")).find(function(x){return x.id===tid;});}catch(e){}
+      if(tk&&tk.pts&&tk.pts.length>=2){elSt.className="rf-status wp";elSt.innerHTML="&#9654; <b>"+esc(tk.name)+"</b>";return;}}
+    var id="";try{id=localStorage.getItem("raffyca-active-wp")||"";}catch(e){}
+    if(id){var w=null;try{w=(JSON.parse(localStorage.getItem("raffyca-waypoints")||"[]")).find(function(x){return x.id===id;});}catch(e){}
+      if(w){elSt.className="rf-status wp";elSt.innerHTML="&#9873; WP: <b>"+esc(w.name)+"</b>";return;}}
+    elSt.className="rf-status";elSt.textContent="";
+  }
+  function all(){tickBoat();tickPolar();tickGps();tickStatus();}
+  all();
+  setInterval(tickGps,3000);setInterval(tickStatus,3000);setInterval(tickPolar,5000);setInterval(tickBoat,10000);
+  window.addEventListener("storage",all);
+  document.addEventListener("visibilitychange",function(){if(!document.hidden)all();});
+})();
+</script>
+<!-- ===== /rf-topbar ===== -->
+
+<div class="wrap">
+  <a href="../" style="display:inline-block;margin-bottom:10px;color:var(--teal);text-decoration:none;font-size:13px;font-family:ui-monospace,Menlo,monospace">‹ ProVela</a>
+  <div class="eyebrow">ProVela · Traversata</div>
+  <h1>Traversata</h1>
+  <p class="lede">Vento, isocrone e rotta sopra la carta <b>OpenSeaMap</b>.</p>
+
+  <div class="bar">
+    <button data-area="custom" id="customAreaBtn" style="display:none"></button>
+    <button id="loadBtn" class="load">⟳ Carica vento reale</button>
+    <span class="pill demo" id="pill">campo sintetico</span>
+  </div>
+  <div class="toggle">
+    <label><input type="checkbox" id="tSea" checked> OpenSeaMap</label>
+    <label><input type="checkbox" id="tCoast" checked> costa modello</label>
+    <label><input type="checkbox" id="tWind" checked> vento</label>
+    <label><input type="checkbox" id="tIso" checked> isocrone</label>
+    <label><input type="checkbox" id="tNames" checked> toponimi</label>
+    <label><input type="checkbox" id="tBathy"> batimetria</label>
+  </div>
+
+  <div class="find">
+    <div class="seg" role="group" aria-label="Imposta punto">
+      <button data-ab="A" class="on">Partenza A</button>
+      <button data-ab="B">Arrivo B</button>
+    </div>
+    <select id="wpPick" title="Imposta A/B da un waypoint salvato" style="font:inherit;padding:8px 10px;border-radius:8px;border:1px solid var(--line,#1a3248);background:var(--panel2);color:var(--ink)"><option value="">— A/B da waypoint —</option></select>
+    <button class="go" id="abMoveBtn" title="Attiva lo spostamento di A e B: quando è attivo puoi trascinare i pin o toccare la carta. Evita spostamenti accidentali su touch.">✥ Muovi A/B</button>
+    <button class="go" id="resetBtn" title="Riporta A e B ai punti di esempio">↺ Reset</button>
+    <button class="go" id="fitBtn" title="Crea un'area di mare che racchiude A e B (es. Trieste↔Venezia)">⤢ Area su A↔B</button>
+    <button class="go" id="recalcBtn" title="Ricalcola la rotta">↻ Aggiorna</button>
+    <div class="hintab">Scegli <b>A</b> o <b>B</b>, poi tocca la carta o pesca un <b>waypoint</b> salvato in Carta Nautica. <b>⤢ Area su A↔B</b> copre entrambi i punti.</div>
+  </div>
+
+  <div class="mapwrap">
+    <div id="map"></div>
+    <svg id="rfOverlay" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="busy" id="busy" hidden><span id="busyTx">⏳ Preparo la costa (una volta sola)…</span></div>
+    <div id="isoLegend" style="display:none;position:absolute;left:8px;bottom:8px;z-index:650;pointer-events:none;background:rgba(6,14,24,.85);border:1px solid #1a3248;border-radius:8px;padding:6px 9px;font:600 10px ui-monospace,monospace;color:#cfe">
+      <div style="opacity:.65;margin-bottom:3px;letter-spacing:.5px">BATIMETRIA (m)</div>
+      <span style="color:#8fe3ff">━</span>5 <span style="color:var(--teal)">━</span>10 <span style="color:var(--green)">━</span>20 <span style="color:var(--amber)">━</span>50 <span style="color:var(--coral)">━</span>100 <span style="color:#c792ea">━</span>200 <span style="color:#f78fb3">━</span>500 <span style="color:#9aa7ff">━</span>1000
+    </div>
+  </div>
+  <div class="hint" style="margin:6px 28px 0">Zoom mappa: tieni premuto ⌘/Ctrl (o Alt) e scorri. Su telefono: pizzica.</div>
+
+  <div class="navbar">
+    <button class="navbtn" id="navBtn">▶ Naviga</button>
+    <label><input type="checkbox" id="navFollow" checked> segui la barca</label>
+    <label title="In navigazione: rifà la rotta partendo dalla tua posizione GPS attuale (invece che da A)"><input type="checkbox" id="navReroute"> ricalcola da qui</label>
+    <button class="go" id="gpxBtn" style="margin-left:auto">⬇ Esporta GPX</button>
+  </div>
+  <div class="navp" id="navp"></div>
+
+  <div class="ctrls">
+    <div class="ctrl">
+      <div class="row"><span class="k">Partenza</span><span class="v" id="depLbl">—</span></div>
+      <input type="range" id="dep" min="0" max="14" step="1" value="2">
+      <div class="row" style="margin-top:8px"><span class="k">Ora vento in carta</span><span class="v" id="windHourLbl">—</span></div>
+      <input type="range" id="windHour" min="0" max="14" step="1" value="2">
+      <div class="hint">Trascina per vedere il vento a un'altra ora: il pallino mostra dove saresti.</div>
+      <button class="go" id="scanBtn" style="margin-top:8px;width:100%">Trova il miglior orario</button>
+    </div>
+    <div class="ctrl">
+      <label class="togg"><input type="checkbox" id="motorOn"> Motore disponibile</label>
+      <div class="row" style="margin-top:6px"><span class="k">Velocità motore</span><span class="v"><span id="motV">5.5</span> kt</span></div>
+      <input type="range" id="mot" min="3" max="8" step="0.5" value="5.5" disabled>
+      <div class="row" style="margin-top:8px"><span class="k">Perdita per manovra</span><span class="v"><span id="tackV">12</span> s</span></div>
+      <input type="range" id="tackPen" min="0" max="40" step="2" value="12">
+      <div class="row" style="margin-top:8px"><span class="k">Efficienza vela</span><span class="v"><span id="effV">100</span>%</span></div>
+      <input type="range" id="polarEff" min="50" max="100" step="5" value="100">
+      <div class="hint">Quanto rendi rispetto alla polare teorica.</div>
+    </div>
+    <div class="ctrl">
+      <label class="togg"><input type="checkbox" id="windCapOn"> Evita vento forte</label>
+      <div class="row" style="margin-top:6px"><span class="k">Soglia</span><span class="v">oltre <span id="windCapV">25</span> kt</span></div>
+      <input type="range" id="windCap" min="12" max="40" step="1" value="25" disabled>
+      <div class="hint">La rotta evita le zone oltre soglia.</div>
+    </div>
+    <div class="ctrl">
+      <label class="togg"><input type="checkbox" id="coastOn"> Non avvicinarti troppo alla costa</label>
+      <div class="row" style="margin-top:6px"><span class="k">Buffer</span><span class="v"><span id="coastV">2</span> NM</span></div>
+      <input type="range" id="coastBuf" min="1" max="6" step="0.5" value="2" disabled>
+      <div class="hint">Distanza minima dalla terra (un punto sottocosta può comunque uscire).</div>
+    </div>
+  </div>
+  <div class="scanbox" id="scanRes"></div>
+
+  <div class="read" id="read"></div>
+
+  <div class="wprof" id="wprof"></div>
+
+  <div class="diag" id="diag">
+    <div class="diag-h"><b>Diario di bordo · mure & rotazioni</b><span style="display:flex;gap:6px;align-items:center;margin-left:auto"><button class="go" id="diagCsv" style="padding:4px 9px;font-size:11px">CSV</button><button class="go" id="diagPdf" style="padding:4px 9px;font-size:11px">PDF</button><span id="diagCount"></span></span></div>
+    <div class="diag-sum" id="diagSum"></div>
+    <div class="diag-body" id="diagBody"></div>
+    <div class="diag-leg"><b>virata</b> = cambio mure di prua · <b>strambata</b> = di poppa · <b>rifiuto</b> = vento contro · <b>alzata</b> = vento a favore.</div>
+  </div>
+
+  <details class="polbox">
+    <summary>Polare della barca · <span id="polStatus">ProVela, integrata</span></summary>
+    <div class="polin">
+      <input type="search" id="orcQ" class="orcq" autocomplete="off" placeholder="Cerca la barca nel DB ORC (es. First 36.7, Italia 9.98, Swan 42)">
+      <ul class="orcres" id="orcRes" hidden></ul>
+      <div class="polbtns">
+        <button class="go" id="polReset">Ripristina ProVela</button>
+        <button class="go" id="orcPasteBtn">Incolla CSV…</button>
+      </div>
+      <div id="polPasteWrap" hidden style="margin-top:6px">
+        <textarea id="polText" spellcheck="false" placeholder="twa/tws;6;8;10;12;14;16;20&#10;52;4.55;5.42;5.90;6.20;6.42;6.55;6.75&#10;60;4.85;5.70;6.15;6.45;6.66;6.80;7.05&#10;75;5.10;5.95;6.40;6.70;6.95;7.15;7.55&#10;90;5.05;5.96;6.50;6.90;7.20;7.55;8.10"></textarea>
+        <div class="polbtns"><button class="go" id="polApply">Applica polare</button></div>
+      </div>
+      <div id="polPrev"></div>
+    </div>
+  </details>
+
+  <p class="foot">© OSM · CARTO · OpenSeaMap · polari © ORC. Stime: validale in mare.</p>
+</div>
+<div id="toast"></div>
+
+
+<script>
+var MED_MASKS={"adriatico":{"w":157,"h":204,"latN":45.85,"latS":44.75,"lonW":12.85,"lonE":14.05,"bits":"///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////9////////////////////////P/T///////////////////////8H/v///////////////9n/////fwD//////////////38f+P////8HAP7/////////////4wH+/////wDA/////////////380QP////8fAPD/////////////DwAA8v///wMA+P////////////8AAADg//8/AAD+////////////XwAAAPD//w8AgP////////////8ZAAAi8P//DwDg////////////HwAAQDP4//8CAPj///////////8DAAD4Av7/PwAA/v//////////DwCAJwHA/38AAID///////////8BAA5QB///BwAA4P//////////fwAUAMCA/38AAAD8//////////8PAAAAEPT/AAAAgP///////////wEEAACA/g8AAACA////////////4QAAQMb/AAAAAOD///////////8PAAAQ+AcAAAAA+P///////////wAAABh/AAAAAAD///////////8HAAAAAAAAAAAAwP///////////wAAAAAAAAAAAAD4//////////8PAAAAAAAAAAAAAP7//////////wAAAAAAAAAAAADA///////v//8fAAAAAAAAAAAAAPj///////D//wMAAAAAAAAAAACA////////vP8/AAAAAAAAAAAAAPz//////5PH/wcAAAAAAAAAAAAA/v////+f9/wAAAAAAAAAAAAAAAD///////8dAAAAAAAAAAAAAAAAwP//////eQAAAAAAAAAAAAAAAAD4/////z8AAAAAAAAAAAAAAAAAAP7/////AwAAAAAAAAAAAAAAAIAD/////z8AAAAAAAAAAAAAAAAA/PP/////BwAAAAAAAAAAAAAAAID//////z8AAAAAAAAAAAAAAAAA4P//////AQAAAAAAAAAAAAAAAAD//////x8AAAAAAAAAAAAAAAAAgP//////AwAAAAAAAAAAAAAAAADg/////38AAAAAAAAAAAAAAAAAAPD/////DwAAAAAAAAAAAAAAAAAA/v////8BAAAAAAAAAAAAAAAAAOD/////PwAAAAAAAAAAAAAAAAAA8P////8HAAAAAAAAAAAAAAAAAGD+/////wAAAAAAAAAAAAAAAADwz/////8fAAAAAAAAAAAAAAAAwf///////wMAAAAAAAAAAAAAAPD9//////9/AAAAAAAAAAAAAAAw/v///////w8AAAAAAAAAAAAAAP7/////////AQAAAAAAAAAAAADA/////////z8AAAAAAAAAAAAAAID/////////BwAAAAAAAAAAAAAA8P////////8AAAAAAAAAAAAA4AD/////////HwAAAAAAAAAAAAB84P////////8DAAAAAAAAAAAAwD/4////////fwAAAAAAAAAAAAD4D/////////8PAAAAAAAAAAAAAP73/////////wEAAAAAAAAAAACA//////////8/AAAAAAAAAAAAAPD//////////wcAAAAAAAAAAAAA/v//////////AAAAAAAAAAAAAMD//////////x8AAAAAAAAAAAAA8P//////////AwAAAAAAAAAAAAD+/////////38AAAAAAAAAAAAA4P//////////DwAAAAAAAAAAAADw//////////8BAAAAAAAAAAAAAP//////////PwAAAAAAAAAAAADg//////////8HAAAAAAAAAAAAAPz//////////wAAAAAAAAAAAACA//////////8fAAAAAAAAAAAAAPD//////////wMAAAAAAAAAAAAA/P////////9/AAAAAAAAAAAAAAD//////////w8AAAAAAAAAAAAA4P//////////AQAAAAAAAAAAAAD8/////////z8AAAAAAAAAAAAAgP//////////BwAAAAAAAAAAAADg//////////8AAAAAAAAAAAAAAPz/////////HwAAAAAAAAAAAACA//////////8DAAAAAAAAAAAAAPD/////////fwAAAAAAAAAAAAAA+P////////8PAAAAAAAAAAAAAOD//////////wEAAAAAAAAAAAAA+P////////8/AAAAAAAAAAAAAAD//////////wcAAAAAAAAAAAAA4P//////////AAAAAAAAAAAAAAD8/////////x8AAAAAAAAAAAAAAP//////////AwAAAAAAAAAAAACA8////////38AAAAAAAAAAAAAACD+////////DwAAAAAAAAAAAAAA4P////////8BAAAAAAAAAAAAAAD+////////PwAAAAAAAAAAAAAA+P////////8HAAAAAAAAAAAAAAD+/////////wAAAAAAAAAAAAAAgP////////8fAAAAAAAAAAAAAADA/////////wMAAAAAAAAAAAAAAPr///////9/AAAAAAAAAAAAAADA/////////w8AAAAAAAAAAAAAAPj/////////AQAAAAAAAAAAAAAA/////////z8AAAAAAAAAAAAAAOD/////////BwAAAAAAAAAAAAAA+P////////8AAAAAAAAAAAAAAAD+////////HwAAAAAAAAAAAAAAwP////////8DAAAAAAAAAAAAAAD4////////fwAAAAAAAAAAAAAAgP////////8PAAAAAAAAAAAAAADo/////////wEAAAAAAAAAAAAAAP7///////8/AAAAAAAAAAAAAADA/////////wcAAAAAAAAAAAAAAPD/////////AAAAAAAAAAAAAAAA/////////x8AAAAAAAAAAAAAAPD/////////AwAAAAAAAAAAAAAA/P///////38AAAAAAAAAAAAAAAD/////////DwAAAAAAAAAAAAAAwP////////8BAAAAAAAAAAAAAAD+////////PwAAAAAAAAAAAAAAgP////////8HAAAAAAAAAAAAAADg/////////wAAAAAAAAAAAAAAAPz///////8fAAAAAAAAAAAAAACA/////////wMAAAAAAAAAAAAAAPj///////9/AAAAAAAAAAAAAAAA/////////w8AAAAAAAAAAAAAAMD8////////AQAAAAAAAAAAAAAASID//////z8AAAAAAAAAAAAAAAD8////////BwAAAAAAAAAAAAAAAP////////8AAAAAAAAAAAAAAAD8////////HwAAAAAAAAAAAAAAAP////////8DAAAAAAAAAAAAAADg////////fwAAAAAAAAAAAAAAAPD///////8PAAAAAAAAAAAAAAAA+P///////wEAAAAAAAAAAAAAAAD///////8/AAAAAAAAAAAAAAAA+P///////wcAAAAAAAAAAAAAAAD+////////AAAAAAAAAAAAAAAAwP///////x8AAAAAAAAAAAAAAAD8////////AwAAAAAAAAAAAAAAAPj//////38AAAAAAAAAAAAAAAAA/P//////DwAAAAAAAAAAAAAAACD///////8BAAAAAAAAAAAAAAAg4P//////PwAAAAAAAAAAAAAAAAD4//////8DAAAAAAAAAAAAAAAAAP//////PwAAAAAAAAAAAAAAAADg//////8PAAAAAAAAAAAAAAAAAPz//////wEAAAAAAAAAAAAAAAAA/P////9/AAAAAAAAAAAAAAAAAID//////w8AAAAAAAAAAAAAAAAA8P//////AAAAAAAAAAAAAAAAAAD8/////x8AAAAAAAAAAAAAAAAAAP//////BwAAAAAAAAAAAAAAAACA//////8AAAAAAAAAAAAAAAAAAOD/////HwAAAAAAAAAAAAAAAAAA8P////8DAAAAAAAAAAAAAAAAAAD8////fwAAAAAAAAAAAAAAAAAAgP////8PAAAAAAAAAAAAAAAAAADg/////wEAAAAAAAAAAAAAAAAAAPj///8/AAAAAAAAAAAAAAAAAAAA/////wUAAAAAAAAAAAAAAAAAAOD///9/AAAAAAAAAAAAAAAAAAAA+P///x8AAAAAAAAAAAAAAAAAQAP/////AQAAAAAAAAAAAAAAAADgwP///z8AAAAAAAAAAAAAAAAAABj4////BwAAAAAAAAAAAAAAAAAAD////78AAAAAAAAAAAAAAAAAAIDD////DwAAAAAAAAAAAAAAAAAAcPj///8AAAAAAAAAAAAAAAAAAAAb/v//HwAAAAAAAAAAAAAAAAAAYOT///8BAAAAAAAAAAAAAAAAAAAM/v//BQAAAAAAAAAAAAAAAAAAAID//38AAAAAAAAAAAAAAAAAAAAA8P//PwAAAAAAAAAAAAAAAAAAAADc//8BAAAAAAAAAAAAAAAAAAAAMPz/fwAAAAAAAAAAAAAAAAAAAACM//8fAAAAAAAAAAAAAAAAAAAAgP///wEAAAAAAAAAAAAAAAAAAABA//8fAAAAAAAAAAAAAAAAAAAAAOD//wEAAAAAAAAAAAAAAAAAAAAA7P8/AAAAAAAAAAAAAAAAAAAAAID+/wcAAAAAAAAAAAAAAAAAAAAA0P//AAAAAAAAAAAAAAAAAAAAAADk/z8AAAAAAAAAAAAAAAAAAAAAgP/9AwAAAAAAAAAAAAAAAAAAAADglr8AAAAAAAAAAAAAAAAAAAAAAPDvfwAAAAAAAAAAAAAAAAAAAAAAiPEPAAAAAAAAAAAAAAAAAAAAAAAwYgAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAABgCAAAAAAAAAAAAAAAAAAAAAAAAFgAAAAAAAAAAAAAAAAAAAAAAAAAAwAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAnAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=","rings":[[[14.05,45.0292],[14.05,45.85],[12.85,45.85],[12.85,45.5849],[12.8567,45.5871],[12.8604,45.59],[12.8604,45.5917],[12.8571,45.5942],[12.8583,45.5962],[12.8624,45.5979],[12.8641,45.5996],[12.8667,45.5996],[12.8658,45.5979],[12.8625,45.5962],[12.8608,45.5962],[12.8596,45.5942],[12.8616,45.5921],[12.8658,45.5921],[12.8666,45.5913],[12.875,45.5954],[12.8766,45.5971],[12.8792,45.597],[12.8816,45.5988],[12.885,45.5988],[12.8904,45.6008],[12.8904,45.6058],[12.8917,45.607],[12.8958,45.6087],[12.8983,45.6112],[12.9,45.6112],[12.9054,45.615],[12.9087,45.6191],[12.9058,45.6213],[12.9008,45.6221],[12.8958,45.6238],[12.8879,45.6299],[12.8892,45.6312],[12.8924,45.6321],[12.8967,45.6321],[12.8974,45.6329],[12.9017,45.6329],[12.9029,45.6367],[12.9058,45.6395],[12.9133,45.6396],[12.9154,45.6409],[12.9154,45.6433],[12.9134,45.6454],[12.9067,45.647],[12.9029,45.6491],[12.9029,45.6524],[12.9066,45.6571],[12.91,45.6587],[12.9142,45.6546],[12.9175,45.652],[12.9208,45.6504],[12.9217,45.6512],[12.93,45.6512],[12.9308,45.6521],[12.9349,45.6521],[12.94,45.6479],[12.9441,45.6412],[12.9492,45.642],[12.95,45.6404],[12.9466,45.6404],[12.9446,45.6366],[12.9446,45.6333],[12.9487,45.6341],[12.9466,45.6312],[12.9437,45.6324],[12.9437,45.6375],[12.9412,45.6433],[12.9379,45.6483],[12.935,45.6504],[12.9316,45.6504],[12.9329,45.6483],[12.9371,45.6458],[12.9412,45.6358],[12.94,45.6346],[12.9325,45.6345],[12.9312,45.6324],[12.9333,45.6304],[12.9366,45.6304],[12.9383,45.6321],[12.9408,45.6321],[12.9424,45.6296],[12.9474,45.6287],[12.9495,45.6258],[12.9466,45.6246],[12.9425,45.6246],[12.9416,45.6254],[12.9383,45.6245],[12.9408,45.6237],[12.9409,45.6221],[12.9366,45.6238],[12.9299,45.6221],[12.925,45.6221],[12.9241,45.6213],[12.9199,45.6212],[12.9174,45.6221],[12.9146,45.6191],[12.9158,45.6179],[12.9291,45.6179],[12.9333,45.6187],[12.9341,45.6196],[12.9408,45.6195],[12.9417,45.6204],[12.9517,45.6204],[12.9524,45.6212],[12.9583,45.6212],[12.9592,45.6221],[12.965,45.6221],[12.9687,45.625],[12.9712,45.6292],[12.9712,45.6316],[12.9683,45.6337],[12.9633,45.6337],[12.96,45.6329],[12.9624,45.6354],[12.965,45.6363],[12.97,45.6337],[12.9737,45.635],[12.9746,45.6375],[12.9746,45.6425],[12.9721,45.645],[12.972,45.6483],[12.9758,45.6512],[12.9779,45.6508],[12.9737,45.6459],[12.9741,45.6446],[12.9849,45.6396],[12.9883,45.6387],[12.9917,45.6388],[12.9938,45.6375],[12.9937,45.6358],[12.9904,45.6316],[12.9924,45.6304],[13.0166,45.6304],[13.0199,45.6312],[13.0324,45.6313],[13.0333,45.6321],[13.0424,45.6321],[13.0433,45.6329],[13.0482,45.6329],[13.0491,45.6338],[13.0633,45.6338],[13.0641,45.6346],[13.0699,45.6346],[13.0708,45.6355],[13.0841,45.6354],[13.0891,45.6338],[13.0932,45.6338],[13.0949,45.6346],[13.0971,45.6375],[13.097,45.6409],[13.0979,45.6417],[13.0971,45.6442],[13.095,45.6454],[13.0912,45.6492],[13.0933,45.6504],[13.0966,45.6471],[13.0999,45.6454],[13.1012,45.6475],[13.1012,45.6508],[13.1054,45.6567],[13.1062,45.6592],[13.1079,45.6608],[13.1086,45.6634],[13.1124,45.6671],[13.1133,45.6671],[13.1199,45.6737],[13.1208,45.6754],[13.1241,45.6771],[13.1299,45.6788],[13.1324,45.6812],[13.1349,45.6821],[13.1374,45.6846],[13.1399,45.6854],[13.1483,45.6904],[13.152,45.695],[13.1516,45.7004],[13.1474,45.7013],[13.1441,45.7004],[13.1408,45.6979],[13.1391,45.6979],[13.1366,45.6954],[13.1333,45.6946],[13.1299,45.6929],[13.12,45.6905],[13.1158,45.6879],[13.1041,45.6879],[13.1033,45.6871],[13.0975,45.6871],[13.0962,45.6833],[13.0937,45.6833],[13.0936,45.6875],[13.0946,45.6892],[13.0907,45.6912],[13.0866,45.6913],[13.0858,45.6921],[13.0791,45.6921],[13.0749,45.6929],[13.0728,45.695],[13.0737,45.7008],[13.0703,45.7041],[13.0704,45.7067],[13.067,45.71],[13.0661,45.7117],[13.067,45.7158],[13.0654,45.7175],[13.0666,45.7188],[13.0708,45.7188],[13.0716,45.7179],[13.0766,45.7179],[13.0791,45.7196],[13.0833,45.7188],[13.0849,45.7229],[13.0887,45.7258],[13.0879,45.7275],[13.0895,45.7292],[13.0887,45.7317],[13.0916,45.7346],[13.0941,45.7338],[13.0958,45.7354],[13.0908,45.7354],[13.0907,45.7363],[13.0966,45.7362],[13.1045,45.7391],[13.1037,45.7458],[13.1083,45.7488],[13.1116,45.7521],[13.1145,45.7534],[13.1112,45.7567],[13.1104,45.76],[13.1116,45.7612],[13.1166,45.7638],[13.1191,45.7637],[13.1237,45.7684],[13.1241,45.7696],[13.127,45.77],[13.1229,45.765],[13.1266,45.7654],[13.1308,45.7696],[13.1333,45.7704],[13.1354,45.7692],[13.1362,45.7633],[13.135,45.7612],[13.1333,45.7613],[13.132,45.7591],[13.1366,45.7546],[13.1387,45.7534],[13.1416,45.7471],[13.1433,45.7471],[13.1437,45.7491],[13.1421,45.7525],[13.142,45.7559],[13.1437,45.7591],[13.1483,45.7629],[13.1504,45.7625],[13.1503,45.7583],[13.1487,45.7542],[13.1508,45.7521],[13.1537,45.7509],[13.1521,45.7483],[13.1532,45.7471],[13.1595,45.7534],[13.16,45.7563],[13.1637,45.7583],[13.1637,45.76],[13.1674,45.7654],[13.1716,45.7646],[13.174,45.7679],[13.1758,45.7679],[13.1791,45.7654],[13.1804,45.7659],[13.1812,45.7692],[13.1816,45.7746],[13.1841,45.7729],[13.1883,45.7721],[13.19,45.7754],[13.1916,45.7754],[13.1962,45.7709],[13.1962,45.7692],[13.1982,45.7671],[13.2032,45.7671],[13.2066,45.7679],[13.2087,45.77],[13.2095,45.7725],[13.2078,45.7742],[13.2091,45.7746],[13.2108,45.7729],[13.2149,45.7729],[13.2158,45.7721],[13.2204,45.7717],[13.2203,45.7659],[13.2237,45.76],[13.2246,45.7558],[13.2291,45.7538],[13.2333,45.7538],[13.2366,45.7579],[13.2383,45.7587],[13.2424,45.7588],[13.2425,45.7579],[13.2391,45.7579],[13.2362,45.7558],[13.2366,45.7529],[13.2416,45.7529],[13.2458,45.7513],[13.2549,45.7512],[13.2583,45.7529],[13.2607,45.7529],[13.2624,45.7504],[13.2641,45.7504],[13.2691,45.7554],[13.2716,45.7554],[13.2696,45.7534],[13.2721,45.7517],[13.2733,45.7496],[13.2766,45.7496],[13.2774,45.7504],[13.2932,45.7504],[13.2941,45.7496],[13.3032,45.7496],[13.3041,45.7487],[13.3091,45.7488],[13.3099,45.7496],[13.3149,45.7496],[13.3174,45.7454],[13.3215,45.7454],[13.3266,45.7437],[13.3299,45.7413],[13.3341,45.7413],[13.3374,45.7404],[13.3399,45.7371],[13.3449,45.7371],[13.3458,45.7354],[13.3499,45.7354],[13.3507,45.7363],[13.3616,45.7362],[13.3666,45.7387],[13.3699,45.7388],[13.3699,45.7371],[13.3649,45.7362],[13.3637,45.7342],[13.3691,45.7304],[13.3749,45.7296],[13.3782,45.7279],[13.3828,45.7234],[13.3836,45.7183],[13.3812,45.7125],[13.3799,45.7121],[13.3791,45.7146],[13.3766,45.7146],[13.3683,45.7104],[13.3649,45.7104],[13.3645,45.7092],[13.367,45.7075],[13.367,45.7058],[13.3691,45.7054],[13.372,45.7075],[13.3724,45.7096],[13.3741,45.7079],[13.3791,45.7079],[13.3808,45.7096],[13.3795,45.7058],[13.3795,45.6892],[13.3791,45.6854],[13.3833,45.6854],[13.3832,45.6846],[13.3782,45.6846],[13.3774,45.6854],[13.3741,45.6854],[13.3703,45.6817],[13.3716,45.6804],[13.3741,45.6821],[13.3774,45.6821],[13.3786,45.6775],[13.3816,45.6754],[13.3873,45.6746],[13.3882,45.6754],[13.3924,45.6754],[13.3933,45.6763],[13.3982,45.6763],[13.4024,45.678],[13.4191,45.6779],[13.4199,45.6771],[13.4291,45.6771],[13.4328,45.6792],[13.432,45.6817],[13.4332,45.6829],[13.4374,45.6829],[13.4416,45.6863],[13.4432,45.6863],[13.4465,45.6887],[13.4507,45.6896],[13.4532,45.6912],[13.4607,45.6929],[13.4628,45.695],[13.4628,45.6992],[13.4678,45.7034],[13.4687,45.7058],[13.4657,45.7071],[13.4636,45.7091],[13.4674,45.7096],[13.4707,45.7062],[13.4733,45.7054],[13.4774,45.7054],[13.4782,45.7046],[13.4824,45.7046],[13.4832,45.7037],[13.4891,45.7038],[13.4932,45.7046],[13.4974,45.7062],[13.4991,45.7079],[13.5032,45.7104],[13.5066,45.7112],[13.5099,45.7146],[13.5123,45.7146],[13.5165,45.7163],[13.5182,45.7179],[13.5215,45.7187],[13.5232,45.7204],[13.5274,45.7221],[13.5282,45.7238],[13.5307,45.7238],[13.5341,45.7221],[13.5399,45.7221],[13.5407,45.7229],[13.5474,45.7229],[13.5503,45.7242],[13.5499,45.7263],[13.5474,45.7263],[13.5441,45.7279],[13.5407,45.7279],[13.5378,45.7292],[13.5382,45.7304],[13.5415,45.7304],[13.5449,45.7287],[13.5507,45.7279],[13.5524,45.7271],[13.5536,45.7292],[13.5508,45.7313],[13.5465,45.7329],[13.5424,45.7337],[13.5416,45.7346],[13.5357,45.7346],[13.5348,45.7338],[13.5323,45.7354],[13.5249,45.7362],[13.5199,45.7413],[13.5169,45.7433],[13.5162,45.7459],[13.5174,45.7471],[13.5191,45.7463],[13.5233,45.7463],[13.5244,45.75],[13.5232,45.7512],[13.5174,45.7512],[13.5149,45.7529],[13.5215,45.7529],[13.5228,45.755],[13.5203,45.7575],[13.5203,45.7633],[13.5212,45.7659],[13.527,45.7717],[13.5298,45.7754],[13.5341,45.7762],[13.5399,45.7821],[13.5445,45.7842],[13.5449,45.7871],[13.5415,45.7871],[13.5382,45.7863],[13.5349,45.783],[13.5307,45.7846],[13.5278,45.7875],[13.5291,45.7888],[13.5324,45.7871],[13.5349,45.7871],[13.5361,45.7891],[13.5348,45.7904],[13.539,45.7904],[13.5398,45.7921],[13.5415,45.7904],[13.5441,45.7904],[13.544,45.7946],[13.5478,45.79],[13.5491,45.7863],[13.5515,45.7863],[13.5528,45.7825],[13.5553,45.7817],[13.5553,45.785],[13.5607,45.7846],[13.5657,45.7829],[13.5691,45.7829],[13.5698,45.7821],[13.574,45.7821],[13.5761,45.785],[13.5745,45.7892],[13.5757,45.7912],[13.5808,45.7871],[13.5778,45.7851],[13.5791,45.7829],[13.5808,45.783],[13.5811,45.7809],[13.5841,45.7788],[13.5857,45.7763],[13.5874,45.7762],[13.5924,45.7729],[13.5948,45.7729],[13.5991,45.7704],[13.6024,45.7704],[13.6032,45.7713],[13.6066,45.7713],[13.6123,45.7688],[13.6157,45.768],[13.6232,45.7679],[13.6257,45.7688],[13.632,45.7625],[13.632,45.7617],[13.6369,45.7567],[13.6432,45.7529],[13.6449,45.7529],[13.6515,45.7487],[13.6532,45.7488],[13.6632,45.7413],[13.669,45.7396],[13.674,45.7346],[13.6782,45.7329],[13.684,45.7271],[13.6848,45.7271],[13.6907,45.7212],[13.6949,45.718],[13.6965,45.7179],[13.7016,45.7137],[13.704,45.7129],[13.7057,45.7104],[13.7078,45.7092],[13.7078,45.705],[13.7069,45.7042],[13.709,45.7013],[13.7141,45.7013],[13.7174,45.7004],[13.7199,45.6987],[13.7232,45.6979],[13.7299,45.6929],[13.7349,45.6913],[13.7382,45.6879],[13.7407,45.6871],[13.7461,45.6825],[13.7486,45.6775],[13.7477,45.6767],[13.7486,45.6734],[13.7532,45.6663],[13.7565,45.6662],[13.7565,45.6638],[13.7581,45.6646],[13.7586,45.6617],[13.7611,45.66],[13.7602,45.6583],[13.7636,45.6559],[13.7624,45.6538],[13.7565,45.6496],[13.7532,45.6504],[13.7506,45.6496],[13.7465,45.6454],[13.7431,45.6455],[13.7406,45.6446],[13.7395,45.6425],[13.7398,45.6404],[13.7432,45.6404],[13.744,45.6371],[13.7548,45.6371],[13.7599,45.6346],[13.7624,45.6346],[13.7631,45.6362],[13.7673,45.6363],[13.7682,45.6354],[13.7707,45.6371],[13.7744,45.6342],[13.7703,45.6317],[13.7719,45.6283],[13.7719,45.6234],[13.7791,45.6204],[13.7811,45.6183],[13.7803,45.6133],[13.7832,45.6138],[13.7948,45.6138],[13.7982,45.6154],[13.804,45.6154],[13.7994,45.6092],[13.7995,45.6067],[13.7924,45.6046],[13.789,45.6046],[13.7849,45.6004],[13.7815,45.6004],[13.7807,45.5996],[13.7782,45.6005],[13.7757,45.6046],[13.774,45.6054],[13.7649,45.6071],[13.7623,45.6088],[13.7557,45.6088],[13.7515,45.6104],[13.7407,45.6105],[13.7373,45.6113],[13.7348,45.613],[13.7307,45.6129],[13.729,45.6121],[13.7256,45.6088],[13.7207,45.6088],[13.7165,45.608],[13.7153,45.6067],[13.7161,45.6033],[13.7161,45.5992],[13.7195,45.5967],[13.719,45.5929],[13.7124,45.5929],[13.7115,45.5937],[13.7073,45.5938],[13.7041,45.5946],[13.7019,45.5925],[13.7028,45.59],[13.7057,45.5871],[13.7115,45.5854],[13.7132,45.5838],[13.7191,45.5829],[13.7216,45.5813],[13.7265,45.5805],[13.7307,45.5754],[13.7365,45.5746],[13.7399,45.5729],[13.7444,45.5684],[13.7436,45.5642],[13.7415,45.5621],[13.7399,45.5621],[13.7377,45.56],[13.7382,45.5588],[13.7448,45.5588],[13.7457,45.5596],[13.754,45.5596],[13.754,45.5588],[13.7482,45.5588],[13.7511,45.555],[13.7519,45.5517],[13.7536,45.5484],[13.7536,45.5458],[13.7474,45.5438],[13.7448,45.5438],[13.7423,45.5412],[13.7382,45.5405],[13.7378,45.5417],[13.7323,45.5471],[13.7303,45.5475],[13.7332,45.5487],[13.734,45.5513],[13.7207,45.5513],[13.7203,45.5483],[13.7186,45.5475],[13.7182,45.5454],[13.7165,45.5454],[13.7148,45.5471],[13.7098,45.5488],[13.7049,45.5487],[13.704,45.5496],[13.684,45.5496],[13.6798,45.5479],[13.674,45.5471],[13.6707,45.5438],[13.6682,45.5429],[13.6665,45.5404],[13.6624,45.5405],[13.6607,45.5438],[13.654,45.5438],[13.6527,45.5409],[13.6552,45.5383],[13.6553,45.5367],[13.6532,45.5354],[13.6457,45.5354],[13.6433,45.5338],[13.6382,45.5337],[13.6349,45.5346],[13.6299,45.5346],[13.629,45.5338],[13.6249,45.5363],[13.6232,45.5363],[13.6165,45.5404],[13.6123,45.5404],[13.6099,45.5413],[13.6082,45.5387],[13.6041,45.5388],[13.6016,45.5396],[13.5991,45.5387],[13.5961,45.5342],[13.5961,45.5325],[13.5986,45.53],[13.5986,45.5283],[13.5957,45.5271],[13.5948,45.5279],[13.5832,45.5279],[13.5824,45.5271],[13.5774,45.5271],[13.5766,45.5279],[13.5707,45.5304],[13.5674,45.5312],[13.5616,45.5312],[13.5607,45.5296],[13.5649,45.5288],[13.5653,45.5275],[13.5636,45.525],[13.5636,45.52],[13.5644,45.5175],[13.5683,45.5146],[13.5715,45.5146],[13.5757,45.5163],[13.5783,45.5146],[13.5815,45.5138],[13.589,45.5138],[13.5903,45.5125],[13.5902,45.51],[13.5919,45.5075],[13.5915,45.5046],[13.5874,45.5046],[13.5836,45.5025],[13.5828,45.4975],[13.5853,45.4959],[13.5845,45.4942],[13.5878,45.4917],[13.5877,45.49],[13.5911,45.4858],[13.5882,45.4821],[13.5824,45.4796],[13.5783,45.4796],[13.5757,45.4812],[13.5732,45.4813],[13.5699,45.4837],[13.564,45.4862],[13.5607,45.4888],[13.5566,45.4896],[13.554,45.4921],[13.5523,45.4921],[13.5499,45.4938],[13.5474,45.4937],[13.5424,45.4963],[13.5399,45.4963],[13.5316,45.4988],[13.5274,45.5004],[13.5232,45.5029],[13.5198,45.5038],[13.514,45.5038],[13.5107,45.5063],[13.5065,45.5063],[13.5028,45.5041],[13.5028,45.5008],[13.4991,45.4996],[13.4961,45.4975],[13.4978,45.4933],[13.4957,45.4913],[13.4924,45.4913],[13.4911,45.49],[13.4903,45.4859],[13.4957,45.4829],[13.5007,45.4771],[13.5032,45.4763],[13.5053,45.4742],[13.5053,45.4708],[13.5078,45.4658],[13.5099,45.4637],[13.5069,45.46],[13.509,45.4588],[13.5136,45.4541],[13.5116,45.4538],[13.5094,45.4517],[13.5099,45.4504],[13.5141,45.4504],[13.5128,45.4466],[13.5099,45.4446],[13.5049,45.4438],[13.5049,45.4421],[13.5132,45.4421],[13.5149,45.4412],[13.5191,45.4412],[13.5211,45.4392],[13.5211,45.4375],[13.5174,45.4354],[13.5141,45.4363],[13.5094,45.4358],[13.5116,45.4329],[13.5141,45.4329],[13.5161,45.4317],[13.5152,45.4283],[13.5182,45.4271],[13.5203,45.425],[13.5182,45.4229],[13.5165,45.4229],[13.5149,45.4204],[13.512,45.4191],[13.512,45.4167],[13.5174,45.4113],[13.5195,45.41],[13.5194,45.4083],[13.5216,45.4071],[13.5266,45.4021],[13.5315,45.4013],[13.5328,45.4],[13.5311,45.3992],[13.5294,45.395],[13.5324,45.3929],[13.5362,45.3917],[13.5349,45.3904],[13.5316,45.3904],[13.5286,45.3883],[13.5286,45.3858],[13.5332,45.3813],[13.5349,45.3813],[13.5403,45.3784],[13.5332,45.3771],[13.5312,45.375],[13.534,45.3738],[13.5391,45.3738],[13.5403,45.3717],[13.5378,45.3675],[13.5378,45.3634],[13.5399,45.3604],[13.5473,45.3604],[13.5507,45.3596],[13.5519,45.3583],[13.5499,45.3571],[13.5482,45.3546],[13.5465,45.3546],[13.5449,45.3529],[13.5349,45.3529],[13.5336,45.3517],[13.5369,45.3484],[13.5386,45.345],[13.5394,45.3409],[13.5378,45.34],[13.5379,45.3326],[13.5336,45.3292],[13.5341,45.3279],[13.5382,45.3263],[13.544,45.3254],[13.5462,45.3242],[13.5465,45.3204],[13.5499,45.3204],[13.5515,45.3237],[13.5532,45.3238],[13.5578,45.3208],[13.5582,45.3179],[13.5549,45.3188],[13.5511,45.3166],[13.5515,45.3146],[13.5549,45.3138],[13.5591,45.3138],[13.5599,45.3146],[13.5657,45.3146],[13.5665,45.3137],[13.5707,45.3137],[13.5715,45.3129],[13.5765,45.3129],[13.5815,45.3146],[13.584,45.3137],[13.5861,45.315],[13.587,45.3183],[13.5861,45.32],[13.5874,45.3212],[13.5898,45.3212],[13.5932,45.3229],[13.5961,45.3225],[13.5949,45.3196],[13.5973,45.3196],[13.5999,45.3212],[13.5991,45.3187],[13.6015,45.3179],[13.5949,45.3179],[13.5924,45.3171],[13.5894,45.315],[13.5899,45.3137],[13.5932,45.3146],[13.5982,45.3146],[13.6024,45.3129],[13.6074,45.3137],[13.6086,45.3125],[13.6057,45.3113],[13.599,45.3113],[13.5957,45.3096],[13.5932,45.3071],[13.5899,45.3054],[13.5857,45.3054],[13.582,45.3017],[13.5836,45.2983],[13.5823,45.2971],[13.5765,45.2987],[13.5707,45.2987],[13.5699,45.2996],[13.5657,45.2996],[13.5636,45.2976],[13.5698,45.2913],[13.5715,45.2912],[13.5774,45.2854],[13.5798,45.2846],[13.5832,45.2821],[13.5857,45.2846],[13.5874,45.2821],[13.5907,45.2821],[13.5915,45.2838],[13.5949,45.2837],[13.5945,45.2808],[13.5907,45.2779],[13.5957,45.2779],[13.5986,45.2759],[13.5974,45.2754],[13.5948,45.2771],[13.5932,45.2746],[13.5907,45.2754],[13.5824,45.2754],[13.579,45.2771],[13.5753,45.2775],[13.5769,45.2742],[13.5745,45.2717],[13.5744,45.27],[13.5715,45.2671],[13.5681,45.2654],[13.567,45.2634],[13.5682,45.2621],[13.5724,45.2654],[13.5753,45.2633],[13.5744,45.26],[13.5731,45.2596],[13.5694,45.2558],[13.574,45.2554],[13.5744,45.2542],[13.5782,45.2529],[13.5807,45.2546],[13.5857,45.2546],[13.5878,45.2533],[13.5865,45.2504],[13.5841,45.2504],[13.5836,45.2484],[13.5857,45.2463],[13.5873,45.2463],[13.5927,45.2434],[13.5886,45.2392],[13.5882,45.2346],[13.5899,45.2346],[13.5902,45.2326],[13.592,45.2309],[13.5857,45.2304],[13.5824,45.2313],[13.5803,45.2292],[13.5803,45.2266],[13.5824,45.2263],[13.584,45.2246],[13.5856,45.2254],[13.5886,45.2233],[13.5853,45.2167],[13.5869,45.2159],[13.5878,45.2134],[13.5799,45.2138],[13.5798,45.2121],[13.5823,45.2121],[13.5845,45.21],[13.5815,45.2088],[13.5832,45.2071],[13.5899,45.2071],[13.5919,45.2042],[13.592,45.2025],[13.5865,45.2029],[13.5857,45.2021],[13.5808,45.2046],[13.5794,45.2025],[13.5836,45.1983],[13.5815,45.1988],[13.5732,45.1988],[13.572,45.1966],[13.5732,45.1954],[13.5774,45.1946],[13.5786,45.1934],[13.5778,45.1908],[13.579,45.1896],[13.5831,45.1896],[13.5832,45.1846],[13.5891,45.1854],[13.5907,45.1829],[13.5949,45.1813],[13.5977,45.1783],[13.5924,45.1763],[13.5874,45.1763],[13.584,45.1771],[13.5819,45.1759],[13.5832,45.1729],[13.5928,45.1692],[13.5928,45.1675],[13.5912,45.1659],[13.5924,45.1646],[13.5966,45.1638],[13.5969,45.1617],[13.5999,45.1604],[13.6003,45.1583],[13.6036,45.1567],[13.6036,45.155],[13.5998,45.1521],[13.5965,45.1512],[13.5932,45.1512],[13.5924,45.1488],[13.5948,45.1487],[13.5966,45.1471],[13.5941,45.1471],[13.592,45.1433],[13.5944,45.1417],[13.5911,45.1383],[13.5941,45.1363],[13.5957,45.1362],[13.5969,45.1342],[13.5961,45.1317],[13.5982,45.1296],[13.6023,45.1288],[13.6065,45.1288],[13.6099,45.1304],[13.6123,45.1329],[13.619,45.1362],[13.624,45.1362],[13.6248,45.1371],[13.6282,45.1363],[13.6332,45.1338],[13.6557,45.1337],[13.6565,45.1329],[13.6648,45.1329],[13.6657,45.1321],[13.6724,45.1321],[13.6732,45.1312],[13.6823,45.1313],[13.6848,45.1337],[13.6898,45.1337],[13.6907,45.1346],[13.699,45.1346],[13.6998,45.1354],[13.7098,45.1354],[13.7132,45.1346],[13.7157,45.1329],[13.7224,45.1329],[13.7224,45.1313],[13.709,45.1312],[13.7024,45.1329],[13.6965,45.1321],[13.6956,45.1313],[13.6915,45.1313],[13.6848,45.1296],[13.6807,45.1271],[13.6591,45.1271],[13.6581,45.1279],[13.6506,45.1279],[13.6465,45.1288],[13.6457,45.1279],[13.6324,45.1279],[13.6265,45.1304],[13.6199,45.1296],[13.6169,45.1275],[13.6174,45.1254],[13.6161,45.1225],[13.6182,45.1213],[13.6207,45.1213],[13.6215,45.1196],[13.6182,45.1196],[13.6186,45.1158],[13.6174,45.1154],[13.6157,45.118],[13.609,45.1187],[13.609,45.1162],[13.6015,45.1163],[13.6003,45.1142],[13.6024,45.1113],[13.6053,45.11],[13.6053,45.1067],[13.6069,45.105],[13.6124,45.1021],[13.6161,45.1008],[13.6166,45.0979],[13.6244,45.0975],[13.6244,45.0934],[13.6273,45.0929],[13.6291,45.0954],[13.6315,45.0954],[13.6336,45.0933],[13.6336,45.0858],[13.6307,45.0829],[13.6265,45.0829],[13.624,45.0838],[13.6219,45.0808],[13.6249,45.0771],[13.6307,45.0779],[13.6311,45.0759],[13.6294,45.0742],[13.6286,45.0708],[13.6299,45.0688],[13.6216,45.0688],[13.6203,45.0658],[13.6228,45.0633],[13.6219,45.0608],[13.624,45.0596],[13.6274,45.0612],[13.6324,45.0612],[13.6378,45.0634],[13.6382,45.0646],[13.6457,45.0646],[13.6456,45.0629],[13.6515,45.0629],[13.6566,45.0588],[13.6607,45.0596],[13.664,45.0571],[13.6657,45.0571],[13.6648,45.0529],[13.6673,45.0529],[13.6723,45.0496],[13.6749,45.0496],[13.6782,45.0479],[13.6815,45.0479],[13.6806,45.0454],[13.6781,45.0454],[13.6761,45.0441],[13.6761,45.0408],[13.6782,45.0404],[13.679,45.0388],[13.6844,45.0367],[13.6844,45.03],[13.6836,45.0283],[13.6861,45.0267],[13.6844,45.025],[13.6836,45.0209],[13.6873,45.0188],[13.6932,45.0188],[13.6952,45.0217],[13.6953,45.0242],[13.6969,45.0241],[13.6969,45.0208],[13.7015,45.0179],[13.7066,45.0188],[13.7086,45.0175],[13.7086,45.0158],[13.7052,45.0125],[13.7086,45.0083],[13.7052,45.005],[13.7065,45.0038],[13.7132,45.0046],[13.7136,45.0025],[13.7157,45.0004],[13.7225,44.9971],[13.7242,44.9946],[13.73,44.9937],[13.7317,44.9912],[13.7345,44.9891],[13.7345,44.985],[13.7358,44.9837],[13.7383,44.9838],[13.7408,44.9854],[13.7441,44.9838],[13.7508,44.9837],[13.7517,44.9829],[13.7558,44.9829],[13.7604,44.9809],[13.7629,44.9766],[13.7637,44.9725],[13.7662,44.9708],[13.7679,44.9666],[13.7758,44.9596],[13.7783,44.9588],[13.7817,44.9546],[13.7833,44.9546],[13.7804,44.95],[13.7858,44.9446],[13.7871,44.9442],[13.7879,44.9383],[13.7924,44.9363],[13.7946,44.9333],[13.7991,44.9287],[13.8004,44.9283],[13.7996,44.9258],[13.8013,44.925],[13.8004,44.9233],[13.8004,44.9175],[13.8029,44.9141],[13.8041,44.9112],[13.8104,44.9108],[13.8087,44.9092],[13.8091,44.9071],[13.8108,44.9071],[13.8112,44.905],[13.8079,44.8999],[13.8067,44.897],[13.8025,44.8971],[13.8,44.8937],[13.7958,44.8929],[13.7929,44.8883],[13.7967,44.8879],[13.8042,44.8904],[13.8054,44.8891],[13.8029,44.8858],[13.8029,44.8833],[13.8041,44.8812],[13.8092,44.8812],[13.8104,44.88],[13.8096,44.8783],[13.8108,44.8771],[13.8158,44.8762],[13.8166,44.8746],[13.8217,44.8754],[13.8225,44.8746],[13.8325,44.8746],[13.8354,44.8783],[13.8392,44.8813],[13.8441,44.8813],[13.8454,44.88],[13.8454,44.8733],[13.8425,44.8712],[13.84,44.8713],[13.8383,44.8738],[13.835,44.8738],[13.835,44.8695],[13.8392,44.8696],[13.8404,44.8666],[13.8358,44.8637],[13.8308,44.8637],[13.8283,44.8654],[13.8241,44.8646],[13.8233,44.8637],[13.8183,44.8637],[13.8167,44.8654],[13.815,44.8654],[13.8116,44.8679],[13.8071,44.8691],[13.8071,44.8708],[13.8025,44.8737],[13.8,44.8746],[13.7975,44.8737],[13.795,44.8754],[13.792,44.875],[13.792,44.8708],[13.7938,44.8683],[13.7937,44.8667],[13.7963,44.865],[13.7962,44.8609],[13.7975,44.8596],[13.8008,44.8587],[13.805,44.8596],[13.8066,44.8579],[13.8121,44.8583],[13.8117,44.8571],[13.8087,44.8558],[13.81,44.8545],[13.815,44.8529],[13.8179,44.8542],[13.8162,44.8567],[13.8166,44.8587],[13.8191,44.8588],[13.8216,44.8554],[13.825,44.8554],[13.8246,44.8524],[13.8275,44.8512],[13.8291,44.8521],[13.8287,44.85],[13.8299,44.8487],[13.835,44.8487],[13.835,44.8479],[13.83,44.8471],[13.8304,44.8425],[13.8329,44.8417],[13.83,44.8379],[13.8275,44.8379],[13.8263,44.835],[13.83,44.8329],[13.8325,44.8304],[13.835,44.8304],[13.8367,44.8337],[13.8399,44.8338],[13.8412,44.835],[13.84,44.8371],[13.8371,44.8375],[13.8404,44.8408],[13.8425,44.8446],[13.8483,44.8446],[13.8483,44.8437],[13.8433,44.8429],[13.8421,44.8408],[13.8421,44.8375],[13.8462,44.8358],[13.8429,44.8341],[13.8421,44.8317],[13.8433,44.8296],[13.8458,44.8287],[13.85,44.8287],[13.8525,44.8304],[13.8604,44.8308],[13.8604,44.8283],[13.8621,44.8266],[13.8583,44.8271],[13.8575,44.8262],[13.8541,44.8279],[13.8508,44.8254],[13.8492,44.8271],[13.8467,44.8271],[13.8454,44.8258],[13.8454,44.8233],[13.8475,44.8212],[13.8516,44.8196],[13.8541,44.8196],[13.8525,44.8146],[13.8549,44.8137],[13.8607,44.8137],[13.8629,44.8158],[13.865,44.8196],[13.8716,44.8196],[13.8734,44.8179],[13.8691,44.8171],[13.8683,44.8162],[13.865,44.8162],[13.8613,44.8125],[13.8612,44.8099],[13.8675,44.8062],[13.8691,44.8079],[13.8708,44.8071],[13.875,44.8071],[13.872,44.8042],[13.8724,44.8029],[13.8783,44.8046],[13.8792,44.8037],[13.8817,44.8046],[13.8858,44.8079],[13.8867,44.8071],[13.8916,44.8071],[13.8941,44.8079],[13.8966,44.8062],[13.9008,44.8071],[13.902,44.805],[13.9021,44.7991],[13.9012,44.7983],[13.9021,44.7942],[13.8995,44.7892],[13.9012,44.7883],[13.9017,44.7854],[13.9067,44.7854],[13.9029,44.7833],[13.9021,44.7775],[13.9045,44.775],[13.9037,44.7733],[13.9054,44.77],[13.9045,44.7675],[13.9066,44.7663],[13.9091,44.767],[13.9149,44.7671],[13.9192,44.7646],[13.9216,44.7662],[13.9241,44.7654],[13.9271,44.7683],[13.9224,44.7696],[13.9208,44.7713],[13.9183,44.772],[13.9225,44.7721],[13.9208,44.7762],[13.9175,44.7754],[13.9121,44.7749],[13.9132,44.7762],[13.9175,44.7771],[13.9196,44.78],[13.917,44.7816],[13.9187,44.785],[13.9175,44.7863],[13.9145,44.7858],[13.9137,44.7908],[13.9166,44.7912],[13.9175,44.7937],[13.9208,44.7937],[13.9213,44.795],[13.9195,44.7966],[13.9204,44.7991],[13.9238,44.8016],[13.9187,44.805],[13.9192,44.8079],[13.9162,44.8083],[13.9179,44.8091],[13.9167,44.812],[13.9142,44.8121],[13.9125,44.8137],[13.9092,44.8145],[13.905,44.8146],[13.9016,44.8137],[13.9,44.8154],[13.8966,44.8154],[13.8958,44.8162],[13.8908,44.8162],[13.8892,44.8154],[13.8874,44.8171],[13.8841,44.8179],[13.8829,44.8199],[13.8833,44.8221],[13.8908,44.8221],[13.8921,44.8192],[13.8958,44.8179],[13.8983,44.8162],[13.9017,44.8162],[13.9021,44.8192],[13.9008,44.8221],[13.9058,44.8221],[13.9075,44.8204],[13.9117,44.8271],[13.9174,44.8254],[13.92,44.8229],[13.9225,44.8237],[13.9246,44.8208],[13.9242,44.8196],[13.9204,44.8183],[13.9204,44.8158],[13.9225,44.8146],[13.9275,44.8145],[13.9287,44.8175],[13.9317,44.8171],[13.9329,44.815],[13.93,44.8129],[13.9275,44.8129],[13.9262,44.8108],[13.9262,44.805],[13.9284,44.802],[13.9308,44.8021],[13.9304,44.805],[13.9321,44.8075],[13.9304,44.8091],[13.9308,44.8113],[13.935,44.8113],[13.9366,44.8096],[13.9391,44.8096],[13.9413,44.8083],[13.9428,44.8042],[13.9458,44.8012],[13.9509,44.8012],[13.9516,44.8021],[13.9617,44.8021],[13.965,44.8012],[13.9658,44.802],[13.97,44.8021],[13.9742,44.8029],[13.9766,44.8012],[13.98,44.8013],[13.9808,44.8004],[13.9867,44.8013],[13.9891,44.8029],[13.9933,44.8029],[13.9941,44.8021],[13.9992,44.8013],[14.0033,44.8038],[14.0054,44.8058],[14.0041,44.8079],[14.0008,44.8087],[14.0008,44.8104],[14.0038,44.8116],[14.0025,44.8137],[13.9995,44.8142],[13.9992,44.8121],[13.9942,44.8121],[13.9913,44.8141],[13.9899,44.8196],[13.9859,44.8195],[13.9842,44.8204],[13.982,44.8183],[13.9817,44.8162],[13.9766,44.8162],[13.9746,44.8175],[13.9775,44.8204],[13.9799,44.8204],[13.9825,44.8229],[13.985,44.8229],[13.9862,44.8258],[13.9887,44.8283],[13.9879,44.83],[13.9854,44.8316],[13.9832,44.8345],[13.9817,44.8346],[13.9788,44.8383],[13.9804,44.8441],[13.9821,44.8466],[13.9803,44.85],[13.9859,44.8521],[13.9883,44.8521],[13.9942,44.8596],[14,44.8612],[14.0033,44.8612],[14.0037,44.8641],[14,44.8662],[13.9991,44.8637],[13.9954,44.8658],[13.9962,44.8691],[13.9954,44.8708],[13.9912,44.8758],[13.9941,44.8787],[13.9967,44.8771],[14.0008,44.8779],[14.005,44.8829],[14.0079,44.885],[14.0066,44.8887],[14.0025,44.8887],[13.9992,44.8862],[13.9942,44.8862],[13.9917,44.8854],[13.9875,44.8904],[13.9842,44.8921],[13.9808,44.892],[13.9829,44.8966],[13.9812,44.8992],[13.9825,44.8996],[13.9854,44.8966],[13.9854,44.8941],[13.9899,44.8929],[13.9933,44.8904],[13.9991,44.8912],[14,44.8929],[14.0025,44.8937],[14.0075,44.8937],[14.0129,44.8992],[14.0129,44.9008],[14.0154,44.9025],[14.0154,44.8984],[14.0175,44.8971],[14.0221,44.9008],[14.022,44.9033],[14.025,44.9038],[14.0296,44.9083],[14.0295,44.9117],[14.0312,44.915],[14.0275,44.917],[14.0224,44.9171],[14.0242,44.9196],[14.0271,44.9191],[14.0275,44.9213],[14.0299,44.9212],[14.0304,44.9225],[14.0287,44.9241],[14.0291,44.9271],[14.0304,44.9249],[14.0329,44.9233],[14.0329,44.9217],[14.0375,44.9179],[14.0392,44.9179],[14.0412,44.9208],[14.0429,44.925],[14.0437,44.9308],[14.0463,44.9324],[14.0462,44.9342],[14.0441,44.9346],[14.0458,44.9362],[14.0491,44.9363],[14.05,44.9372],[14.05,44.9417],[14.0479,44.9433],[14.0467,44.9462],[14.0417,44.9462],[14.0417,44.9496],[14.0367,44.9504],[14.0359,44.9521],[14.0329,44.9533],[14.0358,44.9546],[14.04,44.9512],[14.0434,44.9513],[14.0466,44.9487],[14.05,44.9482],[14.05,44.9996],[14.0467,44.9996],[14.0441,45.0012],[14.0391,45.0004],[14.0378,45.0016],[14.0383,45.0037],[14.04,45.0037],[14.0463,45.01],[14.0479,45.0133],[14.047,45.0175],[14.0437,45.0208],[14.0438,45.0233],[14.0421,45.025],[14.0404,45.0299],[14.0379,45.0325],[14.0383,45.0337],[14.0416,45.0312],[14.0441,45.0312],[14.0463,45.0341],[14.0454,45.0375],[14.0454,45.0425],[14.0471,45.0417],[14.0479,45.0375],[14.047,45.035],[14.0487,45.0333],[14.0487,45.03],[14.05,45.0292]],[[13.7337,44.9233],[13.7354,44.9225],[13.7346,44.9208],[13.7358,44.9196],[13.7416,44.9196],[13.7441,44.9179],[13.7491,44.9179],[13.7508,44.9146],[13.7537,44.9141],[13.7537,44.9083],[13.7508,44.9054],[13.7467,44.9054],[13.7454,44.9041],[13.7454,44.9016],[13.7479,44.9],[13.7479,44.8983],[13.75,44.8963],[13.7517,44.8962],[13.7508,44.8937],[13.7462,44.8925],[13.7463,44.89],[13.7475,44.8887],[13.7504,44.8883],[13.7508,44.8854],[13.755,44.8854],[13.7566,44.8904],[13.7595,44.8908],[13.7596,44.8992],[13.7604,44.9016],[13.7588,44.9033],[13.7617,44.9038],[13.7641,44.9054],[13.7646,44.9033],[13.7629,44.9016],[13.765,44.8987],[13.7691,44.8996],[13.77,44.9021],[13.7725,44.9012],[13.7737,44.9024],[13.7716,44.9046],[13.7742,44.9046],[13.7758,44.9021],[13.78,44.9021],[13.7812,44.9033],[13.7821,44.9067],[13.7809,44.9087],[13.7758,44.9087],[13.7796,44.9108],[13.7796,44.9133],[13.7779,44.915],[13.7775,44.9179],[13.7749,44.9179],[13.7708,44.9154],[13.7687,44.9191],[13.7659,44.9212],[13.7616,44.9213],[13.7608,44.9196],[13.7574,44.9196],[13.7583,44.9212],[13.7604,44.9216],[13.7566,44.9237],[13.7541,44.9237],[13.7525,44.9254],[13.7491,44.9254],[13.7483,44.9263],[13.745,44.9254],[13.735,44.9254],[13.7337,44.9233]],[[13.1828,45.7109],[13.1883,45.7104],[13.1924,45.7121],[13.2057,45.7121],[13.2066,45.7129],[13.2141,45.7129],[13.215,45.7138],[13.2216,45.7137],[13.2224,45.7146],[13.2274,45.7146],[13.2316,45.7154],[13.2349,45.7171],[13.2383,45.7171],[13.2425,45.7188],[13.2436,45.7208],[13.2424,45.7221],[13.2383,45.7221],[13.2349,45.7204],[13.2341,45.7213],[13.2283,45.7212],[13.2266,45.7196],[13.2224,45.7196],[13.2191,45.7179],[13.2099,45.7179],[13.2066,45.7188],[13.2033,45.7154],[13.1933,45.7154],[13.1924,45.7163],[13.1882,45.7163],[13.1841,45.7138],[13.1828,45.7109]],[[13.7279,44.9341],[13.7296,44.9325],[13.7296,44.93],[13.7317,44.9288],[13.735,44.9287],[13.735,44.932],[13.7396,44.9325],[13.7396,44.9283],[13.7433,44.9271],[13.75,44.9271],[13.7512,44.9283],[13.75,44.9304],[13.7471,44.9317],[13.7471,44.9358],[13.745,44.9379],[13.7416,44.9396],[13.7383,44.9379],[13.7366,44.9404],[13.7324,44.9404],[13.7325,44.9363],[13.7292,44.9363],[13.7279,44.9341]],[[12.8962,45.6267],[12.8983,45.6246],[12.9049,45.6238],[12.9091,45.6213],[12.915,45.6229],[12.9171,45.6267],[12.9141,45.6271],[12.9058,45.6271],[12.9045,45.6292],[12.9087,45.6316],[12.91,45.6354],[12.9142,45.6371],[12.9175,45.6371],[12.9204,45.64],[12.9213,45.6433],[12.9229,45.6458],[12.9217,45.6479],[12.9195,45.6458],[12.9187,45.6408],[12.9166,45.6387],[12.9125,45.6388],[12.9092,45.6379],[12.9066,45.6362],[12.9054,45.6333],[12.9033,45.6312],[12.9017,45.6312],[12.8962,45.6283],[12.8962,45.6267]],[[13.3061,45.7042],[13.3124,45.7021],[13.3166,45.6996],[13.3229,45.6992],[13.3211,45.7017],[13.3212,45.7058],[13.3203,45.71],[13.322,45.7125],[13.3207,45.7138],[13.3166,45.7138],[13.3157,45.7129],[13.3116,45.7129],[13.3103,45.71],[13.307,45.7066],[13.3061,45.7042]],[[13.307,45.695],[13.3091,45.6929],[13.3149,45.6904],[13.3166,45.6904],[13.3366,45.6796],[13.3407,45.6796],[13.3449,45.6779],[13.3507,45.6788],[13.3528,45.6817],[13.3507,45.6821],[13.3466,45.6796],[13.3366,45.6829],[13.3324,45.6854],[13.3291,45.6862],[13.3274,45.6879],[13.3199,45.6912],[13.3124,45.6954],[13.3074,45.6962],[13.307,45.695]],[[12.9179,45.6283],[12.9191,45.6262],[12.9275,45.6229],[12.9308,45.6237],[12.9341,45.6254],[12.9391,45.6254],[12.9413,45.6266],[12.9412,45.6291],[12.9384,45.6304],[12.9374,45.6287],[12.9341,45.6296],[12.9291,45.6287],[12.9284,45.6296],[12.9241,45.6296],[12.9208,45.6287],[12.9191,45.6304],[12.9179,45.6283]],[[13.2937,45.7283],[13.2957,45.7254],[13.2982,45.7279],[13.3057,45.7279],[13.3091,45.7296],[13.3116,45.7321],[13.3157,45.7321],[13.3179,45.7351],[13.3178,45.7384],[13.3149,45.7396],[13.312,45.7383],[13.3125,45.7354],[13.3091,45.7354],[13.3069,45.7342],[13.3087,45.7334],[13.3041,45.7304],[13.2974,45.7304],[13.2966,45.7313],[13.2936,45.73],[13.2937,45.7283]],[[13.2795,45.7266],[13.2812,45.7234],[13.2841,45.7212],[13.2853,45.7225],[13.2845,45.7259],[13.2857,45.7287],[13.2874,45.7287],[13.2887,45.7308],[13.2854,45.7325],[13.2853,45.735],[13.2816,45.7371],[13.2794,45.7367],[13.2795,45.7333],[13.2824,45.7338],[13.2837,45.7317],[13.2803,45.7292],[13.2795,45.7266]],[[13.287,45.7233],[13.2874,45.7229],[13.3049,45.7229],[13.3053,45.7258],[13.3041,45.7271],[13.2991,45.7271],[13.2966,45.7246],[13.294,45.7246],[13.2916,45.7296],[13.287,45.7267],[13.287,45.7233]],[[13.1608,45.7029],[13.1616,45.7038],[13.1725,45.7037],[13.1749,45.7063],[13.1766,45.7062],[13.1804,45.7092],[13.1803,45.7125],[13.1775,45.7129],[13.1745,45.7108],[13.1787,45.7108],[13.1783,45.7096],[13.1758,45.7096],[13.1716,45.7063],[13.1683,45.7054],[13.1582,45.7054],[13.1608,45.7029]],[[13.2712,45.7125],[13.2741,45.7104],[13.2782,45.7104],[13.2807,45.7129],[13.2845,45.715],[13.2837,45.7192],[13.2824,45.7196],[13.2778,45.7175],[13.277,45.7133],[13.2724,45.7138],[13.2712,45.7125]],[[13.2853,45.7134],[13.2916,45.7088],[13.2974,45.7088],[13.297,45.7125],[13.2957,45.7137],[13.2924,45.7146],[13.2858,45.7146],[13.2853,45.7134]],[[13.3587,45.6933],[13.3624,45.6904],[13.3649,45.6905],[13.3678,45.6933],[13.3678,45.6975],[13.3666,45.6988],[13.3633,45.6987],[13.3641,45.6954],[13.3616,45.6962],[13.3587,45.695],[13.3587,45.6933]],[[12.9063,45.6517],[12.9092,45.6487],[12.9116,45.6487],[12.9112,45.65],[12.9133,45.6512],[12.9158,45.6479],[12.9187,45.65],[12.9158,45.6521],[12.9142,45.652],[12.9108,45.6562],[12.9091,45.6562],[12.9063,45.6517]],[[13.3271,45.7225],[13.3283,45.7221],[13.3307,45.7255],[13.3337,45.725],[13.3336,45.7267],[13.337,45.7291],[13.3341,45.7304],[13.3307,45.7304],[13.3282,45.7296],[13.327,45.7275],[13.3271,45.7225]],[[12.9179,45.6349],[12.9192,45.6337],[12.9229,45.6341],[12.9229,45.64],[12.925,45.6421],[12.93,45.6437],[12.9304,45.645],[12.9275,45.6462],[12.9241,45.6446],[12.922,45.6425],[12.9212,45.6383],[12.9179,45.6349]],[[13.1111,45.7342],[13.1124,45.7329],[13.1145,45.7333],[13.1146,45.7317],[13.1166,45.7296],[13.1182,45.7321],[13.1208,45.7321],[13.1228,45.7358],[13.1216,45.7371],[13.1191,45.7371],[13.1175,45.7354],[13.1125,45.7354],[13.1111,45.7342]],[[12.9137,45.63],[12.9158,45.6296],[12.9174,45.6312],[12.92,45.6312],[12.9216,45.6295],[12.9233,45.6304],[12.9313,45.6308],[12.93,45.6321],[12.9258,45.6321],[12.925,45.6329],[12.9141,45.6329],[12.9137,45.63]],[[13.3128,45.7209],[13.3153,45.7192],[13.3165,45.7171],[13.3183,45.7196],[13.3199,45.7179],[13.3224,45.718],[13.3236,45.7192],[13.3241,45.7221],[13.3191,45.7221],[13.3182,45.7229],[13.3141,45.7221],[13.3128,45.7209]],[[13.1536,45.7075],[13.1557,45.7071],[13.1633,45.7071],[13.1674,45.7079],[13.1683,45.7096],[13.1649,45.7104],[13.1575,45.7104],[13.1549,45.7096],[13.1536,45.7075]],[[13.1062,45.74],[13.1107,45.7396],[13.1113,45.7434],[13.1129,45.7458],[13.1092,45.7471],[13.107,45.745],[13.1062,45.74]],[[13.2854,45.7167],[13.2874,45.7163],[13.2883,45.7179],[13.2941,45.7196],[13.2957,45.7188],[13.2974,45.7221],[13.2916,45.7221],[13.289,45.7196],[13.2858,45.7196],[13.2854,45.7167]],[[13.7254,44.9108],[13.7275,44.9087],[13.7296,44.9083],[13.7296,44.9058],[13.732,44.905],[13.732,44.9083],[13.7304,44.91],[13.7304,44.9133],[13.7267,44.9137],[13.7254,44.9108]],[[13.0678,45.7167],[13.0691,45.7146],[13.0741,45.7146],[13.0774,45.7129],[13.0787,45.7133],[13.0791,45.7163],[13.0749,45.7171],[13.0708,45.7171],[13.0691,45.7179],[13.0678,45.7167]],[[13.6153,45.0567],[13.6186,45.055],[13.6169,45.0533],[13.6198,45.0529],[13.6241,45.0554],[13.6249,45.0579],[13.6166,45.0579],[13.6153,45.0567]],[[13.3387,45.6917],[13.345,45.6879],[13.3479,45.6892],[13.3474,45.6912],[13.3441,45.6912],[13.3411,45.6934],[13.3424,45.6954],[13.3399,45.6954],[13.3387,45.6917]],[[13.0987,45.7325],[13.0999,45.7346],[13.1041,45.7354],[13.1083,45.7354],[13.1091,45.7346],[13.1112,45.7375],[13.1083,45.7388],[13.1058,45.7371],[13.1025,45.7371],[13.0987,45.735],[13.0987,45.7325]],[[13.3587,45.7041],[13.3633,45.7004],[13.3666,45.7004],[13.3687,45.7025],[13.3682,45.7038],[13.3616,45.7038],[13.3591,45.7054],[13.3587,45.7041]],[[13.9304,44.7842],[13.9325,44.7821],[13.935,44.782],[13.9362,44.7833],[13.9359,44.7871],[13.9316,44.7871],[13.9304,44.7842]],[[13.3028,45.71],[13.3037,45.7075],[13.3057,45.7071],[13.3087,45.71],[13.3054,45.7109],[13.3078,45.7134],[13.3041,45.7146],[13.3029,45.7125],[13.3028,45.71]],[[13.2562,45.7175],[13.2582,45.7155],[13.2633,45.7138],[13.2653,45.7158],[13.2616,45.7171],[13.2599,45.7188],[13.2566,45.7188],[13.2562,45.7175]],[[13.297,45.7183],[13.3015,45.7163],[13.3037,45.7184],[13.3041,45.7221],[13.3007,45.7221],[13.3003,45.7208],[13.297,45.7183]],[[13.8379,44.8292],[13.8387,44.8258],[13.84,44.8246],[13.8429,44.825],[13.8429,44.8283],[13.8399,44.8304],[13.8379,44.8292]],[[13.9437,44.7733],[13.9446,44.7708],[13.9475,44.7679],[13.9487,44.7683],[13.9487,44.7734],[13.945,44.7746],[13.9437,44.7733]],[[13.3487,45.6925],[13.3495,45.6892],[13.3507,45.6879],[13.3533,45.6879],[13.3545,45.6892],[13.3499,45.6946],[13.3487,45.6925]],[[13.7954,44.8991],[13.7966,44.8979],[13.7992,44.8979],[13.7996,44.9008],[13.7983,44.9021],[13.7954,44.9017],[13.7954,44.8991]],[[13.6136,45.0433],[13.6198,45.0429],[13.6211,45.0442],[13.6182,45.0454],[13.6149,45.0454],[13.6136,45.0433]],[[13.3378,45.6984],[13.3408,45.6971],[13.3424,45.6988],[13.3449,45.6987],[13.3449,45.7005],[13.3383,45.6996],[13.3378,45.6984]],[[13.3299,45.7179],[13.3324,45.7163],[13.3346,45.7175],[13.3341,45.7196],[13.3283,45.7204],[13.3299,45.7179]],[[13.7846,44.8966],[13.7875,44.8963],[13.7896,44.8983],[13.7891,44.8996],[13.785,44.8996],[13.7846,44.8966]],[[13.0729,45.7033],[13.0741,45.7021],[13.0774,45.7029],[13.0787,45.7042],[13.0774,45.7054],[13.0733,45.7055],[13.0729,45.7033]],[[13.7363,44.9],[13.7384,44.8987],[13.7404,44.8992],[13.7404,44.9016],[13.7375,44.9029],[13.7363,44.9]],[[13.3294,45.6942],[13.3307,45.6929],[13.3348,45.6929],[13.3358,45.6954],[13.3316,45.6946],[13.3299,45.6962],[13.3294,45.6942]],[[13.9454,44.7899],[13.9467,44.7888],[13.9488,44.7891],[13.9488,44.7925],[13.9466,44.7938],[13.9454,44.7925],[13.9454,44.7899]],[[13.6078,45.04],[13.6124,45.0396],[13.6124,45.0421],[13.6082,45.0421],[13.6078,45.04]],[[13.3428,45.7116],[13.3458,45.7104],[13.347,45.7125],[13.3466,45.7146],[13.3449,45.7146],[13.3428,45.7116]],[[13.1121,45.7367],[13.1174,45.7371],[13.1191,45.7388],[13.1158,45.7379],[13.1133,45.7404],[13.1121,45.7367]],[[13.307,45.7217],[13.3108,45.7213],[13.3129,45.7225],[13.3124,45.7238],[13.3082,45.7238],[13.307,45.7217]],[[13.3037,45.7459],[13.3057,45.7446],[13.3095,45.7466],[13.3091,45.7479],[13.3041,45.7471],[13.3037,45.7459]],[[13.6203,45.0733],[13.624,45.0729],[13.6249,45.0754],[13.6207,45.0754],[13.6203,45.0733]],[[13.1611,45.7509],[13.1641,45.7529],[13.1662,45.7533],[13.1661,45.755],[13.1632,45.7546],[13.1612,45.7525],[13.1611,45.7509]],[[13.0971,45.6925],[13.0991,45.6929],[13.1029,45.6967],[13.1016,45.6979],[13.097,45.6933],[13.0971,45.6925]],[[13.5861,45.1475],[13.5882,45.1463],[13.5903,45.1467],[13.5903,45.1492],[13.5874,45.1496],[13.5861,45.1475]],[[13.572,45.1375],[13.5732,45.1362],[13.5773,45.1371],[13.5774,45.1388],[13.5724,45.1388],[13.572,45.1375]],[[13.3495,45.7075],[13.352,45.7067],[13.352,45.7092],[13.3507,45.7112],[13.3491,45.7113],[13.3495,45.7075]],[[13.3637,45.7125],[13.3691,45.7121],[13.3691,45.7137],[13.3657,45.7146],[13.3637,45.7125]],[[13.5777,45.2216],[13.5799,45.2204],[13.5819,45.2217],[13.579,45.2246],[13.5777,45.2216]],[[13.3437,45.7058],[13.3458,45.7054],[13.3486,45.7076],[13.3474,45.7088],[13.3449,45.7079],[13.3437,45.7058]],[[13.1645,45.7575],[13.1679,45.7583],[13.1666,45.7612],[13.1645,45.7591],[13.1645,45.7575]],[[13.1762,45.7451],[13.1774,45.7437],[13.1778,45.7467],[13.1795,45.7484],[13.1774,45.7487],[13.1762,45.7475],[13.1762,45.7451]],[[13.8437,44.8192],[13.8479,44.8166],[13.8479,44.8183],[13.8449,44.8212],[13.8437,44.8192]],[[13.6311,45.055],[13.6357,45.0546],[13.6356,45.0563],[13.6315,45.0562],[13.6311,45.055]],[[13.6578,45.0542],[13.6607,45.0537],[13.6619,45.055],[13.659,45.0563],[13.6578,45.0542]],[[13.1753,45.755],[13.1774,45.7546],[13.1787,45.7558],[13.1783,45.7579],[13.1766,45.7579],[13.1753,45.755]],[[13.3362,45.7309],[13.3383,45.7296],[13.3403,45.7317],[13.3374,45.7329],[13.3362,45.7309]],[[13.6686,45.03],[13.672,45.03],[13.6715,45.0321],[13.669,45.0321],[13.6686,45.03]],[[13.4761,45.7017],[13.4782,45.7004],[13.4795,45.7034],[13.4774,45.7037],[13.4761,45.7017]],[[13.0754,45.695],[13.0779,45.695],[13.0774,45.6987],[13.0754,45.695]],[[13.1395,45.7433],[13.1408,45.7413],[13.1429,45.7425],[13.1408,45.7454],[13.1395,45.7433]],[[13.2903,45.7167],[13.294,45.7162],[13.2954,45.7175],[13.2941,45.7188],[13.2903,45.7167]],[[13.1128,45.7475],[13.115,45.7471],[13.1154,45.7492],[13.1128,45.75],[13.1128,45.7475]],[[12.9171,45.6233],[12.9221,45.6233],[12.92,45.6245],[12.9174,45.6246],[12.9171,45.6233]],[[13.3245,45.74],[13.3274,45.7404],[13.3274,45.7421],[13.3245,45.7425],[13.3245,45.74]],[[13.577,45.175],[13.5799,45.1746],[13.5811,45.1758],[13.5782,45.1771],[13.577,45.175]],[[13.137,45.7466],[13.1391,45.7454],[13.1404,45.7467],[13.1391,45.7487],[13.137,45.7466]],[[13.5611,45.1958],[13.5623,45.1946],[13.5645,45.195],[13.5644,45.1967],[13.5623,45.1971],[13.5611,45.1958]],[[13.2895,45.7309],[13.2916,45.7304],[13.2924,45.7329],[13.2907,45.7329],[13.2895,45.7309]],[[13.7163,44.9133],[13.7192,44.912],[13.7195,44.9134],[13.7166,44.9146],[13.7163,44.9133]],[[13.1745,45.7134],[13.1758,45.7129],[13.1787,45.715],[13.1758,45.7154],[13.1745,45.7134]],[[13.5669,45.2009],[13.5691,45.2004],[13.5699,45.2029],[13.5682,45.2029],[13.5669,45.2009]],[[13.2512,45.7167],[13.2532,45.7163],[13.2545,45.7175],[13.2516,45.7188],[13.2512,45.7167]],[[13.3695,45.6875],[13.3716,45.6871],[13.3728,45.6883],[13.3708,45.6896],[13.3695,45.6875]],[[13.3761,45.7217],[13.3791,45.7212],[13.3795,45.7225],[13.3774,45.7238],[13.3761,45.7217]],[[13.982,44.7991],[13.9829,44.7966],[13.9846,44.7967],[13.9841,44.7996],[13.982,44.7991]],[[13.3111,45.7142],[13.3146,45.715],[13.3124,45.7163],[13.3111,45.7142]],[[13.6636,45.0316],[13.6657,45.0313],[13.6666,45.0337],[13.6649,45.0337],[13.6636,45.0316]],[[13.2845,45.7375],[13.2858,45.7363],[13.2879,45.7392],[13.2866,45.7396],[13.2845,45.7375]],[[13.0987,45.6891],[13.1024,45.6879],[13.1033,45.6896],[13.0987,45.6891]],[[13.5762,45.7809],[13.5791,45.7796],[13.5791,45.7813],[13.5765,45.7821],[13.5762,45.7809]],[[13.6544,45.0491],[13.6573,45.0487],[13.6573,45.0504],[13.6549,45.0504],[13.6544,45.0491]],[[13.5786,45.1417],[13.582,45.1425],[13.5798,45.1437],[13.5786,45.1417]],[[13.8245,44.8691],[13.8266,44.8687],[13.8258,44.8712],[13.8245,44.8691]],[[13.5911,45.1309],[13.5932,45.1312],[13.594,45.1329],[13.5915,45.1329],[13.5911,45.1309]],[[13.3003,45.7075],[13.3024,45.7071],[13.3016,45.7096],[13.3003,45.7075]],[[13.1695,45.7108],[13.1716,45.7104],[13.1708,45.7129],[13.1695,45.7108]],[[13.3744,45.6867],[13.3774,45.6863],[13.3774,45.6879],[13.3749,45.6879],[13.3744,45.6867]],[[13.5653,45.1867],[13.5682,45.1863],[13.5681,45.1879],[13.5657,45.1879],[13.5653,45.1867]],[[13.162,45.7017],[13.1658,45.7013],[13.1641,45.7029],[13.162,45.7017]],[[13.6203,45.0483],[13.6232,45.0479],[13.6232,45.0496],[13.6203,45.0483]],[[12.9262,45.65],[12.9275,45.6487],[12.9291,45.6504],[12.9262,45.65]],[[13.5694,45.205],[13.5724,45.2037],[13.5723,45.2054],[13.5694,45.205]],[[13.717,44.9358],[13.7195,44.9358],[13.7171,44.9383],[13.717,44.9358]],[[13.7462,44.9092],[13.7487,44.9099],[13.7483,44.9121],[13.7462,44.9092]],[[13.2504,45.7208],[13.2516,45.7196],[13.2532,45.7213],[13.2504,45.7208]],[[13.7271,44.9175],[13.7291,44.9154],[13.7296,44.9175],[13.7275,44.9188],[13.7271,44.9175]],[[13.1853,45.76],[13.1883,45.7596],[13.1866,45.7613],[13.1853,45.76]],[[13.9804,44.79],[13.9825,44.7896],[13.9808,44.7921],[13.9804,44.79]],[[13.6761,45.0133],[13.6782,45.0129],[13.6782,45.0146],[13.6761,45.0133]],[[13.1354,45.7516],[13.1374,45.7513],[13.1375,45.7529],[13.1354,45.7516]],[[13.7221,44.9366],[13.7233,44.9354],[13.7238,44.9375],[13.7225,44.9387],[13.7221,44.9366]],[[13.4686,45.7017],[13.4708,45.7013],[13.4707,45.7029],[13.4686,45.7017]],[[13.9246,44.7775],[13.9262,44.7766],[13.9258,44.7788],[13.9246,44.7775]],[[13.7046,44.9916],[13.7058,44.9904],[13.7054,44.9941],[13.7046,44.9916]],[[13.3553,45.6816],[13.3566,45.6804],[13.3574,45.6821],[13.3553,45.6816]],[[13.2869,45.7209],[13.2895,45.7216],[13.2874,45.7221],[13.2869,45.7209]],[[13.9079,44.8166],[13.91,44.8162],[13.9091,44.8179],[13.9079,44.8166]],[[13.7195,44.9425],[13.7209,44.9412],[13.7208,44.9437],[13.7195,44.9425]],[[13.6727,45.0434],[13.6753,45.0442],[13.6732,45.0446],[13.6727,45.0434]],[[13.8387,44.8225],[13.8413,44.8216],[13.8408,44.8237],[13.8387,44.8225]],[[13.1421,45.74],[13.1445,45.7408],[13.1424,45.7413],[13.1421,45.74]],[[13.6173,45.0904],[13.6177,45.0934],[13.6165,45.0929],[13.6173,45.0904]],[[13.8987,44.7674],[13.9004,44.7658],[13.9004,44.7675],[13.8987,44.7674]],[[13.6128,45.1258],[13.6149,45.1254],[13.614,45.1271],[13.6128,45.1258]],[[13.5861,45.1608],[13.5878,45.1617],[13.5865,45.1621],[13.5861,45.1608]],[[13.3528,45.7066],[13.3553,45.7067],[13.3541,45.7079],[13.3528,45.7066]],[[13.6903,45.015],[13.692,45.0159],[13.6907,45.0162],[13.6903,45.015]],[[13.0679,45.7109],[13.0691,45.7096],[13.0704,45.71],[13.0679,45.7109]],[[13.1653,45.7133],[13.1666,45.7121],[13.1678,45.7134],[13.1653,45.7133]],[[13.707,45.0008],[13.7082,45.0004],[13.7086,45.0016],[13.707,45.0008]],[[13.5961,45.1584],[13.5973,45.1579],[13.5978,45.1592],[13.5961,45.1584]],[[13.1153,45.7458],[13.1179,45.7458],[13.1166,45.7471],[13.1153,45.7458]],[[13.3583,45.7071],[13.3595,45.7083],[13.3583,45.7096],[13.3583,45.7071]],[[13.2808,45.7204],[13.2811,45.7217],[13.2791,45.7229],[13.2808,45.7204]],[[13.9112,44.8224],[13.9129,44.8225],[13.9116,44.8238],[13.9112,44.8224]],[[13.7212,44.9317],[13.7229,44.9316],[13.7217,44.9329],[13.7212,44.9317]],[[13.1479,45.7417],[13.1496,45.7425],[13.1483,45.7429],[13.1479,45.7417]],[[13.1179,45.7475],[13.1191,45.7462],[13.1191,45.7479],[13.1179,45.7475]],[[13.8904,44.7558],[13.8912,44.7558],[13.8904,44.7575],[13.8904,44.7558]],[[13.3645,45.6842],[13.3654,45.6842],[13.3645,45.6858],[13.3645,45.6842]],[[13.3586,45.6808],[13.3607,45.6804],[13.3607,45.6812],[13.3586,45.6808]],[[13.5453,45.7891],[13.5469,45.7892],[13.5457,45.7904],[13.5453,45.7891]],[[13.1504,45.745],[13.152,45.745],[13.1508,45.7462],[13.1504,45.745]],[[13.5886,45.155],[13.5895,45.155],[13.5891,45.1563],[13.5886,45.155]],[[13.8221,44.8725],[13.8234,44.8721],[13.8233,44.8729],[13.8221,44.8725]],[[13.5936,45.1616],[13.5949,45.1613],[13.5949,45.1621],[13.5936,45.1616]],[[13.5944,45.1558],[13.5949,45.1554],[13.5949,45.1571],[13.5944,45.1558]],[[13.5728,45.1917],[13.5741,45.1912],[13.574,45.1921],[13.5728,45.1917]],[[13.5894,45.1642],[13.5903,45.1642],[13.5899,45.1654],[13.5894,45.1642]],[[13.6178,45.0642],[13.6191,45.0637],[13.6191,45.0646],[13.6178,45.0642]],[[13.1495,45.7417],[13.1499,45.7413],[13.1512,45.7417],[13.1495,45.7417]],[[13.1495,45.7508],[13.1508,45.7504],[13.1508,45.7513],[13.1495,45.7508]],[[13.5744,45.1717],[13.5753,45.1717],[13.5748,45.1729],[13.5744,45.1717]],[[13.1212,45.74],[13.1217,45.7396],[13.1229,45.74],[13.1212,45.74]],[[13.9237,44.7916],[13.9245,44.7916],[13.9242,44.7929],[13.9237,44.7916]],[[13.6178,45.0608],[13.6195,45.0608],[13.619,45.0613],[13.6178,45.0608]],[[13.5911,45.1575],[13.5919,45.1575],[13.5916,45.1588],[13.5911,45.1575]],[[13.6119,45.0717],[13.6136,45.0717],[13.6124,45.0721],[13.6119,45.0717]],[[13.5961,45.1566],[13.5978,45.1567],[13.5966,45.1571],[13.5961,45.1566]],[[13.3603,45.6875],[13.3616,45.6871],[13.3616,45.6879],[13.3603,45.6875]],[[13.1229,45.73],[13.1237,45.7308],[13.1233,45.7313],[13.1229,45.73]],[[13.5986,45.155],[13.5994,45.155],[13.599,45.1562],[13.5986,45.155]],[[13.5919,45.2817],[13.5927,45.2817],[13.5924,45.2829],[13.5919,45.2817]],[[13.3495,45.6975],[13.3504,45.6983],[13.3499,45.6987],[13.3495,45.6975]],[[13.3587,45.6883],[13.3604,45.6883],[13.3591,45.6887],[13.3587,45.6883]],[[13.6136,45.0892],[13.6144,45.0892],[13.6141,45.0904],[13.6136,45.0892]],[[13.097,45.69],[13.0979,45.69],[13.0974,45.6904],[13.097,45.69]],[[13.3728,45.7184],[13.3732,45.7179],[13.3737,45.7184],[13.3728,45.7184]],[[13.3486,45.6992],[13.3491,45.6987],[13.3495,45.6992],[13.3486,45.6992]],[[13.1536,45.745],[13.1541,45.7446],[13.1541,45.7454],[13.1536,45.745]],[[13.5911,45.28],[13.5915,45.2796],[13.592,45.28],[13.5911,45.28]],[[13.577,45.7876],[13.5774,45.7871],[13.5778,45.7875],[13.577,45.7876]],[[13.5803,45.1675],[13.5811,45.1675],[13.5807,45.1679],[13.5803,45.1675]],[[13.5936,45.3192],[13.594,45.3187],[13.5944,45.3192],[13.5936,45.3192]],[[13.372,45.7175],[13.3728,45.7175],[13.3724,45.7179],[13.372,45.7175]],[[13.362,45.6825],[13.3624,45.6821],[13.3628,45.6825],[13.362,45.6825]],[[13.3611,45.6817],[13.3616,45.6813],[13.362,45.6817],[13.3611,45.6817]],[[13.1529,45.7459],[13.1533,45.7454],[13.1533,45.7463],[13.1529,45.7459]],[[13.3578,45.6892],[13.3582,45.6887],[13.3586,45.6892],[13.3578,45.6892]],[[13.3478,45.7],[13.3483,45.6996],[13.3483,45.7004],[13.3478,45.7]],[[13.3612,45.7192],[13.3616,45.7188],[13.362,45.7192],[13.3612,45.7192]],[[13.0978,45.6908],[13.0983,45.6904],[13.0983,45.6912],[13.0978,45.6908]],[[13.1437,45.7458],[13.1446,45.7459],[13.1441,45.7463],[13.1437,45.7458]],[[13.1487,45.7517],[13.1495,45.7516],[13.1492,45.7521],[13.1487,45.7517]],[[13.0987,45.6917],[13.0991,45.6912],[13.0995,45.6917],[13.0987,45.6917]],[[13.3549,45.6971],[13.3553,45.6975],[13.3553,45.6992],[13.3549,45.6971]],[[13.5782,45.2137],[13.5786,45.2142],[13.5782,45.2146],[13.5782,45.2137]],[[13.3607,45.7179],[13.3612,45.7184],[13.3608,45.7188],[13.3607,45.7179]],[[13.5682,45.2746],[13.5686,45.275],[13.5682,45.2754],[13.5682,45.2746]],[[13.3641,45.6862],[13.3645,45.6867],[13.3641,45.6871],[13.3641,45.6862]],[[13.1457,45.7463],[13.1462,45.7467],[13.1457,45.7471],[13.1457,45.7463]],[[13.5844,45.1692],[13.5844,45.17],[13.584,45.1704],[13.5844,45.1692]]]}};
+(function(){if(typeof MED_MASKS==='undefined')return;for(var k in MED_MASKS){var m=MED_MASKS[k],raw=atob(m.bits),u=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)u[i]=raw.charCodeAt(i);m._bits=u;}})();
+
+// ---------- ProVela polar ----------
+var TWS=[0,4,6,8,10,12,14,16,20,24];
+var TWA=[0,38,40,42,52,60,75,90,110,120,135,141,147,150,180];
+var PV=[[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,5.1,5.4,5.6,5.6,5.7,5.5],[0,0,0,4.7,5.3,5.55,5.8,5.75,5.8,5.7],[0,2.9,4,4.9,5.4,5.65,5.9,5.85,5.9,5.9],[0,3.37,4.53,5.33,5.8,6.06,6.3,6.26,6.35,6.7],[0,3.57,4.75,5.53,5.96,6.26,6.6,6.56,6.69,7.3],[0,3.76,5,5.8,6.25,6.6,7,7.07,7.32,8.1],[0,3.89,5.14,5.96,6.43,6.88,7.4,7.6,7.99,9.1],[0,3.86,5.07,5.96,6.5,7.1,7.73,8.19,9.2,10.5],[0,3.68,4.88,5.81,6.43,7.07,7.75,8.3,9.6,11.1],[0,3.3,4.38,5.38,6.05,6.63,7.25,7.96,9.5,12],[0,3.05,4.2,5.2,5.8,6.4,7,7.7,9.1,12],[0,2.75,3.9,4.8,5.5,6,6.6,7,8.4,11.5],[0,2.55,3.72,4.6,5.3,5.8,6.39,6.7,8,11],[0,0,0,0,0,0,0,0,0,0]];
+function clamp(v,a,b){return v<a?a:v>b?b:v;}
+function adiff(a,b){return ((a-b)%360+540)%360-180;}
+function idx(arr,x){if(x<=arr[0])return[0,0];if(x>=arr[arr.length-1])return[arr.length-2,1];for(var i=0;i<arr.length-1;i++)if(x<=arr[i+1])return[i,(x-arr[i])/(arr[i+1]-arr[i])];return[arr.length-2,1];}function polarSpeed(twaDeg,tws){var a=Math.abs(adiff(twaDeg,0));a=Math.abs(((a%360)+360)%360);if(a>180)a=360-a;if(a<TWA[1])return 0;
+  var t=idx(TWA,a),s=idx(TWS,clamp(tws,0,TWS[TWS.length-1])),t0=t[0],tf=t[1],s0=s[0],sf=s[1];
+  var top=PV[t0][s0]+(PV[t0][s0+1]-PV[t0][s0])*sf,bot=PV[t0+1][s0]+(PV[t0+1][s0+1]-PV[t0+1][s0])*sf;var _v=top+(bot-top)*tf;var _e=(typeof STATE!=='undefined'&&STATE&&STATE.polarEff>0)?STATE.polarEff:1;return _v*_e;}
+var POLAR0={TWS:TWS.slice(),TWA:TWA.slice(),PV:PV.map(function(r){return r.slice();})};
+// ---------- import polare ORC (CSV: riga twa/tws + righe per ogni TWA) ----------
+function parsePolarText(text){
+  if(!text||!text.trim())return {error:'Incolla i dati della polare.'};
+  var hasTab=text.indexOf('\t')>=0,hasSemi=text.indexOf(';')>=0,hasComma=text.indexOf(',')>=0,hasDot=text.indexOf('.')>=0;
+  var delim,decComma=false;
+  if(hasTab){delim='\t';decComma=hasComma;}else if(hasSemi){delim=';';decComma=hasComma;}
+  else if(hasComma&&hasDot){delim=',';}else if(hasComma){delim=',';}else{delim='ws';}
+  function cells(l){var p=delim==='ws'?l.split(/\s+/):l.split(delim);return p.map(function(c){c=c.trim();if(decComma)c=c.replace(',','.');return c;});}
+  var lines=text.replace(/\r/g,'').split('\n').map(function(l){return l.trim();}).filter(function(l){return l&&l[0]!=='#';});
+  if(lines.length<3)return {error:'Servono almeno l\'intestazione TWS e due righe di angoli.'};
+  var hd=cells(lines[0]),hd0=(hd[0]||'').toLowerCase(),twsStart=(hd0.indexOf('twa')>=0||hd0.indexOf('tws')>=0||hd0.indexOf('wind')>=0||hd0===''||isNaN(parseFloat(hd[0])))?1:0;
+  var TWSv=[];for(var i=twsStart;i<hd.length;i++){var v=parseFloat(hd[i]);if(!isNaN(v))TWSv.push(v);}
+  if(TWSv.length<2)return {error:'Intestazione TWS non riconosciuta (riga 1).'};
+  var TWAv=[],grid=[];
+  for(var li=1;li<lines.length;li++){var c=cells(lines[li]),twa=parseFloat(c[0]);if(isNaN(twa))continue;
+    var row=[];for(var s=0;s<TWSv.length;s++){var val=parseFloat(c[s+1]);row.push(isNaN(val)?0:val);}
+    TWAv.push(twa);grid.push(row);}
+  if(TWAv.length<2)return {error:'Nessuna riga di angoli valida.'};
+  // ordina per TWA
+  var order=TWAv.map(function(a,i){return i;}).sort(function(x,y){return TWAv[x]-TWAv[y];});
+  TWAv=order.map(function(i){return TWAv[i];});grid=order.map(function(i){return grid[i];});
+  // ancora no-go: TWA=0 con zeri
+  if(TWAv[0]>0.5){TWAv.unshift(0);grid.unshift(TWSv.map(function(){return 0;}));}
+  // poppa morta: TWA=180 con zeri (taper realistico)
+  if(TWAv[TWAv.length-1]<179.5){TWAv.push(180);grid.push(TWSv.map(function(){return 0;}));}
+  // aria leggerissima: TWS=0 con zeri
+  if(TWSv[0]>0.5){TWSv.unshift(0);for(var r=0;r<grid.length;r++)grid[r].unshift(0);}
+  var maxB=0;for(var t2=0;t2<grid.length;t2++)for(var s2=0;s2<TWSv.length;s2++)if(grid[t2][s2]>maxB)maxB=grid[t2][s2];
+  if(maxB<=0||maxB>40)return {error:'Velocità barca implausibili (max '+maxB.toFixed(1)+' kt).'};
+  return {TWS:TWSv,TWA:TWAv,PV:grid,maxB:maxB};}
+function applyPolar(p){TWS=p.TWS;TWA=p.TWA;PV=p.PV;rebuildWorker();computeRoute();renderPolarPreview();}
+/* ---- polare condivisa nella suite (chiave raffyca-polar, forma Performance {twa,tws,data}) ---- */
+function saveSharedPolar(p,meta){try{localStorage.setItem('raffyca-polar',JSON.stringify({twa:p.TWA,tws:p.TWS,data:p.PV,meta:meta||{source:'traversata'},ts:Date.now()}));}catch(e){}}
+function sharedToCSV(s){var rows=['twa/tws;'+s.tws.join(';')];for(var i=0;i<s.twa.length;i++)rows.push(s.twa[i]+';'+((s.data[i]||[]).join(';')));return rows.join('\n');}
+function loadSharedPolar(){try{var s=JSON.parse(localStorage.getItem('raffyca-polar')||'null');
+  if(!(s&&s.twa&&s.tws&&s.data&&s.twa.length&&s.tws.length&&s.data.length))return false;
+  var r=parsePolarText(sharedToCSV(s));if(r.error)return false;
+  applyPolar(r);
+  var st=document.getElementById('polStatus');
+  if(st)st.textContent=(s.meta&&s.meta.boat?s.meta.boat:'polare condivisa')+' · '+((s.meta&&s.meta.source)||'suite');
+  return true;}catch(e){return false;}}
+function resetPolar(){TWS=POLAR0.TWS.slice();TWA=POLAR0.TWA.slice();PV=POLAR0.PV.map(function(r){return r.slice();});rebuildWorker();computeRoute();renderPolarPreview();}
+
+// ---------- wind field ----------
+function deg2uv(dir,mag){var t=dir*Math.PI/180;return{u:Math.sin(t)*mag,v:Math.cos(t)*mag};}
+function uv2dir(u,v){var mag=Math.sqrt(u*u+v*v),d=Math.atan2(u,v)*180/Math.PI;return{twd:((d%360)+360)%360,tws:mag};}
+var AREAS={adriatico:{name:"Alto Adriatico",latN:45.85,latS:44.75,lonW:12.85,lonE:14.05,A:[45.70,13.42],B:[45.02,13.62]}};
+var NX=11,NY=8;
+var MODEL="ecmwf_ifs025",MODELN="ECMWF IFS";
+var FIELD={area:'adriatico',times:[],slices:[],source:'demo'};
+function gridPoints(area){var A=AREAS[area],lat=[],lon=[];for(var j=0;j<NY;j++)for(var i=0;i<NX;i++){lat.push(+(A.latN-(A.latN-A.latS)*j/(NY-1)).toFixed(4));lon.push(+(A.lonW+(A.lonE-A.lonW)*i/(NX-1)).toFixed(4));}return{lat:lat,lon:lon};}
+function buildURL(area){var g=gridPoints(area);return "https://api.open-meteo.com/v1/forecast?latitude="+g.lat.join(",")+"&longitude="+g.lon.join(",")+"&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=kn&forecast_days=4&timezone=auto&models="+MODEL;}
+function parseField(json,area){var arr=Array.isArray(json)?json:[json],times=arr[0].hourly.time,H=times.length,slices=[];
+  for(var h=0;h<H;h++){var u=[],v=[];for(var j=0;j<NY;j++){var ru=[],rv=[];for(var i=0;i<NX;i++){var pt=arr[j*NX+i],sp=pt.hourly.wind_speed_10m[h],dr=pt.hourly.wind_direction_10m[h];if(sp==null||dr==null){ru.push(0);rv.push(0);continue;}var w=deg2uv(dr,sp);ru.push(w.u);rv.push(w.v);}u.push(ru);v.push(rv);}slices.push({u:u,v:v});}
+  FIELD.area=area;FIELD.times=times;FIELD.slices=slices;FIELD.source='live';}
+function smooth(s){return s*s*(3-2*s);}
+function synthField(area){var times=[],slices=[],base=new Date();base.setHours(0,0,0,0);
+  for(var h=0;h<24;h++){var u=[],v=[],t=new Date(base.getTime()+h*3600000);times.push(t.toISOString().slice(0,16));
+    var s=clamp((h-8)/8,0,1),baseDir=45+175*smooth(s),baseSpd=4.5+9*Math.sin(Math.PI*clamp((h-6)/12,0,1));
+    for(var j=0;j<NY;j++){var ru=[],rv=[],fy=j/(NY-1);for(var i=0;i<NX;i++){var fx=i/(NX-1);
+      var dir=baseDir+(fx-0.5)*28,spd=Math.max(1.5,baseSpd+(fy-0.5)*5+fx*2.5);var w=deg2uv(((dir%360)+360)%360,spd);ru.push(w.u);rv.push(w.v);}u.push(ru);v.push(rv);}slices.push({u:u,v:v});}
+  FIELD.area=area;FIELD.times=times;FIELD.slices=slices;FIELD.source='demo';}
+function sampleSlice(S,lat,lon){var A=AREAS[FIELD.area];var fx=clamp((lon-A.lonW)/(A.lonE-A.lonW),0,1)*(NX-1),fy=clamp((A.latN-lat)/(A.latN-A.latS),0,1)*(NY-1);
+  var i=Math.min(Math.floor(fx),NX-2),j=Math.min(Math.floor(fy),NY-2),ti=fx-i,tj=fy-j;
+  var u=(S.u[j][i]*(1-ti)+S.u[j][i+1]*ti)*(1-tj)+(S.u[j+1][i]*(1-ti)+S.u[j+1][i+1]*ti)*tj;
+  var v=(S.v[j][i]*(1-ti)+S.v[j][i+1]*ti)*(1-tj)+(S.v[j+1][i]*(1-ti)+S.v[j+1][i+1]*ti)*tj;return{u:u,v:v};}
+function windAt(lat,lon,t){var N=FIELD.slices.length,tc=clamp(t,0,N-1),h0=Math.floor(tc),h1=Math.min(h0+1,N-1),f=tc-h0;
+  var a=sampleSlice(FIELD.slices[h0],lat,lon),b=sampleSlice(FIELD.slices[h1],lat,lon);return uv2dir(a.u+(b.u-a.u)*f,a.v+(b.v-a.v)*f);}
+
+// ---------- land mask ----------
+function isLand(lat,lon){var m=(typeof MED_MASKS!=='undefined')&&MED_MASKS[FIELD.area];if(!m)return false;if(lat>m.latN||lat<m.latS||lon<m.lonW||lon>m.lonE)return false;
+  var col=Math.floor((lon-m.lonW)/(m.lonE-m.lonW)*m.w),row=Math.floor((m.latN-lat)/(m.latN-m.latS)*m.h);
+  if(col<0||col>=m.w||row<0||row>=m.h)return false;var i=row*m.w+col;return (m._bits[i>>3]>>(i&7))&1;}
+function maskLand(m,lat,lon){if(!m||lat>m.latN||lat<m.latS||lon<m.lonW||lon>m.lonE)return false;
+  var col=Math.floor((lon-m.lonW)/(m.lonE-m.lonW)*m.w),row=Math.floor((m.latN-lat)/(m.latN-m.latS)*m.h);
+  if(col<0||col>=m.w||row<0||row>=m.h)return false;var i=row*m.w+col;return (m._bits[i>>3]>>(i&7))&1;}
+function coastDist(lat,lon){var m=(typeof MED_MASKS!=='undefined')&&MED_MASKS[FIELD.area];if(!m||!m._dist)return 1e9;
+  if(lat>m.latN||lat<m.latS||lon<m.lonW||lon>m.lonE)return 1e9;
+  var col=Math.floor((lon-m.lonW)/(m.lonE-m.lonW)*m.w),row=Math.floor((m.latN-lat)/(m.latN-m.latS)*m.h);
+  if(col<0||col>=m.w||row<0||row>=m.h)return 1e9;return m._dist[row*m.w+col];}
+
+// ---------- costa on-device: rasterizza un riquadro qualsiasi del Mediterraneo ----------
+var COAST=null,COAST_BOX=null,COAST_SEGS=[];
+function buildCoastSegs(){COAST_SEGS=[];if(!COAST)return;var a=AREAS[FIELD.area],E=COAST,m=0.02;
+  for(var e=0;e<E.length;e+=4){var la1=E[e],lo1=E[e+1],la2=E[e+2],lo2=E[e+3];
+    if(Math.min(la1,la2)>a.latN+m||Math.max(la1,la2)<a.latS-m||Math.min(lo1,lo2)>a.lonE+m||Math.max(lo1,lo2)<a.lonW-m)continue;
+    COAST_SEGS.push(la1,lo1,la2,lo2);}}
+function coastPrep(c){var E=[],b=[180,90,-180,-90],mp=c.features[0].geometry.coordinates;
+  for(var p=0;p<mp.length;p++){var poly=mp[p];for(var r=0;r<poly.length;r++){var ring=poly[r];
+    for(var k=0;k<ring.length-1;k++){var a=ring[k],bb=ring[k+1];E.push(a[1],a[0],bb[1],bb[0]);
+      if(a[0]<b[0])b[0]=a[0];if(a[1]<b[1])b[1]=a[1];if(a[0]>b[2])b[2]=a[0];if(a[1]>b[3])b[3]=a[1];}}}
+  COAST=Float64Array.from(E);COAST_BOX={lonW:b[0],latS:b[1],lonE:b[2],latN:b[3]};}
+function rasterMask(latN,latS,lonW,lonE,w,h){var E=COAST,nE=E.length,dlat=latN-latS,dlon=lonE-lonW,bytes=new Uint8Array(Math.ceil(w*h/8));
+  for(var row=0;row<h;row++){var lat=latN-(row+0.5)/h*dlat,xs=[];
+    for(var e=0;e<nE;e+=4){var la1=E[e],la2=E[e+2];if((la1<=lat&&lat<la2)||(la2<=lat&&lat<la1)){var lo1=E[e+1],lo2=E[e+3];xs.push(lo1+(lat-la1)/(la2-la1)*(lo2-lo1));}}
+    if(!xs.length)continue;xs.sort(function(a,b){return a-b;});
+    for(var c=0;c<w;c++){var lon=lonW+(c+0.5)/w*dlon,lo=0,hi=xs.length;while(lo<hi){var m=(lo+hi)>>1;if(xs[m]<lon)lo=m+1;else hi=m;}
+      if(lo&1){var i=row*w+c;bytes[i>>3]|=(1<<(i&7));}}}
+  return bytes;}
+function buildCoastMask(box,maxCells){var dlat=box.latN-box.latS,dlon=box.lonE-box.lonW,w,h;
+  if(dlon>=dlat){w=maxCells;h=Math.max(8,Math.round(maxCells*dlat/dlon));}else{h=maxCells;w=Math.max(8,Math.round(maxCells*dlon/dlat));}
+  return {w:w,h:h,latN:box.latN,latS:box.latS,lonW:box.lonW,lonE:box.lonE,_bits:rasterMask(box.latN,box.latS,box.lonW,box.lonE,w,h)};}
+// distanza dalla costa in NM per ogni cella (chamfer 2 passate). Calcolata lato main, viaggia al worker col mask.
+function coastDistField(m){if(!m||m._dist)return m&&m._dist;var W=m.w,H=m.h,N=W*H,INF=1e9,d=new Float32Array(N);
+  var latC=(m.latN-m.latS)/H*60,lonC=(m.lonE-m.lonW)/W*60*Math.cos((m.latN+m.latS)/2*Math.PI/180),dia=Math.sqrt(latC*latC+lonC*lonC);
+  for(var i=0;i<N;i++)d[i]=((m._bits[i>>3]>>(i&7))&1)?0:INF;
+  for(var y=0;y<H;y++)for(var x=0;x<W;x++){var k=y*W+x,v=d[k];if(v===0)continue;
+    if(x>0)v=Math.min(v,d[k-1]+lonC);if(y>0)v=Math.min(v,d[k-W]+latC);
+    if(x>0&&y>0)v=Math.min(v,d[k-W-1]+dia);if(x<W-1&&y>0)v=Math.min(v,d[k-W+1]+dia);d[k]=v;}
+  for(var y2=H-1;y2>=0;y2--)for(var x2=W-1;x2>=0;x2--){var k2=y2*W+x2,v2=d[k2];if(v2===0)continue;
+    if(x2<W-1)v2=Math.min(v2,d[k2+1]+lonC);if(y2<H-1)v2=Math.min(v2,d[k2+W]+latC);
+    if(x2<W-1&&y2<H-1)v2=Math.min(v2,d[k2+W+1]+dia);if(x2>0&&y2<H-1)v2=Math.min(v2,d[k2+W-1]+dia);d[k2]=v2;}
+  m._dist=d;return d;}
+function findSea(m,lat,lon){if(!maskLand(m,lat,lon))return{lat:lat,lon:lon};  var sLat=(m.latN-m.latS)/m.h,sLon=(m.lonE-m.lonW)/m.w;
+  for(var rad=1;rad<Math.max(m.w,m.h);rad++)for(var a=0;a<360;a+=12){var la=lat+Math.sin(a*Math.PI/180)*rad*sLat,lo=lon+Math.cos(a*Math.PI/180)*rad*sLon;
+    if(la<=m.latS||la>=m.latN||lo<=m.lonW||lo>=m.lonE)continue;if(!maskLand(m,la,lo))return{lat:la,lon:lo};}
+  return{lat:lat,lon:lon};}
+function makeCustomArea(clat,clon,name){
+  if(!COAST){return false;}
+  var hLat=1.1,hLon=1.1/Math.max(0.3,Math.cos(clat*Math.PI/180));
+  var box={latN:clamp(clat+hLat,COAST_BOX.latS,COAST_BOX.latN),latS:clamp(clat-hLat,COAST_BOX.latS,COAST_BOX.latN),
+    lonW:clamp(clon-hLon,COAST_BOX.lonW,COAST_BOX.lonE),lonE:clamp(clon+hLon,COAST_BOX.lonW,COAST_BOX.lonE)};
+  if(box.latN-box.latS<0.3||box.lonE-box.lonW<0.3)return false;
+  var m=buildCoastMask(box,200);MED_MASKS['custom']=m;
+  var Asea=findSea(m,clat,clon),Bsea=findSea(m,clamp(clat+hLat*0.55,box.latS+0.05,box.latN-0.05),clamp(clon+hLon*0.55,box.lonW+0.05,box.lonE-0.05));
+  AREAS['custom']={name:name||'Su misura',latN:box.latN,latS:box.latS,lonW:box.lonW,lonE:box.lonE,A:[Asea.lat,Asea.lon],B:[Bsea.lat,Bsea.lon]};
+  return true;}
+
+// ---------- geo helpers ----------
+function cosLat(area){return Math.cos((AREAS[area].latN+AREAS[area].latS)/2*Math.PI/180);}
+function dist(p,q){var cl=cosLat(FIELD.area),dx=(q.lon-p.lon)*60*cl,dy=(q.lat-p.lat)*60;return Math.sqrt(dx*dx+dy*dy);}
+function bearing(p,q){var cl=cosLat(FIELD.area),dx=(q.lon-p.lon)*60*cl,dy=(q.lat-p.lat)*60,b=Math.atan2(dx,dy)*180/Math.PI;return((b%360)+360)%360;}
+function moveTo(p,h,dnm){var cl=cosLat(FIELD.area),rad=h*Math.PI/180;return{lat:p.lat+dnm*Math.cos(rad)/60,lon:p.lon+dnm*Math.sin(rad)/(60*cl)};}
+function hitsLand(p,q){var n=Math.max(2,Math.ceil(dist(p,q)/0.4));for(var i=0;i<=n;i++){var t=i/n;if(isLand(p.lat+(q.lat-p.lat)*t,p.lon+(q.lon-p.lon)*t))return true;}return false;}
+
+var STATE={dep:2,motorOn:false,mot:5.5,maxWind:0,coastBuf:0,tackPen:12,polarEff:1,A:null,B:null};
+function resetAB(area){var a=AREAS[area];STATE.A={lat:a.A[0],lon:a.A[1]};STATE.B={lat:a.B[0],lon:a.B[1]};}
+function clampToArea(area,lat,lon){var a=AREAS[area];return{lat:clamp(lat,a.latS+0.01,a.latN-0.01),lon:clamp(lon,a.lonW+0.01,a.lonE-0.01)};}
+function route(){
+  var A=AREAS[FIELD.area],Sp={lat:STATE.A.lat,lon:STATE.A.lon},Gp={lat:STATE.B.lat,lon:STATE.B.lon};
+  var dep=STATE.dep,mOn=STATE.motorOn,mSpd=STATE.mot,DH=8,dt=0.4,SECT=150;
+  var hAvail=(FIELD.slices&&FIELD.slices.length>1)?FIELD.slices.length-1:28;   // ore di dati vento disponibili
+  var MAX=Math.min(240,Math.max(70,Math.ceil((hAvail-dep)/dt)));               // orizzonte fino a fine campo, min 28h, cap ~96h (240 passi) per il mobile
+  var MAXW=(STATE.maxWind&&STATE.maxWind>0)?STATE.maxWind:1e9;
+  var start={lat:Sp.lat,lon:Sp.lon,prev:null,motor:false,t:0,_side:0},frontier=[start],layers=[],finish=null;
+  var TPEN=(STATE.tackPen&&STATE.tackPen>0)?STATE.tackPen/3600:0;
+  for(var step=0;step<MAX;step++){var cand=[];
+    for(var k=0;k<frontier.length;k++){var p=frontier[k],wnd=windAt(p.lat,p.lon,dep+p.t);
+      for(var h=0;h<360;h+=DH){var twa=Math.abs(adiff(h,wnd.twd)),v=polarSpeed(twa,wnd.tws),motored=false;
+        if(mOn&&mSpd>v){v=mSpd;motored=true;}if(v<0.05)continue;
+        var sideC=(adiff(wnd.twd,h)>=0)?1:-1,adv=v*dt;
+        if(TPEN&&!motored&&p._side!==0&&sideC!==p._side)adv=Math.max(v*dt*0.2,adv-v*TPEN);
+        var np=moveTo(p,h,adv);if(np.lat>A.latN||np.lat<A.latS||np.lon<A.lonW||np.lon>A.lonE)continue;if(hitsLand(p,np))continue;
+        if(MAXW<1e9&&windAt(np.lat,np.lon,dep+p.t+dt).tws>MAXW)continue;
+        if(STATE.coastBuf>0){var dn=coastDist(np.lat,np.lon);
+          if(dn<STATE.coastBuf&&dn<=coastDist(p.lat,p.lon)){
+            var CORR=Math.max(STATE.coastBuf,0.8);          // corridoio di partenza/arrivo: A e B possono stare sottocosta
+            if(dist(np,Sp)>CORR&&dist(np,Gp)>CORR)continue;
+          }}
+        cand.push({lat:np.lat,lon:np.lon,prev:p,motor:motored,t:p.t+dt,_side:motored?p._side:sideC});}}
+    if(!cand.length)break;
+    // (1) ARRIVO indipendente dal pruning: cerco B tra TUTTI i candidati del fronte,
+    //     non solo tra i sopravvissuti al taglio (pre-filtro per distanza: resta economico).
+    var bestT=1e9,bestNode=null;
+    for(var c0=0;c0<cand.length;c0++){var pc=cand[c0],dc=dist(pc,Gp);if(dc>12)continue;
+      var wc=windAt(pc.lat,pc.lon,dep+pc.t),hc=bearing(pc,Gp),vc=polarSpeed(Math.abs(adiff(hc,wc.twd)),wc.tws),mc=(mOn&&mSpd>vc);if(mc)vc=mSpd;
+      if(vc>0.05&&dc<=vc*dt*1.3&&!hitsLand(pc,Gp)){var tc=pc.t+dc/vc;if(tc<bestT){bestT=tc;bestNode={lat:Gp.lat,lon:Gp.lon,prev:pc,motor:mc,t:tc};}}}
+    // (2) pruning con "beam" per settore: tengo il piu' LONTANO dalla partenza (esploratore)
+    //     E il piu' VICINO a B (cacciatore di meta), cosi' un ramo diretto a B non viene scartato.
+    var bF={},bN={};
+    for(var c=0;c<cand.length;c++){var q=cand[c],br=bearing(start,q),sec=Math.round(br/360*SECT),r=dist(start,q),dg=dist(q,Gp);
+      if(!bF[sec]||r>bF[sec]._r){q._r=r;bF[sec]=q;}
+      if(!bN[sec]||dg<bN[sec]._dg){q._dg=dg;bN[sec]=q;}}
+    frontier=[];var _seen=[];
+    for(var key in bF){frontier.push(bF[key]);_seen.push(bF[key]);}
+    for(var kk in bN){if(_seen.indexOf(bN[kk])<0)frontier.push(bN[kk]);}
+    layers.push(frontier);
+    if(bestNode){finish=bestNode;break;}}
+  var node=finish||(function(){var best=null,bd=1e9;for(var f=0;f<frontier.length;f++){var d=dist(frontier[f],Gp);if(d<bd){bd=d;best=frontier[f];}}return best;})();
+  var path=[];while(node){path.push(node);node=node.prev;}path.reverse();
+  return{path:path,layers:layers,finished:!!finish,eta:finish?finish.t:(path.length?path[path.length-1].t:0),start:Sp,goal:Gp};}
+
+// ---------- overlay drawing (projection-agnostic: P(lat,lon)->{x,y}) ----------
+function speedColor(t){if(t<7)return'#2BD9C4';if(t<13)return'#7BD88A';if(t<18)return'#FFC24B';return'#FF6B6B';}
+var R_CACHE=null;
+function fmtElapsed(h){var hh=Math.floor(h),mm=Math.round((h-hh)*60);if(mm>=60){hh++;mm-=60;}return '+'+hh+':'+(mm<10?'0':'')+mm;}
+function andatura(a){a=Math.abs(a);if(a<60)return'bolina';if(a<100)return'traverso';if(a<150)return'lasco';return'poppa';}
+// ---- diario di bordo: mure, andatura, virate/strambate, rifiuti/alzate ----
+function diagnose(R){
+  R.diag=[];R.maneuvers=[];R.summary=null;
+  var P=R.path;if(!P||P.length<2){return;}
+  var goal=R.goal,N=P.length,gs=clamp(Math.round((N-1)/8),2,5),win=[];
+  for(var a=0;a<N-1;a=Math.min(a+gs,N-1)){var b=Math.min(a+gs,N-1);
+    var head=bearing(P[a],P[b]),mid=P[(a+b)>>1],wd=windAt(mid.lat,mid.lon,STATE.dep+mid.t);
+    var mot=0;for(var k=a+1;k<=b;k++)if(P[k].motor)mot++;var motor=mot>(b-a)/2;
+    var twas=adiff(wd.twd,head),side=twas>=0?1:-1,aT=Math.abs(twas);
+    var segD=0;for(var kk=a+1;kk<=b;kk++)segD+=dist(P[kk-1],P[kk]);
+    var dur=Math.max(0,P[b].t-P[a].t),durx=Math.max(1e-6,dur);
+    var spd=segD/durx,vmg=(dist(P[a],goal)-dist(P[b],goal))/durx;
+    win.push({a:a,b:b,t:mid.t,head:head,twd:wd.twd,tws:wd.tws,side:side,aT:aT,andat:andatura(aT),motor:motor,
+      spd:spd,vmg:vmg,dtg:dist(mid,goal),dur:dur,lat:P[a].lat,lon:P[a].lon});
+    if(b>=N-1)break;}
+  var baseMin=(function(){var t=(FIELD.times&&FIELD.times[clamp(Math.round(STATE.dep),0,FIELD.times.length-1)])||'',hm=t.slice(11),p=hm.split(':');return p.length===2?(+p[0]*60+ +p[1]):null;})();
+  function clk(h){if(baseMin==null)return'';var tot=baseMin+h*60,day=Math.floor(tot/1440),m=((tot%1440)+1440)%1440,hh=Math.floor(m/60),mm=Math.round(m%60);if(mm===60){hh=(hh+1)%24;mm=0;}return(hh<10?'0':'')+hh+':'+(mm<10?'0':'')+mm+(day>0?(' +'+day+'g'):'');}
+  function ctx(wn){return{tws:Math.round(wn.tws),twd:Math.round(wn.twd),spd:+wn.spd.toFixed(1),vmg:+wn.vmg.toFixed(1),dtg:+wn.dtg.toFixed(1),hdg:Math.round(wn.head),motor:wn.motor};}
+  function sideLbl(s){return s>0?'mura a dritta':'mura a sinistra';}
+  function push(t,tag,cls,tx,wn){R.diag.push({t:fmtElapsed(t),clock:clk(t),tag:tag,cls:cls,tx:tx,data:wn?ctx(wn):null});}
+  var f=win[0];
+  if(f.motor)push(0,'motore','tag-mot','Parti a <b>motore</b>.',f);
+  else push(0,f.side>0?'mura dritta':'mura sinistra',f.side>0?'tag-dx':'tag-sx','Parti di <b>'+f.andat+'</b>, <b>'+sideLbl(f.side)+'</b>.',f);
+  var lastTwd=f.twd,lastAnd=f.andat,lastSide=f.motor?0:f.side,lastMotor=f.motor;
+  for(var i=1;i<win.length;i++){var cur=win[i],prev=win[i-1];
+    if(cur.motor!==lastMotor){
+      if(cur.motor)push(cur.t,'motore','tag-mot','Accendi il <b>motore</b> (vento troppo debole per la polare).',cur);
+      else push(cur.t,cur.side>0?'mura dritta':'mura sinistra',cur.side>0?'tag-dx':'tag-sx','Spegni il motore: riprendi a vela di <b>'+cur.andat+'</b>, '+sideLbl(cur.side)+'.',cur);
+      lastMotor=cur.motor;lastSide=cur.motor?0:cur.side;lastAnd=cur.andat;lastTwd=cur.twd;continue;}
+    if(cur.motor){lastTwd=cur.twd;continue;}
+    if(lastSide!==0&&cur.side!==lastSide){
+      var avgT=(cur.aT+prev.aT)/2,vir=avgT<90;
+      push(cur.t,vir?'virata':'strambata',vir?'tag-vir':'tag-str',
+        (vir?'<b>Virata</b>':'<b>Strambata</b>')+': '+sideLbl(lastSide)+' → <b>'+sideLbl(cur.side)+'</b> ('+cur.andat+').',cur);
+      R.maneuvers.push({lat:cur.lat,lon:cur.lon,type:vir?'vir':'str'});
+      lastSide=cur.side;lastAnd=cur.andat;lastTwd=cur.twd;continue;}
+    if(lastSide===0)lastSide=cur.side;
+    var d=adiff(cur.twd,lastTwd);
+    if(Math.abs(d)>=8){
+      var verso=d>0?'a destra (oraria)':'a sinistra (antioraria)',prod=d*cur.side,alz=prod>0;
+      var tail=alz?'è un\'<em>alzata</em>: puoi orzare.':'è un <em>rifiuto</em>'+(cur.andat==='bolina'?' — in bolina, valuta la virata.':'.');
+      push(cur.t,alz?'alzata':'rifiuto',alz?'tag-alz':'tag-rif',
+        'Il vento ruota '+verso+' di ~'+Math.round(Math.abs(d))+'° → sulle '+sideLbl(cur.side)+' '+tail,cur);
+      lastTwd=cur.twd;}
+    if(cur.andat!==lastAnd){
+      push(cur.t,'andatura','tag-info','Andatura: '+lastAnd+' → <b>'+cur.andat+'</b>.',cur);
+      lastAnd=cur.andat;}
+  }
+  var Lw=win[win.length-1];
+  push(Lw.t, R.finished?'arrivo':'stop', R.finished?'tag-info':'tag-rif',
+    R.finished?'Arrivo a <b>B</b>.':'Fronte fermo prima di <b>B</b> (vedi readout).',Lw);
+  // sintesi di traversata
+  var sailed=0,mo=0;for(var s=1;s<N;s++){sailed+=dist(P[s-1],P[s]);if(P[s].motor)mo++;}
+  var wmin=1e9,wmax=-1e9,wsum=0,andt={bolina:0,traverso:0,lasco:0,poppa:0},tdur=0;
+  for(var s2=0;s2<win.length;s2++){var ww=win[s2];wmin=Math.min(wmin,ww.tws);wmax=Math.max(wmax,ww.tws);wsum+=ww.tws;andt[ww.andat]+=ww.dur;tdur+=ww.dur;}
+  var tacks=0,gybes=0;for(var s3=0;s3<R.maneuvers.length;s3++){if(R.maneuvers[s3].type==='vir')tacks++;else gybes++;}
+  R.summary={dist:+sailed.toFixed(1),eta:R.eta,avg:+(R.eta>0?sailed/R.eta:0).toFixed(1),
+    wmin:Math.round(wmin),wmax:Math.round(wmax),wavg:Math.round(wsum/Math.max(1,win.length)),
+    andat:andt,tdur:tdur,motorPct:Math.round(100*mo/Math.max(1,N-1)),tacks:tacks,gybes:gybes};
+}
+// ---------- routing: worker inline (fuori dal thread UI) con fallback sincrono ----------
+// Il sorgente del worker è generato dalle STESSE funzioni del motore: una sola definizione, zero duplicati.
+var RF_WORKER=null,rfBusy=false,rfPending=false,rfReqs=0,rfApplied=0;
+function rfWorkerSource(){
+  var fns=[clamp,adiff,idx,polarSpeed,deg2uv,uv2dir,sampleSlice,windAt,isLand,coastDist,cosLat,dist,bearing,moveTo,hitsLand,andatura,fmtElapsed,route,diagnose];
+  var consts='var NX='+NX+',NY='+NY+';var TWS='+JSON.stringify(TWS)+';var TWA='+JSON.stringify(TWA)+';var PV='+JSON.stringify(PV)+';var FIELD,AREAS,MED_MASKS,STATE;';
+  var clean='function cleanResult(R){return{start:R.start,goal:R.goal,finished:R.finished,eta:R.eta,'+
+    'path:R.path.map(function(n){return{lat:n.lat,lon:n.lon,motor:n.motor,t:n.t};}),'+
+    'layers:R.layers.map(function(L){return L.map(function(n){return{lat:n.lat,lon:n.lon};});}),'+
+    'diag:R.diag,maneuvers:R.maneuvers,summary:R.summary};}';
+  var onmsg='onmessage=function(e){var d=e.data;FIELD=d.field;STATE=d.state;AREAS={};AREAS[d.area]=d.areaObj;MED_MASKS={};MED_MASKS[d.area]=d.mask;'+
+    'var R=route();diagnose(R);var c=cleanResult(R);c.seq=d.seq;c.area=d.area;postMessage(c);};';
+  return consts+'\n'+fns.map(function(f){return f.toString();}).join('\n')+'\n'+clean+'\n'+onmsg;
+}
+function initWorker(){if(typeof Worker==='undefined'||typeof Blob==='undefined'||typeof URL==='undefined'||!URL.createObjectURL)return;
+  try{var src=rfWorkerSource(),w=new Worker(URL.createObjectURL(new Blob([src],{type:'application/javascript'})));
+    w.onmessage=function(e){rfBusy=false;
+      var _stale=(e.data&&e.data.seq!=null&&e.data.seq<rfApplied);
+      if(!_stale){if(e.data&&e.data.seq!=null)rfApplied=e.data.seq;R_CACHE=e.data;refreshAfterRoute();}
+      if(rfPending){rfPending=false;rfBusy=true;try{RF_WORKER.postMessage(jobParams());}catch(_){rfBusy=false;routeSync();}}};
+    w.onerror=function(){RF_WORKER=null;rfBusy=false;rfPending=false;routeSync();};
+    RF_WORKER=w;}catch(err){RF_WORKER=null;}}
+function rebuildWorker(){if(RF_WORKER){try{RF_WORKER.terminate();}catch(e){}}RF_WORKER=null;rfBusy=false;rfPending=false;if(typeof initWorker==='function')initWorker();}
+function jobParams(){if(STATE.coastBuf>0)coastDistField(MED_MASKS[FIELD.area]);return {seq:++rfReqs,area:FIELD.area,areaObj:AREAS[FIELD.area],field:FIELD,mask:MED_MASKS[FIELD.area],
+  state:{dep:STATE.dep,motorOn:STATE.motorOn,mot:STATE.mot,maxWind:STATE.maxWind,coastBuf:STATE.coastBuf,tackPen:STATE.tackPen,polarEff:STATE.polarEff,A:{lat:STATE.A.lat,lon:STATE.A.lon},B:{lat:STATE.B.lat,lon:STATE.B.lon}}};}
+function routeSync(){R_CACHE=route();R_CACHE.area=FIELD.area;diagnose(R_CACHE);refreshAfterRoute();}
+function windClock(idx){var t=(FIELD.times&&FIELD.times[clamp(Math.round(idx),0,(FIELD.times.length||1)-1)])||'';return t.slice(11)||('+'+Math.round(idx)+'h');}
+function syncWindView(){var sl=document.getElementById('windHour');if(!sl)return;var maxI=Math.max(1,(FIELD.slices.length||15)-1);sl.max=maxI;
+  if(WIND_VIEW==null){sl.value=clamp(Math.round(STATE.dep),0,maxI);}
+  var l=document.getElementById('windHourLbl');if(l)l.textContent=windClock(WIND_VIEW==null?STATE.dep:WIND_VIEW);}
+function refreshAfterRoute(){if(typeof updateReadout==='function')updateReadout();if(typeof syncWindView==='function')syncWindView();if(typeof redraw==='function')redraw();}
+function computeRoute(){
+  if(typeof saveUI==='function')saveUI();
+  if(STATE.coastBuf>0&&typeof coastDistField==='function')coastDistField(MED_MASKS[FIELD.area]);
+  if(!RF_WORKER){routeSync();return;}
+  if(rfBusy){rfPending=true;return;}              // durante drag/slider: tieni solo l'ultimo
+  rfBusy=true;try{RF_WORKER.postMessage(jobParams());}catch(err){rfBusy=false;RF_WORKER=null;routeSync();}}
+var WIND_VIEW=null; // ora vento mostrata in carta (null = ora di partenza)
+function buildOverlay(P){
+  if(!R_CACHE)computeRoute();var R=R_CACHE,A=AREAS[FIELD.area],dep=STATE.dep,s='';
+  // vero solo se la rotta in cache è dell'area attuale: evita che isocrone/rotta della zona
+  // precedente restino disegnate nella breve finestra prima che il worker restituisca la nuova.
+  var routeOK=!!(R&&R.path&&R.layers&&(!R.area||R.area===FIELD.area));
+  var defs='<defs>'+
+    '<marker id="wha" markerWidth="7" markerHeight="7" refX="5.8" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill="#2BD9C4"/></marker>'+
+    '<marker id="whb" markerWidth="7" markerHeight="7" refX="5.8" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill="#7BD88A"/></marker>'+
+    '<marker id="whc" markerWidth="7" markerHeight="7" refX="5.8" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill="#FFC24B"/></marker>'+
+    '<marker id="whd" markerWidth="7" markerHeight="7" refX="5.8" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill="#FF6B6B"/></marker></defs>';
+  // costa del modello (confine della maschera terra/mare che il router usa davvero)
+  var tc=document.getElementById('tCoast');
+  if((!tc||tc.checked)&&COAST_SEGS.length){var cs='';for(var ci=0;ci<COAST_SEGS.length;ci+=4){var c1=P(COAST_SEGS[ci],COAST_SEGS[ci+1]),c2=P(COAST_SEGS[ci+2],COAST_SEGS[ci+3]);
+    cs+='M'+c1.x.toFixed(1)+' '+c1.y.toFixed(1)+'L'+c2.x.toFixed(1)+' '+c2.y.toFixed(1);}
+    s+='<path d="'+cs+'" fill="none" stroke="#52718f" stroke-opacity="0.55" stroke-width="1"/>';}
+  // isochrones — una ogni ~N passi (i passi hanno durata uniforme => spaziatura ~oraria):
+  // niente ammassi vicino ad A/B o costa, e non dipende da campi (.t) assenti nel risultato del worker.
+  if(routeOK&&document.getElementById('tIso').checked){
+    var Ntot=R.layers.length,kStep=Math.max(1,Math.round(Ntot/10));
+    for(var li=0;li<Ntot;li++){
+    if(((li+1)%kStep!==0)&&li!==Ntot-1)continue;   // salta i passi intermedi e le prime isocrone minuscole attorno ad A
+    var Lr0=R.layers[li];if(!Lr0||Lr0.length<3)continue;
+    var Lr=Lr0.slice();
+    for(var n0=0;n0<Lr.length;n0++){Lr[n0]._b=bearing(R.start,Lr[n0]);Lr[n0]._r=dist(R.start,Lr[n0]);}
+    Lr.sort(function(a,b){return a._b-b._b;});
+    var maxr=0;for(var n1=0;n1<Lr.length;n1++)if(Lr[n1]._r>maxr)maxr=Lr[n1]._r;
+    if(maxr<0.4)continue;var rThr=Math.max(0.8,maxr*0.35),d='';
+    for(var jx=0;jx<Lr.length;jx++){var q=P(Lr[jx].lat,Lr[jx].lon),brk=(jx===0);
+      if(jx>0){if(Math.abs(Lr[jx]._b-Lr[jx-1]._b)>22||Math.abs(Lr[jx]._r-Lr[jx-1]._r)>rThr)brk=true;}
+      d+=(brk?' M ':' L ')+q.x.toFixed(1)+' '+q.y.toFixed(1);}
+    s+='<path d="'+d+'" fill="none" stroke="#bfe6ff" stroke-opacity="0.92" stroke-width="2.6"/>';}}
+  // wind arrows all'ora mostrata (default = partenza) — sopra le isocrone, piu marcate
+  var _wv=(WIND_VIEW==null?dep:WIND_VIEW);
+  if(document.getElementById('tWind').checked){var sl=FIELD.slices[clamp(Math.round(_wv),0,FIELD.slices.length-1)];
+    for(var j=0;j<NY;j++)for(var i=0;i<NX;i++){var lon=A.lonW+(A.lonE-A.lonW)*i/(NX-1),lat=A.latN-(A.latN-A.latS)*j/(NY-1);
+      var w=uv2dir(sl.u[j][i],sl.v[j][i]),pt=P(lat,lon),ar=(w.twd+180)*Math.PI/180,L=clamp(6+w.tws*0.6,8,16),dx=Math.sin(ar)*L,dy=-Math.cos(ar)*L;
+      var col=speedColor(w.tws),mk=w.tws<7?'wha':w.tws<13?'whb':w.tws<18?'whc':'whd';
+      s+='<line x1="'+(pt.x-dx).toFixed(1)+'" y1="'+(pt.y-dy).toFixed(1)+'" x2="'+(pt.x+dx).toFixed(1)+'" y2="'+(pt.y+dy).toFixed(1)+'" stroke="'+col+'" stroke-opacity="0.98" stroke-width="2.2" marker-end="url(#'+mk+')"/>';}}
+  // direct line — sempre da A/B correnti (STATE), così è coerente anche mentre la rotta si ricalcola
+  var pa=P(STATE.A.lat,STATE.A.lon),pb=P(STATE.B.lat,STATE.B.lon);
+  s+='<line x1="'+pa.x.toFixed(1)+'" y1="'+pa.y.toFixed(1)+'" x2="'+pb.x.toFixed(1)+'" y2="'+pb.y.toFixed(1)+'" stroke="#cfe0f0" stroke-opacity="0.5" stroke-width="1.2" stroke-dasharray="2 5"/>';
+  // route
+  var Pth=routeOK?R.path:[];for(var k=1;k<Pth.length;k++){var u1=P(Pth[k-1].lat,Pth[k-1].lon),u2=P(Pth[k].lat,Pth[k].lon);
+    s+='<line x1="'+u1.x.toFixed(1)+'" y1="'+u1.y.toFixed(1)+'" x2="'+u2.x.toFixed(1)+'" y2="'+u2.y.toFixed(1)+'" stroke="'+(Pth[k].motor?'#FFC24B':'#2BD9C4')+'" stroke-width="3.4" '+(Pth[k].motor?'stroke-dasharray="6 4"':'')+' stroke-linecap="round" stroke-opacity="0.95"/>';}
+  // posizione lungo la rotta all'ora del vento mostrato
+  var _e=_wv-dep;
+  if(Pth.length>1&&_e>=0&&_e<=Pth[Pth.length-1].t){var _bk=Pth[0];for(var _z=0;_z<Pth.length;_z++){if(Pth[_z].t<=_e)_bk=Pth[_z];else break;}
+    var _mp=P(_bk.lat,_bk.lon);
+    s+='<circle cx="'+_mp.x.toFixed(1)+'" cy="'+_mp.y.toFixed(1)+'" r="6" fill="none" stroke="#ffffff" stroke-width="2" stroke-opacity="0.95"/><circle cx="'+_mp.x.toFixed(1)+'" cy="'+_mp.y.toFixed(1)+'" r="2.4" fill="#ffffff"/>';}
+  // segni di manovra (virata = rombo azzurro, strambata = rombo ambra)
+  if(routeOK&&R.maneuvers){for(var mi=0;mi<R.maneuvers.length;mi++){var mn=R.maneuvers[mi],mp=P(mn.lat,mn.lon),col=(mn.type==='vir'?'#9fd8ff':'#FFC24B');
+    s+='<rect x="'+(mp.x-4).toFixed(1)+'" y="'+(mp.y-4).toFixed(1)+'" width="8" height="8" fill="'+col+'" stroke="#07121F" stroke-width="1.5" transform="rotate(45 '+mp.x.toFixed(1)+' '+mp.y.toFixed(1)+')"/>';}}
+  return defs+s;
+}
+function updateReadout(){var R=R_CACHE||route(),A=AREAS[FIELD.area],P=R.path;
+  var straight=dist(R.start,R.goal),sailed=0,motL=0;for(var k=1;k<P.length;k++){sailed+=dist(P[k-1],P[k]);if(P[k].motor)motL++;}
+  var pctMot=P.length>1?Math.round(motL/(P.length-1)*100):0,hh=Math.floor(R.eta),mm=Math.round((R.eta-hh)*60),wA=windAt(R.start.lat,R.start.lon,STATE.dep);
+  if(mm===60){hh++;mm=0;}
+  var t=FIELD.times[Math.round(STATE.dep)]||'';
+  var warn='';if(isLand(R.start.lat,R.start.lon))warn=' <span style="color:var(--coral)">[A a terra — spostala in mare]</span>';else if(isLand(R.goal.lat,R.goal.lon))warn=' <span style="color:var(--coral)">[B a terra — spostalo in mare]</span>';
+  if(STATE.coastBuf>0&&typeof coastDist==='function'){var _dA=coastDist(R.start.lat,R.start.lon),_dB=coastDist(R.goal.lat,R.goal.lon);
+    if(!R.finished)warn+=' <span style="color:var(--coral)">— con “Lontano dalla costa” la rotta non chiude: riduci il buffer o allontana A/B dalla riva</span>';
+    else if(_dB<STATE.coastBuf||_dA<STATE.coastBuf)warn+=' <span style="color:var(--amber)">— '+((_dB<STATE.coastBuf)?'B':'A')+' è entro il buffer: avvicinamento forzato</span>';}
+  var capTxt=(STATE.maxWind&&STATE.maxWind>0)?' · <b style="color:#9fd8ff">evita &gt;'+STATE.maxWind+' kt</b>':'';
+  capTxt+=(STATE.coastBuf&&STATE.coastBuf>0)?' · <b style="color:#7BD88A">costa &ge;'+STATE.coastBuf+' NM</b>':'';
+  var pctStr=R.finished?(', +'+Math.round((sailed/Math.max(1,straight)-1)*100)+'%'):'';
+  document.getElementById('read').innerHTML='Partenza <b>'+t.slice(11)+'</b> · vento <b>'+wA.tws.toFixed(0)+' kt</b> da <b>'+Math.round(wA.twd)+'°</b> · ETA <b>'+hh+'h'+(mm?(' '+mm+'m'):'')+'</b> · '+sailed.toFixed(1)+' NM (diretta '+straight.toFixed(1)+pctStr+')'+(pctMot?' · <b style="color:var(--amber)">'+pctMot+'% motore</b>':'')+capTxt+(R.finished?'':' <span style="color:var(--coral)">[B non raggiunto]</span>')+warn;
+  document.getElementById('depLbl').textContent=t.slice(11)||('+'+STATE.dep+'h');
+  renderDiag(R);renderWindProfile(R);}
+function scanDepartures(){var saved=STATE.dep,N=Math.min(48,(FIELD.times?FIELD.times.length:24)-1),res=[];
+  if(STATE.coastBuf>0&&typeof coastDistField==='function')coastDistField(MED_MASKS[FIELD.area]);
+  for(var d=0;d<=N;d++){STATE.dep=d;var R=route();res.push({dep:d,eta:R.finished?R.eta:null});}
+  STATE.dep=saved;return res;}
+function renderScan(){var el=document.getElementById('scanRes');if(!el)return;
+  var res=scanDepartures(),fin=res.filter(function(r){return r.eta!=null;});
+  function tlabel(d){var t=(FIELD.times&&FIELD.times[d])||'';return t.slice(11)||('+'+d+'h');}
+  if(!fin.length){el.innerHTML='<div class="scan-h">Nessuna partenza raggiunge B nell\'orizzonte disponibile.</div>';el.classList.add('on');return;}
+  var best=fin.reduce(function(a,b){return b.eta<a.eta?b:a;}),maxE=Math.max.apply(null,fin.map(function(r){return r.eta;})),minE=best.eta;
+  var W=300,H=96,padL=4,padB=16,bw=(W-2*padL)/res.length,bars='';
+  for(var i=0;i<res.length;i++){var r=res[i],x=padL+i*bw;
+    if(r.eta==null){bars+='<rect x="'+(x+1).toFixed(1)+'" y="'+(H-padB-4)+'" width="'+(bw-2).toFixed(1)+'" height="4" fill="#2a3f56"/>';continue;}
+    var hgt=(H-padB-8)*(0.22+0.78*(maxE-r.eta)/Math.max(0.1,maxE-minE)),y=(H-padB-hgt),col=(r.dep===best.dep)?'#2BD9C4':'#3f5f7d';
+    bars+='<rect x="'+(x+1).toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+(bw-2).toFixed(1)+'" height="'+hgt.toFixed(1)+'" rx="2" fill="'+col+'"/>';
+    if(r.dep===best.dep)bars+='<text x="'+(x+bw/2).toFixed(1)+'" y="'+(y-3).toFixed(1)+'" text-anchor="middle" font-size="8" fill="#2BD9C4" font-family="ui-monospace,Menlo,monospace">'+fmtH(r.eta)+'</text>';}
+  var labels='';[0,best.dep,res.length-1].forEach(function(d){var x=padL+(d+0.5)*bw;labels+='<text x="'+x.toFixed(1)+'" y="'+(H-4)+'" text-anchor="middle" font-size="8" fill="#566f87" font-family="ui-monospace,Menlo,monospace">'+tlabel(d)+'</text>';});
+  el.innerHTML='<div class="scan-h">Miglior partenza: <b>'+tlabel(best.dep)+'</b> · ETA <b>'+fmtH(best.eta)+'</b> <button class="go" id="scanUse">usa</button></div><svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:84px">'+bars+labels+'</svg>';
+  el.classList.add('on');
+  var ub=document.getElementById('scanUse');if(ub)ub.addEventListener('click',function(){STATE.dep=best.dep;var ds=document.getElementById('dep');if(ds)ds.value=best.dep;computeRoute();toast('Partenza impostata: '+tlabel(best.dep));});}
+function renderPolarPreview(){var el=document.getElementById('polPrev'),st=document.getElementById('polStatus');  var maxB=0;for(var t=0;t<TWA.length;t++)for(var s=0;s<TWS.length;s++)if(PV[t][s]>maxB)maxB=PV[t][s];
+  var isDef=(TWA.length===POLAR0.TWA.length&&TWS.length===POLAR0.TWS.length&&PV[3]&&POLAR0.PV[3]&&PV[3][3]===POLAR0.PV[3][3]);
+  if(st)st.textContent=isDef?'ProVela, integrata':((TWS.length-((TWS[0]===0)?1:0))+' TWS × '+TWA.length+' TWA · max '+maxB.toFixed(1)+' kt');
+  if(!el)return;if(maxB<=0){el.innerHTML='';return;}
+  var W=280,H=190,cx=18,cy=H/2,maxR=Math.min(cy-10,W-cx-14);
+  function pt(twa,bsp){var r=bsp/maxB*maxR;return{x:(cx+r*Math.sin(twa*Math.PI/180)).toFixed(1),y:(cy-r*Math.cos(twa*Math.PI/180)).toFixed(1)};}
+  var g='',stepR=Math.max(1,Math.round(maxB/4));
+  for(var rr=stepR;rr<=Math.ceil(maxB);rr+=stepR){var rad=rr/maxB*maxR;g+='<path d="M '+cx+' '+(cy-rad).toFixed(1)+' A '+rad.toFixed(1)+' '+rad.toFixed(1)+' 0 0 1 '+cx+' '+(cy+rad).toFixed(1)+'" fill="none" stroke="#16304a" stroke-width="1"/>';g+='<text x="'+(cx+2)+'" y="'+(cy-rad+9).toFixed(1)+'" font-size="8" fill="#4d6883" font-family="ui-monospace,Menlo,monospace">'+rr+'</text>';}
+  var pick=[];for(var s2=1;s2<TWS.length;s2++)pick.push(s2);if(pick.length>3)pick=[pick[0],pick[Math.floor(pick.length/2)],pick[pick.length-1]];
+  var cols=['#7BD88A','#FFC24B','#2BD9C4','#9fd8ff','#FF6B6B'];
+  pick.forEach(function(s,ix){var d='',started=false;for(var t=0;t<TWA.length;t++){var p=pt(TWA[t],PV[t][s]);d+=(started?' L ':'M ')+p.x+' '+p.y;started=true;}
+    g+='<path d="'+d+'" fill="none" stroke="'+cols[ix%cols.length]+'" stroke-width="1.6" stroke-opacity="0.9"/>';});
+  var leg=pick.map(function(s,ix){return '<tspan fill="'+cols[ix%cols.length]+'">'+TWS[s]+'kt</tspan>';}).join('  ');
+  g+='<text x="'+(W-6)+'" y="'+(H-7)+'" text-anchor="end" font-size="9" font-family="ui-monospace,Menlo,monospace">'+leg+'</text>';
+  el.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:170px">'+g+'</svg>';}
+function renderWindProfile(R){var el=document.getElementById('wprof');if(!el)return;
+  var P=R.path;if(!P||P.length<2){el.innerHTML='';return;}
+  var dep=STATE.dep,n=P.length,pts=[],ymax=1;
+  for(var k=0;k<n;k++){var tw=windAt(P[k].lat,P[k].lon,dep+P[k].t).tws;
+    var bs;if(k===0){var dt1=Math.max(1e-6,P[1].t-P[0].t);bs=dist(P[0],P[1])/dt1;}else{var dt0=Math.max(1e-6,P[k].t-P[k-1].t);bs=dist(P[k-1],P[k])/dt0;}
+    pts.push({t:P[k].t,tws:tw,bs:bs,motor:!!P[k].motor});if(tw>ymax)ymax=tw;if(bs>ymax)ymax=bs;}
+  var eta=Math.max(0.1,R.eta||P[n-1].t),W=320,H=118,padL=24,padR=8,padT=12,padB=18,iw=W-padL-padR,ih=H-padT-padB;
+  ymax=Math.ceil(ymax/5)*5;if(ymax<5)ymax=5;
+  function X(t){return padL+(t/eta)*iw;}function Y(v){return padT+ih-(v/ymax)*ih;}
+  var g='';
+  // griglia
+  for(var gy=0;gy<=ymax;gy+=(ymax<=15?5:10)){var yy=Y(gy).toFixed(1);g+='<line x1="'+padL+'" y1="'+yy+'" x2="'+(W-padR)+'" y2="'+yy+'" stroke="#14283a" stroke-width="1"/>';g+='<text x="'+(padL-4)+'" y="'+(+yy+3)+'" text-anchor="end" font-size="8" fill="#566f87" font-family="ui-monospace,Menlo,monospace">'+gy+'</text>';}
+  // area vento + linea colorata per intensità
+  var area='M'+X(pts[0].t).toFixed(1)+' '+Y(0).toFixed(1);for(var i=0;i<n;i++)area+='L'+X(pts[i].t).toFixed(1)+' '+Y(pts[i].tws).toFixed(1);area+='L'+X(pts[n-1].t).toFixed(1)+' '+Y(0).toFixed(1)+'Z';
+  g+='<path d="'+area+'" fill="#2BD9C4" fill-opacity="0.08"/>';
+  for(var i2=1;i2<n;i2++){var a1=pts[i2-1],a2=pts[i2],col=speedColor((a1.tws+a2.tws)/2);
+    g+='<line x1="'+X(a1.t).toFixed(1)+'" y1="'+Y(a1.tws).toFixed(1)+'" x2="'+X(a2.t).toFixed(1)+'" y2="'+Y(a2.tws).toFixed(1)+'" stroke="'+col+'" stroke-width="2" stroke-opacity="0.95" stroke-linecap="round"/>';}
+  // velocità barca (linea ambra tratteggiata)
+  var bsd='';for(var i3=0;i3<n;i3++)bsd+=(i3?'L':'M')+X(pts[i3].t).toFixed(1)+' '+Y(pts[i3].bs).toFixed(1);
+  g+='<path d="'+bsd+'" fill="none" stroke="#FFC24B" stroke-width="1.4" stroke-opacity="0.85" stroke-dasharray="4 3"/>';
+  // tacche manovre
+  if(R.maneuvers){for(var mi=0;mi<R.maneuvers.length;mi++){var mn=R.maneuvers[mi],best=0,bd=1e9;for(var pj=0;pj<n;pj++){var dd=Math.abs(P[pj].lat-mn.lat)+Math.abs(P[pj].lon-mn.lon);if(dd<bd){bd=dd;best=pj;}}var mx=X(P[best].t).toFixed(1);g+='<line x1="'+mx+'" y1="'+padT+'" x2="'+mx+'" y2="'+(padT+ih)+'" stroke="'+(mn.type==='vir'?'#9fd8ff':'#FFC24B')+'" stroke-opacity="0.5" stroke-width="1" stroke-dasharray="2 2"/>';}}
+  // assi tempo
+  g+='<text x="'+padL+'" y="'+(H-5)+'" font-size="8" fill="#566f87" font-family="ui-monospace,Menlo,monospace">0h</text>';
+  g+='<text x="'+(W-padR)+'" y="'+(H-5)+'" text-anchor="end" font-size="8" fill="#566f87" font-family="ui-monospace,Menlo,monospace">'+fmtH(eta)+'</text>';
+  el.innerHTML='<div class="wprof-h"><b>Vento lungo la rotta</b><span><span style="color:#2BD9C4">vento</span> · <span style="color:#FFC24B">barca</span> (kt)</span></div><svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+g+'</svg>';}
+function fmtH(h){var hh=Math.floor(h),mm=Math.round((h-hh)*60);if(mm===60){hh++;mm=0;}return hh+'h'+(mm<10?'0':'')+mm;}
+function renderDiag(R){var body=document.getElementById('diagBody'),cnt=document.getElementById('diagCount'),sumEl=document.getElementById('diagSum');if(!body)return;
+  var ev=R.diag||[],html='';
+  for(var i=0;i<ev.length;i++){var e=ev[i],d=e.data,
+    sub=d?('<span class="dsub">vento '+d.tws+' kt · '+d.twd+'° · prua '+d.hdg+'°'+(d.motor?' · a motore':(' · barca '+d.spd+' kt · VMG '+d.vmg+' kt'))+' · a B '+d.dtg+' NM</span>'):'',
+    tcell='<span class="dt"><b>'+(e.clock||e.t)+'</b><i>'+e.t+'</i></span>';
+    html+='<div class="drow">'+tcell+'<span class="dtag '+e.cls+'">'+e.tag+'</span><span class="dtx">'+e.tx+sub+'</span></div>';}
+  if(!ev.length)html='<div class="drow"><span class="dt">—</span><span class="dtag tag-info">—</span><span class="dtx">Nessuna rotta da raccontare.</span></div>';
+  body.innerHTML=html;
+  if(sumEl){var s=R.summary;
+    if(s){var parts=['<span>rotta <b>'+s.dist+' NM</b></span>','<span>durata <b>'+fmtH(s.eta)+'</b></span>','<span>media <b>'+s.avg+' kt</b></span>','<span>vento <b>'+s.wmin+'–'+s.wmax+' kt</b></span>'];
+      var seg=[];['bolina','traverso','lasco','poppa'].forEach(function(k){var p=s.tdur>0?(s.andat[k]/s.tdur*100):0;if(p>=8)seg.push(k+' '+Math.round(p)+'%');});
+      if(seg.length)parts.push('<span>'+seg.join(' · ')+'</span>');
+      if(s.motorPct)parts.push('<span>motore <b>'+s.motorPct+'%</b></span>');
+      var nm=s.tacks+s.gybes;if(nm){var vt=s.tacks+' '+(s.tacks===1?'virata':'virate'),gb=s.gybes+' '+(s.gybes===1?'strambata':'strambate');parts.push('<span>'+(s.gybes?(vt+' · '+gb):vt)+'</span>');}
+      sumEl.innerHTML=parts.join('');}else sumEl.innerHTML='';}
+  var man=(R.maneuvers||[]).length;cnt.textContent=man?(man+' manovr'+(man===1?'a':'e')):'nessuna manovra';}
+
+
+// ---------- export Diario di bordo (CSV ; + PDF offline, salvataggio diretto) ----------
+function stripHtml(x){return String(x==null?'':x).replace(/<[^>]*>/g,'');}
+function diarioName(ext){var d=new Date(),p=function(n){return(n<10?'0':'')+n;};
+  return 'ProVela-diario-'+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'-'+p(d.getHours())+p(d.getMinutes())+'.'+ext;}
+function downloadBlob(blob,name){var a=document.createElement('a'),u=URL.createObjectURL(blob);a.href=u;a.download=name;
+  document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(u);a.remove();},1500);}
+function diarioZone(){try{return (JSON.parse(localStorage.getItem('raffyca-profile')||'{}').zone||'').trim();}catch(e){return '';}}
+function exportDiarioCSV(){var R=R_CACHE;if(!R||!R.diag||!R.diag.length){toast('Nessun diario da esportare');return;}
+  var SEP=';',cell=function(x){return '"'+String(x==null?'':x).replace(/"/g,'""')+'"';},rows=[];
+  rows.push(['Ora','Tempo','Evento','Descrizione','Vento kt','Dir gradi','Prua gradi','Barca kt','VMG kt','a B NM','Motore'].map(cell).join(SEP));
+  R.diag.forEach(function(e){var d=e.data||{};
+    rows.push([e.clock||'',e.t||'',e.tag||'',stripHtml(e.tx),
+      d.tws!=null?d.tws:'',d.twd!=null?d.twd:'',d.hdg!=null?d.hdg:'',
+      d.motor?'':(d.spd!=null?d.spd:''),d.motor?'':(d.vmg!=null?d.vmg:''),
+      d.dtg!=null?d.dtg:'',d.motor?'si':'no'].map(cell).join(SEP));});
+  downloadBlob(new Blob(['\uFEFF'+rows.join('\r\n')],{type:'text/csv;charset=utf-8'}),diarioName('csv'));
+  toast('Diario CSV salvato in Download');}
+function wrapPush(arr,txt,w){txt=String(txt);while(txt.length>w){var cut=txt.lastIndexOf(' ',w);if(cut<40)cut=w;arr.push(txt.slice(0,cut));txt='   '+txt.slice(cut).trim();}arr.push(txt);}
+function pdfFold(x){x=String(x).replace(/\u2192/g,'->').replace(/\u2194/g,'<->').replace(/\u2013/g,'-').replace(/\u2019/g,"'").replace(/[\u201C\u201D]/g,'"').replace(/\u2026/g,'...');
+  var o='';for(var i=0;i<x.length;i++){var c=x.charCodeAt(i);o+=(c<256)?x[i]:'?';}return o;}
+function pdfEsc(x){return pdfFold(x).replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)');}
+// -- impaginazione tabellare (Courier monospace, colonne allineate) --
+function padR(s,w){s=String(s);return s.length>=w?s.slice(0,w):s+' '.repeat(w-s.length);}
+function padLp(s,w){s=String(s);return s.length>=w?s.slice(0,w):' '.repeat(w-s.length)+s;}
+function cenP(s,w){s=String(s);if(s.length>=w)return s.slice(0,w);var t=w-s.length,l=Math.floor(t/2);return ' '.repeat(l)+s+' '.repeat(t-l);}
+function truncP(s,w){s=String(s);return s.length>w?s.slice(0,w-1)+'.':s;}
+function diarioRow(c){
+  return padR(c.ora,5)+' '+padR(truncP(c.evento,44),44)+' '+padLp(c.tws,4)+' '+padLp(c.twd,4)+' '+padLp(c.hdg,5)+' '+padLp(c.spd,5)+' '+padLp(c.vmg,5)+' '+padLp(c.dtg,6)+' '+cenP(c.mot,3);}
+var DIARIO_HEAD=diarioRow({ora:'Ora',evento:'Evento',tws:'Vnt',twd:'Dir',hdg:'Prua',spd:'Brc',vmg:'VMG',dtg:'a B',mot:'Mot'});
+function buildDiarioPDF(meta,summary,rows){
+  var PW=595,PH=842,ML=40,MR=40,rightX=PW-MR,FS=8.5,LH=12,BOT=52,GRAY='0.62 0.62 0.62',DK='0.09 0.13 0.18';
+  var pages=[];
+  function newPage(){var p={ops:[]};pages.push(p);return p;}
+  function T(p,x,y,size,bold,str){p.ops.push('BT /'+(bold?'F2':'F1')+' '+size+' Tf '+DK+' rg 1 0 0 1 '+x.toFixed(1)+' '+y.toFixed(1)+' Tm ('+pdfEsc(str)+') Tj ET');}
+  function RULE(p,x1,y,x2){p.ops.push('0.8 w '+GRAY+' RG '+x1.toFixed(1)+' '+y.toFixed(1)+' m '+x2.toFixed(1)+' '+y.toFixed(1)+' l S');}
+  function tableHeader(pg,yy){T(pg,ML,yy,FS,true,DIARIO_HEAD);RULE(pg,ML,yy-4,rightX);return yy-4-LH;}
+  var p=newPage(),y=800;
+  T(p,ML,y,16,true,'ProVela');T(p,ML+78,y,11,false,'Diario di bordo');y-=6;RULE(p,ML,y,rightX);y-=18;
+  var m1=[];if(meta.boat)m1.push(meta.boat);if(meta.model)m1.push(meta.model);if(meta.zone)m1.push('zona '+meta.zone);
+  T(p,ML,y,9,false,m1.join('  \u00B7  '));if(meta.date)T(p,rightX-118,y,9,false,meta.date);y-=16;
+  if(summary){T(p,ML,y,9,true,summary);y-=14;}
+  T(p,ML,y,7.5,false,'Vnt/Brc/VMG in kt  \u00B7  Dir/Prua in gradi  \u00B7  a B = distanza a destinazione (NM)');y-=16;
+  y=tableHeader(p,y);
+  rows.forEach(function(r){if(y<BOT){p=newPage();y=800;y=tableHeader(p,y);}T(p,ML,y,FS,false,diarioRow(r));y-=LH;});
+  var N=pages.length;
+  pages.forEach(function(pg,i){RULE(pg,ML,44,rightX);T(pg,ML,33,7.5,false,'ProVela \u00B7 stime da validare in mare');T(pg,rightX-46,33,7.5,false,'pag. '+(i+1)+'/'+N);});
+  var out='%PDF-1.4\n%\u00E2\u00E3\u00CF\u00D3\n',xref=[],nextObj=5,contentRefs=[],pageObjNums=[];
+  pages.forEach(function(){contentRefs.push(nextObj++);pageObjNums.push(nextObj++);});
+  function put(num,body){xref[num]=out.length;out+=num+' 0 obj\n'+body+'\nendobj\n';}
+  put(1,'<< /Type /Catalog /Pages 2 0 R >>');
+  put(2,'<< /Type /Pages /Kids ['+pageObjNums.map(function(n){return n+' 0 R';}).join(' ')+'] /Count '+pages.length+' >>');
+  put(3,'<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>');
+  put(4,'<< /Type /Font /Subtype /Type1 /BaseFont /Courier-Bold /Encoding /WinAnsiEncoding >>');
+  pages.forEach(function(pg,i){var st=pg.ops.join('\n');
+    put(contentRefs[i],'<< /Length '+st.length+' >>\nstream\n'+st+'\nendstream');
+    put(pageObjNums[i],'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+PW+' '+PH+'] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents '+contentRefs[i]+' 0 R >>');});
+  var total=nextObj,xrefPos=out.length;out+='xref\n0 '+total+'\n0000000000 65535 f \n';
+  for(var o=1;o<total;o++)out+=(''+(xref[o]||0)).padStart(10,'0')+' 00000 n \n';
+  out+='trailer\n<< /Size '+total+' /Root 1 0 R >>\nstartxref\n'+xrefPos+'\n%%EOF';
+  var buf=new Uint8Array(out.length);for(var b=0;b<out.length;b++)buf[b]=out.charCodeAt(b)&0xff;return buf;}
+function exportDiarioPDF(){var R=R_CACHE;if(!R||!R.diag||!R.diag.length){toast('Nessun diario da esportare');return;}
+  var prof={};try{prof=JSON.parse(localStorage.getItem('raffyca-profile')||'{}');}catch(e){}
+  var dt=new Date(),pz=function(n){return(n<10?'0':'')+n;};
+  var meta={boat:prof.boat||'',model:prof.model||'',zone:diarioZone(),
+    date:dt.getFullYear()+'-'+pz(dt.getMonth()+1)+'-'+pz(dt.getDate())+' '+pz(dt.getHours())+':'+pz(dt.getMinutes())};
+  var s=R.summary,summary='';
+  if(s)summary='Rotta '+s.dist+' NM  \u00B7  durata '+fmtH(s.eta)+'  \u00B7  media '+s.avg+' kt  \u00B7  vento '+s.wmin+'-'+s.wmax+' kt';
+  var rows=R.diag.map(function(e){var d=e.data||{},mot=!!d.motor;
+    return {ora:e.clock||e.t||'',evento:String(e.tag||'').toUpperCase()+(e.tag?': ':'')+stripHtml(e.tx),
+      tws:d.tws!=null?d.tws:'',twd:d.twd!=null?d.twd:'',hdg:d.hdg!=null?d.hdg:'',
+      spd:mot?'':(d.spd!=null?d.spd:''),vmg:mot?'':(d.vmg!=null?d.vmg:''),
+      dtg:d.dtg!=null?d.dtg:'',mot:mot?'si':'no'};});
+  downloadBlob(new Blob([buildDiarioPDF(meta,summary,rows)],{type:'application/pdf'}),diarioName('pdf'));
+  toast('Diario PDF salvato in Download');}
+(function(){var c=document.getElementById('diagCsv'),p=document.getElementById('diagPdf');
+  if(c)c.addEventListener('click',exportDiarioCSV);if(p)p.addEventListener('click',exportDiarioPDF);})();
+
+// ---------- Leaflet wiring ----------
+var map=null,baseLayer=null,seaLayer=null,markA=null,markB=null,activeAB='A',_toastT=null,AB_MOVE=false;
+function toast(msg){var el=document.getElementById('toast');if(!el)return;el.textContent=msg;el.classList.add('show');clearTimeout(_toastT);_toastT=setTimeout(function(){el.classList.remove('show');},2600);}
+function redraw(){if(!map)return;var svg=document.getElementById('rfOverlay'),op=map.getPanes().overlayPane;
+  if(svg.parentNode!==op){op.appendChild(svg);svg.style.position='absolute';}
+  var size=map.getSize(),tl=map.containerPointToLayerPoint([0,0]);
+  L.DomUtil.setPosition(svg,tl);
+  svg.setAttribute('width',size.x);svg.setAttribute('height',size.y);svg.setAttribute('viewBox','0 0 '+size.x+' '+size.y);
+  function P(la,lo){var pt=map.latLngToLayerPoint([la,lo]).subtract(tl);return{x:pt.x,y:pt.y};}
+  svg.innerHTML=buildOverlay(P);}
+function fitArea(area){var A=AREAS[area];map.fitBounds([[A.latS,A.lonW],[A.latN,A.lonE]]);}
+function abIcon(letter,color){return L.divIcon({className:'ab-pin',html:'<div class="abdot" style="background:'+color+'">'+letter+'</div>',iconSize:[26,26],iconAnchor:[13,13]});}
+function placeMarkers(){if(!map)return;
+  if(!markA){markA=L.marker([STATE.A.lat,STATE.A.lon],{draggable:AB_MOVE,keyboard:false,icon:abIcon('A','#2BD9C4')}).addTo(map);
+    markA.on('dragend',function(){var ll=markA.getLatLng();setAB('A',ll.lat,ll.lng);});}else markA.setLatLng([STATE.A.lat,STATE.A.lon]);
+  if(!markB){markB=L.marker([STATE.B.lat,STATE.B.lon],{draggable:AB_MOVE,keyboard:false,icon:abIcon('B','#FF6B6B')}).addTo(map);
+    markB.on('dragend',function(){var ll=markB.getLatLng();setAB('B',ll.lat,ll.lng);});}else markB.setLatLng([STATE.B.lat,STATE.B.lon]);
+  applyAbMove();}
+/* Muovi A/B: quando OFF, i pin non si trascinano e il tocco sulla carta non sposta A/B (evita spostamenti accidentali su touch). */
+function applyAbMove(){
+  [markA,markB].forEach(function(m){if(m&&m.dragging){if(AB_MOVE)m.dragging.enable();else m.dragging.disable();}});
+  var b=document.getElementById('abMoveBtn');
+  if(b){b.style.background=AB_MOVE?'var(--teal)':'';b.style.color=AB_MOVE?'#062018':'';b.style.borderColor=AB_MOVE?'var(--teal)':'';}
+  var mp=document.getElementById('map');if(mp)mp.style.cursor=AB_MOVE?'crosshair':'';}
+function toggleAbMove(){AB_MOVE=!AB_MOVE;applyAbMove();
+  toast(AB_MOVE?'Muovi A/B ATTIVO — trascina i pin o tocca la carta':'Muovi A/B disattivato — pin bloccati');}
+function setAB(which,lat,lon){var c=clampToArea(FIELD.area,lat,lon);STATE[which]={lat:c.lat,lon:c.lon};
+  if(which==='A'&&markA)markA.setLatLng([c.lat,c.lon]);if(which==='B'&&markB)markB.setLatLng([c.lat,c.lon]);
+  computeRoute();
+  if(isLand(c.lat,c.lon))toast(which+' è a terra — trascinalo in mare');}
+function geocode(){var q=document.getElementById('q').value.trim();if(!q)return;
+  var a=AREAS[FIELD.area],vb=a.lonW+','+a.latN+','+a.lonE+','+a.latS,btn=document.getElementById('findBtn');btn.textContent='…';
+  fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&bounded=1&viewbox='+vb+'&q='+encodeURIComponent(q),{headers:{'Accept':'application/json'}})
+   .then(function(r){return r.json();}).then(function(res){btn.textContent='Cerca';
+     if(!res||!res.length){toast('Località non trovata in '+a.name);return;}
+     var lat=+res[0].lat,lon=+res[0].lon;setAB(activeAB,lat,lon);if(map)map.panTo([lat,lon]);
+     toast(activeAB+' → '+String(res[0].display_name||q).split(',')[0]);})
+   .catch(function(){btn.textContent='Cerca';toast('Ricerca offline — trascina i pin o tocca la mappa');});}
+/* aggancio zona (raffyca-profile.zone): l'area di calcolo segue la zona scelta.
+   Riquadri larghi e SOVRAPPOSTI, costa ritagliata on-device. Alto Adriatico incluso. */
+var ZONE_BOX={
+ "Alto Adriatico":{latN:45.85,latS:44.35,lonW:12.15,lonE:15.95},
+ "Medio Adriatico":{latN:44.95,latS:41.50,lonW:12.15,lonE:16.70},
+ "Basso Adriatico":{latN:43.40,latS:40.00,lonW:15.10,lonE:20.30},
+ "Mar Ionio":{latN:40.55,latS:36.60,lonW:14.60,lonE:19.60},
+ "Basso Tirreno":{latN:41.80,latS:37.70,lonW:11.80,lonE:16.70},
+ "Alto Tirreno":{latN:44.20,latS:40.80,lonW:7.50,lonE:11.95},
+ "Mar Ligure":{latN:44.60,latS:43.10,lonW:7.40,lonE:10.20},
+ "Sardegna":{latN:41.50,latS:38.70,lonW:7.90,lonE:12.00},
+ "Sicilia":{latN:38.70,latS:36.30,lonW:11.80,lonE:15.80}};
+function makeZoneArea(box,name){
+  if(!COAST)return false;
+  var b={latN:clamp(box.latN,COAST_BOX.latS,COAST_BOX.latN),latS:clamp(box.latS,COAST_BOX.latS,COAST_BOX.latN),
+    lonW:clamp(box.lonW,COAST_BOX.lonW,COAST_BOX.lonE),lonE:clamp(box.lonE,COAST_BOX.lonW,COAST_BOX.lonE)};
+  if(b.latN-b.latS<0.3||b.lonE-b.lonW<0.3)return false;
+  MED_MASKS['custom']=buildCoastMask(b,200);
+  var clat=(b.latN+b.latS)/2,clon=(b.lonW+b.lonE)/2,m=MED_MASKS['custom'];
+  var As=findSea(m,clat,clon),Bs=findSea(m,clamp(clat+(b.latN-b.latS)*0.22,b.latS+0.05,b.latN-0.05),clamp(clon+(b.lonE-b.lonW)*0.22,b.lonW+0.05,b.lonE-0.05));
+  AREAS['custom']={name:name||'Zona',latN:b.latN,latS:b.latS,lonW:b.lonW,lonE:b.lonE,A:[As.lat,As.lon],B:[Bs.lat,Bs.lon]};
+  return true;
+}
+var ZONE_SLUG={"Alto Adriatico":"alto-adriatico","Medio Adriatico":"medio-adriatico","Basso Adriatico":"basso-adriatico","Mar Ionio":"mar-ionio","Basso Tirreno":"basso-tirreno","Alto Tirreno":"alto-tirreno","Mar Ligure":"mar-ligure","Sardegna":"sardegna","Sicilia":"sicilia"};
+function activateZoneCustom(name,box){
+  var b=document.getElementById("customAreaBtn"); if(b){b.style.display="";b.textContent="⚓ "+name;}
+  document.querySelectorAll(".bar button[data-area]").forEach(function(x){x.classList.toggle("on",x===b);});
+  loadArea("custom"); if(map)map.panTo([(box.latN+box.latS)/2,(box.lonW+box.lonE)/2]);
+  if(typeof applySavedAB==='function')applySavedAB();
+}
+function loadZoneMaskOSM(name,box,cb){
+  var slug=ZONE_SLUG[name];
+  if(!slug||typeof fetch==='undefined'){cb(false);return;}
+  fetch('./coastmasks/'+slug+'.json').then(function(r){return r.ok?r.json():Promise.reject();}).then(function(m){
+    var raw=atob(m.bits),u=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)u[i]=raw.charCodeAt(i);m._bits=u;
+    MED_MASKS['custom']=m;
+    var clat=(box.latN+box.latS)/2,clon=(box.lonW+box.lonE)/2;
+    var As=findSea(m,clat,clon),Bs=findSea(m,clamp(clat+(box.latN-box.latS)*0.22,box.latS+0.05,box.latN-0.05),clamp(clon+(box.lonE-box.lonW)*0.22,box.lonW+0.05,box.lonE-0.05));
+    AREAS['custom']={name:name,latN:m.latN,latS:m.latS,lonW:m.lonW,lonE:m.lonE,A:[As.lat,As.lon],B:[Bs.lat,Bs.lon]};
+    activateZoneCustom(name,box); if(map&&typeof redraw==='function')redraw(); cb(true);
+  }).catch(function(){cb(false);});
+}
+function initZoneArea(){
+  var z=""; try{var p=JSON.parse(localStorage.getItem("raffyca-profile")||"{}");z=(p.zone||"").trim();}catch(e){}
+  var box=ZONE_BOX[z]; if(!box)return;                // zona vuota/ignota: resta l'area di default
+  loadZoneMaskOSM(z,box,function(ok){
+    if(ok)return;                                     // maschera OSM precotta attivata
+    if(!COAST)return;                                 // offline/costa non pronta: resta default
+    if(!makeZoneArea(box,z))return;                   // fallback: costa grossolana on-device
+    activateZoneCustom(z,box);
+  });
+}
+function loadCoast(){if(COAST)return;
+  var ab=document.getElementById('areaBtn');
+  if(typeof fetch==='undefined'){if(ab){ab.setAttribute('disabled','');ab.title='Carta costa non disponibile';}return;}
+  fetch('./mediterranean_land_10m.geojson').then(function(r){return r.json();}).then(function(j){coastPrep(j);buildCoastSegs();if(map)redraw();
+    if(ab)ab.removeAttribute('disabled');try{initZoneArea();}catch(e){}})
+  .catch(function(){if(ab){ab.setAttribute('disabled','');ab.title='Carta costa non disponibile offline';}try{initZoneArea();}catch(e){}});}
+function createCustomArea(){var q=document.getElementById('qarea').value.trim();if(!q){toast('Scrivi una zona di mare');return;}
+  if(!COAST){toast('Carta costa non ancora caricata');return;}
+  var btn=document.getElementById('areaBtn');btn.textContent='…';
+  fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(q)).then(function(r){return r.json();}).then(function(res){btn.textContent='Crea area';
+    if(!res||!res.length){toast('Zona non trovata');return;}
+    var clat=+res[0].lat,clon=+res[0].lon;
+    if(clon<COAST_BOX.lonW||clon>COAST_BOX.lonE||clat<COAST_BOX.latS||clat>COAST_BOX.latN){toast('Fuori dal Mediterraneo coperto dalla carta');return;}
+    if(!makeCustomArea(clat,clon,String(res[0].display_name||q).split(',')[0])){toast('Area non creabile qui');return;}
+    var b=document.getElementById('customAreaBtn');b.style.display='';b.textContent='⚓ '+AREAS.custom.name;
+    document.querySelectorAll('.bar button[data-area]').forEach(function(x){x.classList.toggle('on',x===b);});
+    loadArea('custom');if(map)map.panTo([clat,clon]);
+    toast('Area “'+AREAS.custom.name+'” pronta · costa ritagliata al volo');})
+  .catch(function(){btn.textContent='Crea area';toast('Ricerca offline — area su misura non disponibile');});}
+
+// ---------- adatta l'area al bounding box di A e B (es. Trieste↔Venezia) ----------
+function showBusy(t){var b=document.getElementById('busy');if(b){document.getElementById('busyTx').textContent=t||'⏳ calcolo…';b.hidden=false;}}
+function hideBusy(){var b=document.getElementById('busy');if(b)b.hidden=true;}
+function fitAreaToAB(){
+  if(!COAST){toast('Carta costa non ancora caricata');return;}
+  var A=STATE.A,B=STATE.B;if(!A||!B){toast('Imposta A e B');return;}
+  showBusy('⏳ Preparo la costa (una volta sola)…');
+  setTimeout(function(){
+   try{
+    var mLat=Math.max(0.25,Math.abs(A.lat-B.lat)*0.4),mLon=Math.max(0.30,Math.abs(A.lon-B.lon)*0.4);
+    var box={latN:clamp(Math.max(A.lat,B.lat)+mLat,COAST_BOX.latS,COAST_BOX.latN),
+             latS:clamp(Math.min(A.lat,B.lat)-mLat,COAST_BOX.latS,COAST_BOX.latN),
+             lonW:clamp(Math.min(A.lon,B.lon)-mLon,COAST_BOX.lonW,COAST_BOX.lonE),
+             lonE:clamp(Math.max(A.lon,B.lon)+mLon,COAST_BOX.lonW,COAST_BOX.lonE)};
+    var cl=Math.cos((box.latN+box.latS)/2*Math.PI/180);
+    var spanNM=Math.max((box.lonE-box.lonW)*60*cl,(box.latN-box.latS)*60);
+    if(spanNM>200){toast('Area troppo estesa (~'+Math.round(spanNM)+' NM). Il routing è per tratte costiere/regionali: prova fino a ~150-200 NM.');return;}
+    var cells=clamp(Math.round(spanNM/0.9),140,320);
+    MED_MASKS['custom']=buildCoastMask(box,cells);
+    AREAS['custom']={name:'A↔B',latN:box.latN,latS:box.latS,lonW:box.lonW,lonE:box.lonE,A:[A.lat,A.lon],B:[B.lat,B.lon]};
+    var b=document.getElementById('customAreaBtn');b.style.display='';b.textContent='⚓ '+AREAS.custom.name;
+    document.querySelectorAll('.bar button[data-area]').forEach(function(x){x.classList.toggle('on',x===b);});
+    loadArea('custom');
+    toast('Area su A↔B pronta · costa a '+cells+' celle (vento 11×8: per box larghi è grossolano)');
+   }catch(err){toast('Errore preparazione area: '+err.message);}
+   finally{hideBusy();}
+  },40);
+}
+
+// ---------- Naviga: posizione reale via GPS, guida sulla rotta, ricalcolo dal vivo ----------
+var NAV={on:false,watch:null,pos:null,marker:null,lastReroute:0};
+function xtePerp(pos,a,b){var cl=cosLat(FIELD.area),ax=a.lon*60*cl,ay=a.lat*60,bx=b.lon*60*cl,by=b.lat*60,px=pos.lon*60*cl,py=pos.lat*60;
+  var dx=bx-ax,dy=by-ay,len2=dx*dx+dy*dy||1e-9,t=clamp(((px-ax)*dx+(py-ay)*dy)/len2,0,1),nx=ax+t*dx,ny=ay+t*dy,ex=px-nx,ey=py-ny;
+  var cross=dx*(py-ay)-dy*(px-ax);return {d:Math.sqrt(ex*ex+ey*ey),t:t,side:cross>0?-1:1,nlat:ny/60,nlon:nx/(60*cl)};}
+function routeGuidance(pos){var R=R_CACHE;if(!R||!R.path||R.path.length<2)return null;
+  var best=null,seg=1;for(var k=1;k<R.path.length;k++){var r=xtePerp(pos,R.path[k-1],R.path[k]);if(!best||r.d<best.d){best=r;seg=k;}}
+  return {xte:best.d,side:best.side,seg:seg,near:{lat:best.nlat,lon:best.nlon},dtg:dist(pos,R.goal),brg:bearing(pos,R.goal)};}
+function boatIcon(cog){return L.divIcon({className:'boat-pin',html:'<div class="boatdot" style="transform:rotate('+(cog||0)+'deg)"></div>',iconSize:[22,22],iconAnchor:[11,11]});}
+function navStartFrom(pos){ // applica una posizione (usata anche nei test)
+  NAV.pos=pos;
+  if(map){if(!NAV.marker){NAV.marker=L.marker([pos.lat,pos.lon],{icon:boatIcon(pos.cog),interactive:false,zIndexOffset:1000}).addTo(map);}else{NAV.marker.setLatLng([pos.lat,pos.lon]);NAV.marker.setIcon(boatIcon(pos.cog));}
+    if(document.getElementById('navFollow').checked)map.panTo([pos.lat,pos.lon],{animate:false});}
+  if(document.getElementById('navReroute').checked){var now=Date.now();if(now-NAV.lastReroute>7000){NAV.lastReroute=now;STATE.A={lat:pos.lat,lon:pos.lon};computeRoute();}}
+  renderNav();}
+function renderNav(){var el=document.getElementById('navp');if(!el)return;
+  if(!NAV.on||!NAV.pos){el.className='navp';el.innerHTML='';return;}
+  var p=NAV.pos,gd=routeGuidance(p);el.className='navp on';
+  var cog=(p.cog==null||isNaN(p.cog))?'—':Math.round(p.cog)+'°',sog=(p.sog==null||isNaN(p.sog))?'—':p.sog.toFixed(1)+' kt';
+  var rr=document.getElementById('navReroute').checked,eta=(rr&&R_CACHE&&R_CACHE.finished)?fmtH(R_CACHE.eta):'—';
+  var g='<div class="ng"><span>a B</span> <b>'+(gd?gd.dtg.toFixed(1):'—')+' NM</b> · <span>rilev.</span> <b>'+(gd?Math.round(gd.brg):'—')+'°</b> · <span>COG</span> <b>'+cog+'</b> · <span>SOG</span> <b>'+sog+'</b> · <span>ETA</span> <b>'+eta+'</b></div>';
+  if(gd){var sd=gd.side>0?'dritta':'sinistra',ar=gd.side>0?'◀ accosta a sinistra':'accosta a dritta ▶';
+    g+='<div class="xte">Fuori rotta <b>'+gd.xte.toFixed(2)+' NM</b> a '+sd+(gd.xte>0.05?' · <b style="color:#9fd8ff">'+ar+'</b>':' · <b style="color:#7BD88A">in rotta</b>')+'</div>';}
+  el.innerHTML=g;}
+function onNavFix(geo){var c=geo.coords;onNavApply({lat:c.latitude,lon:c.longitude,cog:c.heading,sog:c.speed==null?null:c.speed*1.94384});}
+function onNavApply(pos){if(!NAV.on)return;
+  var a=AREAS[FIELD.area];if(pos.lat<a.latS||pos.lat>a.latN||pos.lon<a.lonW||pos.lon>a.lonE){renderNav();/* fuori area: mostra comunque distanza */}
+  navStartFrom(pos);}
+function onNavErr(){toast('GPS non disponibile o permesso negato');stopNav();}
+// ---------- export GPX della rotta pianificata ----------
+function buildGPX(R){R=R||R_CACHE;if(!R||!R.path||R.path.length<1)return null;
+  var area=(AREAS[FIELD.area]&&AREAS[FIELD.area].name)||FIELD.area,esc=function(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');};
+  var f=function(v){return (+v).toFixed(6);},x='<?xml version="1.0" encoding="UTF-8"?>\n';
+  x+='<gpx version="1.1" creator="ProVela" xmlns="http://www.topografix.com/GPX/1/1">\n';
+  x+='<metadata><name>'+esc('ProVela — traversata '+area)+'</name></metadata>\n';
+  x+='<wpt lat="'+f(R.start.lat)+'" lon="'+f(R.start.lon)+'"><name>A · partenza</name><sym>Flag, Green</sym></wpt>\n';
+  x+='<wpt lat="'+f(R.goal.lat)+'" lon="'+f(R.goal.lon)+'"><name>B · arrivo</name><sym>Flag, Red</sym></wpt>\n';
+  x+='<trk><name>'+esc('Rotta ProVela '+area)+'</name><trkseg>\n';
+  for(var i=0;i<R.path.length;i++){x+='<trkpt lat="'+f(R.path[i].lat)+'" lon="'+f(R.path[i].lon)+'"></trkpt>\n';}
+  x+='</trkseg></trk>\n</gpx>\n';return x;}
+function downloadGPX(){var gpx=buildGPX();if(!gpx){toast('Nessuna rotta da esportare');return;}
+  try{var blob=new Blob([gpx],{type:'application/gpx+xml'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download='provela-'+(FIELD.area||'rotta')+'.gpx';document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(url);},1500);
+    toast('GPX esportato ('+R_CACHE.path.length+' punti)');}catch(e){toast('Export non riuscito');}}function startNav(){if(typeof navigator==='undefined'||!navigator.geolocation){toast('Geolocalizzazione non supportata');return;}
+  NAV.on=true;document.getElementById('navBtn').classList.add('on');document.getElementById('navBtn').textContent='■ Ferma';
+  try{NAV.watch=navigator.geolocation.watchPosition(onNavFix,onNavErr,{enableHighAccuracy:true,maximumAge:2000,timeout:15000});}catch(e){onNavErr();}}
+function stopNav(){NAV.on=false;var b=document.getElementById('navBtn');if(b){b.classList.remove('on');b.textContent='▶ Naviga';}
+  if(NAV.watch!=null&&navigator.geolocation){navigator.geolocation.clearWatch(NAV.watch);}NAV.watch=null;
+  if(NAV.marker&&map){map.removeLayer(NAV.marker);}NAV.marker=null;NAV.pos=null;renderNav();}
+function initMap(){if(typeof L==='undefined'){return;}
+  map=L.map('map',{zoomControl:true,zoomAnimation:false,attributionControl:true,scrollWheelZoom:false});
+  L.DomEvent.on(map.getContainer(),'wheel',function(e){
+    if(e.ctrlKey||e.metaKey||e.altKey){L.DomEvent.preventDefault(e);var z=map.getZoom()+(e.deltaY<0?1:-1);
+      map.setZoomAround(map.mouseEventToLatLng(e),clamp(z,map.getMinZoom()||0,map.getMaxZoom()||18));}});
+  baseLayer=L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:18,attribution:'© OpenStreetMap · © CARTO'}).addTo(map);
+  seaLayer=L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenSeaMap'}).addTo(map);
+  var LocateCtl=L.Control.extend({options:{position:'topleft'},onAdd:function(){var b=L.DomUtil.create('a','leaflet-bar');b.href='#';b.title='La mia posizione';b.innerHTML='◎';b.style.cssText='width:30px;height:30px;line-height:30px;text-align:center;font-size:17px;background:#0e2036;color:#2BD9C4;text-decoration:none';L.DomEvent.on(b,'click',function(e){L.DomEvent.stop(e);if(!navigator.geolocation){toast('GPS non disponibile');return;}navigator.geolocation.getCurrentPosition(function(pp){map.setView([pp.coords.latitude,pp.coords.longitude],11);toast('La tua posizione');},function(){toast('Posizione non disponibile');},{enableHighAccuracy:true,timeout:15000});});return b;}});map.addControl(new LocateCtl());
+  namesLayer=buildNames();namesLayer.addTo(map);
+  map.on('move zoom viewreset zoomend moveend resize',redraw);
+  map.on('click',function(e){if(!AB_MOVE){toast('Tocca “Muovi A/B” per spostare i punti');return;}setAB(activeAB,e.latlng.lat,e.latlng.lng);});
+  fitArea(FIELD.area);placeMarkers();redraw();}
+
+function setPill(){var p=document.getElementById('pill');if(FIELD.source==='live'){p.className='pill live';p.textContent='dati live · '+MODELN;}else{p.className='pill demo';p.textContent='campo sintetico';}}
+function loadArea(area){resetAB(area);synthField(area);buildCoastSegs();setPill();if(map){fitArea(area);placeMarkers();}computeRoute();if(ISO_ON)refreshIsobate();}
+function loadReal(){var area=FIELD.area,b=document.getElementById('loadBtn');b.textContent='⟳ scarico…';
+  fetch(buildURL(area)).then(function(r){return r.json();}).then(function(j){parseField(j,area);setPill();computeRoute();b.textContent='⟳ Carica vento reale';})
+  .catch(function(){b.textContent='⟳ Carica vento reale';var p=document.getElementById('pill');p.className='pill demo';p.textContent='offline — campo sintetico';});}
+
+document.querySelectorAll('.bar button[data-area]').forEach(function(b){b.addEventListener('click',function(){document.querySelectorAll('.bar button[data-area]').forEach(function(x){x.classList.toggle('on',x===b);});loadArea(b.getAttribute('data-area'));});});
+document.querySelectorAll('.find .seg button').forEach(function(b){b.addEventListener('click',function(){activeAB=b.getAttribute('data-ab');document.querySelectorAll('.find .seg button').forEach(function(x){x.classList.toggle('on',x===b);});});});
+document.getElementById('abMoveBtn').addEventListener('click',toggleAbMove);
+document.getElementById('resetBtn').addEventListener('click',function(){resetAB(FIELD.area);placeMarkers();computeRoute();toast('A e B riportati ai punti di esempio');});
+document.getElementById('fitBtn').addEventListener('click',fitAreaToAB);
+document.getElementById('recalcBtn').addEventListener('click',function(){computeRoute();toast('Ricalcolo rotta…');});
+document.getElementById('loadBtn').addEventListener('click',loadReal);
+document.getElementById('dep').addEventListener('input',function(){STATE.dep=+this.value;WIND_VIEW=null;syncWindView();computeRoute();});
+document.getElementById('windHour').addEventListener('input',function(){WIND_VIEW=+this.value;var l=document.getElementById('windHourLbl');if(l)l.textContent=windClock(WIND_VIEW);redraw();});
+document.getElementById('motorOn').addEventListener('change',function(){STATE.motorOn=this.checked;document.getElementById('mot').disabled=!this.checked;computeRoute();});
+document.getElementById('mot').addEventListener('input',function(){STATE.mot=+this.value;document.getElementById('motV').textContent=this.value;computeRoute();});
+document.getElementById('windCapOn').addEventListener('change',function(){var s=document.getElementById('windCap');s.disabled=!this.checked;STATE.maxWind=this.checked?+s.value:0;computeRoute();});
+document.getElementById('windCap').addEventListener('input',function(){document.getElementById('windCapV').textContent=this.value;if(document.getElementById('windCapOn').checked){STATE.maxWind=+this.value;computeRoute();}});
+document.getElementById('coastOn').addEventListener('change',function(){var s=document.getElementById('coastBuf');s.disabled=!this.checked;STATE.coastBuf=this.checked?+s.value:0;computeRoute();});
+document.getElementById('coastBuf').addEventListener('input',function(){document.getElementById('coastV').textContent=this.value;if(document.getElementById('coastOn').checked){STATE.coastBuf=+this.value;computeRoute();}});
+document.getElementById('tackPen').addEventListener('input',function(){document.getElementById('tackV').textContent=this.value;STATE.tackPen=+this.value;computeRoute();});
+document.getElementById('polarEff').addEventListener('input',function(){document.getElementById('effV').textContent=this.value;STATE.polarEff=(+this.value)/100;computeRoute();});
+document.getElementById('scanBtn').addEventListener('click',function(){var b=this;b.textContent='calcolo…';setTimeout(function(){renderScan();b.textContent='Trova il miglior orario';},20);});
+document.getElementById('tSea').addEventListener('change',function(){if(!map)return;if(this.checked)seaLayer.addTo(map);else map.removeLayer(seaLayer);});
+document.getElementById('tWind').addEventListener('change',redraw);
+document.getElementById('tCoast').addEventListener('change',redraw);
+document.getElementById('navBtn').addEventListener('click',function(){if(NAV.on)stopNav();else startNav();});
+document.getElementById('gpxBtn').addEventListener('click',downloadGPX);
+document.getElementById('polApply').addEventListener('click',function(){var r=parsePolarText(document.getElementById('polText').value);if(r.error){toast(r.error);return;}applyPolar(r);saveSharedPolar(r,{source:'csv'});toast('Polare applicata e condivisa · max '+r.maxB.toFixed(1)+' kt');});
+document.getElementById('polReset').addEventListener('click',function(){resetPolar();toast('Polare ProVela ripristinata');});
+document.getElementById('navReroute').addEventListener('change',function(){if(NAV.on&&NAV.pos)navStartFrom(NAV.pos);});
+document.getElementById('navFollow').addEventListener('change',function(){if(NAV.on&&NAV.pos&&this.checked&&map)map.panTo([NAV.pos.lat,NAV.pos.lon],{animate:false});});
+document.getElementById('tIso').addEventListener('change',redraw);
+document.getElementById('tBathy').addEventListener('change',function(){ISO_ON=this.checked;var lg=document.getElementById('isoLegend');if(lg)lg.style.display=ISO_ON?'block':'none';refreshIsobate();});
+
+/* ---------- toponimi (quadro sinottico) ---------- */
+var namesLayer=null;
+var TOPONIMI=[
+  // [lat, lon, testo, classe]  classe: sea=grande, reg=medio, loc=piccolo
+  [43.4,15.2,'M A R E  A D R I A T I C O','sea'],
+  [45.0,12.95,'Golfo di Venezia','reg'],
+  [45.55,13.5,'Golfo di Trieste','reg'],
+  [44.7,14.35,'Quarnaro','reg'],
+  [45.1,13.9,'Istria','loc'],
+  [40.2,18.95,"Canale d'Otranto",'reg'],
+  [39.0,18.6,'M A R  I O N I O','sea'],
+  [40.2,12.4,'M A R  T I R R E N O','sea'],
+  [43.6,8.6,'Mar Ligure','reg'],
+  [40.2,7.2,'Mare di Sardegna','reg'],
+  [41.3,9.25,'Bocche di Bonifacio','reg'],
+  [38.2,15.6,'Stretto di Messina','reg'],
+  [37.0,12.4,'Canale di Sicilia','reg'],
+  [39.4,2.6,'Baleari','reg'],
+  [42.9,4.6,'Golfo del Leone','reg'],
+  [38.6,24.8,'M A R  E G E O','sea'],
+  [35.0,18.5,'M E D I T E R R A N E O','sea']
+];
+function buildNames(){
+  var g=L.layerGroup(),sz={sea:'15px',reg:'12px',loc:'11px'},
+      col={sea:'rgba(123,147,172,.85)',reg:'rgba(123,147,172,.7)',loc:'rgba(123,147,172,.6)'};
+  TOPONIMI.forEach(function(t){
+    var ic=L.divIcon({className:'topo',iconSize:null,
+      html:'<span style="font-family:var(--mono);font-size:'+sz[t[3]]+';font-style:italic;color:'+col[t[3]]+
+           ';white-space:nowrap;text-shadow:0 1px 3px #000,0 0 6px #0A1628;transform:translate(-50%,-50%);'+
+           'display:inline-block;letter-spacing:'+(t[3]==='sea'?'.04em':'0')+';">'+t[2]+'</span>'});
+    g.addLayer(L.marker([t[0],t[1]],{icon:ic,interactive:false,keyboard:false}));
+  });
+  return g;
+}
+document.getElementById('tNames').addEventListener('change',function(){
+  if(!map||!namesLayer)return;if(this.checked)namesLayer.addTo(map);else map.removeLayer(namesLayer);});
+
+/* ---------- ricerca barca nel DB ORC (orc_med.json) ---------- */
+var ORCDATA=null,ORCLOAD=false;
+function escH(s){return String(s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});}
+function orcVppToCSV(v){
+  var rows=['twa/tws;'+v.speeds.join(';')];
+  v.angles.forEach(function(a){rows.push(a+';'+(v[String(a)]||[]).join(';'));});
+  return rows.join('\n');
+}
+function orcSelect(b){
+  var r=parsePolarText(orcVppToCSV(b.vpp));
+  if(r.error){toast(r.error);return;}
+  applyPolar(r);
+  var nm=b.type||b.name;
+  document.getElementById('polStatus').textContent=nm+' · ORC';saveSharedPolar(r,{source:'ORC',boat:nm});
+  document.getElementById('orcRes').hidden=true;
+  document.getElementById('orcQ').value=nm;
+  toast('Polare '+nm+' · max '+r.maxB.toFixed(1)+' kt');
+}
+function orcRender(q){
+  var ul=document.getElementById('orcRes');
+  if(!ORCDATA){ul.hidden=false;ul.innerHTML='<li class="none">'+(ORCLOAD?'carico il DB…':'DB non disponibile')+'</li>';return;}
+  q=(q||'').trim().toLowerCase();
+  if(q.length<2){ul.hidden=true;ul.innerHTML='';return;}
+  var hits=[];
+  for(var i=0;i<ORCDATA.length&&hits.length<40;i++){var b=ORCDATA[i];
+    if((b.type||'').toLowerCase().indexOf(q)>=0||(b.name||'').toLowerCase().indexOf(q)>=0)hits.push(b);}
+  if(!hits.length){ul.hidden=false;ul.innerHTML='<li class="none">nessuna barca</li>';return;}
+  ul.hidden=false;
+  ul.innerHTML=hits.map(function(b){return '<li data-k="'+ORCDATA.indexOf(b)+'"><b>'+escH(b.type||b.name)+
+    '</b><span class="sub">'+escH(b.name||'')+' · '+(b.year||'')+' · '+(b.country||'')+'</span></li>';}).join('');
+}
+function orcEnsure(cb){
+  if(ORCDATA){cb&&cb();return;}
+  if(ORCLOAD)return;
+  ORCLOAD=true;
+  fetch('orc_med.json',{cache:'force-cache'}).then(function(r){return r.json();}).then(function(j){
+    ORCDATA=j;ORCLOAD=false;cb&&cb();
+  }).catch(function(){ORCLOAD=false;ORCDATA=null;toast('DB ORC non trovato — metti orc_med.json in routing/.');});
+}
+(function(){
+  var qel=document.getElementById('orcQ'),ul=document.getElementById('orcRes');
+  qel.addEventListener('focus',function(){orcEnsure(function(){orcRender(qel.value);});});
+  qel.addEventListener('input',function(){orcEnsure(function(){orcRender(qel.value);});orcRender(qel.value);});
+  ul.addEventListener('click',function(e){var li=e.target.closest('li[data-k]');if(li)orcSelect(ORCDATA[+li.getAttribute('data-k')]);});
+  document.getElementById('orcPasteBtn').addEventListener('click',function(){
+    var w=document.getElementById('polPasteWrap');w.hidden=!w.hidden;});
+})();
+
+
+/* ---------- persistenza delle scelte di pagina (chiave di modulo, NON condivisa) ---------- */
+var UIKEY='raffyca-traversata-ui',SAVED_UI=null,_uiReady=false;
+function loadSavedUI(){try{SAVED_UI=JSON.parse(localStorage.getItem(UIKEY)||'null');}catch(e){SAVED_UI=null;}return SAVED_UI;}
+function saveUI(){if(!_uiReady)return;
+  try{
+    function cv(id){var e=document.getElementById(id);return e?!!e.checked:null;}
+    function rv(id){var e=document.getElementById(id);return e?e.value:null;}
+    var u={v:1,
+      A:STATE.A?{lat:STATE.A.lat,lon:STATE.A.lon}:null,
+      B:STATE.B?{lat:STATE.B.lat,lon:STATE.B.lon}:null,
+      dep:STATE.dep,mot:STATE.mot,maxWind:STATE.maxWind,coastBuf:STATE.coastBuf,tackPen:STATE.tackPen,polarEff:STATE.polarEff,
+      motRaw:rv('mot'),windCapRaw:rv('windCap'),coastBufRaw:rv('coastBuf'),
+      motorChk:cv('motorOn'),windCapChk:cv('windCapOn'),coastChk:cv('coastOn'),
+      tSea:cv('tSea'),tCoast:cv('tCoast'),tWind:cv('tWind'),tIso:cv('tIso'),tNames:cv('tNames'),tBathy:cv('tBathy'),navFollow:cv('navFollow')};
+    localStorage.setItem(UIKEY,JSON.stringify(u));
+  }catch(e){}
+}
+/* applica le impostazioni salvate (indipendenti dall'area) — prima di computeRoute */
+function restoreSettings(){var u=SAVED_UI;if(!u)return;
+  if(isFinite(u.dep))STATE.dep=u.dep;
+  if(isFinite(u.mot))STATE.mot=u.mot;
+  if(isFinite(u.maxWind))STATE.maxWind=u.maxWind;
+  if(isFinite(u.coastBuf))STATE.coastBuf=u.coastBuf;
+  if(isFinite(u.tackPen))STATE.tackPen=u.tackPen;
+  if(isFinite(u.polarEff))STATE.polarEff=u.polarEff;
+  STATE.motorOn=!!u.motorChk;
+  function setv(id,val,lbl){var e=document.getElementById(id);if(!e||val==null)return;e.value=val;if(lbl){var l=document.getElementById(lbl);if(l)l.textContent=val;}}
+  var dep=document.getElementById('dep');if(dep&&isFinite(u.dep))dep.value=u.dep;
+  if(u.motorChk!=null){var mo=document.getElementById('motorOn');mo.checked=u.motorChk;var ms=document.getElementById('mot');if(ms)ms.disabled=!u.motorChk;}
+  setv('mot',u.motRaw,'motV');
+  if(u.windCapChk!=null){var wo=document.getElementById('windCapOn');wo.checked=u.windCapChk;var wc=document.getElementById('windCap');if(wc)wc.disabled=!u.windCapChk;}
+  setv('windCap',u.windCapRaw,'windCapV');
+  if(u.coastChk!=null){var co=document.getElementById('coastOn');co.checked=u.coastChk;var cb=document.getElementById('coastBuf');if(cb)cb.disabled=!u.coastChk;}
+  setv('coastBuf',u.coastBufRaw,'coastV');
+  var tp=document.getElementById('tackPen');if(tp&&isFinite(u.tackPen)){tp.value=u.tackPen;var tv=document.getElementById('tackV');if(tv)tv.textContent=u.tackPen;}
+  var pe=document.getElementById('polarEff');if(pe&&isFinite(u.polarEff)){var pv=Math.round(u.polarEff*100);pe.value=pv;var ev=document.getElementById('effV');if(ev)ev.textContent=pv;}
+  ['tSea','tCoast','tWind','tIso','tNames','tBathy','navFollow'].forEach(function(id){var val=u[id];if(val==null)return;var e=document.getElementById(id);if(e)e.checked=val;});
+}
+/* riallinea gli strati della mappa ai toggle salvati (dopo initMap) */
+function applyRestoredToggles(){var u=SAVED_UI;if(!u||!map)return;
+  ['tSea','tNames','tBathy'].forEach(function(id){var e=document.getElementById(id);if(e)e.dispatchEvent(new Event('change'));});
+  redraw();
+}
+/* riporta A/B salvati nell'area attualmente attiva (solo in boot) */
+function applySavedAB(){var u=SAVED_UI;if(!u||!u.A||!u.B)return;
+  var a=clampToArea(FIELD.area,u.A.lat,u.A.lon),b=clampToArea(FIELD.area,u.B.lat,u.B.lon);
+  STATE.A={lat:a.lat,lon:a.lon};STATE.B={lat:b.lat,lon:b.lon};
+  if(markA)markA.setLatLng([a.lat,a.lon]);if(markB)markB.setLatLng([b.lat,b.lon]);
+  computeRoute();}
+
+// ---- boot ----
+loadSavedUI();
+resetAB('adriatico');synthField('adriatico');setPill();
+restoreSettings();
+computeRoute();renderPolarPreview();loadSharedPolar();
+loadCoast();
+if(typeof L!=='undefined'){initMap();applySavedAB();applyRestoredToggles();}
+initWorker();
+_uiReady=true;
+// persisti anche i toggle di sola visualizzazione (non passano da computeRoute)
+document.addEventListener('change',function(e){var id=e.target&&e.target.id;
+  if(id&&/^(tSea|tCoast|tWind|tIso|tNames|tBathy|navFollow)$/.test(id))saveUI();});
+// PWA: registra il service worker (offline). Network-first sulla navigazione evita la trappola della cache vecchia.
+/* picker A/B da lista waypoint (Carta Nautica) */
+(function(){var sel=document.getElementById('wpPick');if(!sel)return;
+  function wps(){try{return JSON.parse(localStorage.getItem('raffyca-waypoints')||'[]');}catch(e){return[];}}
+  function fill(){var l=wps();sel.innerHTML='<option value="">— A/B da waypoint —</option>'+l.map(function(w,i){return '<option value="'+i+'">'+String(w.name||('WP'+(i+1))).replace(/[<>&]/g,'')+'</option>';}).join('');}
+  fill();
+  sel.addEventListener('change',function(){var w=wps()[+sel.value];if(!w)return;setAB(activeAB,w.lat,w.lon);if(map)map.panTo([w.lat,w.lon]);toast(activeAB+' → '+(w.name||'waypoint'));sel.value='';});
+})();
+if('serviceWorker' in navigator){window.addEventListener('load',function(){
+  navigator.serviceWorker.register('sw.js').then(function(reg){
+    reg.addEventListener('updatefound',function(){var nw=reg.installing;if(!nw)return;nw.addEventListener('statechange',function(){if(nw.state==='activated'&&navigator.serviceWorker.controller)toast('ProVela aggiornata · ricarica per l\'ultima versione');});});
+  }).catch(function(){});
+});}
+
+/* ---- Batimetria: isobate per zona (EMODnet) ---- */
+var ISO_ON=false,ISO_LAYER=null,ISO_CACHE={};
+var ISO_COL={"-5":"#8fe3ff","-10":"#2BD9C4","-20":"#46d68a","-50":"#FFC24B","-100":"#FF6B6B","-200":"#c792ea","-500":"#f78fb3","-1000":"#9aa7ff"};
+var ISO_SLUG={"Alto Adriatico":"alto_adriatico","Medio Adriatico":"medio_adriatico","Basso Adriatico":"basso_adriatico","Mar Ionio":"mar_ionio","Basso Tirreno":"basso_tirreno","Alto Tirreno":"alto_tirreno","Mar Ligure":"mar_ligure","Sardegna":"sardegna","Sicilia":"sicilia"};
+var ISO_LABEL_DEPTHS=[-5,-10,-20,-50,-100,-200,-500];
+function isoZone(){try{var p=JSON.parse(localStorage.getItem("raffyca-profile")||"{}");return (p.zone||"").trim();}catch(e){return"";}}
+function isoStyle(f){var d=f.properties.depth;return {color:(ISO_COL[String(d)]||"#6b7f95"),weight:(d>=-50?1.1:0.8),opacity:.85};}
+function isoClear(){if(ISO_LAYER&&map){map.removeLayer(ISO_LAYER);}ISO_LAYER=null;}
+function isoDraw(j){
+  isoClear();
+  ISO_LAYER=L.layerGroup();
+  L.geoJSON(j,{style:function(){return{color:"#000",weight:12,opacity:0};},onEachFeature:function(f,layer){layer.bindPopup((-f.properties.depth)+" m");}}).addTo(ISO_LAYER);
+  L.geoJSON(j,{interactive:false,style:isoStyle}).addTo(ISO_LAYER);
+  var byd={};
+  (j.features||[]).forEach(function(f){var d=f.properties.depth;if(ISO_LABEL_DEPTHS.indexOf(d)<0)return;var g=f.geometry;if(!g)return;var cs=g.type==="LineString"?g.coordinates:(g.coordinates[0]||[]);if(cs.length<8)return;(byd[d]=byd[d]||[]).push(cs);});
+  Object.keys(byd).forEach(function(d){byd[d].sort(function(a,b){return b.length-a.length;});byd[d].slice(0,3).forEach(function(cs){var m=cs[Math.floor(cs.length/2)];L.marker([m[1],m[0]],{interactive:false,keyboard:false,icon:L.divIcon({className:"",html:'<span style="font:600 10px ui-monospace,monospace;color:'+(ISO_COL[String(d)]||"#9fb0c0")+';background:rgba(6,14,24,.72);padding:0 3px;border-radius:3px">'+(-d)+'</span>',iconSize:[26,12]})}).addTo(ISO_LAYER);});});
+  if(map)ISO_LAYER.addTo(map);
+}
+function refreshIsobate(){
+  if(!map)return;
+  if(!ISO_ON){isoClear();return;}
+  var z=isoZone(),slug=ISO_SLUG[z];
+  if(!slug){isoClear();toast("Batimetria: seleziona una zona di mare in Impostazioni");return;}
+  if(ISO_CACHE[slug]){isoDraw(ISO_CACHE[slug]);return;}
+  fetch("./isobate/isobate_"+slug+".geojson").then(function(r){return r.json();}).then(function(j){ISO_CACHE[slug]=j;if(ISO_ON)isoDraw(j);}).catch(function(){toast("Batimetria non disponibile offline");});
+}
+
+</script>
+</body></html>

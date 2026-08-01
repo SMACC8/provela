@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Carta Nautica · ProVela</title>
+<script>(function(){try{var t=localStorage.getItem('raffyca-theme');if(t==='sun')t='day';if(t==='day'||t==='night')document.documentElement.classList.add(t);}catch(e){}})();</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{--bg:#060e18;--panel:#0e2036;--panel2:#0b1a2c;--dp:#040c14;--line:#1a3248;--dim:#122030;
+  --ink:#deedf5;--sub:#5a7a94;--teal:#2BD9C4;--amber:#FFC24B;--coral:#FF6B6B;--green:#46d68a;
+  --mono:ui-monospace,"SF Mono","Roboto Mono",Menlo,Consolas,monospace;--sans:system-ui,-apple-system,"Segoe UI",sans-serif;}
+/* TEMA GIORNO (alto contrasto per il sole) */
+html.day{
+  --bg:#eef1f4; --bg-grad-top:#dbe3ea; --panel:#ffffff; --panel2:#e7ecf1; --dp:#f3f6f9;
+  --line:#a7b5c2; --dim:#cdd6de;
+  --ink:#0a1420; --sub:#3b4e60; --sub2:#54697b;
+  --teal:#067d70; --amber:#8f5600; --coral:#c62020; --green:#12894f;
+  --bezel-hi:#ffffff; --bezel-mid:#d6dde4; --bezel-lo:#b6c2ce;
+}
+/* TEMA NOTTE (rosso, visione notturna) */
+html.night{
+  --bg:#0a0202; --bg-grad-top:#180404; --panel:#150404; --panel2:#0e0303; --dp:#0a0101;
+  --line:#3a1010; --dim:#200707;
+  --ink:#ff5b5b; --sub:#b04040; --sub2:#8a3030;
+  --teal:#ff4d4d; --amber:#ff7a45; --coral:#ff5555; --green:#c23a3a;
+  --bezel-hi:#3a1010; --bezel-mid:#200707; --bezel-lo:#120404;
+}
+/* topbar: sfondo per Giorno/Notte (in Scuro resta il gradiente originale) */
+html.day .rf-topbar{background:linear-gradient(#ffffff,#e7ecf1);border-bottom-color:#a7b5c2;}
+html.night .rf-topbar{background:linear-gradient(#150404,#0e0303);border-bottom-color:#3a1010;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);min-height:100dvh;display:flex;flex-direction:column;}
+.wrap{padding:10px;display:flex;flex-direction:column;gap:10px;}
+.bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+h1{font-size:15px;letter-spacing:.06em;color:var(--teal);text-transform:uppercase;margin-right:auto;}
+#map{width:100%;height:46vh;min-height:280px;border-radius:12px;border:1px solid var(--line);background:#0A1628;}
+.leaflet-control-layers{background:var(--panel)!important;color:var(--ink)!important;border:1px solid var(--line)!important;}
+select,button,input,textarea{font-family:var(--sans);color:var(--ink);}
+.sel{font-family:var(--mono);font-size:12px;padding:8px 10px;border-radius:9px;border:1px solid var(--line);background:var(--dp);}
+.btn{font-size:13px;padding:9px 12px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+.btn:active{transform:scale(.97);}
+.btn.go{border-color:var(--teal);color:var(--teal);}
+.btn.sm{padding:6px 9px;font-size:12px;}
+.tabs{display:flex;gap:8px;}
+.tabs button{flex:1;font-family:var(--mono);font-size:13px;padding:10px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);color:var(--sub);cursor:pointer;}
+.tabs button.on{border-color:var(--teal);color:var(--teal);background:rgba(43,217,196,.08);}
+.list{display:flex;flex-direction:column;gap:8px;}
+.item{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:11px 12px;display:flex;align-items:center;gap:10px;}
+.item.active{border-color:var(--teal);box-shadow:inset 0 0 0 1px rgba(43,217,196,.4);}
+.dot{width:12px;height:12px;border-radius:50%;flex:0 0 auto;box-shadow:0 0 6px rgba(0,0,0,.5);}
+.it-main{flex:1;min-width:0;}
+.it-name{font-family:var(--mono);font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.it-sub{font-size:11.5px;color:var(--sub);font-family:var(--mono);margin-top:2px;}
+.it-note{font-size:11.5px;color:#8ea8bd;margin-top:3px;font-style:italic;}
+.it-acts{display:flex;gap:6px;flex:0 0 auto;}
+.chk{width:18px;height:18px;accent-color:var(--teal);flex:0 0 auto;}
+.fhead{display:flex;align-items:center;gap:7px;padding:8px 4px 5px;margin-top:8px;border-bottom:1px solid var(--line);font:600 12px ui-monospace,monospace;color:var(--sub);letter-spacing:.3px;}
+.fhead .fname{color:var(--ink);}
+.fhead .fcount{opacity:.55;}
+.fhead .fact{margin-left:auto;display:flex;gap:2px;}
+.fhead .fact button{background:none;border:none;color:var(--sub);cursor:pointer;font-size:13px;padding:2px 5px;border-radius:6px;}
+.fhead .fact button:hover{color:var(--ink);}
+.wpico{display:inline-flex;width:24px;height:24px;align-items:center;justify-content:center;flex:none;}
+.wpicons{display:flex;flex-wrap:wrap;gap:6px;}
+.wpicon{width:38px;height:38px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;}
+.wpicon.sel{border-color:var(--teal);box-shadow:0 0 0 1px var(--teal) inset;}
+.wpdiv{background:none;border:none;}
+.wpmark{display:flex;align-items:center;justify-content:center;}
+.wpmark svg{filter:drop-shadow(0 0 1.5px rgba(0,0,0,.9)) drop-shadow(0 0 1px rgba(0,0,0,.7));}
+.wpmark.act svg{filter:drop-shadow(0 0 2px #fff) drop-shadow(0 0 3px rgba(0,0,0,.85));}
+.iconbtn{width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--sub);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;}
+.iconbtn.on{border-color:var(--teal);color:var(--teal);}
+.iconbtn.del{color:var(--coral);border-color:rgba(255,107,107,.3);}
+.empty{color:var(--sub);font-size:13px;text-align:center;padding:18px;}
+.ov{position:fixed;inset:0;background:rgba(4,10,18,.72);display:none;align-items:flex-end;justify-content:center;z-index:9500;}
+.ov.on{display:flex;}
+.sheet{background:var(--panel);border:1px solid var(--line);border-radius:16px 16px 0 0;width:100%;max-width:560px;padding:16px;display:flex;flex-direction:column;gap:12px;max-height:88vh;overflow-y:auto;}
+.sheet h3{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--teal);}
+.field label{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--sub);display:block;margin-bottom:5px;}
+.field input,.field textarea{width:100%;font-size:14px;padding:10px 12px;border-radius:9px;border:1px solid var(--line);background:var(--dp);color:var(--ink);}
+.field textarea{resize:vertical;min-height:52px;font-family:var(--sans);}
+.tags{display:flex;gap:8px;flex-wrap:wrap;}
+.tagchip{width:30px;height:30px;border-radius:50%;cursor:pointer;border:2px solid transparent;}
+.tagchip.sel{border-color:#fff;transform:scale(1.1);}
+.row{display:flex;gap:9px;}
+.row .btn{flex:1;justify-content:center;}
+.hint{font-size:11px;color:var(--sub);}
+.tool{font-size:12px;padding:7px 10px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);color:var(--sub);cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+.tool.on{border-color:var(--teal);color:var(--teal);background:rgba(43,217,196,.08);}
+.readout{font-family:var(--mono);font-size:12px;color:var(--teal);margin-right:auto;}
+.readout b{color:var(--amber);}
+.grid-lbl{font-family:var(--mono);font-size:10px;color:#7fd9cf;background:rgba(6,14,24,.6);padding:0 3px;border-radius:3px;white-space:nowrap;}
+.zone-lbl{font-family:var(--mono);font-size:10px;color:var(--amber);background:rgba(6,14,24,.65);padding:1px 4px;border-radius:4px;white-space:nowrap;border:1px solid rgba(255,194,75,.35);}
+.leaflet-container{background:#0A1628;}
+</style>
+</head>
+<body>
+<!-- ===== rf-topbar: barra fissa trasversale ProVela (inietta subito dopo <body>) ===== -->
+<style>
+.rf-topbar{position:fixed;top:0;left:0;right:0;height:40px;z-index:9000;display:flex;align-items:center;gap:9px;
+  padding:0 10px;background:linear-gradient(#0c1c2e,#081521);border-bottom:1px solid #1a3248;
+  font-family:ui-monospace,"SF Mono","Roboto Mono",Menlo,Consolas,monospace;color:var(--sub,#5a7a94);font-size:11.5px;
+  letter-spacing:.02em;-webkit-user-select:none;user-select:none;box-shadow:0 2px 10px -6px rgba(0,0,0,.8);}
+.rf-topbar a.rf-home{display:flex;align-items:center;justify-content:center;width:30px;height:30px;flex:none;
+  border-radius:8px;background:rgba(43,217,196,.1);border:1px solid rgba(43,217,196,.35);text-decoration:none;}
+.rf-topbar a.rf-home:active{transform:scale(.92);}
+.rf-topbar .rf-boat{display:flex;align-items:center;gap:5px;flex:none;color:var(--ink,#deedf5);font-weight:600;white-space:nowrap;}
+.rf-topbar .rf-boat svg{flex:none;}
+.rf-topbar .rf-gps{flex:none;display:flex;align-items:center;}
+.rf-topbar .rf-gps .gdot{width:9px;height:9px;border-radius:50%;background:#5a6b7a;box-shadow:0 0 0 2px rgba(90,107,122,.25);transition:background .3s,box-shadow .3s;}
+.rf-topbar .rf-gps .gdot.ok{background:var(--teal,#2BD9C4);box-shadow:0 0 6px rgba(43,217,196,.6);}
+.rf-topbar .rf-gps .gdot.old{background:var(--amber,#FFC24B);box-shadow:0 0 5px rgba(255,194,75,.5);}
+.rf-topbar .rf-pol{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;color:var(--sub,#5a7a94);}
+.rf-topbar .rf-pol .mod{color:var(--ink,#cfe2ee);}
+.rf-topbar .rf-pol .pol{color:var(--amber,#FFC24B);font-weight:600;}
+.rf-topbar .rf-pol .pol.warn{color:var(--coral,#FF6B6B);}
+.rf-topbar .rf-spacer{flex:1;}
+.rf-topbar .rf-status{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:44%;flex:none;color:var(--sub,#5a7a94);}
+.rf-topbar .rf-status.wp b{color:var(--teal,#2BD9C4);font-weight:600;}
+.rf-topbar .rf-status.rec{color:var(--coral,#FF6B6B);font-weight:600;}
+.rf-topbar .rf-status .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#FF6B6B;margin-right:5px;vertical-align:middle;animation:rfblink 1s steps(2,start) infinite;}
+@keyframes rfblink{50%{opacity:.25}}
+body{padding-top:40px!important;}
+@media (max-width:480px){.rf-topbar .rf-pol .mod{display:none;}}
+@media (max-width:360px){.rf-topbar .rf-boat .bn{display:none;}}
+</style>
+<div class="rf-topbar" role="banner">
+  <a class="rf-home" href="../" aria-label="Menu ProVela" title="Menu ProVela">
+    <svg viewBox="0 0 64 64" width="19" height="19" aria-hidden="true"><path d="M32 8 L32 56 L10 56 Z" fill="#2BD9C4" opacity=".95"/><path d="M32 26 L54 56 L32 56 Z" fill="#2BD9C4" opacity=".45"/><line x1="32" y1="6" x2="32" y2="58" stroke="#1a4a42" stroke-width="3"/></svg>
+  </a>
+  <span class="rf-boat" id="rfBoat"></span>
+  <span class="rf-gps" id="rfGps" title="Stato GPS"><span class="gdot"></span></span>
+  <span class="rf-pol" id="rfPol" title=""></span>
+  <span class="rf-spacer"></span>
+  <span class="rf-status" id="rfStatus"></span>
+</div>
+<script>
+(function(){
+  function esc(x){return String(x).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  var elBoat=document.getElementById("rfBoat"),elGps=document.getElementById("rfGps"),
+      elPol=document.getElementById("rfPol"),elSt=document.getElementById("rfStatus");
+  var SAIL='<svg viewBox="0 0 64 64" width="13" height="13" aria-hidden="true"><path d="M34 6 L34 52 L14 52 Z" fill="#2BD9C4"/><line x1="34" y1="4" x2="34" y2="54" stroke="#1a4a42" stroke-width="3"/></svg>';
+  function tickBoat(){
+    if(!elBoat)return;
+    var pr=null;try{pr=JSON.parse(localStorage.getItem("raffyca-profile")||"null");}catch(e){}
+    var boat=(pr&&pr.boat)||"ProVela";
+    elBoat.innerHTML=SAIL+'<span class="bn">'+esc(boat)+'</span>';
+  }
+  function polarLabel(){
+    var p=null;try{p=JSON.parse(localStorage.getItem("raffyca-polar")||"null");}catch(e){}
+    if(!p||!p.twa||!p.data||!p.twa.length)return{txt:"integrata",cls:"warn",boat:""};
+    var m=p.meta||{};
+    if(m.source==="generica"||m.generic)return{txt:"generica",cls:"warn",boat:(m.boat||"generica")};
+    return{txt:(m.source||"attiva"),cls:"",boat:(m.boat||"")};
+  }
+  function tickPolar(){
+    if(!elPol)return;
+    var pr=null;try{pr=JSON.parse(localStorage.getItem("raffyca-profile")||"null");}catch(e){}
+    var L=polarLabel();
+    var model=L.boat||((pr&&pr.model)||"");
+    var h="";
+    if(model)h+='<span class="mod">'+esc(model)+'</span>';
+    h+=(h?" · ":"")+'<span class="pol '+L.cls+'">pol '+esc(L.txt)+'</span>';
+    elPol.innerHTML=h; elPol.title=[model,"polare: "+L.txt].filter(Boolean).join(" · ");
+  }
+  function tickGps(){
+    if(!elGps)return;
+    var dot=elGps.querySelector(".gdot"),pos=null;
+    try{pos=JSON.parse(localStorage.getItem("raffyca-pos")||"null");}catch(e){}
+    var cls="",title="GPS: nessun dato";
+    if(pos&&isFinite(pos.lat)&&isFinite(pos.lon)){
+      if(pos.ts&&isFinite(pos.ts)){
+        var age=Math.round((Date.now()-pos.ts)/1000);
+        if(age<25){cls="ok";title="GPS: fix "+age+" s fa";}
+        else if(age<900){cls="old";title="GPS: ultimo fix "+(age<120?(age+" s"):(Math.round(age/60)+" min"))+" fa";}
+        else{cls="";title="GPS: fix vecchio";}
+      }else{cls="old";title="GPS: posizione senza orario";}
+    }
+    if(dot)dot.className="gdot"+(cls?(" "+cls):"");
+    elGps.title=title;
+  }
+  function tickStatus(){
+    if(!elSt)return;
+    var rec=null;try{rec=JSON.parse(localStorage.getItem("raffyca-rec")||"null");}catch(e){}
+    if(rec&&rec.on){elSt.className="rf-status rec";elSt.innerHTML='<span class="dot"></span>REC GPX'+(rec.pts?(" · "+rec.pts+" pt"):"");return;}
+    var tid="";try{tid=localStorage.getItem("raffyca-active-track")||"";}catch(e){}
+    if(tid){var tk=null;try{tk=(JSON.parse(localStorage.getItem("raffyca-tracks")||"[]")).find(function(x){return x.id===tid;});}catch(e){}
+      if(tk&&tk.pts&&tk.pts.length>=2){elSt.className="rf-status wp";elSt.innerHTML="&#9654; <b>"+esc(tk.name)+"</b>";return;}}
+    var id="";try{id=localStorage.getItem("raffyca-active-wp")||"";}catch(e){}
+    if(id){var w=null;try{w=(JSON.parse(localStorage.getItem("raffyca-waypoints")||"[]")).find(function(x){return x.id===id;});}catch(e){}
+      if(w){elSt.className="rf-status wp";elSt.innerHTML="&#9873; WP: <b>"+esc(w.name)+"</b>";return;}}
+    elSt.className="rf-status";elSt.textContent="";
+  }
+  function all(){tickBoat();tickPolar();tickGps();tickStatus();}
+  all();
+  setInterval(tickGps,3000);setInterval(tickStatus,3000);setInterval(tickPolar,5000);setInterval(tickBoat,10000);
+  window.addEventListener("storage",all);
+  document.addEventListener("visibilitychange",function(){if(!document.hidden)all();});
+})();
+</script>
+<!-- ===== /rf-topbar ===== -->
+
+<div class="wrap">
+  <div class="bar">
+    <h1>Carta Nautica</h1>
+    <select class="sel" id="filter" title="Filtro visualizzazione"><option value="all">Tutte</option><option value="active">Solo attivo</option></select>
+  </div>
+
+  <div id="map"></div>
+
+  <div class="bar">
+    <button class="btn go" id="addHere">＋ WP qui (GPS)</button>
+    <button class="btn sm" id="addCoord">＋ per coordinate</button>
+    <button class="btn sm" id="impGpx">↧ Importa GPX</button>
+    <button class="btn sm" id="expSel">↥ Esporta selezionati</button>
+  </div>
+  <div class="bar" id="toolbar">
+    <button class="tool" id="tGrid" title="Griglia meridiani/paralleli (1°)">▦ Griglia</button>
+    <button class="tool" id="tZone" title="Quadri d'unione zone venti (Traversata)">▭ Zone venti</button>
+    <button class="tool" id="tBathy" title="Isobate batimetriche EMODnet (per zona)">≈ Batimetria</button>
+    <button class="tool" id="tDraw" title="Disegna una traccia sulla carta">✎ Traccia</button>
+    <button class="tool" id="tMeas" title="Misura distanza e rotta tra due punti">📐 Misura</button>
+    <button class="tool" id="tAis" title="AIS in tempo reale (AISstream.io, chiave gratuita)">📡 AIS</button>
+  </div>
+  <div class="bar" id="drawCtl" style="display:none">
+    <span class="readout" id="drawInfo">Tocca la carta per aggiungere punti.</span>
+    <button class="btn sm" id="drawUndo">↶ Punto</button>
+    <button class="btn sm" id="drawCancel">Annulla</button>
+    <button class="btn go sm" id="drawDone">✓ Salva</button>
+  </div>
+  <div class="bar" id="measCtl" style="display:none">
+    <span class="readout" id="measInfo">Tocca due punti sulla carta.</span>
+    <button class="btn sm" id="measCancel">Chiudi</button>
+  </div>
+  <div class="bar" id="aisCtl" style="display:none">
+    <span class="readout" id="aisInfo">AIS: —</span>
+    <button class="btn sm" id="aisKeyBtn">Chiave</button>
+  </div>
+  <div class="hint" id="posInfo">posizione: —</div>
+  <input type="file" id="fileGpx" accept=".gpx" hidden>
+
+  <div class="tabs">
+    <button data-t="wpt" class="on" id="tabWpt">Waypoint <span id="nW">0</span></button>
+    <button data-t="trk" id="tabTrk">Tracce <span id="nT">0</span></button>
+    <button id="newFolder" title="Nuova cartella" style="margin-left:auto;flex:none">🗂＋</button>
+  </div>
+  <div class="list" id="list"></div>
+</div>
+
+<div class="ov" id="ov">
+  <div class="sheet">
+    <h3 id="ovTitle">Nuovo waypoint</h3>
+    <div class="field" id="ovCoordField">
+      <label>Coordinate — decimali (45.65) oppure gradi-primi (45 39.0 N)</label>
+      <div class="row"><input id="ovLat" placeholder="Lat (es. 45 39.0 N)"><input id="ovLon" placeholder="Lon (es. 13 46.2 E)"></div>
+      <div class="hint" id="ovCoordHint" style="margin-top:5px"></div>
+    </div>
+    <div class="field"><label>Nome</label><input id="ovName" placeholder="Es. Molo Sacchetta"></div>
+    <div class="field"><label>Nota</label><textarea id="ovNote" placeholder="Opzionale"></textarea></div>
+    <div class="field"><label>Tag colore</label><div class="tags" id="ovTags"></div>
+      <input id="ovTagName" placeholder="Nome del tag (es. Ancoraggi)" style="margin-top:8px"></div>
+    <div class="field" id="ovIconField"><label>Icona</label><div class="wpicons" id="ovIcons"></div></div>
+    <div class="field"><label>Cartella</label>
+      <div class="row"><select id="ovFolder" class="sel" style="flex:1"></select><button class="btn sm" id="ovFolderNew" type="button" title="Crea una nuova cartella">＋ Nuova</button></div>
+    </div>
+    <div class="row"><button class="btn" id="ovCancel">Annulla</button><button class="btn go" id="ovSave">Salva</button></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+/* contratto: raffyca-waypoints [{id,name,lat,lon,ts,tag?,note?}] · raffyca-tracks [{...,tag?,note?}]
+   raffyca-active-wp · raffyca-active-track · raffyca-tags {color:nome} · raffyca-pos {lat,lon} */
+const $=id=>document.getElementById(id);
+const TAGS=[["#8aa0b0","Neutro"],["#2BD9C4","Acqua"],["#FFC24B","Ambra"],["#FF6B6B","Corallo"],["#46d68a","Verde"],["#5b8dff","Blu"],["#C77DFF","Viola"]];
+function lsGet(k){try{return JSON.parse(localStorage.getItem(k)||'[]');}catch(e){return[];}}
+function lsSet(k,v){localStorage.setItem(k,JSON.stringify(v));}
+function actWp(){return localStorage.getItem('raffyca-active-wp')||'';}
+function actTrk(){return localStorage.getItem('raffyca-active-track')||'';}
+/* ---- cartelle WP/tracce (raffyca-folders [{id,name,kind}]; item.folder=id) ---- */
+function foldersAll(){return lsGet('raffyca-folders');}
+function foldersOf(kind){return foldersAll().filter(function(f){return f.kind===kind;});}
+function addFolder(name,kind){name=(name||'').trim();if(!name)return null;var fs=foldersAll();var id='f'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);fs.push({id:id,name:name,kind:kind});lsSet('raffyca-folders',fs);return id;}
+function renameFolder(id,name){var fs=foldersAll();var f=fs.find(function(x){return x.id===id;});if(f){f.name=name;lsSet('raffyca-folders',fs);}}
+function delFolder(id,kind){lsSet('raffyca-folders',foldersAll().filter(function(f){return f.id!==id;}));
+  var key=kind==='wpt'?'raffyca-waypoints':'raffyca-tracks';var arr=lsGet(key),ch=false;
+  arr.forEach(function(x){if(x.folder===id){x.folder='';ch=true;}});if(ch)lsSet(key,arr);}
+const R=6371000,rad=d=>d*Math.PI/180,deg=r=>r*180/Math.PI;
+function hav(a,b){var s=Math.sin(rad(b[0]-a[0])/2)**2+Math.cos(rad(a[0]))*Math.cos(rad(b[0]))*Math.sin(rad(b[1]-a[1])/2)**2;return 2*R*Math.asin(Math.sqrt(s));}
+function brng(a,b){var y=Math.sin(rad(b[1]-a[1]))*Math.cos(rad(b[0])),x=Math.cos(rad(a[0]))*Math.sin(rad(b[0]))-Math.sin(rad(a[0]))*Math.cos(rad(b[0]))*Math.cos(rad(b[1]-a[1]));return(deg(Math.atan2(y,x))+360)%360;}
+function tagColor(t){return t||"#8aa0b0";}
+/* tag nominabili */
+function tagsMap(){var d={};TAGS.forEach(t=>d[t[0]]=t[1]);try{Object.assign(d,JSON.parse(localStorage.getItem('raffyca-tags')||'{}'));}catch(e){}return d;}
+function tagName(c){return tagsMap()[c]||c;}
+var WP_ICONS={
+  "pallino":{n:"Pallino",m:"fill",w:"2",s:"<circle cx=\"12\" cy=\"12\" r=\"6\" fill=\"currentColor\"></circle>"},
+  "crocino":{n:"Crocino",m:"stroke",w:"2.2",s:"<path d=\"M12 5v14M5 12h14\"></path>"},
+  "quadrato":{n:"Quadrato",m:"stroke",w:"2",s:"<rect x=\"5\" y=\"5\" width=\"14\" height=\"14\" rx=\"1.5\"></rect>"},
+  "rettangolo":{n:"Rettangolo",m:"stroke",w:"2",s:"<rect x=\"3\" y=\"8\" width=\"18\" height=\"8\" rx=\"1.5\"></rect>"},
+  "triangolo":{n:"Triangolo",m:"fill",w:"2",s:"<path d=\"M12 4 L21 20 H3 Z\"></path>"},
+  "rombo":{n:"Rombo",m:"fill",w:"2",s:"<path d=\"M12 3 L20 12 L12 21 L4 12 Z\"></path>"},
+  "stella":{n:"Stella",m:"fill",w:"2",s:"<path d=\"M12 3 L14.5 9.3 L21 10 L16 14.4 L17.5 21 L12 17.5 L6.5 21 L8 14.4 L3 10 L9.5 9.3 Z\"></path>"},
+  "bandiera":{n:"Bandiera",m:"stroke",w:"2",s:"<path d=\"M7 3v18\"></path><path d=\"M7 4 L19 7.5 L7 11 Z\" fill=\"currentColor\" stroke=\"none\"></path>"},
+  "barca":{n:"Imbarcazione",m:"fill",w:"0.6",s:"<path d=\"M12 2.5 C15.5 6.8 17 10.3 17 13.5 C17 17.6 14.8 20.5 12 21.5 C9.2 20.5 7 17.6 7 13.5 C7 10.3 8.5 6.8 12 2.5 Z\"></path> <path d=\"M12 4.5 V19\" stroke=\"currentColor\" stroke-width=\"1\" fill=\"none\"></path>"},
+  "ancora":{n:"Ancoraggio",m:"stroke",w:"1.8",s:"<circle cx=\"12\" cy=\"5\" r=\"2\"></circle> <path d=\"M12 7v13\"></path> <path d=\"M7 10h10\"></path> <path d=\"M5 14 A7 7 0 0 0 12 20\"></path> <path d=\"M19 14 A7 7 0 0 1 12 20\"></path>"},
+  "darsena":{n:"Darsena",m:"stroke",w:"1.8",s:"<path d=\"M3 9h18\"></path> <path d=\"M6 9v6\"></path> <path d=\"M12 9v6\"></path> <path d=\"M18 9v6\"></path> <path d=\"M3 18 q2.2 -2.4 4.5 0 t4.5 0 t4.5 0 t4.5 0\"></path>"},
+  "ormeggio":{n:"Ormeggio",m:"stroke",w:"1.8",s:"<ellipse cx=\"12\" cy=\"14\" rx=\"7.5\" ry=\"4\"></ellipse> <rect x=\"9\" y=\"3\" width=\"6\" height=\"13\" rx=\"3\" fill=\"currentColor\" stroke=\"none\"></rect>"},
+  "carburante":{n:"Carburante",m:"stroke",w:"1.8",s:"<rect x=\"4\" y=\"7\" width=\"9\" height=\"13\" rx=\"1\"></rect> <path d=\"M7 7V4h3v3\"></path> <path d=\"M13 11h2.5a1.8 1.8 0 0 1 1.8 1.8V17\"></path> <circle cx=\"18.7\" cy=\"9.3\" r=\"1.4\"></circle>"},
+  "divieto":{n:"Divieto",m:"stroke",w:"2",s:"<circle cx=\"12\" cy=\"12\" r=\"8.5\"></circle> <path d=\"M6.4 6.4 L17.6 17.6\"></path>"},
+  "pericolo":{n:"Pericolo",m:"stroke",w:"1.8",s:"<path d=\"M12 4 L21.5 20 H2.5 Z\"></path> <path d=\"M12 10.5v3.5\"></path> <circle cx=\"12\" cy=\"17\" r=\"0.9\" fill=\"currentColor\" stroke=\"none\"></circle>"},
+  "ristorante":{n:"Ristorante",m:"stroke",w:"1.7",s:"<path d=\"M7 3v6a1.6 1.6 0 0 0 3.2 0V3\"></path> <path d=\"M8.6 9v12\"></path> <path d=\"M16 3c-1.8 1.8-1.8 4.6 0 6.4 v11.6\"></path>"},
+  "acqua":{n:"Acqua",m:"fill",w:"2",s:"<path d=\"M12 3 C8 9 5 12.6 5 15.6 a7 7 0 0 0 14 0 C19 12.6 16 9 12 3 Z\"></path>"},
+  "boa":{n:"Boa",m:"stroke",w:"1.8",s:"<path d=\"M12 3 L15 8 H9 Z\"></path> <path d=\"M9 8h6v9a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z\"></path> <path d=\"M9 13h6\"></path>"},
+  "ufficio":{n:"Ufficio",m:"stroke",w:"1.7",s:"<rect x=\"6\" y=\"3\" width=\"12\" height=\"18\" rx=\"1\"></rect> <rect x=\"8.3\" y=\"6.5\" width=\"2\" height=\"2\" fill=\"currentColor\" stroke=\"none\"></rect> <rect x=\"13.7\" y=\"6.5\" width=\"2\" height=\"2\" fill=\"currentColor\" stroke=\"none\"></rect> <rect x=\"8.3\" y=\"11\" width=\"2\" height=\"2\" fill=\"currentColor\" stroke=\"none\"></rect> <rect x=\"13.7\" y=\"11\" width=\"2\" height=\"2\" fill=\"currentColor\" stroke=\"none\"></rect> <rect x=\"10\" y=\"15.5\" width=\"4\" height=\"5.5\" fill=\"currentColor\" stroke=\"none\"></rect>"},
+  "farmacia":{n:"Farmacia",m:"fill",w:"2",s:"<path d=\"M9 3 H15 V9 H21 V15 H15 V21 H9 V15 H3 V9 H9 Z\"></path>"}
+};
+function iconSvg(id,color,size){var d=WP_ICONS[id]||WP_ICONS.pallino;size=size||24;color=color||'#c7d0dd';
+  var root=d.m==='fill'?('fill="'+color+'" stroke="none"'):('fill="none" stroke="'+color+'" stroke-width="'+d.w+'" stroke-linecap="round" stroke-linejoin="round"');
+  return '<svg viewBox="0 0 24 24" width="'+size+'" height="'+size+'" style="color:'+color+'" '+root+'>'+d.s+'</svg>';}
+function showIconField(on){var f=document.getElementById('ovIconField');if(f)f.style.display=on?'':'none';}
+function buildIconPicker(cur,color){var host=$('ovIcons');if(!host)return;host.innerHTML='';
+  Object.keys(WP_ICONS).forEach(function(id){var b=document.createElement('button');b.type='button';b.className='wpicon'+(id===cur?' sel':'');b.title=WP_ICONS[id].n;b.innerHTML=iconSvg(id,color||'#c7d0dd',24);
+    b.onclick=function(){pendIcon=id;[].slice.call(host.children).forEach(function(x){x.classList.remove('sel');});b.classList.add('sel');};
+    host.appendChild(b);});}
+function setTagName(c,n){var m={};try{m=JSON.parse(localStorage.getItem('raffyca-tags')||'{}');}catch(e){}if(n&&n.trim())m[c]=n.trim();localStorage.setItem('raffyca-tags',JSON.stringify(m));}
+/* parser coordinate: decimali, gradi-primi, gradi-primi-secondi, con emisfero N/S/E/W */
+function parseCoord(s){s=String(s||'').trim();if(!s)return NaN;
+  var neg=/[SWsw]/.test(s)||/^\s*-/.test(s);
+  s=s.replace(/[°'"′″]/g,' ').replace(/[NSEWnsew]/g,' ').replace(',','.').trim();
+  var p=s.split(/\s+/).map(parseFloat).filter(x=>!isNaN(x));if(!p.length)return NaN;
+  var v=Math.abs(p[0])+(p[1]||0)/60+(p[2]||0)/3600;return neg?-v:v;}
+
+/* posizione */
+var POS=null;
+(function(){try{var p=JSON.parse(localStorage.getItem('raffyca-pos')||'null');if(p&&isFinite(p.lat))POS=[p.lat,p.lon];}catch(e){}})();
+function updatePosInfo(){$('posInfo').textContent=POS?('posizione: '+POS[0].toFixed(4)+', '+POS[1].toFixed(4)):'posizione: — (Alt-click o pressione lunga sulla carta per un WP)';}
+if(navigator.geolocation)navigator.geolocation.getCurrentPosition(function(p){POS=[p.coords.latitude,p.coords.longitude];try{localStorage.setItem('raffyca-pos',JSON.stringify({lat:POS[0],lon:POS[1],ts:Date.now()}));}catch(e){}updatePosInfo();drawPosMarker();},function(){},{enableHighAccuracy:true,timeout:15000});
+
+/* inquadratura iniziale per zona (raffyca-profile.zone) — usata solo se non c'e posizione nota */
+var ZONE_VIEW={
+ "Alto Adriatico":[45.45,13.35,8],"Medio Adriatico":[43.35,14.15,8],"Basso Adriatico":[41.20,17.60,8],
+ "Mar Ionio":[39.00,17.10,8],"Basso Tirreno":[39.60,14.55,8],"Alto Tirreno":[42.45,10.85,8],
+ "Mar Ligure":[44.05,8.85,9],"Sardegna":[40.30,9.30,8],"Sicilia":[37.75,13.10,8]};
+function zoneView(){try{var p=JSON.parse(localStorage.getItem("raffyca-profile")||"{}");var v=ZONE_VIEW[(p.zone||"").trim()];if(v)return v;}catch(e){}return [43.5,10.3,6];}
+var ZV=zoneView();
+/* mappa: basi selezionabili + overlay simboli nautici OpenSeaMap.
+   Base "Nautica (chiara)" = poche strade, acqua chiara: i simboli nautici risaltano, aspetto vicino a una carta. */
+var baseNautica=L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{maxZoom:20,subdomains:'abcd',attribution:'© OpenStreetMap · © CARTO'});
+var baseMinimal=L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:20,subdomains:'abcd',attribution:'© OpenStreetMap · © CARTO'});
+var baseOSM=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'});
+var seamark=L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',{maxZoom:19,opacity:1,attribution:'© OpenSeaMap'});
+var map=L.map('map',{zoomControl:true}).setView(POS||[ZV[0],ZV[1]],POS?12:ZV[2]);
+baseNautica.addTo(map);seamark.addTo(map);
+L.control.layers({'Nautica (chiara)':baseNautica,'Minimal':baseMinimal,'OpenStreetMap':baseOSM},{'Simboli nautici (OpenSeaMap)':seamark},{collapsed:true}).addTo(map);
+var layer=L.layerGroup().addTo(map), posMarker=null;
+var LocateCtl=L.Control.extend({options:{position:'topleft'},onAdd:function(){var b=L.DomUtil.create('a','leaflet-bar');b.href='#';b.title='La mia posizione';b.innerHTML='◎';b.style.cssText='width:30px;height:30px;line-height:30px;text-align:center;font-size:17px;background:#0e2036;color:#2BD9C4;text-decoration:none';L.DomEvent.on(b,'click',function(e){L.DomEvent.stop(e);locateMe();});return b;}});
+map.addControl(new LocateCtl());
+function locateMe(){if(!navigator.geolocation){alert('GPS non disponibile.');return;}navigator.geolocation.getCurrentPosition(function(p){POS=[p.coords.latitude,p.coords.longitude];try{localStorage.setItem('raffyca-pos',JSON.stringify({lat:POS[0],lon:POS[1],ts:Date.now()}));}catch(e){}map.setView(POS,14);drawPosMarker();updatePosInfo();renderList();},function(){alert('Posizione non disponibile (permesso negato o segnale assente).');},{enableHighAccuracy:true,timeout:15000});}
+function drawPosMarker(){if(posMarker)map.removeLayer(posMarker);if(!POS)return;posMarker=L.circleMarker(POS,{radius:6,color:'#fff',weight:2,fillColor:'#2BD9C4',fillOpacity:1}).addTo(map).bindTooltip('La tua posizione');}
+
+/* ===== pane sotto i marker per griglia e zone (non intercetta i tocchi) ===== */
+map.createPane('gridPane');map.getPane('gridPane').style.zIndex=350;map.getPane('gridPane').style.pointerEvents='none';
+function lbl(cls,txt,anchor){return L.divIcon({className:'',html:'<span class="'+cls+'">'+txt+'</span>',iconSize:[70,14],iconAnchor:anchor||[-4,7]});}
+
+/* ===== Griglia meridiani/paralleli, passo fisso 1° (long. e lat.) ===== */
+var gridOn=false, gridLayer=L.layerGroup();
+function fmtLat(v){return Math.abs(v)+'° '+(v<0?'S':'N');}
+function fmtLon(v){return Math.abs(v)+'° '+(v<0?'W':'E');}
+function drawGrid(){gridLayer.clearLayers();if(!gridOn)return;
+  var b=map.getBounds(),S=b.getSouth(),N=b.getNorth(),W=b.getWest(),E=b.getEast();
+  var s=Math.floor(S),n=Math.ceil(N),w=Math.floor(W),e=Math.ceil(E);
+  if(n-s>80||e-w>80)return; // troppo lontano: evita migliaia di linee
+  for(var la=s;la<=n;la++){L.polyline([[la,W],[la,E]],{pane:'gridPane',color:'#2BD9C4',weight:.6,opacity:.35,interactive:false}).addTo(gridLayer);
+    L.marker([la,W],{pane:'gridPane',icon:lbl('grid-lbl',fmtLat(la),[-4,7]),interactive:false,keyboard:false}).addTo(gridLayer);}
+  for(var lo=w;lo<=e;lo++){L.polyline([[S,lo],[N,lo]],{pane:'gridPane',color:'#2BD9C4',weight:.6,opacity:.35,interactive:false}).addTo(gridLayer);}
+  // etichette meridiani: inserite ~26px sopra il bordo sud, così non finiscono clippate/coperte (tablet)
+  var sPt=map.latLngToContainerPoint(L.latLng(S,w)),lonLat=map.containerPointToLatLng(L.point(sPt.x,sPt.y-26)).lat;
+  for(var lo2=w;lo2<=e;lo2++){L.marker([lonLat,lo2],{pane:'gridPane',icon:lbl('grid-lbl',fmtLon(lo2),[18,7]),interactive:false,keyboard:false}).addTo(gridLayer);}}
+
+/* ===== Quadri d'unione zone venti (stessi ZONE_BOX di Traversata) ===== */
+var ZONE_BOX={
+ "Alto Adriatico":{latN:45.85,latS:44.35,lonW:12.15,lonE:15.95},
+ "Medio Adriatico":{latN:44.95,latS:41.50,lonW:12.15,lonE:16.70},
+ "Basso Adriatico":{latN:43.40,latS:40.00,lonW:15.10,lonE:20.30},
+ "Mar Ionio":{latN:40.55,latS:36.60,lonW:14.60,lonE:19.60},
+ "Basso Tirreno":{latN:41.80,latS:37.70,lonW:11.80,lonE:16.70},
+ "Alto Tirreno":{latN:44.20,latS:40.80,lonW:9.00,lonE:11.95},
+ "Mar Ligure":{latN:44.60,latS:43.10,lonW:7.40,lonE:10.20},
+ "Sardegna":{latN:41.50,latS:38.70,lonW:7.90,lonE:12.00},
+ "Sicilia":{latN:38.70,latS:36.30,lonW:11.80,lonE:15.80}};
+var zonesOn=false, zoneLayer=L.layerGroup();
+function drawZones(){zoneLayer.clearLayers();if(!zonesOn)return;
+  Object.keys(ZONE_BOX).forEach(function(z){var x=ZONE_BOX[z];
+    L.rectangle([[x.latS,x.lonW],[x.latN,x.lonE]],{pane:'gridPane',color:'#FFC24B',weight:2.4,opacity:.95,fill:true,fillColor:'#FFC24B',fillOpacity:.05,dashArray:'9 4',interactive:false}).addTo(zoneLayer);
+    L.marker([x.latN,(x.lonW+x.lonE)/2],{pane:'gridPane',icon:lbl('zone-lbl',z),interactive:false,keyboard:false}).addTo(zoneLayer);});}
+
+/* ===== gestione modalità carta: normale | disegno traccia | misura ===== */
+var mapMode='normal';
+function setMode(m){
+  if(mapMode==='draw'&&m!=='draw')endDraw(false);
+  if(mapMode==='meas'&&m!=='meas')endMeas();
+  mapMode=m;
+  $('tDraw').classList.toggle('on',m==='draw');
+  $('tMeas').classList.toggle('on',m==='meas');
+  $('drawCtl').style.display=m==='draw'?'':'none';
+  $('measCtl').style.display=m==='meas'?'':'none';
+  if(m==='normal')map.doubleClickZoom.enable();else map.doubleClickZoom.disable();
+}
+
+/* --- disegno traccia --- */
+var drawPts=[], drawLine=null, drawDots=L.layerGroup().addTo(map);
+function refreshDraw(){if(drawLine){map.removeLayer(drawLine);drawLine=null;}drawDots.clearLayers();
+  if(drawPts.length){drawLine=L.polyline(drawPts,{color:'#2BD9C4',weight:3,dashArray:'6 4'}).addTo(map);
+    drawPts.forEach(function(p){L.circleMarker(p,{radius:3,color:'#fff',weight:1,fillColor:'#2BD9C4',fillOpacity:1}).addTo(drawDots);});}
+  var d=0;for(var i=1;i<drawPts.length;i++)d+=hav(drawPts[i-1],drawPts[i]);
+  $('drawInfo').textContent=drawPts.length+' punti · '+(d/1852).toFixed(2)+' NM';}
+function startDraw(){drawPts=[];refreshDraw();setMode('draw');}
+function drawUndo(){drawPts.pop();refreshDraw();}
+function endDraw(save){
+  if(save){
+    if(drawPts.length<2){alert('Servono almeno 2 punti.');return false;}
+    var d=0;for(var i=1;i<drawPts.length;i++)d+=hav(drawPts[i-1],drawPts[i]);
+    var nm=prompt('Nome traccia:','Traccia '+(lsGet('raffyca-tracks').length+1));
+    if(nm!==null){var trks=lsGet('raffyca-tracks');
+      trks.push({id:'t'+Date.now(),name:(nm.trim()||'Traccia'),ts:Date.now(),pts:drawPts.map(p=>[p[0],p[1],0]),dist:+(d/1852).toFixed(2),dur:0,tag:'#2BD9C4'});
+      lsSet('raffyca-tracks',trks);}
+  }
+  drawPts=[];if(drawLine){map.removeLayer(drawLine);drawLine=null;}drawDots.clearLayers();render();return true;}
+
+/* --- misura distanza/rotta tra due punti --- */
+var measPts=[], measLine=null, measMk=L.layerGroup().addTo(map);
+function measReset(){measPts=[];measMk.clearLayers();if(measLine){map.removeLayer(measLine);measLine=null;}}
+function startMeas(){measReset();$('measInfo').textContent='Tocca due punti sulla carta.';setMode('meas');}
+function measAdd(ll){
+  if(measPts.length>=2)measReset();
+  measPts.push([ll.lat,ll.lng]);
+  L.circleMarker(measPts[measPts.length-1],{radius:5,color:'#fff',weight:2,fillColor:'#FFC24B',fillOpacity:1}).addTo(measMk);
+  if(measPts.length===2){measLine=L.polyline(measPts,{color:'#FFC24B',weight:2,dashArray:'6 4'}).addTo(map);
+    var d=hav(measPts[0],measPts[1])/1852,b=brng(measPts[0],measPts[1]);
+    $('measInfo').innerHTML='Dist <b>'+d.toFixed(2)+' NM</b> · Rotta <b>'+String(Math.round(b)).padStart(3,'0')+'°</b>';}
+  else $('measInfo').textContent='Punto A fissato — tocca il punto B.';}
+function endMeas(){measReset();$('measInfo').textContent='Tocca due punti sulla carta.';}
+
+/* --- click/tocco sulla carta secondo modalità --- */
+function onMapPoint(e){
+  if(mapMode==='draw'){drawPts.push([e.latlng.lat,e.latlng.lng]);refreshDraw();return;}
+  if(mapMode==='meas'){measAdd(e.latlng);return;}
+  if(e.originalEvent&&e.originalEvent.altKey)openCreate(e.latlng.lat,e.latlng.lng); // Alt-click = nuovo WP
+}
+map.on('click',onMapPoint);
+map.on('contextmenu',function(e){if(mapMode!=='normal')return;openCreate(e.latlng.lat,e.latlng.lng);}); // pressione lunga (touch) / tasto destro
+map.on('moveend',function(){if(gridOn)drawGrid();});
+
+/* ===== AIS live via AISstream.io (WebSocket, chiave utente in raffyca-ais-key) =====
+   La chiave gratuita si ottiene registrandosi su aisstream.io. La copertura dipende
+   dai ricevitori della community (buona vicino ai porti). Si sottoscrive il riquadro
+   visibile; spostando molto la carta la sottoscrizione si aggiorna. */
+var aisOn=false, aisWS=null, aisLayer=L.layerGroup(), aisMk={}, aisSweep=null, aisMoveT=null;
+function aisKey(){return localStorage.getItem('raffyca-ais-key')||'';}
+function aisStatus(t){var el=$('aisInfo');if(el)el.textContent=t;}
+function aisIcon(cog){var c=isFinite(cog)?cog:0;
+  return L.divIcon({className:'',iconSize:[20,20],iconAnchor:[10,10],
+    html:'<div style="width:20px;height:20px;transform:rotate('+c+'deg)"><svg viewBox="0 0 20 20" width="20" height="20"><path d="M10 1 L15.5 18 L10 14 L4.5 18 Z" fill="#46d68a" stroke="#04121a" stroke-width="1.2"/></svg></div>'});}
+function aisBBox(){var b=map.getBounds().pad(0.3);return [[[b.getSouth(),b.getWest()],[b.getNorth(),b.getEast()]]];}
+function aisSubscribe(){if(!aisWS||aisWS.readyState!==1)return;
+  aisWS.send(JSON.stringify({APIKey:aisKey(),BoundingBoxes:aisBBox(),FilterMessageTypes:["PositionReport","ShipStaticData"]}));}
+function aisConnect(){
+  if(!aisKey()){aisStatus('AIS: chiave mancante');return;}
+  aisStatus('AIS: connessione…');
+  try{aisWS=new WebSocket('wss://stream.aisstream.io/v0/stream');}catch(e){aisStatus('AIS: errore connessione');return;}
+  aisWS.onopen=function(){aisSubscribe();aisStatus('AIS: in ascolto…');};
+  aisWS.onmessage=function(ev){var d;try{d=JSON.parse(ev.data);}catch(e){return;}
+    if(d && d.error){aisStatus('AIS: '+d.error);return;}
+    var md=d&&d.MetaData;if(!md)return;var mmsi=md.MMSI;if(!mmsi)return;
+    var la=md.latitude,lo=md.longitude;if(!isFinite(la)||!isFinite(lo))return;
+    var name=String(md.ShipName||'').trim()||('MMSI '+mmsi);
+    var cog=NaN,sog=NaN;
+    if(d.Message&&d.Message.PositionReport){var pr=d.Message.PositionReport;
+      if(isFinite(pr.Cog)&&pr.Cog<360)cog=pr.Cog; if(isFinite(pr.Sog))sog=pr.Sog;
+      if(isFinite(pr.TrueHeading)&&pr.TrueHeading<360)cog=pr.TrueHeading;}
+    var tip=name+(isFinite(sog)?' · '+sog.toFixed(1)+' kn':'')+(isFinite(cog)?' · '+String(Math.round(cog)).padStart(3,'0')+'°':'');
+    var rec=aisMk[mmsi];
+    if(rec){rec.m.setLatLng([la,lo]);if(isFinite(cog))rec.m.setIcon(aisIcon(cog));rec.m.setTooltipContent(tip);rec.t=Date.now();}
+    else{var m=L.marker([la,lo],{icon:aisIcon(cog)}).addTo(aisLayer).bindTooltip(tip);aisMk[mmsi]={m:m,t:Date.now()};}
+    aisStatus('AIS: '+Object.keys(aisMk).length+' navi');};
+  aisWS.onclose=function(){if(aisOn)aisStatus('AIS: connessione chiusa (chiave o rete?)');};
+  aisWS.onerror=function(){aisStatus('AIS: errore di rete');};
+}
+function aisSweepStale(){var now=Date.now();Object.keys(aisMk).forEach(function(k){if(now-aisMk[k].t>600000){aisLayer.removeLayer(aisMk[k].m);delete aisMk[k];}});}
+function aisStart(){
+  if(!aisKey()){var k=prompt('Incolla la tua API key AISstream.io\n(gratuita: registrati su aisstream.io → API Keys):','');
+    if(k===null)return false;k=k.trim();if(!k)return false;localStorage.setItem('raffyca-ais-key',k);}
+  aisOn=true;aisLayer.addTo(map);aisConnect();aisSweep=setInterval(aisSweepStale,60000);return true;}
+function aisStop(){aisOn=false;if(aisWS){try{aisWS.close();}catch(e){}aisWS=null;}
+  if(aisSweep){clearInterval(aisSweep);aisSweep=null;}
+  Object.keys(aisMk).forEach(function(k){aisLayer.removeLayer(aisMk[k].m);});aisMk={};map.removeLayer(aisLayer);aisStatus('AIS: —');}
+map.on('moveend',function(){if(!aisOn)return;clearTimeout(aisMoveT);
+  aisMoveT=setTimeout(function(){ if(aisWS&&aisWS.readyState===1)aisSubscribe(); else if(!aisWS||aisWS.readyState>1)aisConnect(); },800);});
+
+/* filtro */
+function rebuildFilter(){var f=$('filter'),cur=f.value;
+  var tags=[...new Set(lsGet('raffyca-waypoints').concat(lsGet('raffyca-tracks')).map(x=>x.tag).filter(Boolean))];
+  var kind=(typeof tab!=='undefined'?tab:'wpt');var fol=foldersOf(kind);
+  var folOpts=fol.length?('<option value="folder:__none__">Senza cartella</option>'+fol.map(function(fo){return '<option value="folder:'+fo.id+'">Cartella: '+esc(fo.name)+'</option>';}).join('')):'';
+  f.innerHTML='<option value="all">Tutte</option><option value="active">Solo attivo</option>'+folOpts+tags.map(t=>'<option value="tag:'+t+'">Tag: '+esc(tagName(t))+'</option>').join('');
+  if([...f.options].some(o=>o.value===cur))f.value=cur;else f.value='all';}
+function passFilter(x,isWp){var f=$('filter').value;if(f==='all')return true;if(f==='active')return isWp?x.id===actWp():x.id===actTrk();if(f.startsWith('tag:'))return x.tag===f.slice(4);if(f.startsWith('folder:')){var fid=f.slice(7);return fid==='__none__'?!x.folder:x.folder===fid;}return true;}
+
+/* disegno */
+function draw(){layer.clearLayers();
+  var wpts=lsGet('raffyca-waypoints'),trks=lsGet('raffyca-tracks'),aw=actWp(),at=actTrk();
+  trks.forEach(function(t){if(!passFilter(t,false)||!t.pts||t.pts.length<2)return;
+    L.polyline(t.pts.map(p=>[p[0],p[1]]),{color:tagColor(t.tag),weight:t.id===at?5:3,opacity:t.id===at?1:.75}).addTo(layer).bindTooltip(t.name);});
+  wpts.forEach(function(w){if(!passFilter(w,true))return;
+    var col=tagColor(w.tag),active=(w.id===aw),sz=active?28:23;
+    var ic=L.divIcon({className:'wpdiv',html:'<div class="wpmark'+(active?' act':'')+'">'+iconSvg(w.icon||'pallino',col,sz)+'</div>',iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
+    var m=L.marker([w.lat,w.lon],{icon:ic,keyboard:false}).addTo(layer);
+    m.bindTooltip(w.name+(w.note?' · '+w.note:''));m.on('click',function(){if(mapMode!=='normal')return;setActiveWp(w.id===aw?'':w.id);});});
+  drawPosMarker();}
+function setActiveWp(id){localStorage.setItem('raffyca-active-wp',id||'');render();}
+function setActiveTrk(id){localStorage.setItem('raffyca-active-track',id||'');render();}
+
+/* liste */
+var tab='wpt', sel={wpt:{},trk:{}};
+function fmtDur(s){s=Math.round(s||0);var h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return h?h+'h'+m+'m':m+'m';}
+function esc(s){return String(s||'').replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));}
+function folderGroups(items,kind){var fol=foldersOf(kind),groups=[];
+  fol.forEach(function(fo){groups.push({id:fo.id,name:fo.name,items:items.filter(function(x){return x.folder===fo.id;})});});
+  var unf=items.filter(function(x){return !x.folder||!fol.some(function(fo){return fo.id===x.folder;});});
+  groups.push({id:'',name:'Senza cartella',items:unf});
+  return {groups:groups,hasFolders:fol.length>0};}
+function fHeader(host,g,kind){var h=document.createElement('div');h.className='fhead';
+  h.innerHTML='<span>\uD83D\uDDC2</span><span class="fname">'+esc(g.name)+'</span><span class="fcount">'+g.items.length+'</span>';
+  if(g.id){var act=document.createElement('span');act.className='fact';
+    act.innerHTML='<button class="fren" title="Rinomina cartella">\u270E</button><button class="fdel" title="Elimina cartella">\uD83D\uDDD1</button>';
+    act.querySelector('.fren').onclick=function(){var nm=prompt('Nuovo nome cartella:',g.name);if(nm&&nm.trim()){renameFolder(g.id,nm.trim());render();}};
+    act.querySelector('.fdel').onclick=function(){if(confirm('Eliminare la cartella "'+g.name+'"?\nGli elementi NON vengono cancellati: tornano senza cartella.')){delFolder(g.id,kind);render();}};
+    h.appendChild(act);}
+  host.appendChild(h);}
+function renderWpt(w,host,wpts,aw){
+  var d='',b='';if(POS){var dist=hav(POS,[w.lat,w.lon])/1852;d=dist.toFixed(dist<10?2:1)+' NM';b=String(Math.round(brng(POS,[w.lat,w.lon]))).padStart(3,'0')+'\u00B0';}
+  var it=document.createElement('div');it.className='item'+(w.id===aw?' active':'');
+  it.innerHTML='<input type="checkbox" class="chk"><span class="wpico" title="'+esc(tagName(w.tag))+'">'+iconSvg(w.icon||'pallino',tagColor(w.tag),22)+'</span>'+
+    '<div class="it-main"><div class="it-name">'+esc(w.name)+'</div><div class="it-sub">'+(POS?('dist '+d+' \u00B7 rlv '+b):(w.lat.toFixed(4)+', '+w.lon.toFixed(4)))+'</div>'+(w.note?'<div class="it-note">'+esc(w.note)+'</div>':'')+'</div>'+
+    '<div class="it-acts"><button class="iconbtn act'+(w.id===aw?' on':'')+'" title="Attiva">\u25CE</button><button class="iconbtn ed" title="Modifica">\u270E</button><button class="iconbtn del" title="Elimina">\uD83D\uDDD1</button></div>';
+  it.querySelector('.chk').checked=!!sel.wpt[w.id];it.querySelector('.chk').onchange=function(){sel.wpt[w.id]=this.checked;};
+  it.querySelector('.act').onclick=function(){setActiveWp(w.id===aw?'':w.id);};
+  it.querySelector('.ed').onclick=function(){openEdit(w);};
+  it.querySelector('.del').onclick=function(){if(confirm('Eliminare "'+w.name+'"?')){lsSet('raffyca-waypoints',wpts.filter(function(x){return x.id!==w.id;}));if(w.id===aw)localStorage.setItem('raffyca-active-wp','');render();}};
+  it.querySelector('.it-main').ondblclick=function(){map.setView([w.lat,w.lon],15);$('map').scrollIntoView({behavior:'smooth',block:'nearest'});};
+  host.appendChild(it);}
+function renderTrk(t,host,trks,at){
+  var it=document.createElement('div');it.className='item'+(t.id===at?' active':'');
+  it.innerHTML='<input type="checkbox" class="chk"><span class="dot" style="background:'+tagColor(t.tag)+'" title="'+esc(tagName(t.tag))+'"></span>'+
+    '<div class="it-main"><div class="it-name">'+esc(t.name)+'</div><div class="it-sub">'+((t.dist!=null?(+t.dist).toFixed(1)+' NM \u00B7 ':'')+fmtDur(t.dur))+' \u00B7 '+((t.pts&&t.pts.length)||0)+' pt</div>'+(t.note?'<div class="it-note">'+esc(t.note)+'</div>':'')+'</div>'+
+    '<div class="it-acts"><button class="iconbtn act'+(t.id===at?' on':'')+'" title="Traccia attiva">\u25CE</button><button class="iconbtn ed" title="Modifica">\u270E</button><button class="iconbtn del" title="Elimina">\uD83D\uDDD1</button></div>';
+  it.querySelector('.chk').checked=!!sel.trk[t.id];it.querySelector('.chk').onchange=function(){sel.trk[t.id]=this.checked;};
+  it.querySelector('.act').onclick=function(){setActiveTrk(t.id===at?'':t.id);};
+  it.querySelector('.ed').onclick=function(){openEditTrk(t);};
+  it.querySelector('.del').onclick=function(){if(confirm('Eliminare "'+t.name+'"?')){lsSet('raffyca-tracks',trks.filter(function(x){return x.id!==t.id;}));if(t.id===at)localStorage.setItem('raffyca-active-track','');render();}};
+  it.querySelector('.it-main').ondblclick=function(){if(t.pts&&t.pts.length>=2){map.fitBounds(L.latLngBounds(t.pts.map(p=>[p[0],p[1]])).pad(0.25));}else if(t.pts&&t.pts.length){map.setView([t.pts[0][0],t.pts[0][1]],14);}$('map').scrollIntoView({behavior:'smooth',block:'nearest'});};
+  host.appendChild(it);}
+function renderList(){var host=$('list');host.innerHTML='';
+  if(tab==='wpt'){var wpts=lsGet('raffyca-waypoints'),aw=actWp();
+    if(!wpts.length){host.innerHTML='<div class="empty">Nessun waypoint. Alt-click o pressione lunga sulla carta, "\uFF0B WP qui" o "\uFF0B per coordinate".</div>';return;}
+    var vis=wpts.filter(function(w){return passFilter(w,true);});
+    if(!vis.length){host.innerHTML='<div class="empty">Nessun waypoint per questo filtro.</div>';return;}
+    var G=folderGroups(vis,'wpt');
+    G.groups.forEach(function(g){if(!g.items.length&&!g.id)return;if(G.hasFolders)fHeader(host,g,'wpt');g.items.forEach(function(w){renderWpt(w,host,wpts,aw);});});
+  }else{var trks=lsGet('raffyca-tracks'),at=actTrk();
+    if(!trks.length){host.innerHTML='<div class="empty">Nessuna traccia registrata.</div>';return;}
+    var vis2=trks.filter(function(t){return passFilter(t,false);});
+    if(!vis2.length){host.innerHTML='<div class="empty">Nessuna traccia per questo filtro.</div>';return;}
+    var G2=folderGroups(vis2,'trk');
+    G2.groups.forEach(function(g){if(!g.items.length&&!g.id)return;if(G2.hasFolders)fHeader(host,g,'trk');g.items.forEach(function(t){renderTrk(t,host,trks,at);});});
+  }}
+
+function render(){$('nW').textContent=lsGet('raffyca-waypoints').length;$('nT').textContent=lsGet('raffyca-tracks').length;rebuildFilter();updatePosInfo();draw();renderList();}
+
+/* modale */
+var editing=null, pendTag="#8aa0b0", pendFolder='', pendIcon='pallino';
+function buildFolderSelect(kind,cur){var selEl=$('ovFolder');var fol=foldersOf(kind);
+  selEl.innerHTML='<option value="">\u2014 nessuna \u2014</option>'+fol.map(function(f){return '<option value="'+f.id+'">'+esc(f.name)+'</option>';}).join('');
+  selEl.value=cur||'';pendFolder=cur||'';selEl.onchange=function(){pendFolder=this.value;};}
+function buildTagChips(cur){$('ovTags').innerHTML='';var m=tagsMap();
+  TAGS.forEach(function(t){var c=document.createElement('div');c.className='tagchip'+(t[0]===cur?' sel':'');c.style.background=t[0];c.title=m[t[0]]||t[1];
+    c.onclick=function(){pendTag=t[0];[...$('ovTags').children].forEach(x=>x.classList.remove('sel'));c.classList.add('sel');$('ovTagName').value=tagsMap()[t[0]]||'';if(document.getElementById('ovIcons'))buildIconPicker(pendIcon,pendTag);};
+    $('ovTags').appendChild(c);});
+  $('ovTagName').value=tagsMap()[cur]||'';}
+function showCoordField(on){$('ovCoordField').style.display=on?'':'none';}
+function openCreate(lat,lon){editing=null;pendTag="#8aa0b0";pendIcon='pallino';buildFolderSelect('wpt','');showIconField(true);buildIconPicker(pendIcon,pendTag);$('ovTitle').textContent='Nuovo waypoint';showCoordField(true);
+  $('ovLat').value=lat!=null?(+lat).toFixed(5):'';$('ovLon').value=lon!=null?(+lon).toFixed(5):'';$('ovCoordHint').textContent='';
+  $('ovName').value='WP '+(lsGet('raffyca-waypoints').length+1);$('ovNote').value='';buildTagChips(pendTag);$('ov').classList.add('on');}
+function openEdit(w){editing={type:'wpt',id:w.id};pendTag=w.tag||"#8aa0b0";pendIcon=w.icon||'pallino';buildFolderSelect('wpt',w.folder||'');showIconField(true);buildIconPicker(pendIcon,pendTag);$('ovTitle').textContent='Modifica waypoint';showCoordField(true);
+  $('ovLat').value=w.lat.toFixed(5);$('ovLon').value=w.lon.toFixed(5);$('ovCoordHint').textContent='';
+  $('ovName').value=w.name;$('ovNote').value=w.note||'';buildTagChips(pendTag);$('ov').classList.add('on');}
+function openEditTrk(t){editing={type:'trk',id:t.id};pendTag=t.tag||"#8aa0b0";buildFolderSelect('trk',t.folder||'');showIconField(false);$('ovTitle').textContent='Modifica traccia';showCoordField(false);
+  $('ovName').value=t.name;$('ovNote').value=t.note||'';buildTagChips(pendTag);$('ov').classList.add('on');}
+$('ovCancel').onclick=function(){$('ov').classList.remove('on');};
+$('ovFolderNew').onclick=function(){var kind=(editing&&editing.type==='trk')?'trk':'wpt';var nm=prompt('Nome nuova cartella:','');if(nm&&nm.trim()){var id=addFolder(nm.trim(),kind);buildFolderSelect(kind,id);}};
+$('newFolder').onclick=function(){var nm=prompt('Nome nuova cartella ('+(tab==='wpt'?'waypoint':'tracce')+'):','');if(nm&&nm.trim()){addFolder(nm.trim(),tab);render();}};
+$('ovSave').onclick=function(){
+  var name=$('ovName').value.trim()||'Senza nome',note=$('ovNote').value.trim();
+  setTagName(pendTag,$('ovTagName').value);
+  if(editing&&editing.type==='trk'){var trks=lsGet('raffyca-tracks');var t=trks.find(x=>x.id===editing.id);if(t){t.name=name;t.note=note;t.tag=pendTag;t.folder=pendFolder;lsSet('raffyca-tracks',trks);}}
+  else{
+    var la=parseCoord($('ovLat').value),lo=parseCoord($('ovLon').value);
+    if(!isFinite(la)||!isFinite(lo)||Math.abs(la)>90||Math.abs(lo)>180){$('ovCoordHint').textContent='⚠ Coordinate non valide.';$('ovCoordHint').style.color='#FF6B6B';return;}
+    if(editing&&editing.type==='wpt'){var wp=lsGet('raffyca-waypoints');var w=wp.find(x=>x.id===editing.id);if(w){w.name=name;w.note=note;w.tag=pendTag;w.folder=pendFolder;w.icon=pendIcon;w.lat=la;w.lon=lo;lsSet('raffyca-waypoints',wp);}}
+    else{var w2=lsGet('raffyca-waypoints');w2.push({id:'w'+Date.now(),name:name,lat:la,lon:lo,ts:Date.now(),tag:pendTag,note:note,folder:pendFolder,icon:pendIcon});lsSet('raffyca-waypoints',w2);}
+  }
+  $('ov').classList.remove('on');render();};
+
+/* interazioni */
+$('tGrid').onclick=function(){gridOn=!gridOn;this.classList.toggle('on',gridOn);if(gridOn){gridLayer.addTo(map);drawGrid();}else map.removeLayer(gridLayer);};
+$('tZone').onclick=function(){zonesOn=!zonesOn;this.classList.toggle('on',zonesOn);if(zonesOn){zoneLayer.addTo(map);drawZones();}else map.removeLayer(zoneLayer);};
+/* ===== Isobate (batimetria per zona, EMODnet) ===== */
+var ISO_COL={"-5":"#8fe3ff","-10":"#2BD9C4","-20":"#46d68a","-50":"#FFC24B","-100":"#FF6B6B","-200":"#c792ea","-500":"#f78fb3","-1000":"#9aa7ff"};
+var ISO_SLUG={"Alto Adriatico":"alto_adriatico","Medio Adriatico":"medio_adriatico","Basso Adriatico":"basso_adriatico","Mar Ionio":"mar_ionio","Basso Tirreno":"basso_tirreno","Alto Tirreno":"alto_tirreno","Mar Ligure":"mar_ligure","Sardegna":"sardegna","Sicilia":"sicilia"};
+var isoOn=false, isoLayer=L.layerGroup(), isoCache={}, isoCurSlug=null;
+function isoZoneAt(lat,lon){var hit=null;Object.keys(ZONE_BOX).forEach(function(z){var b=ZONE_BOX[z];if(!hit&&lat<=b.latN&&lat>=b.latS&&lon>=b.lonW&&lon<=b.lonE)hit=z;});return hit;}
+function isoStyleF(f){var d=f.properties.depth;return{color:(ISO_COL[String(d)]||"#6b7f95"),weight:(d>=-50?1.1:0.8),opacity:.85};}
+function isoRender(j){
+  isoLayer.clearLayers();
+  L.geoJSON(j,{style:function(){return{color:"#000",weight:12,opacity:0};},onEachFeature:function(f,layer){layer.bindPopup((-f.properties.depth)+" m");}}).addTo(isoLayer);
+  L.geoJSON(j,{interactive:false,style:isoStyleF}).addTo(isoLayer);
+  var lab=[-5,-10,-20,-50,-100,-200,-500],byd={};
+  (j.features||[]).forEach(function(f){var d=f.properties.depth;if(lab.indexOf(d)<0)return;var g=f.geometry;if(!g)return;var cs=g.type==="LineString"?g.coordinates:(g.coordinates[0]||[]);if(cs.length<8)return;(byd[d]=byd[d]||[]).push(cs);});
+  Object.keys(byd).forEach(function(d){byd[d].sort(function(a,b){return b.length-a.length;});byd[d].slice(0,3).forEach(function(cs){var m=cs[Math.floor(cs.length/2)];L.marker([m[1],m[0]],{interactive:false,keyboard:false,icon:L.divIcon({className:"",html:'<span style="font:600 10px var(--mono,monospace);color:'+(ISO_COL[String(d)]||"#9fb0c0")+';background:rgba(6,14,24,.72);padding:0 3px;border-radius:3px">'+(-d)+'</span>',iconSize:[26,12]})}).addTo(isoLayer);});});
+}
+function isoRefresh(){
+  if(!isoOn)return;
+  var c=map.getCenter(),z=isoZoneAt(c.lat,c.lng),slug=z?ISO_SLUG[z]:null;
+  if(!slug)return;
+  if(slug===isoCurSlug)return;
+  isoCurSlug=slug;
+  if(isoCache[slug]){isoRender(isoCache[slug]);return;}
+  fetch("../routing/isobate/isobate_"+slug+".geojson").then(function(r){return r.json();}).then(function(j){isoCache[slug]=j;if(isoOn&&isoCurSlug===slug)isoRender(j);}).catch(function(){});
+}
+$('tBathy').onclick=function(){isoOn=!isoOn;this.classList.toggle('on',isoOn);var lg=document.getElementById('isoLegend');if(lg)lg.style.display=isoOn?'block':'none';if(isoOn){isoLayer.addTo(map);isoCurSlug=null;isoRefresh();}else{map.removeLayer(isoLayer);isoLayer.clearLayers();isoCurSlug=null;}};
+map.on('moveend',function(){if(isoOn)isoRefresh();});
+$('tDraw').onclick=function(){if(mapMode==='draw')setMode('normal');else startDraw();};
+$('tMeas').onclick=function(){if(mapMode==='meas')setMode('normal');else startMeas();};
+$('tAis').onclick=function(){if(aisOn){aisStop();this.classList.remove('on');$('aisCtl').style.display='none';}
+  else{if(aisStart()){this.classList.add('on');$('aisCtl').style.display='';}}};
+$('aisKeyBtn').onclick=function(){var k=prompt('API key AISstream.io:',aisKey());if(k===null)return;k=k.trim();localStorage.setItem('raffyca-ais-key',k);
+  if(aisOn){aisStop();$('tAis').classList.remove('on');$('aisCtl').style.display='none';if(k&&aisStart()){$('tAis').classList.add('on');$('aisCtl').style.display='';}}};
+$('drawUndo').onclick=drawUndo;
+$('drawCancel').onclick=function(){setMode('normal');};
+$('drawDone').onclick=function(){if(endDraw(true))setMode('normal');};
+$('measCancel').onclick=function(){setMode('normal');};
+$('addHere').onclick=function(){if(POS)openCreate(POS[0],POS[1]);else if(navigator.geolocation)navigator.geolocation.getCurrentPosition(function(p){openCreate(p.coords.latitude,p.coords.longitude);},function(){openCreate(map.getCenter().lat,map.getCenter().lng);});else openCreate(map.getCenter().lat,map.getCenter().lng);};
+$('addCoord').onclick=function(){openCreate(null,null);};
+$('filter').onchange=render;
+$('tabWpt').onclick=function(){tab='wpt';$('tabWpt').classList.add('on');$('tabTrk').classList.remove('on');rebuildFilter();renderList();};
+$('tabTrk').onclick=function(){tab='trk';$('tabTrk').classList.add('on');$('tabWpt').classList.remove('on');rebuildFilter();renderList();};
+
+/* export selezionati */
+$('expSel').onclick=function(){var wpts=lsGet('raffyca-waypoints').filter(w=>sel.wpt[w.id]),trks=lsGet('raffyca-tracks').filter(t=>sel.trk[t.id]);
+  if(!wpts.length&&!trks.length){alert('Seleziona prima waypoint o tracce (le caselle a sinistra).');return;}
+  var g='<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="ProVela" xmlns="http://www.topografix.com/GPX/1/1">\n';
+  wpts.forEach(w=>{g+='<wpt lat="'+w.lat+'" lon="'+w.lon+'"><name>'+esc(w.name)+'</name>'+(w.note?'<desc>'+esc(w.note)+'</desc>':'')+'</wpt>\n';});
+  trks.forEach(t=>{g+='<trk><name>'+esc(t.name)+'</name><trkseg>\n';(t.pts||[]).forEach(p=>{g+='<trkpt lat="'+p[0]+'" lon="'+p[1]+'"></trkpt>\n';});g+='</trkseg></trk>\n';});
+  g+='</gpx>';var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([g],{type:'application/gpx+xml'}));a.download='carta-export.gpx';a.click();};
+
+/* import GPX */
+$('impGpx').onclick=function(){$('fileGpx').click();};
+$('fileGpx').onchange=function(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();
+  r.onload=function(){try{var doc=new DOMParser().parseFromString(r.result,'application/xml');
+    var wpts=lsGet('raffyca-waypoints'),aw=0;
+    doc.querySelectorAll('wpt').forEach(function(n){var la=+n.getAttribute('lat'),lo=+n.getAttribute('lon');if(!isFinite(la))return;
+      var nm=(n.querySelector('name')||{}).textContent||'WP';var ds=(n.querySelector('desc')||{}).textContent||'';
+      wpts.push({id:'w'+Date.now()+Math.random().toString(36).slice(2,5),name:nm,lat:la,lon:lo,ts:Date.now(),note:ds});aw++;});
+    if(aw)lsSet('raffyca-waypoints',wpts);
+    var trks=lsGet('raffyca-tracks'),at=0;
+    doc.querySelectorAll('trk').forEach(function(tn){var pts=[];tn.querySelectorAll('trkpt').forEach(function(p){pts.push([+p.getAttribute('lat'),+p.getAttribute('lon'),0]);});
+      if(pts.length){var nm=(tn.querySelector('name')||{}).textContent||'Traccia';trks.push({id:'t'+Date.now()+Math.random().toString(36).slice(2,5),name:nm,ts:Date.now(),pts:pts,dist:null,dur:0});at++;}});
+    if(at)lsSet('raffyca-tracks',trks);render();alert('Importati: '+aw+' waypoint, '+at+' tracce.');
+  }catch(err){alert('GPX non valido: '+err.message);}};r.readAsText(f);e.target.value='';};
+
+render();
+setTimeout(function(){map.invalidateSize();if(POS)map.setView(POS,12);},300);
+</script>
+<div id="isoLegend" style="display:none;position:absolute;left:8px;bottom:26px;z-index:650;background:rgba(6,14,24,.85);border:1px solid #1a3248;border-radius:8px;padding:6px 9px;font:600 10px ui-monospace,monospace;color:#cfe">
+<div style="opacity:.65;margin-bottom:3px;letter-spacing:.5px">BATIMETRIA (m)</div>
+<span style="color:#8fe3ff">━</span>5 <span style="color:#2BD9C4">━</span>10 <span style="color:#46d68a">━</span>20 <span style="color:#FFC24B">━</span>50 <span style="color:#FF6B6B">━</span>100 <span style="color:#c792ea">━</span>200 <span style="color:#f78fb3">━</span>500 <span style="color:#9aa7ff">━</span>1000
+</div>
+</body>
+</html>

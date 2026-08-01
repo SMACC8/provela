@@ -1,0 +1,10 @@
+const fs=require('fs');const {JSDOM}=require('jsdom');
+const dom=new JSDOM(fs.readFileSync('performance/index.html','utf8'),{runScripts:'dangerously',url:'https://x/performance/'});
+const w=dom.window,d=w.document;
+const POL={twa:[0,60,120,180],tws:[8,12,16],data:[[0,0,0],[5,6,6.6],[5,6,7],[0,0,0]]};
+w.localStorage.setItem('raffyca-polar',JSON.stringify(POL));
+const set=(id,v)=>{d.getElementById(id).value=v;d.getElementById(id).dispatchEvent(new w.Event('input'));};
+set('i-twa','90'); set('i-tws','12'); set('i-stw','5');
+d.getElementById('i-save').click();
+console.log('Target 90/12 =', d.getElementById('k-tgt').textContent, '(atteso 6.00)');
+console.log('Perf 5/6 =', d.getElementById('k-perf').textContent, '(atteso 83)');

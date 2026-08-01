@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Segui · ProVela Live</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{--bg:#060e18;--panel:#0e2036;--dp:#040c14;--line:#1a3248;--ink:#deedf5;--sub:#5a7a94;
+  --teal:#2BD9C4;--amber:#FFC24B;--coral:#FF6B6B;--green:#46d68a;
+  --mono:ui-monospace,"SF Mono","Roboto Mono",Menlo,Consolas,monospace;--sans:system-ui,-apple-system,sans-serif;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);min-height:100dvh;padding:14px;
+  display:flex;flex-direction:column;gap:12px;max-width:520px;margin:0 auto;}
+.head{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.brand{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);font-weight:700;}
+.boat{font-size:19px;font-weight:700;}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;}
+.dp{background:repeating-linear-gradient(0deg,transparent 0,transparent 2px,rgba(0,8,20,.11) 2px,rgba(0,8,20,.11) 3px),var(--dp);
+  border-radius:8px;padding:12px 13px;box-shadow:inset 0 3px 9px rgba(0,0,0,.9);}
+.lbl{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--sub);margin-bottom:5px;}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:700;line-height:1;letter-spacing:-.02em;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.unit{font-size:12px;color:var(--sub);font-family:var(--mono);}
+.muted{color:var(--sub);font-size:12px;}
+.pill{font-size:10px;font-family:var(--mono);padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--sub);white-space:nowrap;}
+.pill.fresh{border-color:var(--green);color:var(--green);}
+.pill.stale{border-color:var(--amber);color:var(--amber);}
+.pill.dead{border-color:var(--coral);color:var(--coral);}
+a.map{display:block;text-align:center;color:var(--teal);text-decoration:none;font-size:13px;
+  border:1px solid var(--line);border-radius:10px;padding:11px;font-family:var(--mono);}
+.arrow{transition:transform .6s ease;}
+.center{display:flex;align-items:center;justify-content:center;gap:14px;}
+.conn{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:12px;font-size:13px;line-height:1.4;
+  border:1px solid var(--line);background:var(--panel);}
+.conn .dot{width:10px;height:10px;border-radius:50%;background:var(--sub);flex:none;}
+.conn.wait{color:var(--sub);}
+.conn.live{border-color:var(--green);color:var(--green);}
+.conn.live .dot{background:var(--green);animation:pulse 1.4s ease-in-out infinite;}
+.conn.late{border-color:var(--amber);color:var(--amber);}
+.conn.late .dot{background:var(--amber);}
+.conn.lost{border-color:var(--coral);color:var(--coral);}
+.conn.lost .dot{background:var(--coral);animation:pulse 1s steps(2,start) infinite;}
+@keyframes pulse{50%{opacity:.3}}
+#map{height:260px;width:100%;}
+.leaflet-container{background:var(--dp);font-family:var(--sans);}
+.boatIcon{background:transparent;border:0;}
+</style>
+</head>
+<body>
+  <div class="head">
+    <span class="brand">◈ ProVela Live</span>
+    <span class="pill" id="freshness">…</span>
+  </div>
+
+  <div class="conn wait" id="conn">
+    <span class="dot"></span><span id="connTxt">In attesa del primo dato dalla barca…</span>
+  </div>
+
+  <div class="card">
+    <div class="lbl">Barca</div>
+    <div class="boat" id="boat">—</div>
+    <div class="muted" id="updated" style="margin-top:4px">in attesa di dati…</div>
+  </div>
+
+  <div class="card">
+    <div class="center" style="margin-bottom:12px">
+      <svg width="66" height="66" viewBox="0 0 66 66" aria-hidden="true">
+        <circle cx="33" cy="33" r="31" fill="none" stroke="#1a3248" stroke-width="2"/>
+        <g id="arrow" class="arrow" transform="rotate(0 33 33)">
+          <path d="M33 8 L42 40 L33 34 L24 40 Z" fill="#2BD9C4"/>
+        </g>
+        <text x="33" y="16" fill="#5a7a94" font-size="8" text-anchor="middle" font-family="monospace">N</text>
+      </svg>
+      <div>
+        <div class="lbl">Rotta / Velocità</div>
+        <div><span class="num" style="font-size:26px" id="cog">—</span><span class="unit">°</span>
+             &nbsp;&nbsp;<span class="num" style="font-size:26px;color:var(--teal)" id="sog">—</span><span class="unit">kn</span></div>
+      </div>
+    </div>
+    <div class="dp"><div class="lbl">Posizione</div><span class="num" style="font-size:15px" id="pos">—</span></div>
+  </div>
+
+  <div class="card" id="wpCard" hidden>
+    <div class="lbl">Verso il waypoint</div>
+    <div class="num" style="font-size:16px;color:var(--teal);margin-bottom:10px" id="wpName">—</div>
+    <div class="g3">
+      <div class="dp"><div class="lbl">Distanza</div><span class="num" style="font-size:20px" id="rng">—</span> <span class="unit">NM</span></div>
+      <div class="dp"><div class="lbl">TTG</div><span class="num" style="font-size:16px;color:var(--green)" id="ttg">—</span></div>
+      <div class="dp"><div class="lbl">ETA</div><span class="num" style="font-size:16px;color:var(--green)" id="eta">—</span></div>
+    </div>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden">
+    <div id="map"></div>
+  </div>
+
+  <a class="map" id="mapLink" href="#" target="_blank" rel="noopener">📍 Apri la posizione in Mappe</a>
+  <div class="muted" id="msg" style="text-align:center"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+/* CONFIG — token di SOLA LETTURA (è pubblico per natura: chi apre il link lo vede). */
+const CFG = {
+  UPSTASH_URL: "https://united-dingo-121489.upstash.io",
+  READ_TOKEN: "INCOLLA_QUI_IL_READONLY_TOKEN"
+};
+const POLL_MS = 60000;   // lettura ogni minuto (come la trasmissione)
+
+const $=id=>document.getElementById(id);
+const session=(location.hash||"").replace(/^#/,"").trim();
+function fmtPos(la,lo){function d(v,p,n){var h=v>=0?p:n;v=Math.abs(v);var dd=Math.floor(v),mm=((v-dd)*60).toFixed(2);return dd+"°"+mm+"' "+h;}
+  return d(la,"N","S")+"  "+d(lo,"E","W");}
+function fmtDur(s){if(s==null||!isFinite(s)||s<0)return "—";s=Math.round(s);var h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return h>0?h+"h "+m+"m":m+"m";}
+
+var lastT=0, lastIv=60;   // lastIv = intervallo di trasmissione dichiarato dalla barca (s)
+function fmtAge(s){s=Math.round(s);if(s<60)return s+" s";var m=Math.floor(s/60);if(m<60)return m+" min";var h=Math.floor(m/60);return h+"h "+(m%60)+"m";}
+// soglie adattive: se la barca trasmette ogni 30 min, non deve sembrare "persa" dopo 10.
+function thresholds(){return [Math.max(lastIv*2.5,150), Math.max(lastIv*5,600)];}
+
+function freshness(){
+  if(!lastT){$("freshness").className="pill";$("freshness").textContent="…";return;}
+  var age=(Date.now()-lastT)/1000, th=thresholds();
+  var cls=age<th[0]?"fresh":(age<th[1]?"stale":"dead");
+  $("freshness").className="pill "+cls;
+  $("freshness").textContent=age<60?"agg. ora":("agg. "+Math.floor(age/60)+" min fa");
+  $("updated").textContent="Ultimo fix: "+new Date(lastT).toLocaleTimeString("it",{hour:"2-digit",minute:"2-digit"})+
+    (age>=th[1]?" — la barca potrebbe non trasmettere più":"");
+}
+
+/* Banner di stato: dice sempre, in chiaro, se la barca è connessa o no. */
+function connState(){
+  var el=$("conn"), t=$("connTxt");
+  if(!el)return;
+  if(!lastT){el.className="conn wait";t.textContent="In attesa del primo dato dalla barca…";return;}
+  var age=(Date.now()-lastT)/1000, th=thresholds();
+  if(age<th[0]){el.className="conn live";t.textContent="In diretta — la barca sta trasmettendo la sua posizione.";}
+  else if(age<th[1]){el.className="conn late";t.textContent="Segnale in ritardo — ultimo dato "+fmtAge(age)+" fa. Potrebbe essere copertura debole; attendi il prossimo aggiornamento.";}
+  else{el.className="conn lost";t.textContent="Trasmissione interrotta — nessun dato da "+fmtAge(age)+". La barca potrebbe aver chiuso l'app o perso il segnale.";}
+}
+
+/* Mappa OpenSeaMap (solo online: chi segue da terra ha rete). */
+var _map=null,_marker=null;
+function ensureMap(la,lo){
+  if(_map||typeof L==="undefined")return;
+  _map=L.map("map",{zoomControl:true}).setView([la,lo],13);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(_map);
+  L.tileLayer("https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenSeaMap"}).addTo(_map);
+}
+function updateMap(la,lo,cog){
+  if(typeof L==="undefined")return;
+  ensureMap(la,lo);
+  var rot=(cog!=null?cog:0);
+  var html='<svg width="34" height="34" viewBox="0 0 34 34" style="transform:rotate('+rot+'deg)">'+
+    '<circle cx="17" cy="17" r="15" fill="rgba(43,217,196,.18)" stroke="#2BD9C4" stroke-width="1.5"/>'+
+    '<path d="M17 4 L24 27 L17 22 L10 27 Z" fill="#2BD9C4"/></svg>';
+  var icon=L.divIcon({className:"boatIcon",html:html,iconSize:[34,34],iconAnchor:[17,17]});
+  if(!_marker){_marker=L.marker([la,lo],{icon:icon}).addTo(_map);}
+  else{_marker.setLatLng([la,lo]);_marker.setIcon(icon);}
+  _map.setView([la,lo]);
+}
+
+function paint(d){
+  lastT=d.t||Date.now();
+  if(d.iv!=null&&isFinite(d.iv)&&d.iv>0)lastIv=d.iv;
+  $("boat").textContent=d.b||"Raffyca";
+  $("cog").textContent=d.cog!=null?String(d.cog).padStart(3,"0"):"—";
+  $("sog").textContent=d.sog!=null?d.sog.toFixed(1):"—";
+  $("pos").textContent=(d.lat!=null&&d.lon!=null)?fmtPos(d.lat,d.lon):"—";
+  if(d.cog!=null)$("arrow").setAttribute("transform","rotate("+d.cog+" 33 33)");
+  if(d.lat!=null)$("mapLink").href="https://www.openstreetmap.org/?mlat="+d.lat+"&mlon="+d.lon+"#map=13/"+d.lat+"/"+d.lon;
+  if(d.wp){$("wpCard").hidden=false;$("wpName").textContent=d.wp.name||"—";
+    $("rng").textContent=d.wp.rng!=null?d.wp.rng.toFixed(2):"—";
+    $("ttg").textContent=fmtDur(d.wp.ttg);
+    $("eta").textContent=d.wp.eta?new Date(d.wp.eta).toLocaleTimeString("it",{hour:"2-digit",minute:"2-digit"}):"—";
+  }else{$("wpCard").hidden=true;}
+  if(d.lat!=null&&d.lon!=null)updateMap(d.lat,d.lon,d.cog);
+  freshness();
+  connState();
+}
+
+async function poll(){
+  if(!session){$("msg").innerHTML='<span style="color:var(--coral)">Link senza codice sessione. Usa il link completo condiviso dalla barca.</span>';return;}
+  if(CFG.READ_TOKEN.indexOf("INCOLLA")===0){$("msg").innerHTML='<span style="color:var(--coral)">Read token non inserito in segui.html.</span>';return;}
+  try{
+    var r=await fetch(CFG.UPSTASH_URL+"/get/"+encodeURIComponent("raffyca:pos:"+session),
+      {headers:{Authorization:"Bearer "+CFG.READ_TOKEN}});
+    var j=await r.json();
+    if(!j.result){$("msg").textContent="La barca non ha ancora trasmesso (o il codice è scaduto). Rimango in ascolto.";connState();return;}
+    $("msg").textContent="";
+    paint(JSON.parse(j.result));
+  }catch(e){$("msg").innerHTML='<span style="color:var(--coral)">Lettura fallita: '+e.message+'</span>';}
+}
+
+connState();
+poll();
+setInterval(poll,POLL_MS);
+setInterval(function(){freshness();connState();},10000);
+</script>
+</body>
+</html>
