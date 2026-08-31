@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>XTE Guide</title>
+<script>(function(){try{var t=localStorage.getItem('raffyca-theme');if(t==='sun')t='day';if(t==='day'||t==='night')document.documentElement.classList.add(t);}catch(e){}})();</script>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0b0d10">
+<link rel="apple-touch-icon" href="icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  :root{
+    --bg:#0b0d10; --bg2:#0e1116; --panel:#13171d; --panel2:#171c23;
+    --line:#222932; --ink:#eef1f5; --muted:#8b94a0;
+    --green:#1fc964; --yellow:#f3c63a; --orange:#f08a25; --red:#ee3b32;
+    --cantiere:#f3c63a;
+    --teal:#2BD9C4; --sub:#5a7a94; --amber:#FFC24B; --coral:#FF6B6B;
+  }
+/* TEMA GIORNO — chrome chiara; colori-zona (verde/giallo/arancio/rosso) invariati */
+html.day{
+  --bg:#eef1f4; --bg2:#e7ecf1; --panel:#ffffff; --panel2:#eef2f6; --line:#a7b5c2;
+  --ink:#0a1420; --muted:#3b4e60;
+  --teal:#067d70; --sub:#3b4e60; --amber:#8f5600; --coral:#c62020;
+}
+/* TEMA NOTTE — chrome rossa; colori-zona invariati (servono per lo scarto) */
+html.night{
+  --bg:#0a0202; --bg2:#120303; --panel:#150404; --panel2:#0e0303; --line:#3a1010;
+  --ink:#ff5b5b; --muted:#b04040;
+  --teal:#ff4d4d; --sub:#b04040; --amber:#ff7a45; --coral:#ff5555;
+}
+/* topbar: sfondo per Giorno/Notte (in Scuro resta il gradiente originale) */
+html.day .setBtn{background:linear-gradient(180deg,#ffffff,#eef2f6);border-color:#c2ccd6;}
+html.day button,html.day label.btn{background:linear-gradient(180deg,#ffffff,#eef2f6);border-color:#c2ccd6;}
+html.day .thRow input,html.day #trigNum{background:#ffffff!important;border-color:#c2ccd6!important;}
+html.day .rf-topbar{background:linear-gradient(#ffffff,#e7ecf1);border-bottom-color:#a7b5c2;}
+html.night .rf-topbar{background:linear-gradient(#150404,#0e0303);border-bottom-color:#3a1010;}
+/* la sfumatura scura dell'indicatore serve solo in tema Scuro: in Giorno/Notte nasconde la traccia */
+html.day #indicator,html.night #indicator{background:var(--bg);}
+/* icone SVG: rimappa i fill standard per Giorno/Notte (selettore su attributo, no markup) */
+html.day [fill="#2BD9C4"]{fill:#067d70;} html.night [fill="#2BD9C4"]{fill:#ff4d4d;}
+html.day [fill="#FFC24B"]{fill:#8f5600;} html.night [fill="#FFC24B"]{fill:#ff7a45;}
+html.day [fill="#FF6B6B"]{fill:#c62020;} html.night [fill="#FF6B6B"]{fill:#ff5555;}
+html.day [fill="#5a7a94"]{fill:#3b4e60;} html.night [fill="#5a7a94"]{fill:#b04040;}
+html.day [fill="#46d68a"]{fill:#12894f;} html.night [fill="#46d68a"]{fill:#c23a3a;}
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;
+    -webkit-user-select:none;user-select:none;}
+  html,body{height:100%;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
+    overflow:hidden;}
+  #app{display:flex;flex-direction:column;height:100%;}
+
+  .page{display:none;flex:1;min-height:0;flex-direction:column;}
+  .page.active{display:flex;}
+
+  #setBar{display:flex;gap:9px;padding:14px 16px 6px;}
+  .setBtn{flex:1;background:linear-gradient(180deg,#1a2029,#12161c);
+    color:var(--muted);border:1px solid #262e38;border-radius:13px;
+    padding:12px 0;font-size:13px;font-weight:600;letter-spacing:.4px;
+    font-family:inherit;position:relative;
+    box-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 2px 6px rgba(0,0,0,.4);
+    transition:transform .08s,color .12s,border-color .12s;}
+  .setBtn:active{transform:translateY(1px);}
+  .setBtn.on{color:#0b0d10;}
+  .setBtn.on[data-mode="auto"]{background:linear-gradient(180deg,#ffe066,var(--cantiere));border-color:var(--cantiere);}
+  .setBtn.on[data-mode="largo"]{background:linear-gradient(180deg,#3be07f,var(--green));border-color:var(--green);}
+  .setBtn.on[data-mode="stretto"]{background:linear-gradient(180deg,#ffa64d,var(--orange));border-color:var(--orange);}
+  .setBtn .eff{position:absolute;top:5px;right:8px;width:6px;height:6px;border-radius:50%;
+    background:#fff;opacity:0;box-shadow:0 0 6px #fff;}
+  .setBtn.effOn .eff{opacity:.9;}
+
+  #indicator{flex:1;position:relative;display:flex;align-items:center;justify-content:center;
+    min-height:0;
+    background:radial-gradient(ellipse 70% 55% at 50% 42%, #161b22 0%, var(--bg) 72%);}
+  #indSvg{width:100%;height:100%;display:block;}
+  #navXte{position:absolute;top:6%;left:0;right:0;text-align:center;pointer-events:none;}
+  #navXteVal{font-size:68px;font-weight:680;line-height:.92;letter-spacing:-2.5px;
+    font-variant-numeric:tabular-nums;transition:color .15s;
+    text-shadow:0 2px 12px rgba(0,0,0,.6);}
+  #navXteUnit{font-size:21px;color:var(--muted);margin-left:6px;font-weight:400;letter-spacing:0;}
+  #navSide{font-size:12px;color:var(--muted);margin-top:13px;letter-spacing:2.5px;
+    text-transform:uppercase;font-weight:600;transition:color .15s;}
+
+  #sim{padding:14px 18px;border-top:1px solid var(--line);
+    background:linear-gradient(180deg,var(--bg2),var(--bg));}
+  #gpsBar{display:flex;justify-content:space-between;align-items:center;
+    font-size:12px;letter-spacing:.4px;color:var(--muted);
+    font-variant-numeric:tabular-nums;text-transform:uppercase;font-weight:600;}
+  #gpsState.live{color:var(--green);}
+  #gpsState.err{color:var(--red);}
+
+  #tabs{display:flex;border-top:1px solid var(--line);background:var(--panel);
+    padding-bottom:env(safe-area-inset-bottom);}
+  .tab{flex:1;text-align:center;padding:15px 0;font-size:12px;letter-spacing:1.5px;
+    text-transform:uppercase;color:var(--muted);font-weight:600;position:relative;
+    transition:color .12s;}
+  .tab.active{color:var(--ink);}
+  .tab.active::after{content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);
+    width:34px;height:2px;background:var(--cantiere);border-radius:2px;
+    box-shadow:0 0 8px rgba(243,198,58,.6);}
+
+  #setPage{padding:18px 16px calc(18px + env(safe-area-inset-bottom));
+    overflow-y:auto;display:flex;flex-direction:column;gap:14px;}
+  .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+  .card{background:linear-gradient(180deg,var(--panel2),var(--panel));
+    border:1px solid var(--line);border-radius:16px;padding:15px 16px;
+    box-shadow:0 1px 0 rgba(255,255,255,.03) inset,0 4px 14px rgba(0,0,0,.35);}
+  .cardHead{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;
+    margin-bottom:13px;}
+  .cardHead .sub{color:var(--muted);font-weight:400;font-size:12px;letter-spacing:.3px;}
+  .dot{width:9px;height:9px;border-radius:50%;flex:none;box-shadow:0 0 8px currentColor;}
+  .thRow{display:flex;gap:10px;}
+  .thRow label{flex:1;display:flex;flex-direction:column;gap:6px;font-size:11px;
+    color:var(--muted);letter-spacing:.3px;}
+  .thRow input{width:100%;background:#0e1217;color:var(--ink);border:1px solid #2a323c;
+    border-radius:10px;padding:10px 8px;font-size:16px;font-family:inherit;
+    font-variant-numeric:tabular-nums;text-align:center;-webkit-appearance:none;
+    box-shadow:inset 0 1px 3px rgba(0,0,0,.5);}
+  .thRow input:focus{outline:none;border-color:var(--cantiere);}
+  button,label.btn{background:linear-gradient(180deg,#1c222b,#141920);color:var(--ink);
+    border:1px solid #2a323c;border-radius:12px;padding:12px 16px;font-size:14px;
+    font-weight:600;font-family:inherit;cursor:pointer;
+    box-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 2px 6px rgba(0,0,0,.35);
+    transition:transform .08s;}
+  button:active,label.btn:active{transform:translateY(1px);}
+  #startBtn{border-color:var(--cantiere);color:var(--cantiere);}
+  #startBtn.on{background:linear-gradient(180deg,#ffe066,var(--cantiere));color:#0b0d10;}
+  .toggle{display:flex;align-items:center;gap:9px;font-size:14px;}
+  .toggle input{width:0;height:0;opacity:0;position:absolute;}
+  .sw{width:46px;height:27px;border-radius:14px;background:#222a33;position:relative;
+    transition:background .18s;flex:none;box-shadow:inset 0 1px 3px rgba(0,0,0,.5);}
+  .sw::after{content:"";position:absolute;top:2.5px;left:2.5px;width:22px;height:22px;
+    border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#c4ccd5);
+    transition:transform .18s;box-shadow:0 1px 3px rgba(0,0,0,.5);}
+  .toggle input:checked + .sw{background:var(--green);}
+  .toggle input:checked + .sw::after{transform:translateX(19px);}
+  .trigInfo{font-size:13px;color:var(--muted);line-height:1.55;margin-bottom:13px;}
+  .trigInfo.set{color:var(--ink);}
+  #fileInput{display:none;}
+  .spacer{flex:1;}
+</style>
+</head>
+<body>
+<!-- ===== rf-topbar: markup canonico. CSS e logica stanno in ../rf-topbar.js
+     (un solo file per tutta la suite). Il link alla home resta QUI, inline:
+     e' l'unico modo per uscire da un modulo e non deve dipendere da nulla. ===== -->
+<div class="rf-topbar" role="banner">
+  <a class="rf-home" href="../" aria-label="Menu ProVela" title="Menu ProVela">
+    <svg viewBox="0 0 64 64" width="19" height="19" aria-hidden="true"><path d="M32 8 L32 56 L10 56 Z" fill="#2BD9C4" opacity=".95"/><path d="M32 26 L54 56 L32 56 Z" fill="#2BD9C4" opacity=".45"/><line x1="32" y1="6" x2="32" y2="58" stroke="#1a4a42" stroke-width="3"/></svg>
+  </a>
+  <span class="rf-boat" id="rfBoat"></span>
+  <span class="rf-gps" id="rfGps" title="Stato GPS"><span class="gdot"></span></span>
+  <span class="rf-pol" id="rfPol" title=""></span>
+  <span class="rf-spacer"></span>
+  <span class="rf-status" id="rfStatus"></span>
+</div>
+<script src="../rf-topbar.js" defer></script>
+<script src="../rf-live.js"></script>
+<!-- ===== /rf-topbar ===== -->
+
+<div id="app">
+
+  <!-- NAVIGAZIONE -->
+  <div class="page active" id="pageNav">
+    <div id="setBar">
+      <button class="setBtn" data-mode="auto">Auto<span class="eff"></span></button>
+      <button class="setBtn" data-mode="largo">Largo<span class="eff"></span></button>
+      <button class="setBtn" data-mode="stretto">Stretto<span class="eff"></span></button>
+    </div>
+
+    <div id="indicator">
+      <svg id="indSvg" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <radialGradient id="gRing" cx="38%" cy="32%" r="75%">
+            <stop offset="0%" stop-color="#2c343f"/>
+            <stop offset="100%" stop-color="#11151b"/>
+          </radialGradient>
+          <radialGradient id="gGreen" cx="38%" cy="30%" r="75%">
+            <stop offset="0%" stop-color="#54e58c"/>
+            <stop offset="60%" stop-color="#1fc964"/>
+            <stop offset="100%" stop-color="#149a4b"/>
+          </radialGradient>
+          <linearGradient id="gArrow" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#fff" stop-opacity=".35"/>
+            <stop offset="45%" stop-color="#fff" stop-opacity="0"/>
+          </linearGradient>
+          <filter id="shadow" x="-40%" y="-40%" width="180%" height="180%">
+            <feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="#000" flood-opacity=".55"/>
+          </filter>
+          <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+            <feGaussianBlur stdDeviation="6" result="b"/>
+            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+
+        <circle cx="200" cy="200" r="150" fill="none" stroke="#1b212a" stroke-width="2"/>
+        <line x1="42" y1="200" x2="358" y2="200" stroke="#161b22" stroke-width="2"/>
+        <g id="trackMini" opacity="0.85"></g>
+
+        <g id="arrow" opacity="0" filter="url(#glow)" style="transition:opacity .12s">
+          <polygon id="arrowShape" points="0,0 0,0 0,0" stroke-linejoin="round"/>
+          <polygon id="arrowGloss" points="0,0 0,0 0,0" fill="url(#gArrow)"/>
+        </g>
+
+        <g filter="url(#shadow)">
+          <circle id="ringBase" cx="200" cy="200" r="50" fill="url(#gRing)"
+            stroke="#3a434f" stroke-width="1.5"/>
+          <circle id="ringFill" cx="200" cy="200" r="50" fill="url(#gGreen)" opacity="0"
+            style="transition:opacity .18s"/>
+          <ellipse id="gloss" cx="186" cy="182" rx="26" ry="15" fill="#fff" opacity=".12"/>
+        </g>
+      </svg>
+      <div id="navXte">
+        <div><span id="navXteVal">—</span><span id="navXteUnit">m</span></div>
+        <div id="navSide"></div>
+      </div>
+    </div>
+
+    <div id="sim">
+      <div id="gpsBar">
+        <span id="gpsState">GPS spento</span>
+        <span id="gpsAcc"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- IMPOSTAZIONI -->
+  <div class="page" id="pageSet">
+    <div id="setPage">
+      <div class="card">
+        <div class="cardHead">GPS &amp; audio</div>
+        <div class="row">
+          <button id="startBtn">Avvia GPS</button>
+          <label class="toggle"><input type="checkbox" id="audChk"><span class="sw"></span><span>Audio</span></label>
+          <label class="toggle"><input type="checkbox" id="invChk"><span class="sw"></span><span>Inversa</span></label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="cardHead"><span class="dot" style="color:var(--green)"></span>Set Largo<span class="sub">avvicinamento</span></div>
+        <div class="thRow">
+          <label>verde &lt;<input type="number" id="largo0" inputmode="decimal"> m</label>
+          <label>giallo &lt;<input type="number" id="largo1" inputmode="decimal"> m</label>
+          <label>aranc. &lt;<input type="number" id="largo2" inputmode="decimal"> m</label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="cardHead"><span class="dot" style="color:var(--orange)"></span>Set Stretto<span class="sub">canale</span></div>
+        <div class="thRow">
+          <label>verde &lt;<input type="number" id="stretto0" inputmode="decimal"> m</label>
+          <label>giallo &lt;<input type="number" id="stretto1" inputmode="decimal"> m</label>
+          <label>aranc. &lt;<input type="number" id="stretto2" inputmode="decimal"> m</label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="cardHead"><span class="dot" style="color:var(--cantiere)"></span>Cambio automatico</div>
+        <div class="trigInfo" id="trigInfo"></div>
+        <div class="row">
+          <label style="font-size:13px;color:var(--muted)">Da waypoint nº
+            <input type="number" id="trigNum" inputmode="numeric" min="1"
+              style="width:74px;background:#0e1217;color:var(--ink);border:1px solid #2a323c;
+              border-radius:10px;padding:9px 8px;font-size:16px;font-family:inherit;
+              text-align:center;-webkit-appearance:none;box-shadow:inset 0 1px 3px rgba(0,0,0,.5);margin-left:6px">
+          </label>
+          <button id="trigClear">Azzera</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="cardHead">Rotta</div>
+        <div class="row">
+          <label class="btn" for="fileInput">Carica GPX</label>
+          <input type="file" id="fileInput" accept=".gpx">
+          <button class="btn" id="loadActive" type="button">Traccia attiva</button>
+          <span class="spacer"></span>
+          <span id="routeInfo" style="font-size:12px;color:var(--muted)"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tabs">
+    <div class="tab active" data-page="pageNav">Navigazione</div>
+    <div class="tab" data-page="pageSet">Impostazioni</div>
+  </div>
+</div>
+
+<script>
+/* ===== Rotta incorporata: Levante ===== */
+const EMBEDDED = [[45.0788582,12.3643092],[45.0723494,12.3594638],[45.0713500,12.3587044],[45.0700102,12.3576023],[45.0692135,12.3569102],[45.0687441,12.3565514],[45.0681104,12.3562054],[45.0675854,12.3560388],[45.0671328,12.3558979],[45.0664357,12.3559237],[45.0657930,12.3561032],[45.0652530,12.3562827],[45.0643659,12.3566545],[45.0635150,12.3572313],[45.0626732,12.3581798],[45.0622658,12.3590019],[45.0617499,12.3605014],[45.0617409,12.3605783],[45.0613517,12.3624366],[45.0611163,12.3645000],[45.0610076,12.3661916],[45.0608990,12.3671016],[45.0607483,12.3681971],[45.0604766,12.3693504],[45.0601235,12.3705294],[45.0597614,12.3717725],[45.0595079,12.3723748],[45.0593268,12.3727977],[45.0592127,12.3731043],[45.0588777,12.3737578],[45.0583344,12.3746932],[45.0579542,12.3752570],[45.0575468,12.3757439],[45.0570670,12.3761539],[45.0565328,12.3763460],[45.0560440,12.3762819],[45.0555733,12.3761792],[45.0554512,12.3761052],[45.0549995,12.3758374],[45.0544681,12.3753411],[45.0541224,12.3747671],[45.0538922,12.3741140],[45.0537673,12.3737901],[45.0535759,12.3735868],[45.0533447,12.3735668],[45.0531389,12.3734070],[45.0530875,12.3733049],[45.0528923,12.3721993],[45.0526637,12.3708448],[45.0524919,12.3699458],[45.0524047,12.3695626],[45.0522752,12.3689967],[45.0521259,12.3684568],[45.0518247,12.3675116],[45.0516729,12.3671219],[45.0515111,12.3667149],[45.0513596,12.3663973],[45.0512140,12.3660951],[45.0510768,12.3658631],[45.0509684,12.3657088],[45.0508567,12.3656313],[45.0507208,12.3657160],[45.0506492,12.3658585],[45.0496235,12.3676800],[45.0495422,12.3678091],[45.0494633,12.3679346],[45.0493869,12.3680427],[45.0493253,12.3681160],[45.0492761,12.3681473],[45.0492145,12.3681473],[45.0491455,12.3681229],[45.0490740,12.3680427],[45.0490371,12.3680043]];
+
+/* ===== Stato ===== */
+let baseRoute=EMBEDDED.slice(), route=baseRoute.slice();
+let inverted=false, segIdx=0;
+
+/* ===== Proiezione piano locale ===== */
+const R=6371000, D2R=Math.PI/180;
+let refLat0=0, refLon0=0, coslat=1;
+let projPts=[];
+function initProjection(){
+  let sLat=0,sLon=0; for(const p of route){sLat+=p[0];sLon+=p[1];}
+  refLat0=sLat/route.length; refLon0=sLon/route.length; coslat=Math.cos(refLat0*D2R);
+}
+function toXY(lat,lon){return {x:(lon-refLon0)*D2R*R*coslat, y:(lat-refLat0)*D2R*R};}
+function rebuildProjection(){ initProjection(); projPts=route.map(p=>toXY(p[0],p[1])); buildArc(); renderMini(); }
+
+let arcLen=[], totalLen=0;
+function buildArc(){
+  arcLen=[0]; totalLen=0;
+  for(let i=1;i<projPts.length;i++){
+    totalLen+=Math.hypot(projPts[i].x-projPts[i-1].x, projPts[i].y-projPts[i-1].y);
+    arcLen.push(totalLen);
+  }
+}
+function pointAtArc(d){
+  d=Math.max(0,Math.min(totalLen,d));
+  let i=1; while(i<arcLen.length && arcLen[i]<d) i++;
+  const A=projPts[i-1], B=projPts[i];
+  const segLen=arcLen[i]-arcLen[i-1] || 1;
+  const t=(d-arcLen[i-1])/segLen;
+  const x=A.x+t*(B.x-A.x), y=A.y+t*(B.y-A.y);
+  const tx=(B.x-A.x)/segLen, ty=(B.y-A.y)/segLen;
+  return {x,y,tx,ty,seg:i-1};
+}
+
+/* ===== XTE firmato ===== */
+function crossTrack(P,A,B){
+  const dx=B.x-A.x, dy=B.y-A.y, len2=dx*dx+dy*dy;
+  let t=len2>0?((P.x-A.x)*dx+(P.y-A.y)*dy)/len2:0;
+  const projx=A.x+t*dx, projy=A.y+t*dy;
+  const dist=Math.hypot(P.x-projx,P.y-projy);
+  const cross=dx*(P.y-A.y)-dy*(P.x-A.x);
+  const signed=cross>0?-dist:dist;
+  return {dist,t,signed};
+}
+function updateXTE(P){
+  const n=route.length; if(n<2) return null;
+  const look=6; let best=null,bestI=segIdx;
+  for(let i=Math.max(0,segIdx-1); i<Math.min(n-1,segIdx+look); i++){
+    const r=crossTrack(P,projPts[i],projPts[i+1]);
+    const tc=Math.max(0,Math.min(1,r.t));
+    const cx=projPts[i].x+tc*(projPts[i+1].x-projPts[i].x);
+    const cy=projPts[i].y+tc*(projPts[i+1].y-projPts[i].y);
+    const dc=Math.hypot(P.x-cx,P.y-cy);
+    if(best===null||dc<best.dc){best={...r,dc};bestI=i;}
+  }
+  segIdx=bestI;
+  if(best.t>1 && segIdx<n-2) segIdx++;
+  return best;
+}
+
+/* ===== Set soglie ===== */
+let sets={largo:[5,12,25], stretto:[2,5,10]};
+let setMode='auto', triggerIdx=null, activeSet='largo';
+function resolveActiveSet(){
+  if(setMode==='largo'){activeSet='largo';return;}
+  if(setMode==='stretto'){activeSet='stretto';return;}
+  if(triggerIdx===null){activeSet='largo';return;}
+  activeSet=(segIdx>=triggerIdx)?'stretto':'largo';
+}
+function thresholds(){return sets[activeSet];}
+function bandFor(a){const t=thresholds();return a<t[0]?0:a<t[1]?1:a<t[2]?2:3;}
+const BAND_INTERVAL=[0,900,450,180];
+const BAND_COLOR=['#1fc964','#f3c63a','#f08a25','#ee3b32'];
+
+/* ===== Audio ===== */
+let audioCtx=null,audioOn=false,beepTimer=null,curBand=0,curSide=0;
+function ensureAudio(){const AC=window.AudioContext||window.webkitAudioContext;
+  if(!audioCtx)audioCtx=new AC(); if(audioCtx.state==='suspended')audioCtx.resume();}
+function beep(freq){if(!audioCtx)return;const t=audioCtx.currentTime;
+  const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+  o.type='sine';o.frequency.value=freq;
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.25,t+.01);
+  g.gain.exponentialRampToValueAtTime(.001,t+.13);
+  o.connect(g);g.connect(audioCtx.destination);o.start(t);o.stop(t+.15);}
+function freqForSide(s){return s>0?1100:520;}
+function scheduleBeeps(){clearTimeout(beepTimer);
+  if(!audioOn||curBand===0)return;
+  beep(freqForSide(curSide));beepTimer=setTimeout(scheduleBeeps,BAND_INTERVAL[curBand]);}
+function updateAudio(signed){
+  const band=bandFor(Math.abs(signed));
+  const side=signed>0?-1:1;
+  const changed=(band!==curBand)||(side!==curSide);
+  curBand=band;curSide=side;
+  if(audioOn){ if(band===0)clearTimeout(beepTimer); else if(changed)scheduleBeeps(); }
+}
+
+/* ===== Indicatore ===== */
+const navXteVal=document.getElementById('navXteVal');
+const navSide=document.getElementById('navSide');
+const ringFill=document.getElementById('ringFill');
+const gloss=document.getElementById('gloss');
+const arrow=document.getElementById('arrow');
+const arrowShape=document.getElementById('arrowShape');
+const arrowGloss=document.getElementById('arrowGloss');
+
+function cvar(n,f){try{var v=getComputedStyle(document.documentElement).getPropertyValue(n).trim();return v||f;}catch(e){return f;}}
+function _miniIdx(a,b,maxN){var out=[],len=b-a;if(len<=0)return[a];var st=Math.max(1,Math.ceil(len/maxN));for(var i=a;i<b;i+=st)out.push(i);out.push(b);return out;}
+function renderMini(){
+  var g=document.getElementById('trackMini'); if(!g)return;
+  if(!projPts||projPts.length<2){g.innerHTML='';return;}
+  var n=projPts.length,i,minx=Infinity,maxx=-Infinity,miny=Infinity,maxy=-Infinity;
+  for(i=0;i<n;i++){var p=projPts[i];if(p.x<minx)minx=p.x;if(p.x>maxx)maxx=p.x;if(p.y<miny)miny=p.y;if(p.y>maxy)maxy=p.y;}
+  var bp=lastP?toXY(lastP.lat,lastP.lon):null;
+  if(bp){if(bp.x<minx)minx=bp.x;if(bp.x>maxx)maxx=bp.x;if(bp.y<miny)miny=bp.y;if(bp.y>maxy)maxy=bp.y;}
+  var pad=54,SZ=400-2*pad,spanx=Math.max(1,maxx-minx),spany=Math.max(1,maxy-miny);
+  var sc=Math.min(SZ/spanx,SZ/spany),midx=(minx+maxx)/2,midy=(miny+maxy)/2;
+  function X(x){return 200+(x-midx)*sc;}
+  function Y(y){return 200-(y-midy)*sc;}
+  var line=cvar('--sub','#5b7386'),dim=cvar('--dim','#26333f'),wp=cvar('--amber','#ffbf47'),ink=cvar('--ink','#e8f0f6');
+  var Bi=Math.min(segIdx+1,n-1);
+  var past=_miniIdx(0,Bi,120).map(function(k){return X(projPts[k].x).toFixed(1)+' '+Y(projPts[k].y).toFixed(1);});
+  var fwd=_miniIdx(Bi,n-1,160).map(function(k){return X(projPts[k].x).toFixed(1)+' '+Y(projPts[k].y).toFixed(1);});
+  var out='';
+  if(past.length>1)out+='<polyline points="'+past.join(' ')+'" fill="none" stroke="'+dim+'" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>';
+  out+='<polyline points="'+fwd.join(' ')+'" fill="none" stroke="'+line+'" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" opacity="0.7"/>';
+  out+='<circle cx="'+X(projPts[Bi].x).toFixed(1)+'" cy="'+Y(projPts[Bi].y).toFixed(1)+'" r="7" fill="none" stroke="'+wp+'" stroke-width="2.4" opacity="0.85"/>';
+  if(bp)out+='<circle cx="'+X(bp.x).toFixed(1)+'" cy="'+Y(bp.y).toFixed(1)+'" r="5.5" fill="'+ink+'" opacity="0.6"/>';
+  g.innerHTML=out;
+}
+function render(r){
+  if(!r){return;}
+  resolveActiveSet(); updateSetBadge();
+  const m=r.dist, band=bandFor(m), col=BAND_COLOR[band];
+  navXteVal.textContent=m<10?m.toFixed(1):Math.round(m);
+  navXteVal.style.color=col;
+  if(band===0){
+    ringFill.setAttribute('opacity','1');
+    gloss.setAttribute('opacity','.22');
+    arrow.setAttribute('opacity','0');
+    navSide.textContent='in rotta';
+    navSide.style.color='var(--green)';
+  }else{
+    ringFill.setAttribute('opacity','0');
+    gloss.setAttribute('opacity','.12');
+    const toLeft=r.signed>0;
+    drawArrow(toLeft,col);
+    arrow.setAttribute('opacity','1');
+    navSide.textContent=toLeft?'◀ a sinistra':'a destra ▶';
+    navSide.style.color=col;
+  }
+  updateAudio(r.signed);
+  renderMini();
+}
+function drawArrow(toLeft,col){
+  const cy=200,ringR=50,dir=toLeft?-1:1;
+  const tipX=200-dir*(ringR+12);
+  const tailX=200-dir*182;
+  const head=64, th=34, neckX=tipX-dir*head;
+  const pts=[[tailX,cy-th/2],[neckX,cy-th/2],[neckX,cy-th],[tipX,cy],
+    [neckX,cy+th],[neckX,cy+th/2],[tailX,cy+th/2]].map(p=>p.join(',')).join(' ');
+  arrowShape.setAttribute('points',pts);
+  arrowShape.setAttribute('fill',col);
+  const gpts=[[tailX,cy-th/2],[neckX,cy-th/2],[neckX,cy-th],[tipX,cy],
+    [neckX,cy],[neckX,cy-2],[tailX,cy-2]].map(p=>p.join(',')).join(' ');
+  arrowGloss.setAttribute('points',gpts);
+}
+
+/* ===== Badge set ===== */
+const setBtns=[...document.querySelectorAll('.setBtn')];
+function updateSetBadge(){
+  setBtns.forEach(b=>{
+    b.classList.toggle('on', b.dataset.mode===setMode);
+    b.classList.remove('effOn');
+  });
+  if(setMode==='auto'){
+    const eff=setBtns.find(b=>b.dataset.mode===activeSet);
+    if(eff)eff.classList.add('effOn');
+  }
+}
+setBtns.forEach(b=>b.addEventListener('click',()=>{
+  setMode=b.dataset.mode; resolveActiveSet(); updateSetBadge(); recompute();
+}));
+
+/* ===== GPS reale ===== */
+const gpsState=document.getElementById('gpsState');
+const gpsAcc=document.getElementById('gpsAcc');
+let watchId=null, wakeLock=null, lastP=null;
+
+function onFix(pos){
+  lastP={lat:pos.coords.latitude, lon:pos.coords.longitude, acc:pos.coords.accuracy};
+  const P=toXY(lastP.lat, lastP.lon);
+  const r=updateXTE(P);
+  gpsState.textContent='seg '+(segIdx+1)+'/'+(route.length-1);
+  gpsState.className='live';
+  gpsAcc.textContent='±'+Math.round(lastP.acc)+' m';
+  render(r);
+}
+function onErr(e){
+  gpsState.textContent = e.code===1 ? 'permesso GPS negato' : 'GPS: '+e.message;
+  gpsState.className='err';
+}
+async function startGPS(){
+  if(!navigator.geolocation){ gpsState.textContent='GPS non disponibile'; gpsState.className='err'; return; }
+  watchId=navigator.geolocation.watchPosition(onFix,onErr,
+    {enableHighAccuracy:true,maximumAge:1000,timeout:12000});
+  try{ if('wakeLock' in navigator){ wakeLock=await navigator.wakeLock.request('screen'); } }catch(e){}
+}
+function stopGPS(){
+  if(watchId!==null){ navigator.geolocation.clearWatch(watchId); watchId=null; }
+  if(wakeLock){ wakeLock.release().catch(()=>{}); wakeLock=null; }
+  clearTimeout(beepTimer); curBand=0;
+  gpsState.textContent='GPS spento'; gpsState.className=''; gpsAcc.textContent='';
+  navSide.textContent='GPS in pausa';
+}
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible' && watchId!==null && 'wakeLock' in navigator && !wakeLock){
+    navigator.wakeLock.request('screen').then(w=>wakeLock=w).catch(()=>{});
+  }
+});
+// rifà il render con l'ultima posizione nota (dopo cambio set/soglie/trigger)
+function recompute(){
+  if(lastP===null) return;
+  const r=updateXTE(toXY(lastP.lat,lastP.lon));
+  render(r);
+}
+
+/* ===== Avvio/stop GPS ===== */
+const startBtn=document.getElementById('startBtn');
+let gpsOn=false;
+startBtn.addEventListener('click',()=>{
+  ensureAudio();
+  gpsOn=!gpsOn;
+  startBtn.classList.toggle('on',gpsOn);
+  startBtn.textContent=gpsOn?'Ferma GPS':'Avvia GPS';
+  if(gpsOn){ startGPS(); } else { stopGPS(); }
+});
+
+/* ===== Audio / Inversa ===== */
+document.getElementById('audChk').addEventListener('change',e=>{
+  audioOn=e.target.checked;
+  if(audioOn){ensureAudio(); if(curBand>0)scheduleBeeps();} else clearTimeout(beepTimer);
+});
+document.getElementById('invChk').addEventListener('change',e=>{
+  inverted=e.target.checked;
+  if(triggerIdx!==null) triggerIdx=baseRoute.length-1-triggerIdx;
+  route=inverted?baseRoute.slice().reverse():baseRoute.slice();
+  segIdx=0; rebuildProjection(); updateTrigInfo(); resolveActiveSet(); updateSetBadge();
+  recompute();
+});
+
+/* ===== Soglie ===== */
+function loadThresholdInputs(){
+  ['largo','stretto'].forEach(k=>{for(let i=0;i<3;i++)document.getElementById(k+i).value=sets[k][i];});
+}
+function bindThresholdInputs(){
+  ['largo','stretto'].forEach(k=>{for(let i=0;i<3;i++){
+    const el=document.getElementById(k+i);
+    el.addEventListener('change',()=>{
+      let v=parseFloat(el.value); if(isNaN(v)||v<0)v=0;
+      sets[k][i]=v;
+      if(i>0&&sets[k][i]<sets[k][i-1]){sets[k][i]=sets[k][i-1];el.value=sets[k][i];}
+      recompute();
+    });
+  }});
+}
+
+/* ===== Trigger (numero waypoint) ===== */
+const trigInfo=document.getElementById('trigInfo');
+const trigNum=document.getElementById('trigNum');
+function updateTrigInfo(){
+  if(triggerIdx===null){
+    trigInfo.textContent='Nessun punto. Scrivi il numero del waypoint da cui passare al set Stretto (1–'+route.length+').';
+    trigInfo.classList.remove('set');
+    trigNum.value='';
+  }else{
+    trigInfo.textContent='Cambio al waypoint '+(triggerIdx+1)+'/'+route.length+'. Da lì in poi: Stretto.';
+    trigInfo.classList.add('set');
+    trigNum.value=triggerIdx+1;
+  }
+}
+trigNum.addEventListener('change',()=>{
+  let n=parseInt(trigNum.value,10);
+  if(isNaN(n)){ triggerIdx=null; updateTrigInfo(); resolveActiveSet(); updateSetBadge(); recompute(); return; }
+  n=Math.max(1,Math.min(route.length,n));
+  triggerIdx=n-1;            // l'utente conta da 1
+  trigNum.value=n;
+  updateTrigInfo(); resolveActiveSet(); updateSetBadge(); recompute();
+});
+document.getElementById('trigClear').addEventListener('click',()=>{
+  triggerIdx=null; updateTrigInfo(); resolveActiveSet(); updateSetBadge(); recompute();
+});
+
+/* ===== GPX ===== */
+const routeInfo=document.getElementById('routeInfo');
+document.getElementById('fileInput').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f)return;
+  const rd=new FileReader();
+  rd.onload=ev=>{
+    try{
+      const xml=new DOMParser().parseFromString(ev.target.result,'application/xml');
+      let pts=[...xml.querySelectorAll('trkpt')];
+      if(pts.length<2)pts=[...xml.querySelectorAll('rtept')];
+      if(pts.length<2){routeInfo.textContent='GPX senza punti';return;}
+      baseRoute=pts.map(p=>[parseFloat(p.getAttribute('lat')),parseFloat(p.getAttribute('lon'))]);
+      inverted=false; document.getElementById('invChk').checked=false;
+      triggerIdx=null; route=baseRoute.slice(); segIdx=0;
+      rebuildProjection(); updateTrigInfo(); resolveActiveSet(); updateSetBadge();
+      routeInfo.textContent=baseRoute.length+' punti';
+      recompute();
+    }catch(err){routeInfo.textContent='Errore lettura';}
+  };
+  rd.readAsText(f);
+});
+
+/* ===== Traccia attiva (raffyca-active-track) ===== */
+function loadActiveTrack(){
+  var id='';try{id=localStorage.getItem('raffyca-active-track')||'';}catch(e){}
+  if(!id){routeInfo.textContent='nessuna traccia attiva';return;}
+  var trk=null;try{trk=(JSON.parse(localStorage.getItem('raffyca-tracks')||'[]')).find(function(t){return t.id===id;});}catch(e){}
+  if(!trk||!(trk.pts&&trk.pts.length>=2)){routeInfo.textContent='traccia non valida';return;}
+  baseRoute=trk.pts.filter(function(p){return isFinite(p[0])&&isFinite(p[1]);}).map(function(p){return [p[0],p[1]];});
+  inverted=false; var ic=document.getElementById('invChk'); if(ic)ic.checked=false;
+  triggerIdx=null; route=baseRoute.slice(); segIdx=0;
+  rebuildProjection(); updateTrigInfo(); resolveActiveSet(); updateSetBadge();
+  routeInfo.textContent=baseRoute.length+' punti \u00b7 '+(trk.name||'traccia');
+  recompute();
+}
+document.getElementById('loadActive').addEventListener('click',loadActiveTrack);
+
+/* ===== Tab ===== */
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  document.getElementById(t.dataset.page).classList.add('active');
+}));
+
+/* ===== Init ===== */
+loadThresholdInputs(); bindThresholdInputs();
+rebuildProjection(); updateTrigInfo(); resolveActiveSet(); updateSetBadge();
+routeInfo.textContent=baseRoute.length+' punti';
+
+/* ===== PWA ===== */
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>

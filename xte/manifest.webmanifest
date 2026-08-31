@@ -1,0 +1,14 @@
+{
+  "name": "XTE Guide",
+  "short_name": "XTE",
+  "description": "Guida fuori-rotta XTE per ingresso in porto",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#0b0d10",
+  "theme_color": "#0b0d10",
+  "icons": [
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

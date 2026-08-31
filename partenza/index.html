@@ -1,0 +1,882 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Partenza regata · ProVela</title>
+<meta name="theme-color" content="#060e18">
+<script>(function(){try{var t=localStorage.getItem('raffyca-theme');if(t==='sun')t='day';if(t==='day'||t==='night')document.documentElement.classList.add(t);}catch(e){}})();</script>
+<style>
+:root{
+  --bg:#060e18;--panel:#0e2036;--panel2:#0b1a2c;--dp:#040c14;--line:#1a3248;--dim:#122030;
+  --ink:#deedf5;--sub:#5a7a94;--sub2:#4a6a82;
+  --teal:#2BD9C4;--amber:#FFC24B;--coral:#FF6B6B;--green:#46d68a;
+  --bezel-hi:#2c4256;--bezel-mid:#18303e;--bezel-lo:#0d1f2e;
+  --mono:ui-monospace,"SF Mono","Roboto Mono",Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",sans-serif;
+}
+html.day{
+  --bg:#eef1f4;--panel:#ffffff;--panel2:#e9eef3;--dp:#f3f6f9;--line:#c2ccd6;--dim:#cdd6de;
+  --ink:#0a1420;--sub:#3b4e60;--sub2:#5a6b7a;
+  --teal:#067d70;--amber:#8f5600;--coral:#c62020;--green:#12894f;
+  --bezel-hi:#ffffff;--bezel-mid:#d7dee6;--bezel-lo:#c2ccd6;
+}
+html.night{
+  --bg:#0a0202;--panel:#160404;--panel2:#100303;--dp:#0a0101;--line:#3a1010;--dim:#200707;
+  --ink:#ff5b5b;--sub:#b04040;--sub2:#7a2e2e;
+  --teal:#ff4d4d;--amber:#ff7a45;--coral:#ff5555;--green:#c23a3a;
+  --bezel-hi:#3a1010;--bezel-mid:#220808;--bezel-lo:#120404;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0;}
+html,body{min-height:100%;}
+body{font-family:var(--sans);color:var(--ink);background:var(--bg);padding-top:40px;}
+.pv{position:relative;max-width:460px;margin:0 auto;padding:6px 12px 40px;display:flex;flex-direction:column;gap:11px;}
+.pv-glow{position:fixed;top:40px;left:0;right:0;height:190px;pointer-events:none;z-index:0;transition:background .5s;}
+.pv>*:not(.pv-glow){position:relative;z-index:1;}
+.pv-head{display:flex;align-items:center;justify-content:space-between;padding:2px;}
+.pv-head .t{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);font-weight:700;}
+.pv-head .s{font-size:10px;letter-spacing:.06em;color:var(--sub);}
+
+.rf-instr{position:relative;border-radius:11px;padding:4px;
+  background:linear-gradient(148deg,var(--bezel-hi) 0%,var(--bezel-mid) 42%,var(--bezel-lo) 100%);
+  box-shadow:0 8px 22px -10px rgba(0,0,0,.9),inset 0 1px 0 rgba(255,255,255,.14);}
+.rf-dp{border-radius:8px;padding:10px 13px;position:relative;overflow:hidden;transition:background .35s;
+  background:var(--dp);box-shadow:inset 0 3px 9px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.03);}
+.rf-lbl{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);
+  margin-bottom:6px;display:flex;align-items:center;gap:7px;justify-content:space-between;}
+.rf-lbl .r{color:var(--sub);letter-spacing:.04em;display:flex;gap:8px;align-items:center;}
+.rf-numrow{display:flex;align-items:baseline;gap:5px;line-height:1;justify-content:center;}
+.rf-num{font-size:clamp(40px,11vw,60px);font-weight:700;font-variant-numeric:tabular-nums;
+  letter-spacing:-.02em;color:var(--ink);font-family:var(--mono);}
+.rf-num.lg{font-size:clamp(60px,18vw,88px);}
+.rf-num.md{font-size:clamp(26px,8vw,40px);}
+.rf-num.teal{color:var(--teal);text-shadow:0 0 20px color-mix(in srgb,var(--teal) 32%,transparent);}
+.rf-num.amber{color:var(--amber);text-shadow:0 0 18px color-mix(in srgb,var(--amber) 30%,transparent);}
+.rf-num.coral{color:var(--coral);text-shadow:0 0 18px color-mix(in srgb,var(--coral) 30%,transparent);}
+.rf-num.green{color:var(--green);text-shadow:0 0 18px color-mix(in srgb,var(--green) 30%,transparent);}
+.rf-num.sub{color:var(--sub2);}
+.rf-unit{font-size:13px;color:var(--sub);font-family:var(--mono);}
+.rf-note{font-size:10px;color:var(--sub2);margin-top:5px;letter-spacing:.03em;font-family:var(--mono);text-align:center;}
+.rf-note.l{text-align:left;}
+
+.rf-g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.rf-g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.rf-card{border-radius:10px;padding:12px 14px;background:var(--panel);border:1px solid var(--line);}
+.rf-card h3{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);
+  margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:8px;}
+.rf-card h3 .r{color:var(--sub);letter-spacing:.03em;text-transform:none;font-weight:400;}
+
+.rf-btn{font-family:var(--sans);font-size:14px;padding:10px 14px;border-radius:10px;
+  border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:all .12s;}
+.rf-btn:active:not(:disabled){transform:scale(.97);}
+.rf-btn:disabled{opacity:.3;cursor:default;}
+.rf-btn.go{border-color:var(--teal);color:var(--teal);}
+.rf-btn.stop{border-color:var(--coral);color:var(--coral);}
+.rf-btn.sm{font-size:12px;padding:7px 10px;}
+.rf-btn.on{background:color-mix(in srgb,var(--teal) 14%,transparent);border-color:var(--teal);color:var(--teal);}
+
+.cd-min{display:flex;gap:6px;align-items:center;justify-content:center;margin-top:8px;}
+.cd-min button{width:42px;height:42px;font-size:20px;border-radius:9px;border:1px solid var(--line);
+  background:var(--panel2);color:var(--teal);cursor:pointer;font-family:var(--mono);}
+.cd-min button:active{transform:scale(.94);}
+.cd-min span{font-size:11px;color:var(--sub);letter-spacing:.06em;min-width:70px;text-align:center;}
+.cd-ctl{display:flex;gap:8px;margin-top:10px;}
+.cd-ctl .rf-btn{flex:1;}
+
+.rec-pill{display:inline-flex;align-items:center;gap:5px;font-size:9px;letter-spacing:.05em;
+  color:var(--coral);border:1px solid var(--coral);border-radius:4px;padding:1px 6px;font-family:var(--mono);}
+.rec-pill .d{width:6px;height:6px;border-radius:50%;background:var(--coral);animation:blink 1s steps(2,start) infinite;}
+.ocs-pill{font-size:9px;border-radius:4px;padding:1px 6px;letter-spacing:.05em;border:1px solid var(--coral);
+  color:var(--coral);background:color-mix(in srgb,var(--coral) 14%,transparent);font-weight:700;}
+
+.numfield label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--teal);font-weight:600;display:block;margin-bottom:5px;}
+.numwrap{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:9px;background:var(--dp);padding:0 11px;}
+.numwrap:focus-within{border-color:var(--teal);}
+.numwrap input{flex:1;width:100%;font-family:var(--mono);font-size:24px;font-weight:700;padding:8px 0;
+  border:0;background:transparent;color:var(--ink);outline:none;font-variant-numeric:tabular-nums;}
+.numwrap .u{font-family:var(--mono);font-size:13px;color:var(--sub);}
+
+.rf-input{width:100%;font-family:var(--mono);font-size:13px;padding:9px 11px;border-radius:9px;
+  border:1px solid var(--line);background:var(--dp);color:var(--ink);outline:none;}
+.rf-input:focus{border-color:var(--teal);}
+.rf-input:disabled{opacity:.45;}
+.field label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--teal);
+  margin-bottom:4px;font-weight:600;display:flex;gap:6px;align-items:center;}
+.pill{font-size:9px;border-radius:4px;padding:1px 6px;letter-spacing:.05em;border:1px solid;}
+.pill.info{border-color:var(--sub);color:var(--sub);}
+.pill.set{border-color:var(--teal);color:var(--teal);}
+.pill.unset{border-color:var(--sub2);color:var(--sub2);}
+
+.fav{text-align:center;font-family:var(--mono);font-size:15px;margin-top:10px;color:var(--green);font-weight:700;}
+.fav.neu{color:var(--sub);font-weight:400;}
+.fav small{color:var(--sub);font-weight:400;font-size:12px;}
+
+.seg{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;}
+.seg button{flex:1;font-size:11px;padding:8px 6px;background:var(--panel2);color:var(--sub);border:0;cursor:pointer;}
+.seg button.on{background:color-mix(in srgb,var(--teal) 16%,transparent);color:var(--teal);}
+.seg.sm button{font-size:10px;padding:7px 4px;}
+
+.arch{list-style:none;display:flex;flex-direction:column;gap:7px;}
+.arch li{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);
+  border-radius:9px;padding:8px 10px;font-size:12px;}
+.arch li .m{flex:1;min-width:0;}
+.arch li .m b{font-family:var(--mono);font-weight:600;color:var(--ink);}
+.arch li .m small{display:block;color:var(--sub);font-size:10px;margin-top:2px;}
+.arch li button{font-size:11px;padding:5px 9px;border-radius:7px;border:1px solid var(--line);background:var(--panel);color:var(--sub);cursor:pointer;}
+.arch li button.ex{border-color:var(--teal);color:var(--teal);}
+.arch li button.dl{border-color:var(--coral);color:var(--coral);}
+.arch-empty{font-size:12px;color:var(--sub);text-align:center;padding:6px 0;}
+.arch li .m{cursor:pointer;}
+.an-kpis{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-top:6px;}
+.an-kpi{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 9px;}
+.an-k{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--teal);}
+.an-v{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--ink);margin-top:2px;}
+.an-v.coral{color:var(--coral);}.an-v.teal{color:var(--teal);}.an-v.amber{color:var(--amber);}.an-v.green{color:var(--green);}
+.an-title{font-family:var(--mono);font-size:12px;color:var(--sub);margin:2px 0 4px;}
+
+.foot{font-size:10px;color:var(--sub2);text-align:center;padding:8px 0 18px;letter-spacing:.03em;}
+.foot b{color:var(--teal);}
+@keyframes pulse{50%{opacity:.4}}
+@keyframes blink{50%{opacity:.25}}
+.pulse{animation:pulse 1s steps(2,start) infinite;}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important;}}
+</style>
+</head>
+<body>
+<!-- ===== rf-topbar: markup canonico. CSS e logica stanno in ../rf-topbar.js
+     (un solo file per tutta la suite). Il link alla home resta QUI, inline:
+     e' l'unico modo per uscire da un modulo e non deve dipendere da nulla. ===== -->
+<div class="rf-topbar" role="banner">
+  <a class="rf-home" href="../" aria-label="Menu ProVela" title="Menu ProVela">
+    <svg viewBox="0 0 64 64" width="19" height="19" aria-hidden="true"><path d="M32 8 L32 56 L10 56 Z" fill="#2BD9C4" opacity=".95"/><path d="M32 26 L54 56 L32 56 Z" fill="#2BD9C4" opacity=".45"/><line x1="32" y1="6" x2="32" y2="58" stroke="#1a4a42" stroke-width="3"/></svg>
+  </a>
+  <span class="rf-boat" id="rfBoat"></span>
+  <span class="rf-gps" id="rfGps" title="Stato GPS"><span class="gdot"></span></span>
+  <span class="rf-pol" id="rfPol" title=""></span>
+  <span class="rf-spacer"></span>
+  <span class="rf-status" id="rfStatus"></span>
+</div>
+<script src="../rf-topbar.js" defer></script>
+<script src="../rf-live.js"></script>
+<!-- ===== /rf-topbar ===== -->
+
+<!-- de-registrazione del vecchio Service Worker Workbox (scope /partenza/) + purge cache -->
+<script>
+(function(){try{
+  if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(function(rs){
+    rs.forEach(function(r){if(r.scope&&r.scope.indexOf('/partenza/')>=0)r.unregister();});}).catch(function(){});}
+  if(window.caches&&caches.keys){caches.keys().then(function(ks){
+    ks.forEach(function(k){if(/workbox|precache|vite|-partenza-|partenza/i.test(k))caches.delete(k);});}).catch(function(){});}
+}catch(e){}})();
+</script>
+
+<div class="pv">
+  <div class="pv-glow" id="pvGlow"></div>
+
+  <!-- COUNTDOWN -->
+  <div class="rf-instr">
+    <div class="rf-dp" id="cdDp">
+      <div class="rf-lbl">
+        <span>Conto alla rovescia</span>
+        <span class="r" id="cdMeta"><span id="cdState">fermo</span></span>
+      </div>
+      <div class="rf-numrow"><span class="rf-num lg sub" id="cdNum">5:00</span></div>
+      <div class="rf-note" id="cdOcs" style="color:var(--coral);display:none">⚠ oltre la linea — torna sul lato pre-partenza</div>
+    </div>
+    <div class="cd-min"><button id="cdMinus">−</button><span>minuti</span><button id="cdPlus">+</button></div>
+    <div class="cd-ctl">
+      <button class="rf-btn go" id="cdStart">Avvia</button>
+      <button class="rf-btn" id="cdSync">Sync ⟳</button>
+      <button class="rf-btn on" id="cdAudio" title="Segnali audio/vibrazione">🔊</button>
+    </div>
+  </div>
+
+  <!-- TRIPLETTA -->
+  <div class="rf-g3">
+    <div class="rf-instr"><div class="rf-dp" id="distDp">
+      <div class="rf-lbl"><span>Dist.</span></div>
+      <div class="rf-numrow"><span class="rf-num md sub" id="distVal">—</span><span class="rf-unit">m</span></div>
+      <div class="rf-note" id="distNote">alla linea</div>
+    </div></div>
+    <div class="rf-instr"><div class="rf-dp">
+      <div class="rf-lbl"><span>TTL</span></div>
+      <div class="rf-numrow"><span class="rf-num md teal" id="ttlVal">—</span></div>
+      <div class="rf-note" id="ttlNote">time to line</div>
+    </div></div>
+    <div class="rf-instr"><div class="rf-dp">
+      <div class="rf-lbl"><span>TTK</span></div>
+      <div class="rf-numrow"><span class="rf-num md sub" id="ttkVal">—</span></div>
+      <div class="rf-note" id="ttkNote">time to kill</div>
+    </div></div>
+  </div>
+
+  <!-- GRAFICO + FAVORITO -->
+  <div class="rf-card">
+    <h3><span>Linea</span><span class="r" id="lineHdr">incompleta</span></h3>
+    <svg id="lineSvg" viewBox="0 0 420 290" style="width:100%;height:auto;display:block;background:var(--dp);border-radius:8px"></svg>
+    <div class="fav neu" id="favLine">linea incompleta</div>
+  </div>
+
+  <!-- VENTO -->
+  <div class="rf-g2">
+    <div class="rf-card"><h3><span>Vento — direz.</span><span class="pill info">manuale</span></h3>
+      <div class="numfield"><div class="numwrap"><input id="twdIn" type="number" inputmode="numeric" step="1"><span class="u">°</span></div></div>
+    </div>
+    <div class="rf-card"><h3><span>Vento — intens.</span><span class="pill info">info</span></h3>
+      <div class="numfield"><div class="numwrap"><input id="twsIn" type="number" inputmode="decimal" step="1"><span class="u">kn</span></div></div>
+    </div>
+  </div>
+
+  <!-- SOG -->
+  <div class="rf-card"><h3><span>Velocità (SOG)</span><span class="r" id="cogHdr">COG —</span></h3>
+    <div class="rf-g2">
+      <div><div class="rf-numrow" style="justify-content:flex-start"><span class="rf-num md" id="sogVal">—</span><span class="rf-unit">kn</span></div><div class="rf-note l">al fondo</div></div>
+      <div><div class="rf-numrow" style="justify-content:flex-start"><span class="rf-num md sub" id="vmgVal">—</span><span class="rf-unit">kn</span></div><div class="rf-note l">verso la linea (VMG)</div></div>
+    </div>
+  </div>
+
+  <!-- SETUP LINEA -->
+  <div class="rf-card">
+    <h3><span>Definizione linea</span></h3>
+    <div class="seg" style="margin-bottom:10px">
+      <button id="modeTwo" class="on">Due estremi</button>
+      <button id="modeDir">Un estremo + direzione</button>
+    </div>
+    <div id="anchorRow" style="margin-bottom:10px;display:none">
+      <label class="field" style="display:block;margin-bottom:6px">Estremo pingato</label>
+      <div class="seg sm"><button id="anchPin" class="on">PIN (sx)</button><button id="anchRc">RC (dx)</button></div>
+    </div>
+    <div class="rf-g2">
+      <div class="field">
+        <label>PIN <span class="pill unset" id="pinBadge">—</span></label>
+        <button class="rf-btn go sm" style="width:100%" id="pinHere">Imposta qui (GPS)</button>
+        <input class="rf-input" style="margin-top:6px" id="pinTxt" placeholder="lat lon" spellcheck="false" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>RC <span class="pill unset" id="rcBadge">—</span></label>
+        <button class="rf-btn go sm" style="width:100%" id="rcHere">Imposta qui (GPS)</button>
+        <input class="rf-input" style="margin-top:6px" id="rcTxt" placeholder="lat lon" spellcheck="false" autocomplete="off">
+      </div>
+    </div>
+    <div id="dirRow" style="margin-top:10px;display:none">
+      <label class="field" style="display:block;margin-bottom:4px">Direzione linea (°) — PIN→RC</label>
+      <input class="rf-input" id="dirIn" type="number" step="1" inputmode="numeric">
+      <div class="rf-note l" style="margin-top:4px" id="dirHint">Ancora l'estremo pingato; lunghezza ignota → niente vantaggio in metri.</div>
+    </div>
+    <div class="cd-ctl" style="margin-top:10px"><button class="rf-btn sm stop" style="flex:1" id="lineClear">Cancella linea</button></div>
+  </div>
+
+  <!-- ARCHIVIO -->
+  <div class="rf-card">
+    <h3><span>Archivio partenze</span><button class="rf-btn sm stop" id="archClear" style="padding:4px 8px">Cancella tutte</button></h3>
+    <ul class="arch" id="archList"></ul>
+    <div id="archAn" hidden>
+      <button class="rf-btn sm" id="anBack" style="padding:4px 10px;margin-bottom:6px">‹ archivio</button>
+      <div class="an-title" id="anTitle"></div>
+      <div class="an-kpis" id="anKpis"></div>
+      <svg id="anChart" viewBox="0 0 420 200" style="width:100%;height:auto;background:var(--dp);border-radius:8px;margin-top:8px;display:block"></svg>
+      <div class="hint" id="anLegend" style="margin-top:4px;font-size:10px;color:var(--sub)"></div>
+    </div>
+  </div>
+
+  <div class="foot">ProVela · Partenza regata — sviluppo <b>Sergio Moro</b></div>
+</div>
+
+<script>
+(function(){
+"use strict";
+var $=function(id){return document.getElementById(id);};
+var D2R=Math.PI/180, R2D=180/Math.PI, KN=1.94384, MS=0.514444;
+
+/* ---------- storage helpers ---------- */
+function readJSON(k,f){try{var v=JSON.parse(localStorage.getItem(k));return v==null?f:v;}catch(e){return f;}}
+/* Prima questa catch era vuota: con localStorage pieno il salvataggio
+   falliva senza nessun segno e l'archivio partenze sembrava svanito
+   (segnalato 27/08). Ora un fallimento e' visibile e dice cosa fare. */
+function avvisoStorage(){
+  if(avvisoStorage.fatto) return; avvisoStorage.fatto=true;
+  var d=document.createElement("div");
+  d.setAttribute("role","alert");
+  d.style.cssText="position:fixed;left:10px;right:10px;bottom:14px;z-index:99999;"+
+    "background:#3a1712;border:1px solid #e2603f;color:#ffd9cf;border-radius:10px;"+
+    "padding:11px 13px;font:13px/1.45 system-ui,sans-serif;box-shadow:0 6px 22px rgba(0,0,0,.45)";
+  d.innerHTML="<b>Salvataggio non riuscito: spazio esaurito.</b><br>"+
+    "Il dato NON \u00e8 stato registrato. Apri Impostazioni \u203a Dati \u203a Spazio usato "+
+    "e libera spazio (di solito bastano le tracce GPX vecchie).";
+  d.onclick=function(){ if(d.parentNode) d.parentNode.removeChild(d); };
+  document.body.appendChild(d);
+  setTimeout(function(){ if(d.parentNode) d.parentNode.removeChild(d); },12000);
+}
+function writeJSON(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true;}catch(e){avvisoStorage();return false;}}
+function settings(){return readJSON("raffyca-settings",{})||{};}
+function sogWin(){var s=settings();var w=parseInt(s.sogSmooth,10);return (isFinite(w)&&w>=1&&w<=30)?w:5;}
+function thresholds(){var s=settings();
+  var g=parseFloat(s.startDistG), y=parseFloat(s.startDistY);
+  if(!isFinite(g)||g<=0)g=50; if(!isFinite(y)||y<=0)y=20; if(y>=g)y=Math.min(g-1,g*0.4);
+  return {verde:g, giallo:y};}
+
+/* ---------- stato linea / vento / countdown (persistenti) ---------- */
+var LINE=readJSON("raffyca-startline",{pin:null,rc:null,mode:"two",dir:95,anchor:"pin"});
+if(!LINE.mode)LINE.mode="two"; if(LINE.dir==null)LINE.dir=95; if(!LINE.anchor)LINE.anchor="pin";
+var PREF=readJSON("raffyca-start",{twd:0,tws:0,target:300,audio:true});
+if(PREF.target==null)PREF.target=300; if(PREF.audio==null)PREF.audio=true;
+function saveLine(){writeJSON("raffyca-startline",LINE);}
+function savePref(){writeJSON("raffyca-start",PREF);}
+
+/* countdown runtime */
+var CD={running:false, endTs:0, remaining:PREF.target};
+(function resumeCD(){
+  if(PREF.cdRunning && PREF.cdEnd && PREF.cdEnd>Date.now()){
+    CD.running=true; CD.endTs=PREF.cdEnd; CD.remaining=(PREF.cdEnd-Date.now())/1000;
+  } else if(PREF.cdRunning){ PREF.cdRunning=false; savePref(); }
+})();
+
+/* ---------- GPS ---------- */
+var GPS={lat:null,lon:null,ts:0,ok:false,sog:0,cog:null,_buf:[],_prev:null};
+function gpsStart(){
+  if(!navigator.geolocation)return;
+  navigator.geolocation.watchPosition(function(pp){
+    var c=pp.coords, now=Date.now();
+    GPS.lat=c.latitude; GPS.lon=c.longitude; GPS.ts=now; GPS.ok=true;
+    var raw=null;
+    if(c.speed!=null&&isFinite(c.speed)&&c.speed>=0){raw=c.speed*KN;}
+    else if(GPS._prev){var dt=(now-GPS._prev.ts)/1000; if(dt>0){var dm=haversine(GPS._prev.lat,GPS._prev.lon,c.latitude,c.longitude); raw=(dm/dt)*KN;}}
+    if(raw!=null){var win=sogWin()*1000; GPS._buf.push({t:now,v:raw});
+      GPS._buf=GPS._buf.filter(function(b){return now-b.t<=win;});
+      var sum=0,i; for(i=0;i<GPS._buf.length;i++)sum+=GPS._buf[i].v;
+      GPS.sog=GPS._buf.length?sum/GPS._buf.length:raw;}
+    if(c.heading!=null&&isFinite(c.heading)&&(GPS.sog>0.5)){GPS.cog=c.heading;}
+    else if(GPS._prev){var dd=haversine(GPS._prev.lat,GPS._prev.lon,c.latitude,c.longitude);
+      if(dd>3)GPS.cog=bearing(GPS._prev.lat,GPS._prev.lon,c.latitude,c.longitude);}
+    GPS._prev={lat:c.latitude,lon:c.longitude,ts:now};
+    writeJSON("raffyca-pos",{lat:c.latitude,lon:c.longitude,ts:now});
+    render();
+  }, function(){GPS.ok=false;render();}, {enableHighAccuracy:true,maximumAge:2000,timeout:20000});
+}
+function haversine(la1,lo1,la2,lo2){var R=6371000,r=D2R;
+  var dla=(la2-la1)*r, dlo=(lo2-lo1)*r;
+  var a=Math.sin(dla/2)*Math.sin(dla/2)+Math.cos(la1*r)*Math.cos(la2*r)*Math.sin(dlo/2)*Math.sin(dlo/2);
+  return 2*R*Math.asin(Math.min(1,Math.sqrt(a)));}
+function bearing(la1,lo1,la2,lo2){var r=D2R;
+  var y=Math.sin((lo2-lo1)*r)*Math.cos(la2*r);
+  var x=Math.cos(la1*r)*Math.sin(la2*r)-Math.sin(la1*r)*Math.cos(la2*r)*Math.cos((lo2-lo1)*r);
+  return (Math.atan2(y,x)*R2D+360)%360;}
+
+/* ---------- proiezione locale piana (equirettangolare) ---------- */
+function refLat(){ if(LINE.pin)return LINE.pin.lat; if(LINE.rc)return LINE.rc.lat; if(GPS.lat!=null)return GPS.lat; return 43; }
+function toXY(lat,lon){var l0=refLat(); return {x:(lon-lon0())*111320*Math.cos(l0*D2R), y:(lat-l0)*111320};}
+var _lon0=null; function lon0(){ if(LINE.pin)return LINE.pin.lon; if(LINE.rc)return LINE.rc.lon; if(GPS.lon!=null)return GPS.lon; return 13; }
+
+/* ---------- geometria nav ---------- */
+function computeNav(){
+  var pinXY=LINE.pin?toXY(LINE.pin.lat,LINE.pin.lon):null;
+  var rcXY =LINE.rc ?toXY(LINE.rc.lat,LINE.rc.lon):null;
+  var twoOk=pinXY&&rcXY&&LINE.mode==="two";
+  var anchorXY=LINE.mode==="dir"?(LINE.anchor==="pin"?pinXY:rcXY):null;
+  var dirOk=LINE.mode==="dir"&&anchorXY&&isFinite(LINE.dir);
+  var haveLine=!!(twoOk||dirOk);
+  var out={haveLine:haveLine,twoOk:!!twoOk,pinXY:pinXY,rcXY:rcXY};
+  if(!haveLine)return out;
+
+  var u,ll,lengthKnown,A;
+  if(twoOk){var Lx=rcXY.x-pinXY.x,Ly=rcXY.y-pinXY.y; ll=Math.hypot(Lx,Ly)||1; u={x:Lx/ll,y:Ly/ll}; lengthKnown=true; A=pinXY;}
+  else{u={x:Math.sin(LINE.dir*D2R),y:Math.cos(LINE.dir*D2R)}; ll=null; lengthKnown=false; A=anchorXY;}
+
+  var twd=PREF.twd||0;
+  var wu={x:Math.sin(twd*D2R),y:Math.cos(twd*D2R)};
+  /* CONVENZIONE DI POSA: guardando la linea lungo la perpendicolare, RC a destra
+     = sei dalla parte giusta; RC a sinistra = sei oltre la linea (OCS).
+     Il lato percorso e quindi SEMPRE a sinistra del vettore PIN->RC, comunque
+     ruotino vento e barca. Prima la normale veniva orientata col vento: con la
+     stessa linea e un salto di vento il segno di dist si ribaltava e l OCS
+     risultava invertito. */
+  var n={x:-u.y,y:u.x};
+  /* se il vento dice che la corsa sta dall altra parte, i due estremi sono stati
+     puntati al contrario: si avvisa, non si corregge in silenzio */
+  var endsSwapped = !!twoOk && (PREF.tws>0) && ((n.x*wu.x+n.y*wu.y)<0);
+
+  var b={x:GPS.lat!=null?toXY(GPS.lat,GPS.lon).x:A.x, y:GPS.lat!=null?toXY(GPS.lat,GPS.lon).y:A.y};
+  var haveBoat=GPS.lat!=null;
+  var dist = haveBoat ? -((b.x-A.x)*n.x+(b.y-A.y)*n.y) : null;
+  var ocs = dist!=null && dist<0;
+
+  var closing=null,ttl=Infinity;
+  if(haveBoat && GPS.cog!=null){
+    var v={x:Math.sin(GPS.cog*D2R)*GPS.sog, y:Math.cos(GPS.cog*D2R)*GPS.sog};
+    closing = -(v.x*n.x+v.y*n.y);            // nodi verso la linea
+    var cms=closing*MS;
+    ttl=(dist>0&&cms>0.05)?dist/cms:Infinity;
+  }
+  var burn = CD.running ? (CD.remaining - ttl) : NaN;
+
+  var biasDeg=Math.asin(Math.min(1,Math.abs(u.x*wu.x+u.y*wu.y)))*R2D;
+  var favored="neutra";
+  if(biasDeg>=1.5){
+    var s = twoOk ? Math.sign((rcXY.x-pinXY.x)*wu.x+(rcXY.y-pinXY.y)*wu.y) : Math.sign(u.x*wu.x+u.y*wu.y);
+    favored = s>0 ? "RC" : "PIN";
+  }
+  var adv = lengthKnown ? Math.abs((rcXY.x-pinXY.x)*wu.x+(rcXY.y-pinXY.y)*wu.y) : null;
+
+  out.u=u; out.n=n; out.A=A; out.ll=ll; out.lengthKnown=lengthKnown;
+  out.lineBrg=(Math.atan2(u.x,u.y)*R2D+360)%360;
+  out.dist=dist; out.ocs=ocs; out.closing=closing; out.ttl=ttl; out.burn=burn;
+  out.biasDeg=biasDeg; out.favored=favored; out.adv=adv; out.boat=b; out.haveBoat=haveBoat;
+  out.endsSwapped=endsSwapped;
+  return out;
+}
+
+/* ---------- zone prossimità (colori semantici INVARIANTI) ---------- */
+var HUE={ciano:[43,217,196],verde:[70,214,138],giallo:[255,194,75],rosso:[255,107,107]};
+function zoneOf(d){var T=thresholds(); if(d==null||!isFinite(d))return null;
+  if(d<0)return"rosso"; if(d<T.giallo)return"giallo"; if(d<T.verde)return"verde"; return"ciano";}
+function isNight(){return document.documentElement.classList.contains("night");}
+function isDay(){return document.documentElement.classList.contains("day");}
+function tintBg(zone,strong){
+  if(!zone)return "var(--dp)";
+  var c=HUE[zone], a;
+  if(isNight()){ a=(zone==="rosso")?0.22:0.12; }               // spento (visione notturna)
+  else if(isDay()){ a=strong?0.30:0.22; }
+  else { a=strong?(zone==="rosso"?0.52:0.38):(zone==="rosso"?0.40:0.30); } // scuro: acceso
+  var rgba="rgba("+c[0]+","+c[1]+","+c[2]+","+a+")";
+  return "linear-gradient(0deg,"+rgba+","+rgba+"),"+
+    "repeating-linear-gradient(0deg,transparent 0,transparent 2px,rgba(0,8,20,.11) 2px,rgba(0,8,20,.11) 3px),var(--dp)";
+}
+function glowBg(zone){ if(!zone)return"transparent"; var c=HUE[zone];
+  var a=isNight()?0.10:0.22; return "radial-gradient(80% 100% at 50% 0%, rgba("+c[0]+","+c[1]+","+c[2]+","+a+"), transparent 72%)";}
+
+/* ---------- formattazione ---------- */
+function fmtT(s){ if(s==null||!isFinite(s))return"—"; var neg=s<0; s=Math.abs(Math.round(s));
+  return (neg?"-":"")+Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); }
+function xyLL(o){ return o?(o.lat.toFixed(5)+" "+o.lon.toFixed(5)):""; }
+function parseLL(str){ var m=String(str).trim().split(/[ ,]+/).map(Number);
+  if(m.length<2||!isFinite(m[0])||!isFinite(m[1])||Math.abs(m[0])>90||Math.abs(m[1])>180)return null;
+  return {lat:m[0],lon:m[1]}; }
+
+/* ---------- render ---------- */
+function setNum(el,txt,cls){ el.textContent=txt; el.className="rf-num md "+(cls||""); }
+function render(){
+  var nav=computeNav();
+  var zone=nav.haveLine?zoneOf(nav.dist):null;
+
+  /* countdown */
+  var cdShow = CD.running ? CD.remaining : PREF.target;
+  $("cdNum").textContent=fmtT(cdShow);
+  var cdCls="sub";
+  if(CD.running){ if(nav.ocs||CD.remaining<=10)cdCls="coral"; else if(CD.remaining<=60)cdCls="amber"; else cdCls="teal"; }
+  $("cdNum").className="rf-num lg "+cdCls+((CD.running&&CD.remaining<=10)?" pulse":"");
+  $("cdDp").style.background=tintBg(zone,false);
+  $("pvGlow").style.background=glowBg(zone);
+  var meta="";
+  if(CD.running){ meta='<span class="rec-pill"><span class="d"></span>REC '+fmtT(PREF.target-CD.remaining)+'</span>'; }
+  if(nav.ocs&&CD.running){ meta+='<span class="ocs-pill">OCS</span>'; }
+  if(!CD.running){ meta='<span id="cdState">fermo</span>'; }
+  $("cdMeta").innerHTML=meta;
+  $("cdStart").textContent=CD.running?"Stop":"Avvia";
+  $("cdStart").className="rf-btn "+(CD.running?"stop":"go");
+  $("cdOcs").style.display=(nav.ocs&&CD.running)?"":"none";
+
+  /* dist */
+  var distEl=$("distVal");
+  if(nav.haveLine&&nav.haveBoat){ distEl.textContent=Math.abs(Math.round(nav.dist)); distEl.className="rf-num md "+(nav.ocs?"coral":""); }
+  else { distEl.textContent="—"; distEl.className="rf-num md sub"; }
+  $("distNote").textContent=nav.ocs?"OLTRE":"alla linea";
+  $("distDp").style.background=tintBg(zone,true);
+
+  /* ttl / ttk */
+  $("ttlVal").textContent=(nav.haveLine&&isFinite(nav.ttl))?fmtT(nav.ttl):"—";
+  $("ttlNote").textContent=(nav.haveLine&&nav.closing!=null&&isFinite(nav.ttl))?nav.closing.toFixed(1)+" kn":"non avvicini";
+  var ttk=$("ttkVal");
+  if(CD.running&&isFinite(nav.burn)){ var k=Math.abs(nav.burn)<=3?"green":(nav.burn>0?"amber":"coral");
+    ttk.textContent=fmtT(nav.burn); ttk.className="rf-num md "+k;
+    $("ttkNote").textContent=Math.abs(nav.burn)<=3?"perfetto":(nav.burn>0?"in anticipo":"in ritardo"); }
+  else { ttk.textContent="—"; ttk.className="rf-num md sub"; $("ttkNote").textContent=CD.running?"—":"time to kill"; }
+
+  /* sog */
+  $("sogVal").textContent=GPS.lat!=null?GPS.sog.toFixed(1):"—";
+  $("vmgVal").textContent=(nav.haveLine&&nav.closing!=null)?Math.max(0,nav.closing).toFixed(1):"—";
+  $("cogHdr").textContent="COG "+(GPS.cog!=null?Math.round(GPS.cog)+"°":"—");
+
+  /* favorito + header linea */
+  $("lineHdr").innerHTML=nav.haveLine?((nav.lengthKnown?("L "+Math.round(nav.ll)+" m · "):"")+Math.round(nav.lineBrg)+"°"
+    +(nav.endsSwapped?' · <span style="color:var(--coral)">PIN/RC invertiti?</span>':"")):"incompleta";
+  var fav=$("favLine");
+  if(!nav.haveLine){ fav.className="fav neu"; fav.textContent="linea incompleta"; }
+  else if(nav.favored==="neutra"){ fav.className="fav neu"; fav.textContent="linea neutra — nessun lato favorito"; }
+  else { fav.className="fav"; fav.innerHTML="favorito "+nav.favored+" · "+nav.biasDeg.toFixed(0)+"° · "+
+    (nav.lengthKnown?("+"+Math.round(nav.adv)+" m"):"<small>vant. n/d</small>"); }
+
+  drawSvg(nav);
+}
+
+/* ---------- SVG (auto-zoom) ---------- */
+function drawSvg(nav){
+  var W=420,H=290;
+  /* ORIENTAMENTO: il quadro ruota con la LINEA, non col nord e non col vento.
+     Assi ruotati: x lungo PIN->RC (RC a destra), y lungo la normale (lato
+     percorso in alto). Cosi la convenzione di posa e sempre leggibile a colpo
+     d occhio: se la barca sta sotto la linea sei OK, sopra sei OCS. */
+  var ROT=nav.haveLine?{u:nav.u,n:nav.n,o:nav.A}:null;
+  function RT(p){ if(!p||!ROT)return p;
+    var dx=p.x-ROT.o.x, dy=p.y-ROT.o.y;
+    return {x:dx*ROT.u.x+dy*ROT.u.y, y:dx*ROT.n.x+dy*ROT.n.y}; }
+  function RA(a){ return ROT?(a-nav.lineBrg+90):a; }   /* angolo bussola -> quadro ruotato */
+  var boatR=RT(nav.boat), pinR=RT(nav.pinXY), rcR=RT(nav.rcXY), AR=RT(nav.A);
+  var pts=[];
+  if(nav.haveBoat&&boatR)pts.push(boatR);
+  if(pinR)pts.push(pinR);
+  if(rcR)pts.push(rcR);
+  if(!pts.length){ $("lineSvg").innerHTML=""; return; }
+  var xs=pts.map(function(p){return p.x;}), ys=pts.map(function(p){return p.y;});
+  var minX=Math.min.apply(null,xs),maxX=Math.max.apply(null,xs);
+  var minY=Math.min.apply(null,ys),maxY=Math.max.apply(null,ys);
+  var cx=(minX+maxX)/2, cy=(minY+maxY)/2;
+  var cw=maxX-minX, ch=maxY-minY;
+  var MIN=90;                          /* frame minimo (m): evita il sovra-zoom quando i punti sono vicini/coincidenti */
+  var span=Math.max(cw,ch,MIN);        /* estensione dominante */
+  var pad=span*0.16;                   /* margine proporzionale: bordi visivi costanti a ogni livello di zoom */
+  var halfW=cw/2+pad, halfH=ch/2+pad;
+  minX=cx-halfW;maxX=cx+halfW;minY=cy-halfH;maxY=cy+halfH;
+  var spanX=maxX-minX,spanY=maxY-minY, sc=Math.min(W/spanX,H/spanY);
+  var ox=(W-spanX*sc)/2, oy=(H-spanY*sc)/2;
+  function X(x){return ox+(x-minX)*sc;} function Y(y){return H-(oy+(y-minY)*sc);}
+
+  var s="";
+  if(nav.haveLine){
+    var a=nav.twoOk?pinR:AR, u={x:1,y:0};   /* nel quadro ruotato la linea e orizzontale */
+    var p1={x:a.x-u.x*600,y:a.y-u.y*600}, p2={x:a.x+u.x*600,y:a.y+u.y*600};
+    var n={x:0,y:1}, ext=600;               /* lato percorso verso l alto */
+    var q1={x:p1.x+n.x*ext,y:p1.y+n.y*ext}, q2={x:p2.x+n.x*ext,y:p2.y+n.y*ext};
+    s+='<polygon points="'+X(p1.x)+','+Y(p1.y)+' '+X(p2.x)+','+Y(p2.y)+' '+X(q2.x)+','+Y(q2.y)+' '+X(q1.x)+','+Y(q1.y)+'" fill="color-mix(in srgb,var(--teal) 7%,transparent)"/>';
+    s+='<line x1="'+X(p1.x)+'" y1="'+Y(p1.y)+'" x2="'+X(p2.x)+'" y2="'+Y(p2.y)+'" stroke="var(--ink)" stroke-width="2.5" stroke-dasharray="'+(nav.lengthKnown?"0":"7 5")+'"/>';
+    if(nav.haveBoat&&boatR){
+      var t=(boatR.x-p1.x)*u.x+(boatR.y-p1.y)*u.y;
+      var foot={x:p1.x+u.x*t,y:p1.y+u.y*t};
+      s+='<line x1="'+X(boatR.x)+'" y1="'+Y(boatR.y)+'" x2="'+X(foot.x)+'" y2="'+Y(foot.y)+'" stroke="'+(nav.ocs?"var(--coral)":"var(--teal)")+'" stroke-width="1.3" stroke-dasharray="4 4" opacity=".8"/>';
+    }
+  }
+  if(pinR){ var fp=nav.favored==="PIN";
+    s+='<circle cx="'+X(pinR.x)+'" cy="'+Y(pinR.y)+'" r="'+(fp?11:6)+'" fill="var(--coral)"/>';
+    s+='<text x="'+X(pinR.x)+'" y="'+(Y(pinR.y)+20)+'" fill="var(--sub)" font-size="11" text-anchor="middle" font-family="var(--mono)">PIN</text>'; }
+  if(rcR){ var fr=nav.favored==="RC";
+    s+='<circle cx="'+X(rcR.x)+'" cy="'+Y(rcR.y)+'" r="'+(fr?11:6)+'" fill="var(--teal)"/>';
+    s+='<text x="'+X(rcR.x)+'" y="'+(Y(rcR.y)-12)+'" fill="var(--sub)" font-size="11" text-anchor="middle" font-family="var(--mono)">RC</text>'; }
+  if(nav.haveBoat&&boatR){
+    s+='<g transform="translate('+X(boatR.x)+','+Y(boatR.y)+') rotate('+RA(GPS.cog!=null?GPS.cog:0)+')"><path d="M0,-11 L7,10 L0,5 L-7,10 Z" fill="'+(nav.ocs?"var(--coral)":"var(--amber)")+'"/></g>';
+  }
+  /* vento: punta al centro (proviene DA) */
+  var wx=W-46, wy=42, wr=24, twd=PREF.twd||0, twdR=RA(twd);
+  var fx=wx+Math.sin(twdR*D2R)*wr, fy=wy-Math.cos(twdR*D2R)*wr;
+  var dx=wx-fx, dy=wy-fy, m=Math.hypot(dx,dy)||1, ux=dx/m, uy=dy/m;
+  var bx=wx-ux*8, by=wy-uy*8, px=-uy, py=ux;
+  s+='<circle cx="'+wx+'" cy="'+wy+'" r="'+(wr+7)+'" fill="none" stroke="var(--line)" stroke-width="1"/>';
+  s+='<line x1="'+fx+'" y1="'+fy+'" x2="'+wx+'" y2="'+wy+'" stroke="var(--sub)" stroke-width="2"/>';
+  s+='<polygon points="'+wx+','+wy+' '+(bx+px*5)+','+(by+py*5)+' '+(bx-px*5)+','+(by-py*5)+'" fill="var(--sub)"/>';
+  s+='<text x="'+wx+'" y="'+(wy+wr+20)+'" fill="var(--sub)" font-size="10" text-anchor="middle" font-family="var(--mono)">DA '+Math.round(twd)+'°</text>';
+
+  /* nord: il quadro segue la linea, quindi il nord va indicato */
+  var nx=46, ny=42, nr=18, nA=RA(0)*D2R;
+  var ntx=nx+Math.sin(nA)*nr, nty=ny-Math.cos(nA)*nr;
+  s+='<circle cx="'+nx+'" cy="'+ny+'" r="'+(nr+7)+'" fill="none" stroke="var(--line)" stroke-width="1"/>';
+  s+='<line x1="'+nx+'" y1="'+ny+'" x2="'+ntx+'" y2="'+nty+'" stroke="var(--sub)" stroke-width="2"/>';
+  s+='<text x="'+(nx+Math.sin(nA)*(nr+15))+'" y="'+(ny-Math.cos(nA)*(nr+15)+4)+'" fill="var(--sub)" font-size="11" text-anchor="middle" font-family="var(--mono)">N</text>';
+  $("lineSvg").innerHTML=s;
+}
+
+/* ---------- audio / vibrazione ---------- */
+var AC=null;
+/* tono deciso: onda quadra + ottava, gain alto, per sentirsi col vento */
+function tone(freq,ms,vol){
+  if(!PREF.audio)return;
+  try{ if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==="suspended")AC.resume();
+    var t=AC.currentTime, g=AC.createGain(), o=AC.createOscillator(), o2=AC.createOscillator();
+    o.type="square"; o2.type="square"; o.frequency.value=freq; o2.frequency.value=freq*2;
+    var V=(vol||0.8);
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.exponentialRampToValueAtTime(V,t+0.008);
+    g.gain.setValueAtTime(V,t+Math.max(0.02,ms/1000-0.03));
+    g.gain.exponentialRampToValueAtTime(0.0001,t+ms/1000);
+    o.connect(g); o2.connect(g); g.connect(AC.destination);
+    o.start(t); o2.start(t); o.stop(t+ms/1000+0.02); o2.stop(t+ms/1000+0.02);
+  }catch(e){}
+}
+function vibr(p){ if(PREF.audio&&navigator.vibrate){try{navigator.vibrate(p);}catch(e){}} }
+/* pattern: >1min al minuto e ai :30 · <1min ogni 10s · <10s ogni secondo · via corto+lungo */
+function cdCue(s){
+  if(s<=0)return;
+  if(s>60){ if(s%30===0){ tone(1000,230,.8); vibr(150); } return; }
+  if(s>10){ if(s%10===0){ tone(1000,210,.8); vibr(120); } return; }
+  tone(1500,150,.95); vibr(80);
+}
+function signalGun(){ tone(1500,180,.95); setTimeout(function(){ tone(680,1050,1.0); },240); vibr([180,90,560]); }
+
+/* ---------- countdown ---------- */
+var _lastSecShown=null;
+function persistCD(){ PREF.cdRunning=CD.running; PREF.cdEnd=CD.endTs; PREF.cdTarget=PREF.target; savePref(); }
+function cdStart(){
+  if(CD.running){ cdStop(true); return; }
+  CD.endTs=Date.now()+PREF.target*1000; CD.remaining=PREF.target; CD.running=true;
+  _lastSecShown=Math.ceil(CD.remaining);
+  try{ if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==="suspended")AC.resume(); }catch(e){}
+  recStart(); persistCD(); render();
+}
+function cdStop(manual){
+  CD.running=false; persistCD();
+  recFinalize(manual?"manuale":"gun");
+  render();
+}
+function cdSync(){
+  var base=CD.running?CD.remaining:PREF.target;
+  var snap=Math.max(60,Math.round(base/60)*60);
+  if(CD.running){ CD.endTs=Date.now()+snap*1000; CD.remaining=snap; _lastSecShown=Math.ceil(snap); persistCD(); }
+  else { PREF.target=snap; savePref(); }
+  render();
+}
+function cdBump(d){
+  if(CD.running){ var r=Math.max(0,CD.remaining+d*60); CD.endTs=Date.now()+r*1000; CD.remaining=r; persistCD(); }
+  else { PREF.target=Math.max(60,Math.min(3600,PREF.target+d*60)); savePref(); }
+  render();
+}
+function writeRaceHandoff(auto){
+  try{
+    var h={ from:"partenza", ts:Date.now(), auto:!!auto,
+      line:{ cb: LINE.rc||null, pin: LINE.pin||null, mode: LINE.mode||"two" },
+      wind:{ twd: PREF.twd||0, tws: PREF.tws||0 } };
+    localStorage.setItem("raffyca-race-handoff", JSON.stringify(h));
+  }catch(e){}
+}
+function raceEndAction(){
+  var s=settings(), a=s.raceEndAction||"cruscotto", u=s.raceEndUrl||"";
+  if(a==="none")return;
+  if(a==="percorso"||a==="diretto")writeRaceHandoff(a==="diretto");
+  setTimeout(function(){
+    if(a==="url"){ if(u)location.href=u; return; }
+    if(a==="percorso"||a==="diretto"){ location.href="../percorso/"; return; }
+    location.href="../cruscotto/";
+  },2200);
+}
+/* tick 5 Hz per il countdown */
+setInterval(function(){
+  if(!CD.running)return;
+  var r=Math.max(0,(CD.endTs-Date.now())/1000);
+  var prev=CD.remaining; CD.remaining=r;
+  var cur=Math.ceil(r);
+  if(_lastSecShown==null)_lastSecShown=Math.ceil(prev);
+  if(cur<_lastSecShown && r>0.05){
+    for(var sMark=_lastSecShown-1; sMark>=cur; sMark--){ cdCue(sMark); }
+    _lastSecShown=cur;
+  }
+  if(r<=0 && prev>0){ signalGun(); cdStop(false); raceEndAction(); return; }
+  render();
+},200);
+
+/* ---------- registrazione (solo JSON, no replay) ---------- */
+var REC=null;   // {ts,name,zone,twd,tws,target,samples:[]}
+var recTimer=null;
+function recStart(){
+  var prof=readJSON("raffyca-profile",{})||{};
+  REC={ ts:Date.now(), name:new Date().toLocaleString("it-IT"), zone:prof.zone||"", boat:prof.boat||"",
+        twd:PREF.twd||0, tws:PREF.tws||0, target:PREF.target, samples:[] };
+  if(recTimer)clearInterval(recTimer);
+  recTimer=setInterval(recSample,1000); recSample();
+}
+function recSample(){
+  if(!REC)return;
+  var nav=computeNav();
+  REC.samples.push({
+    t: Math.round(-CD.remaining),                         // s al via (negativo prima)
+    lat: GPS.lat!=null?+GPS.lat.toFixed(6):null,
+    lon: GPS.lon!=null?+GPS.lon.toFixed(6):null,
+    sog: GPS.lat!=null?+GPS.sog.toFixed(2):null,
+    cog: GPS.cog!=null?Math.round(GPS.cog):null,
+    dist: (nav.haveLine&&nav.dist!=null)?Math.round(nav.dist):null,
+    ttl: (nav.haveLine&&isFinite(nav.ttl))?Math.round(nav.ttl):null,
+    ocs: !!nav.ocs
+  });
+}
+function recFinalize(reason){
+  if(recTimer){clearInterval(recTimer);recTimer=null;}
+  if(!REC||!REC.samples.length){ REC=null; return; }
+  REC.end=reason;
+  var arr=readJSON("raffyca-starts",[])||[];
+  arr.push(REC);
+  while(arr.length>50)arr.shift();               // tetto: ultime 50
+  writeJSON("raffyca-starts",arr);
+  REC=null;
+  renderArchive();
+}
+
+/* ---------- archivio UI ---------- */
+function renderArchive(){
+  closeStartAnalysis();
+  var arr=readJSON("raffyca-starts",[])||[];
+  var ul=$("archList");
+  if(!arr.length){ ul.innerHTML='<div class="arch-empty">Nessuna partenza registrata.</div>'; return; }
+  var h="";
+  for(var i=arr.length-1;i>=0;i--){ var s=arr[i];
+    var dur=s.samples&&s.samples.length?Math.abs(s.samples[0].t)+"→"+(s.samples[s.samples.length-1].t)+"s":"";
+    h+='<li data-i="'+i+'"><span class="m"><b>'+escapeHtml(s.name)+'</b><small>'+(s.samples?s.samples.length:0)+' pt · '+escapeHtml(s.zone||"")+' · vento '+Math.round(s.twd)+'°/'+Math.round(s.tws)+'kn</small></span>'+
+      '<button class="ex" data-ex="'+i+'">Esporta</button><button class="dl" data-del="'+i+'">Elimina</button></li>';
+  }
+  ul.innerHTML=h;
+}
+function escapeHtml(x){return String(x).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function pad2(n){return String(n).padStart(2,"0");}
+function exportStart(i){
+  var arr=readJSON("raffyca-starts",[])||[]; var s=arr[i]; if(!s)return;
+  var d=new Date(s.ts);
+  var fn="ProVela-partenza-"+d.getFullYear()+pad2(d.getMonth()+1)+pad2(d.getDate())+"-"+pad2(d.getHours())+pad2(d.getMinutes())+".json";
+  var blob=new Blob([JSON.stringify(s,null,2)],{type:"application/json"});
+  var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=fn;
+  document.body.appendChild(a); a.click(); setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1000);
+}
+function delStart(i){
+  var arr=readJSON("raffyca-starts",[])||[]; if(i<0||i>=arr.length)return;
+  arr.splice(i,1); writeJSON("raffyca-starts",arr); renderArchive();
+}
+
+/* ---------- analisi partenza (metriche + grafico nel tempo) ---------- */
+function startStats(s){
+  var sm=(s&&s.samples)||[]; if(!sm.length)return null;
+  var gun=sm[0],i;
+  for(i=0;i<sm.length;i++){ if(Math.abs(sm[i].t)<Math.abs(gun.t))gun=sm[i]; }
+  var distGun=(gun.dist!=null)?gun.dist:null;   /* firmato: <0 = oltre la linea (OCS) */
+  var sogGun=(gun.sog!=null)?gun.sog:null;
+  var ocsGun=(distGun!=null&&distGun<0)||!!gun.ocs;
+  var ocsAny=sm.some(function(p){return p.ocs;});
+  var cross=null;                                /* t (s al via) del passaggio linea (+ -> -) */
+  for(i=1;i<sm.length;i++){ var a=sm[i-1].dist,b=sm[i].dist;
+    if(a!=null&&b!=null&&a>=0&&b<0){ var f=a/(a-b); cross=sm[i-1].t+f*(sm[i].t-sm[i-1].t); break; } }
+  var sMax=null,sSum=0,sN=0;
+  sm.forEach(function(p){ if(p.sog!=null&&p.t>=-60&&p.t<=0){ if(sMax==null||p.sog>sMax)sMax=p.sog; sSum+=p.sog;sN++; } });
+  return { distGun:distGun,sogGun:sogGun,ocs:ocsGun,ocsAny:ocsAny,cross:cross,
+    sogAvg:sN?sSum/sN:null,sogMax:sMax,span:sm[sm.length-1].t-sm[0].t,pts:sm.length };
+}
+function drawStartChart(s){
+  var svg=$("anChart"); if(!svg)return;
+  var pts=((s&&s.samples)||[]).filter(function(p){return p.t!=null;});
+  var W=420,H=200,L=42,R=38,T=14,B=26;
+  if(pts.length<2){ svg.innerHTML='<text x="210" y="100" text-anchor="middle" fill="#5a7a94" font-size="13">Dati insufficienti</text>'; return; }
+  var tMin=pts[0].t,tMax=pts[pts.length-1].t; if(tMax<=tMin)tMax=tMin+1;
+  var dv=pts.filter(function(p){return p.dist!=null;}).map(function(p){return p.dist;}).concat([0]);
+  var dMin=Math.min.apply(null,dv),dMax=Math.max.apply(null,dv); if(dMax<=dMin)dMax=dMin+1;
+  var sv=pts.filter(function(p){return p.sog!=null;}).map(function(p){return p.sog;});
+  var sMax=sv.length?Math.max.apply(null,sv):1; sMax=Math.max(1,Math.ceil(sMax));
+  function X(t){return L+(t-tMin)/(tMax-tMin)*(W-L-R);}
+  function Yd(d){return T+(dMax-d)/(dMax-dMin)*(H-T-B);}
+  function Ys(v){return T+(sMax-v)/sMax*(H-T-B);}
+  var g='';
+  g+='<line x1="'+L+'" y1="'+(H-B)+'" x2="'+(W-R)+'" y2="'+(H-B)+'" stroke="#2a4256"/>';
+  g+='<line x1="'+L+'" y1="'+T+'" x2="'+L+'" y2="'+(H-B)+'" stroke="#2a4256"/>';
+  var x0=X(0);
+  g+='<line x1="'+x0.toFixed(1)+'" y1="'+T+'" x2="'+x0.toFixed(1)+'" y2="'+(H-B)+'" stroke="var(--coral)" stroke-dasharray="4 3" opacity=".85"/>';
+  g+='<text x="'+(x0+3).toFixed(1)+'" y="'+(T+9)+'" fill="var(--coral)" font-size="10">VIA</text>';
+  if(0>=dMin&&0<=dMax){ var y0=Yd(0);
+    g+='<line x1="'+L+'" y1="'+y0.toFixed(1)+'" x2="'+(W-R)+'" y2="'+y0.toFixed(1)+'" stroke="#4a6b82" stroke-dasharray="3 3" opacity=".7"/>';
+    g+='<text x="'+(W-R-2)+'" y="'+(y0-3).toFixed(1)+'" text-anchor="end" fill="#7fa0b8" font-size="9">linea</text>'; }
+  function poly(ymap,acc,color){ var d='',started=false;
+    pts.forEach(function(p){ var v=acc(p); if(v==null)return; var x=X(p.t),y=ymap(v);
+      d+=(started?'L':'M')+x.toFixed(1)+' '+y.toFixed(1)+' '; started=true; });
+    return d?'<path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="1.7"/>':''; }
+  g+=poly(Yd,function(p){return p.dist;},'var(--teal)');
+  g+=poly(Ys,function(p){return p.sog;},'var(--amber)');
+  g+='<text x="'+(L-4)+'" y="'+(T+8)+'" text-anchor="end" fill="#7fa0b8" font-size="9">'+Math.round(dMax)+'m</text>';
+  g+='<text x="'+(L-4)+'" y="'+(H-B)+'" text-anchor="end" fill="#7fa0b8" font-size="9">'+Math.round(dMin)+'</text>';
+  g+='<text x="'+(W-R+3)+'" y="'+(T+8)+'" fill="var(--amber)" font-size="9">'+sMax+'kn</text>';
+  g+='<text x="'+L+'" y="'+(H-B+13)+'" fill="#7fa0b8" font-size="9">'+Math.round(tMin)+'s</text>';
+  g+='<text x="'+(W-R)+'" y="'+(H-B+13)+'" text-anchor="end" fill="#7fa0b8" font-size="9">'+(tMax>0?'+':'')+Math.round(tMax)+'s</text>';
+  svg.innerHTML=g;
+}
+function openStartAnalysis(i){
+  var arr=readJSON("raffyca-starts",[])||[]; var s=arr[i]; if(!s)return;
+  var st=startStats(s); if(!st)return;
+  $("anTitle").textContent=(s.name||"Partenza")+" · vento "+Math.round(s.twd||0)+"°/"+Math.round(s.tws||0)+"kn";
+  function kpi(k,v,cls){ return '<div class="an-kpi"><div class="an-k">'+k+'</div><div class="an-v '+(cls||'')+'">'+v+'</div></div>'; }
+  var dTxt=st.distGun==null?"—":(st.distGun<0?("OLTRE "+Math.abs(Math.round(st.distGun))+" m"):(Math.round(st.distGun)+" m"));
+  var timing=st.cross==null?"—":(st.cross<0?("anticipo "+Math.abs(Math.round(st.cross))+"s"):("ritardo "+Math.round(st.cross)+"s"));
+  var h="";
+  h+=kpi("Distanza al via",dTxt,st.ocs?"coral":"teal");
+  h+=kpi("OCS",st.ocs?"SÌ":"no",st.ocs?"coral":"");
+  h+=kpi("Velocità al via",st.sogGun==null?"—":st.sogGun.toFixed(1)+" kn","amber");
+  h+=kpi("Timing linea",timing,(st.cross!=null&&st.cross<0)?"coral":"");
+  h+=kpi("Vel. avvicin.",st.sogAvg==null?"—":(st.sogAvg.toFixed(1)+" / "+st.sogMax.toFixed(1)+" kn"),"");
+  h+=kpi("Campioni",st.pts+" · "+Math.abs(Math.round(st.span))+"s","");
+  $("anKpis").innerHTML=h;
+  drawStartChart(s);
+  $("anLegend").innerHTML='<span style="color:var(--teal)">—</span> distanza (m) &nbsp; <span style="color:var(--amber)">—</span> velocità (kn) &nbsp; <span style="color:var(--coral)">┊</span> via';
+  $("archList").style.display="none"; $("archAn").hidden=false;
+}
+function closeStartAnalysis(){ var a=$("archAn"); if(a)a.hidden=true; var l=$("archList"); if(l)l.style.display=""; }
+
+/* ---------- wiring UI ---------- */
+function syncSetupUI(){
+  $("modeTwo").className=LINE.mode==="two"?"on":"";
+  $("modeDir").className=LINE.mode==="dir"?"on":"";
+  $("anchorRow").style.display=LINE.mode==="dir"?"":"none";
+  $("dirRow").style.display=LINE.mode==="dir"?"":"none";
+  $("anchPin").className=LINE.anchor==="pin"?"on":"";
+  $("anchRc").className=LINE.anchor==="rc"?"on":"";
+  var dirPin=(LINE.mode==="dir"&&LINE.anchor!=="pin"), dirRc=(LINE.mode==="dir"&&LINE.anchor!=="rc");
+  $("pinHere").disabled=dirPin; $("pinTxt").disabled=dirPin;
+  $("rcHere").disabled=dirRc; $("rcTxt").disabled=dirRc;
+  $("pinBadge").className="pill "+(LINE.pin?"set":"unset"); $("pinBadge").textContent=LINE.pin?"ok":"—";
+  $("rcBadge").className="pill "+(LINE.rc?"set":"unset"); $("rcBadge").textContent=LINE.rc?"ok":"—";
+  $("dirHint").textContent="Ancora l'estremo "+(LINE.anchor==="pin"?"PIN":"RC")+"; lunghezza ignota → niente vantaggio in metri.";
+}
+function pingHere(which){
+  if(GPS.lat==null){ return; }
+  var p={lat:GPS.lat,lon:GPS.lon};
+  if(which==="pin"){ LINE.pin=p; $("pinTxt").value=xyLL(p); } else { LINE.rc=p; $("rcTxt").value=xyLL(p); }
+  saveLine(); syncSetupUI(); render();
+}
+
+document.addEventListener("DOMContentLoaded",function(){
+  /* valori iniziali */
+  $("twdIn").value=PREF.twd||0; $("twsIn").value=PREF.tws||0;
+  $("dirIn").value=LINE.dir; $("cdNum").textContent=fmtT(CD.running?CD.remaining:PREF.target);
+  $("pinTxt").value=xyLL(LINE.pin); $("rcTxt").value=xyLL(LINE.rc);
+  $("cdAudio").textContent=PREF.audio?"🔊":"🔇"; $("cdAudio").className="rf-btn "+(PREF.audio?"on":"");
+
+  /* vento */
+  $("twdIn").addEventListener("input",function(){ var n=Number(this.value); if(this.value===""){PREF.twd=0;} else if(isFinite(n)){PREF.twd=((n%360)+360)%360;} savePref(); render(); });
+  $("twdIn").addEventListener("blur",function(){ this.value=Math.round(PREF.twd); });
+  $("twsIn").addEventListener("input",function(){ var n=Number(this.value); PREF.tws=(this.value===""||!isFinite(n))?0:Math.max(0,n); savePref(); render(); });
+
+  /* countdown */
+  $("cdStart").addEventListener("click",cdStart);
+  $("cdSync").addEventListener("click",cdSync);
+  $("cdMinus").addEventListener("click",function(){cdBump(-1);});
+  $("cdPlus").addEventListener("click",function(){cdBump(1);});
+  $("cdAudio").addEventListener("click",function(){ PREF.audio=!PREF.audio; savePref();
+    this.textContent=PREF.audio?"🔊":"🔇"; this.className="rf-btn "+(PREF.audio?"on":""); if(PREF.audio)tone(1000,180,.7); });
+
+  /* setup linea */
+  $("modeTwo").addEventListener("click",function(){LINE.mode="two";saveLine();syncSetupUI();render();});
+  $("modeDir").addEventListener("click",function(){LINE.mode="dir";saveLine();syncSetupUI();render();});
+  $("anchPin").addEventListener("click",function(){LINE.anchor="pin";saveLine();syncSetupUI();render();});
+  $("anchRc").addEventListener("click",function(){LINE.anchor="rc";saveLine();syncSetupUI();render();});
+  $("pinHere").addEventListener("click",function(){pingHere("pin");});
+  $("rcHere").addEventListener("click",function(){pingHere("rc");});
+  $("pinTxt").addEventListener("input",function(){ var p=parseLL(this.value); if(p){LINE.pin=p;saveLine();render();} });
+  $("rcTxt").addEventListener("input",function(){ var p=parseLL(this.value); if(p){LINE.rc=p;saveLine();render();} });
+  $("dirIn").addEventListener("input",function(){ var n=Number(this.value); if(isFinite(n)){LINE.dir=((n%360)+360)%360;saveLine();render();} });
+  $("lineClear").addEventListener("click",function(){ LINE.pin=null;LINE.rc=null; $("pinTxt").value="";$("rcTxt").value=""; saveLine();syncSetupUI();render(); });
+
+  /* archivio (event delegation) */
+  $("archList").addEventListener("click",function(e){
+    var ex=e.target.getAttribute("data-ex"), del=e.target.getAttribute("data-del");
+    if(ex!=null){ exportStart(+ex); return; }
+    if(del!=null){ if(confirm("Eliminare questa partenza?"))delStart(+del); return; }
+    var li=e.target.closest("li[data-i]"); if(li)openStartAnalysis(+li.getAttribute("data-i"));
+  });
+  var anB=$("anBack"); if(anB)anB.addEventListener("click",closeStartAnalysis);
+  $("archClear").addEventListener("click",function(){ if(confirm("Cancellare tutte le partenze registrate?")){ writeJSON("raffyca-starts",[]); renderArchive(); } });
+
+  syncSetupUI(); renderArchive(); render(); gpsStart();
+  window.addEventListener("storage",function(e){ if(e.key==="raffyca-theme"||e.key==="raffyca-settings")render(); });
+  document.addEventListener("visibilitychange",function(){ if(!document.hidden)render(); });
+});
+})();
+</script>
+</body>
+</html>

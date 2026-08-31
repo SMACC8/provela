@@ -1,0 +1,840 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>ProVela</title>
+<script>(function(){try{var t=localStorage.getItem('raffyca-theme');if(t==='sun')t='day';if(t==='day'||t==='night')document.documentElement.classList.add(t);}catch(e){}})();</script>
+<meta name="theme-color" content="#060e18">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<style>
+:root{
+  --bg:#060e18;--panel:#0e2036;--panel2:#0b1a2c;--line:#1a3248;
+  --ink:#deedf5;--sub:#5a7a94;--dim:#122030;
+  --teal:#2BD9C4;--amber:#FFC24B;--coral:#FF6B6B;
+  --mono:ui-monospace,"SF Mono","Roboto Mono",Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;font-family:var(--sans);}
+body{background:var(--bg);color:var(--ink);display:flex;flex-direction:column;}
+
+/* ═══ SCHERMATA ONBOARDING ═══ */
+#screen-on{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:28px 24px;gap:0;overflow:auto;
+  background:radial-gradient(110% 80% at 50% -10%,#0e2d44 0%,var(--bg) 65%);
+}
+#screen-on.off{display:none;}
+.on-logo{text-align:center;margin-bottom:32px;}
+.on-logo .anchor{font-size:52px;line-height:1;}
+.on-logo h1{font-size:26px;letter-spacing:.18em;color:var(--teal);margin-top:6px;text-transform:uppercase;}
+.on-logo p{font-size:12px;color:var(--sub);letter-spacing:.1em;margin-top:4px;}
+.on-form{width:100%;max-width:340px;display:flex;flex-direction:column;gap:14px;}
+.on-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--teal);margin-bottom:5px;font-weight:600;}
+.on-input{
+  width:100%;background:var(--panel2);border:1px solid var(--line);
+  border-radius:10px;color:var(--ink);font-family:var(--sans);font-size:16px;
+  padding:12px 14px;outline:none;transition:border-color .2s;
+}
+.on-input:focus{border-color:var(--teal);}
+.on-input::placeholder{color:var(--sub);}
+.on-btn{
+  margin-top:8px;padding:14px;border-radius:12px;border:0;cursor:pointer;
+  background:var(--teal);color:#060e18;font-family:var(--sans);font-size:15px;
+  font-weight:700;letter-spacing:.02em;box-shadow:0 4px 20px rgba(43,217,196,.3);
+  transition:transform .12s,box-shadow .12s;
+}
+.on-btn:active{transform:scale(.97);box-shadow:0 2px 8px rgba(43,217,196,.2);}
+.on-hint{font-size:12px;color:var(--sub);text-align:center;line-height:1.6;margin-top:4px;}
+
+/* ═══ SCHERMATA HUB ═══ */
+#screen-hub{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+#screen-hub.off{display:none;}
+
+/* header */
+.hub-head{
+  padding:12px 16px 11px;
+  background:linear-gradient(#0d2236,#09192a);
+  border-bottom:1px solid var(--line);
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+}
+.hub-brand{display:flex;align-items:baseline;gap:9px;}
+.hub-brand h2{font-size:16px;letter-spacing:.1em;color:var(--teal);text-transform:uppercase;}
+.hub-brand span{font-size:10px;letter-spacing:.08em;color:var(--sub);text-transform:uppercase;}
+.hub-time{font-size:12px;color:var(--sub);}
+
+/* profilo barca */
+.profile-card{
+  margin:12px 12px 0;padding:11px 14px;border-radius:12px;
+  background:var(--panel);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+}
+.profile-info{display:flex;flex-direction:column;gap:3px;}
+.profile-boat{font-size:15px;color:var(--ink);font-weight:600;}
+.profile-zone{font-size:11px;color:var(--sub);}
+.profile-edit{
+  font-size:12px;color:var(--teal);letter-spacing:.02em;text-transform:uppercase;
+  border:1px solid var(--line);border-radius:999px;padding:5px 11px;cursor:pointer;
+  background:none;font-family:var(--sans);transition:border-color .15s;
+}
+.profile-edit:hover{border-color:var(--teal);}
+
+/* elenco moduli: icona a sinistra, testo a destra.
+   La matrice 3 colonne non reggeva piu' con 14 voci: le tessere si
+   schiacciavano e i nomi andavano a capo. In elenco il nome ha tutta
+   la larghezza e la riga si legge in una passata dall'alto. */
+.tiles-wrap{flex:1;overflow-y:auto;padding:10px 12px 14px;}
+.tiles{display:flex;flex-direction:column;gap:7px;}
+
+.tile{
+  border-radius:12px;padding:11px 12px;cursor:pointer;position:relative;
+  background:var(--panel);border:1px solid var(--line);
+  display:grid;grid-template-columns:34px minmax(0,1fr) auto;
+  align-items:center;column-gap:12px;
+  transition:transform .13s,border-color .15s,box-shadow .15s;
+  -webkit-user-select:none;user-select:none;
+}
+.tile:active{transform:scale(.985);}
+.tile.ready{border-color:#1a3d36;}
+.tile.ready:active{box-shadow:0 0 0 1px var(--teal);}
+.tile.almost{border-color:#3a2e10;}
+.tile.code{opacity:.72;}
+
+.tile-icon{width:34px;height:34px;display:flex;align-items:center;justify-content:center;grid-row:span 2;}
+.tile-icon svg{display:block;width:30px;height:30px;}
+
+.tile-name{font-size:14.5px;font-weight:700;color:var(--ink);line-height:1.25;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tile-desc{font-size:11.5px;color:var(--sub);line-height:1.35;grid-column:2;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+.badge{
+  display:inline-flex;align-items:center;gap:4px;grid-column:3;grid-row:span 2;
+  font-size:9px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;
+  border-radius:5px;padding:3px 7px;width:fit-content;white-space:nowrap;
+}
+.badge.ready{background:rgba(43,217,196,.12);color:var(--teal);}
+.badge.almost{background:rgba(255,194,75,.12);color:var(--amber);}
+.badge.code{background:rgba(90,122,148,.1);color:var(--sub);}
+.badge::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor;}
+
+/* schermi larghi: due colonne di elenco, non una riga lunghissima */
+@media (min-width:760px){ .tiles{display:grid;grid-template-columns:1fr 1fr;} }
+
+/* footer firma */
+footer{padding:8px 16px;text-align:center;border-top:1px solid var(--line);background:#060e18;}
+footer p{font-size:10px;color:var(--sub);letter-spacing:.04em;}
+footer b{color:var(--teal);}
+
+/* toast */
+.toast{
+  position:fixed;bottom:70px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:#0e2036;border:1px solid var(--line);border-radius:999px;
+  padding:10px 20px;font-size:13px;color:var(--ink);
+  opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;white-space:nowrap;
+  box-shadow:0 8px 24px -8px rgba(0,0,0,.8);
+}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* reset link */
+.reset-link{font-size:10px;color:var(--sub);text-decoration:underline;cursor:pointer;
+  text-align:center;padding:6px;letter-spacing:.06em;}
+
+/* ═══ SCHERMATA TRACCE/WAYPOINT ═══ */
+#screen-wp{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+#screen-wp.off{display:none;}
+.wp-tabs{display:flex;gap:8px;padding:10px 12px 0;}
+.wp-tabs button{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  color:var(--sub);font-family:var(--sans);font-size:13px;font-weight:600;padding:9px;cursor:pointer;}
+.wp-tabs button.on{color:var(--teal);border-color:var(--teal);}
+.wp-tabs span{opacity:.7;font-variant-numeric:tabular-nums;}
+.wp-body{flex:1;overflow-y:auto;padding:12px;}
+.wp-list{display:none;flex-direction:column;gap:8px;}
+.wp-list.on{display:flex;}
+.wp-actions{display:flex;gap:8px;margin-bottom:4px;}
+.wp-btn{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  color:var(--ink);font-family:var(--sans);font-size:13px;padding:11px;cursor:pointer;transition:border-color .15s;}
+.wp-btn:hover{border-color:var(--teal);}
+.wp-btn.primary{background:var(--teal);color:#060e18;border-color:var(--teal);font-weight:700;}
+.wp-item{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:11px;
+  background:var(--panel);border:1px solid var(--line);}
+.wp-item.active{border-color:var(--teal);box-shadow:0 0 0 1px var(--teal) inset;}
+.wp-ic{width:20px;flex-shrink:0;color:var(--teal);}
+.wp-meta{flex:1;min-width:0;}
+.wp-nm{font-size:14px;color:var(--ink);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.wp-sub{font-size:11px;color:var(--sub);margin-top:2px;font-variant-numeric:tabular-nums;}
+.wp-act{background:none;border:0;cursor:pointer;font-size:12px;padding:6px 8px;border-radius:7px;
+  font-family:var(--sans);color:var(--sub);}
+.wp-act.on{color:var(--teal);}
+.wp-act.del{color:var(--coral);font-size:16px;line-height:1;}
+.wp-empty{text-align:center;color:var(--sub);font-size:12px;padding:26px 16px;line-height:1.6;}
+.wp-list.on .wp-empty[hidden]{display:none;}
+
+/* toggle tema */
+.theme-btn{
+  width:30px;height:30px;border-radius:999px;border:1px solid var(--line);
+  background:none;color:var(--sub);font-size:14px;cursor:pointer;line-height:1;
+  display:flex;align-items:center;justify-content:center;transition:border-color .15s,color .15s;
+}
+.theme-btn:hover{border-color:var(--teal);color:var(--teal);}
+
+/* ═══ MODALITÀ SOLE — alto contrasto, sfondo bianco (leggibile sotto il sole) ═══ */
+html.day{
+  --bg:#ffffff; --panel:#ffffff; --panel2:#eef3f7; --line:#a7b6c2;
+  --ink:#050f19; --sub:#28414f; --dim:#dbe3ea;
+  --teal:#05564c;   /* teal profondo: contrasto forte su bianco, resta "teal" */
+  --amber:#8a4e00;  /* ambra → bronzo scuro leggibile */
+  --coral:#c11f1f;  /* corallo → rosso pieno */
+}
+/* superfici che nel dark erano hardcoded */
+html.day .hub-head{background:linear-gradient(#ffffff,#eef3f7);}
+html.day #screen-on{background:radial-gradient(110% 80% at 50% -10%,#d9edf5 0%,#ffffff 65%);}
+html.day footer{background:#ffffff;}
+html.day .on-btn,html.day .wp-btn.primary{color:#ffffff;}
+html.day .on-btn{box-shadow:0 4px 16px rgba(6,118,106,.3);}
+html.day .toast{background:#0e2036;color:#eef3f7;}  /* toast scuro: massimo contrasto sul bianco */
+/* bordi stato tessere */
+html.day .tile.ready{border-color:#7fbcb2;}
+html.day .tile.almost{border-color:#d8b26a;}
+/* badge: tinte piene invece delle rgba tenui */
+html.day .tile.code{opacity:.92;}
+html.day .badge.ready{background:#d1eee7;color:#044c43;}
+html.day .badge.almost{background:#f5e6c8;color:#8a4d00;}
+html.day .badge.code{background:#e4ebf1;color:#42586a;}
+/* rimappa i colori inline degli SVG (loghi + icone tessere) senza toccare il markup */
+html.day [fill="#2BD9C4"]{fill:#05564c;}
+html.day [stroke="#2BD9C4"]{stroke:#05564c;}
+html.day [stroke="#FFC24B"]{stroke:#8a4e00;}
+html.day [fill="#FFC24B"]{fill:#8a4e00;}
+html.day [stroke="#FF6B6B"]{stroke:#c11f1f;}
+html.day [fill="#FF6B6B"]{fill:#c11f1f;}
+html.day [stroke="#5a7a94"]{stroke:#28414f;}
+html.day [fill="#5a7a94"]{fill:#28414f;}
+/* ---- TEMA NOTTE (rosso, visione notturna) ---- */
+html.night{
+  --bg:#0a0202; --panel:#150404; --panel2:#0e0303; --line:#3a1010;
+  --ink:#ff5b5b; --sub:#b04040; --dim:#200707;
+  --teal:#ff4d4d; --amber:#ff7a45; --coral:#ff5555;
+}
+html.night .hub-head{background:linear-gradient(#150404,#0e0303);}
+html.night #screen-on{background:radial-gradient(110% 80% at 50% -10%,#1a0505 0%,#0a0202 65%);}
+html.night footer{background:#0a0202;}
+html.night .on-btn,html.night .wp-btn.primary{color:#0a0101;}
+html.night .toast{background:#150404;color:#ff6b6b;}
+html.night .tile.ready{border-color:#5a1a1a;}
+html.night .tile.almost{border-color:#5a2e1a;}
+html.night .badge.ready{background:#2a0a0a;color:#ff6b6b;}
+html.night .badge.almost{background:#2a1a0a;color:#ff8a5a;}
+html.night .badge.code{background:#1e0808;color:#c98080;}
+html.night [fill="#2BD9C4"]{fill:#ff4d4d;} html.night [stroke="#2BD9C4"]{stroke:#ff4d4d;}
+html.night [fill="#FFC24B"]{fill:#ff7a45;} html.night [stroke="#FFC24B"]{stroke:#ff7a45;}
+html.night [fill="#FF6B6B"]{fill:#ff5555;} html.night [stroke="#FF6B6B"]{stroke:#ff5555;}
+html.night [fill="#5a7a94"]{fill:#b04040;} html.night [stroke="#5a7a94"]{stroke:#b04040;}
+</style>
+</head>
+<body>
+<!-- ===== rf-topbar: markup canonico. CSS e logica stanno in ./rf-topbar.js
+     (un solo file per tutta la suite). Il link alla home resta QUI, inline:
+     e' l'unico modo per uscire da un modulo e non deve dipendere da nulla. ===== -->
+<div class="rf-topbar" role="banner">
+  <a class="rf-home" href="#" aria-label="Menu ProVela" title="Menu ProVela">
+    <svg viewBox="0 0 64 64" width="19" height="19" aria-hidden="true"><path d="M32 8 L32 56 L10 56 Z" fill="#2BD9C4" opacity=".95"/><path d="M32 26 L54 56 L32 56 Z" fill="#2BD9C4" opacity=".45"/><line x1="32" y1="6" x2="32" y2="58" stroke="#1a4a42" stroke-width="3"/></svg>
+  </a>
+  <span class="rf-boat" id="rfBoat"></span>
+  <span class="rf-gps" id="rfGps" title="Stato GPS"><span class="gdot"></span></span>
+  <span class="rf-pol" id="rfPol" title=""></span>
+  <span class="rf-spacer"></span>
+  <span class="rf-status" id="rfStatus"></span>
+</div>
+<script src="./rf-topbar.js" defer></script>
+<script src="./rf-live.js"></script>
+<!-- ===== /rf-topbar ===== -->
+
+
+<!-- ═══ ONBOARDING ═══ -->
+<div id="screen-on">
+  <div class="on-logo">
+    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" style="display:block;margin:0 auto 10px">
+      <path d="M32 8 L32 56 L10 56 Z" fill="#2BD9C4" opacity=".95"/>
+      <path d="M32 26 L54 56 L32 56 Z" fill="#2BD9C4" opacity=".45"/>
+      <line x1="32" y1="6" x2="32" y2="58" stroke="#1a4a42" stroke-width="2"/>
+    </svg>
+    <h1>ProVela</h1>
+    <p>suite nautica</p>
+  </div>
+  <div class="on-form">
+    <div>
+      <div class="on-label">Nome barca</div>
+      <input id="inBoat" class="on-input" type="text" placeholder="es. Principessa" autocomplete="off">
+    </div>
+    <div>
+      <div class="on-label">Modello</div>
+      <input id="inModel" class="on-input" type="search" placeholder="es. First 36.7" autocomplete="off">
+    </div>
+    <div>
+      <div class="on-label">Area di navigazione</div>
+      <select id="inZone" class="on-input">
+        <option value="" disabled selected hidden>Scegli l’area…</option>
+        <option>Alto Adriatico</option>
+        <option>Medio Adriatico</option>
+        <option>Basso Adriatico</option>
+        <option>Mar Ionio</option>
+        <option>Basso Tirreno</option>
+        <option>Alto Tirreno</option>
+        <option>Mar Ligure</option>
+        <option>Sardegna</option>
+        <option>Sicilia</option>
+      </select>
+    </div>
+    <button class="on-btn" id="btnSave">Salva e inizia →</button>
+    <p class="on-hint">Puoi modificare il profilo in ogni momento.<br>La polare ORC si cerca e si carica da Impostazioni.</p>
+  </div>
+</div>
+
+<!-- ═══ HUB ═══ -->
+<div id="screen-hub" class="off">
+  <div class="hub-head">
+    <div class="hub-brand">
+      <h2>ProVela</h2>
+      <span>suite nautica</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:11px;">
+      <span class="hub-time" id="hubTime"></span>
+    </div>
+  </div>
+
+  <div class="profile-card">
+    <div class="profile-info">
+      <div class="profile-boat" id="profBoat">Raffyca</div>
+      <div class="profile-zone" id="profZone">Salt 6.50 · 📍 Alto Adriatico</div>
+    </div>
+    <button class="profile-edit" id="btnEdit">modifica</button>
+  </div>
+
+  <div class="tiles-wrap">
+    <div class="tiles">
+
+      <!-- 1. Meteo -->
+      <div class="tile ready" data-href="meteo/" data-name="Il Nastro del Vento">
+        <div class="tile-icon">
+          <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
+            <path d="M6 16 Q14 10 22 16 Q30 22 38 16" stroke="#2BD9C4" stroke-width="2" stroke-linecap="round"/>
+            <path d="M6 22 Q14 16 22 22 Q30 28 38 22" stroke="#2BD9C4" stroke-width="2" stroke-linecap="round" opacity=".6"/>
+            <path d="M6 28 Q14 22 22 28 Q30 34 38 28" stroke="#2BD9C4" stroke-width="2" stroke-linecap="round" opacity=".3"/>
+          </svg>
+        </div>
+        <div class="tile-name">Meteo</div>
+        <div class="tile-desc">Tattico multi-modello</div>
+        <span class="badge ready">Pronto</span>
+      </div>
+
+      <!-- 2. Routing / Traversata -->
+      <div class="tile ready" data-href="routing/raffyca-traversata-map.html" data-name="Traversata">
+        <div class="tile-icon">
+          <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
+            <circle cx="8" cy="32" r="4" stroke="#FFC24B" stroke-width="2"/>
+            <circle cx="32" cy="8" r="4" stroke="#FFC24B" stroke-width="2"/>
+            <path d="M12 29 Q20 6 28 11" stroke="#FFC24B" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 3"/>
+            <polyline points="25,8 32,8 32,15" stroke="#FFC24B" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="tile-name">Traversata</div>
+        <div class="tile-desc">Routing A→B · isocrone</div>
+        <span class="badge ready">Pronto</span>
+      </div>
+
+      <!-- 3. Naviga XTE -->
+      <div class="tile ready" data-href="xte/" data-name="Naviga XTE">
+        <div class="tile-icon">
+          <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
+            <line x1="20" y1="4" x2="20" y2="36" stroke="#2BD9C4" stroke-width="2" opacity=".4"/>
+            <line x1="10" y1="4" x2="10" y2="36" stroke="#2BD9C4" stroke-width="1" stroke-dasharray="3 3" opacity=".25"/>
+            <line x1="30" y1="4" x2="30" y2="36" stroke="#2BD9C4" stroke-width="1" stroke-dasharray="3 3" opacity=".25"/>
+            <polygon points="26,20 14,15 14,25" fill="#2BD9C4"/>
+          </svg>
+        </div>
+        <div class="tile-name">Naviga XTE</div>
+        <div class="tile-desc">Canale stretto</div>
+        <span class="badge ready">Pronto</span>
+      </div>
+
+      <!-- 4. Performance -->
+      <div class="tile ready" data-href="performance/" data-name="Performance">
+        <div class="tile-icon">
+          <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
+            <polyline points="6,32 14,18 22,24 32,10" stroke="#5a7a94" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="32" cy="10" r="3" fill="#5a7a94"/>
+            <path d="M32 10 L38 4" stroke="#2BD9C4" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M34 4 L38 4 L38 8" stroke="#2BD9C4" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="tile-name">Performance</div>
+        <div class="tile-desc">Velocità vs polare</div>
+        <span class="badge ready">Pronto</span>
+      </div>
+
+      <!-- 5. Cruscotto -->
+      <div class="tile ready" data-href="cruscotto/" data-name="Cruscotto">
+        <div class="tile-icon">
+          <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
+            <circle cx="20" cy="22" r="14" stroke="#5a7a94" stroke-width="2"/>
+            <path d="M9 29 A14 14 0 0 1 31 29" stroke="#1a3248" stroke-width="3" stroke-linecap="round"/>
+            <path d="M9 29 A14 14 0 0 1 24 10" stroke="#2BD9C4" stroke-width="3" stroke-linecap="round" opacity=".7"/>
+            <line x1="20" y1="22" x2="25" y2="12" stroke="#FFC24B" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="20" cy="22" r="2.5" fill="#5a7a94"/>
+          </svg>
+        </div>
+        <div class="tile-name">Cruscotto</div>
+        <div class="tile-desc">Strumenti di bordo</div>
+        <span class="badge ready">Pronto</span>
+      </div>
+
+      <!-- 6. Partenza regata -->
+      <div class="tile ready" data-href="partenza/" data-name="Partenza Regata">
+        <div class="tile-icon">
+          <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
+            <rect x="4" y="6" width="14" height="10" rx="2" stroke="#5a7a94" stroke-width="2" fill="rgba(90,122,148,.12)"/>
+            <rect x="22" y="6" width="14" height="10" rx="2" stroke="#5a7a94" stroke-width="2" fill="rgba(90,122,148,.06)"/>
+            <line x1="4" y1="20" x2="36" y2="20" stroke="#5a7a94" stroke-width="2" stroke-dasharray="2 2"/>
+            <polygon points="20,30 12,38 28,38" stroke="#5a7a94" stroke-width="1.5" fill="none"/>
+            <line x1="16" y1="28" x2="16" y2="22" stroke="#5a7a94" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="tile-name">Partenza regata</div>
+        <div class="tile-desc">Linea · countdown</div>
+        <span class="badge ready">Pronto</span>
+      </div>
+
+      <!-- 6b. Percorso regata -->
+      <div class="tile ready" data-href="percorso/" data-name="Percorso regata">
+        <div class="tile-icon">
+          <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
+            <path d="M8 30 L20 10 L32 26" stroke="#5a7a94" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="3 3" fill="none"/>
+            <circle cx="8" cy="30" r="3.2" stroke="#5a7a94" stroke-width="2" fill="rgba(90,122,148,.12)"/>
+            <circle cx="20" cy="10" r="3.2" stroke="#5a7a94" stroke-width="2" fill="rgba(90,122,148,.12)"/>
+            <circle cx="32" cy="26" r="3.2" stroke="#5a7a94" stroke-width="2" fill="rgba(90,122,148,.12)"/>
+          </svg>
+        </div>
+        <div class="tile-name">Percorso regata</div>
+        <div class="tile-desc">Boe · giri · laylines</div>
+        <span class="badge ready">Pronto</span>
+      </div>
+
+      <!-- 7. Comunica posizione -->
+      <div class="tile ready" data-href="posizione/" data-name="Posizione Live">
+        <div class="tile-icon">
+          <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
+            <circle cx="20" cy="20" r="5" fill="#2BD9C4"/>
+            <circle cx="20" cy="20" r="10" stroke="#5a7a94" stroke-width="1.5" stroke-dasharray="4 4" opacity=".6"/>
+            <circle cx="20" cy="20" r="16" stroke="#5a7a94" stroke-width="1" stroke-dasharray="3 5" opacity=".3"/>
+          </svg>
+        </div>
+        <div class="tile-name">Posizione Live</div>
+        <div class="tile-desc">Broadcast a Famiglia</div>
+        <span class="badge ready">Pronto</span>
+      </div>
+
+      <!-- Ancoraggio -->
+      <div class="tile ready" data-href="anchor/" data-name="Ancoraggio">
+        <div class="tile-icon">
+          <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
+            <circle cx="20" cy="8" r="3.4" stroke="#2BD9C4" stroke-width="2"/>
+            <line x1="20" y1="11.4" x2="20" y2="33" stroke="#2BD9C4" stroke-width="2" stroke-linecap="round"/>
+            <line x1="13" y1="16" x2="27" y2="16" stroke="#2BD9C4" stroke-width="2" stroke-linecap="round"/>
+            <path d="M8 24 A12 12 0 0 0 32 24" stroke="#FFC24B" stroke-width="2" stroke-linecap="round" fill="none"/>
+            <path d="M8 24 l-2.5 1.5 M8 24 l1 3" stroke="#FFC24B" stroke-width="2" stroke-linecap="round"/>
+            <path d="M32 24 l2.5 1.5 M32 24 l-1 3" stroke="#FFC24B" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="tile-name">Ancoraggio</div>
+        <div class="tile-desc">Veglia d'ancora · arare</div>
+        <span class="badge ready">Pronto</span>
+      </div>
+
+      <!-- 8. Tracce e Waypoint -->
+      <div class="tile" data-href="carta/" data-name="Carta Nautica">
+        <div class="tile-icon">
+          <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
+            <path d="M7 30 Q14 12 21 20 Q27 27 33 12" stroke="#2BD9C4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <circle cx="7" cy="30" r="2.6" fill="#2BD9C4"/>
+            <path d="M31 7 c-3.3 0-6 2.6-6 5.9 0 4.2 6 9.1 6 9.1s6-4.9 6-9.1C37 9.6 34.3 7 31 7z" stroke="#FFC24B" stroke-width="2" fill="none"/>
+            <circle cx="31" cy="13" r="1.9" fill="#FFC24B"/>
+          </svg>
+        </div>
+        <div class="tile-name">Carta Nautica</div>
+        <div class="tile-desc">Waypoint e tracce su carta</div>
+        <span class="badge ready" id="wpBadge">0 · 0</span>
+      </div>
+
+      <!-- Calcoli di bordo -->
+      <div class="tile ready" data-href="calcoli/" data-name="Calcoli di bordo">
+        <div class="tile-icon">
+          <svg width="30" height="30" viewBox="0 0 40 40" fill="none">
+            <rect x="8" y="5" width="24" height="30" rx="3.5" stroke="#2BD9C4" stroke-width="2"/>
+            <rect x="12" y="9.5" width="16" height="6" rx="1.5" stroke="#2BD9C4" stroke-width="1.6"/>
+            <circle cx="14.5" cy="21" r="1.5" fill="#2BD9C4"/>
+            <circle cx="20" cy="21" r="1.5" fill="#2BD9C4"/>
+            <circle cx="25.5" cy="21" r="1.5" fill="#FFC24B"/>
+            <circle cx="14.5" cy="26.5" r="1.5" fill="#2BD9C4"/>
+            <circle cx="20" cy="26.5" r="1.5" fill="#2BD9C4"/>
+            <circle cx="25.5" cy="26.5" r="1.5" fill="#FFC24B"/>
+            <circle cx="14.5" cy="31" r="1.5" fill="#2BD9C4"/>
+            <circle cx="20" cy="31" r="1.5" fill="#2BD9C4"/>
+          </svg>
+        </div>
+        <div class="tile-name">Calcoli di bordo</div>
+        <div class="tile-desc">Carichi, carteggio, maree, turni</div>
+        <span class="badge ready">Pronto</span>
+      </div>
+
+      <!-- MOB -->
+      <div class="tile ready" data-href="mob/" data-name="MOB Uomo in mare">
+        <div class="tile-icon">
+          <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
+            <circle cx="20" cy="20" r="15.5" stroke="#FF6B6B" stroke-width="2"/>
+            <path d="M20 9 L28.6 29 L20 24.8 L11.4 29 Z" fill="#FF6B6B"/>
+          </svg>
+        </div>
+        <div class="tile-name">MOB</div>
+        <div class="tile-desc">Uomo in mare · punto, rotta, distanza</div>
+        <span class="badge ready">Pronto</span>
+      </div>
+
+      <!-- Sole e Luna -->
+      <div class="tile ready" data-href="sole-luna/" data-name="Sole e Luna">
+        <div class="tile-icon">
+          <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
+            <circle cx="16" cy="20" r="9" stroke="#FFC24B" stroke-width="2"/>
+            <line x1="16" y1="4.5" x2="16" y2="8" stroke="#FFC24B" stroke-width="2" stroke-linecap="round"/>
+            <line x1="16" y1="32" x2="16" y2="35.5" stroke="#FFC24B" stroke-width="2" stroke-linecap="round"/>
+            <line x1="4.5" y1="20" x2="8" y2="20" stroke="#FFC24B" stroke-width="2" stroke-linecap="round"/>
+            <g transform="translate(18.3,1.3) scale(.89)">
+              <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" fill="#2BD9C4" opacity=".9"/>
+            </g>
+          </svg>
+        </div>
+        <div class="tile-name">Sole e Luna</div>
+        <div class="tile-desc">Luce, crepuscoli, volta celeste</div>
+        <span class="badge ready">Pronto</span>
+      </div>
+
+      <!-- Manutenzione -->
+      <div class="tile ready" data-href="manutenzione/" data-name="Manutenzione">
+        <div class="tile-icon">
+          <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
+            <path d="M33.95 11.55 a9.00 9.00 0 0 1 -11.38 11.38 l-10.38 10.38 a3.88 3.88 0 1 1 -5.50 -5.50 l10.38 -10.38 a9.00 9.00 0 0 1 11.38 -11.38 l-5.38 5.38 2.75 5.25 5.25 2.75 Z"
+              stroke="#2BD9C4" stroke-width="2" stroke-linejoin="round" fill="none"/>
+          </svg>
+        </div>
+        <div class="tile-name">Manutenzione</div>
+        <div class="tile-desc">Registro di bordo dei lavori</div>
+        <span class="badge ready">Pronto</span>
+      </div>
+
+      <!-- 9. Impostazioni (sempre ultima) -->
+      <div class="tile" data-href="impostazioni/" data-name="Impostazioni">
+        <div class="tile-icon">
+          <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
+            <circle cx="20" cy="20" r="5.5" stroke="#2BD9C4" stroke-width="2"/>
+            <path d="M20 5v4M20 31v4M5 20h4M31 20h4M9.4 9.4l2.8 2.8M27.8 27.8l2.8 2.8M30.6 9.4l-2.8 2.8M12.2 27.8l-2.8 2.8" stroke="#2BD9C4" stroke-width="2" stroke-linecap="round" opacity=".85"/>
+          </svg>
+        </div>
+        <div class="tile-name">Impostazioni</div>
+        <div class="tile-desc">Unità, tema, sorgente dati</div>
+        <span class="badge code">Sistema</span>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>
+    <p>Svilup<b>PPA</b>ta da Sergio Moro</p>
+  </footer>
+</div>
+
+<!-- ═══ TRACCE E WAYPOINT ═══ -->
+<div id="screen-wp" class="off">
+  <div class="hub-head">
+    <div class="hub-brand">
+      <h2>Tracce e Waypoint</h2>
+    </div>
+    <button class="profile-edit" id="btnWpBack">‹ Hub</button>
+  </div>
+
+  <div class="wp-tabs">
+    <button data-t="wpt" class="on">Waypoint <span id="cntWpt">0</span></button>
+    <button data-t="trk">Tracce <span id="cntTrk">0</span></button>
+  </div>
+
+  <div class="wp-body">
+    <!-- WAYPOINT -->
+    <div class="wp-list on" id="list-wpt">
+      <div class="wp-actions">
+        <button class="wp-btn primary" id="btnNewWpt">+ Nuovo waypoint</button>
+        <button class="wp-btn" id="btnImpWpt">Importa GPX</button>
+      </div>
+      <div id="wptItems"></div>
+      <div class="wp-empty" id="wptEmpty">Nessun waypoint. Creane uno o registralo dal Cruscotto.</div>
+    </div>
+    <!-- TRACCE -->
+    <div class="wp-list" id="list-trk">
+      <div class="wp-actions">
+        <button class="wp-btn" id="btnImpTrk">Importa GPX</button>
+      </div>
+      <div id="trkItems"></div>
+      <div class="wp-empty" id="trkEmpty">Nessuna traccia. Registrale dal Cruscotto (◉ Traccia).</div>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="fileGpx" accept=".gpx,application/gpx+xml" hidden>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+var $=function(id){return document.getElementById(id);};
+
+/* ── time ── */
+function tick(){
+  var now=new Date();
+  $('hubTime').textContent=now.toLocaleTimeString('it',{hour:'2-digit',minute:'2-digit'});
+}tick();setInterval(tick,10000);
+
+/* ── profilo ── */
+var PROF={boat:'',model:'',zone:''};
+function loadProfile(){
+  try{var p=JSON.parse(localStorage.getItem('raffyca-profile')||'{}');
+    if(p.boat&&p.zone){PROF={boat:p.boat,model:p.model||'',zone:p.zone};return true;}}catch(e){}
+  return false;
+}
+function saveProfile(){localStorage.setItem('raffyca-profile',JSON.stringify(PROF));}
+
+function showHub(){
+  $('screen-on').classList.add('off');
+  $('screen-wp').classList.add('off');
+  $('screen-hub').classList.remove('off');
+  $('profBoat').textContent=PROF.boat;
+  $('profZone').textContent=(PROF.model?PROF.model+' · ':'')+'📍 '+PROF.zone;
+}
+function showOnboarding(){
+  $('screen-hub').classList.add('off');
+  $('screen-on').classList.remove('off');
+  $('inBoat').value=PROF.boat||'';
+  $('inModel').value=PROF.model||'';
+  $('inZone').value=PROF.zone||'';
+}
+
+$('btnSave').addEventListener('click',function(){
+  var b=($('inBoat').value||'').trim(), m=($('inModel').value||'').trim(), z=($('inZone').value||'').trim();
+  if(!b){$('inBoat').focus();toast('Inserisci il nome barca');return;}
+  if(!m){$('inModel').focus();toast('Inserisci il modello');return;}
+  if(!z){$('inZone').focus();toast('Inserisci l\u2019area');return;}
+  PROF={boat:b,model:m,zone:z};saveProfile();
+  var hasPolar=false;try{hasPolar=!!localStorage.getItem('raffyca-polar');}catch(e){}
+  if(!hasPolar){location.href='impostazioni/index.html?polar=1';return;}
+  showHub();
+});
+$('btnEdit').addEventListener('click',showOnboarding);
+
+/* ── tile click ── */
+document.querySelectorAll('.tile[data-view]').forEach(function(t){
+  t.addEventListener('click',function(){openWp();});
+});
+document.querySelectorAll('.tile[data-name]').forEach(function(t){
+  t.addEventListener('click',function(){
+    if(t.dataset.href){location.href=t.dataset.href;return;}
+    var n=t.dataset.name;
+    var code=t.classList.contains('code');
+    toast(code?n+' · in sviluppo…':'Apertura '+n+'…');
+  });
+});
+
+/* ══════ ARCHIVIO TRACCE E WAYPOINT (condiviso via localStorage) ══════ */
+function lsGet(k){try{return JSON.parse(localStorage.getItem(k)||'[]');}catch(e){return [];}}
+function lsSet(k,v){localStorage.setItem(k,JSON.stringify(v));}
+function activeWp(){try{return localStorage.getItem('raffyca-active-wp')||'';}catch(e){return '';}}
+function setActiveWp(id){localStorage.setItem('raffyca-active-wp',id||'');renderWp();}
+
+var fmtCoord=function(lat,lon){
+  var f=function(v,pos,neg){var h=v>=0?pos:neg;v=Math.abs(v);var d=Math.floor(v);
+    var m=((v-d)*60).toFixed(1);return d+'° '+m+'\u2032 '+h;};
+  return f(lat,'N','S')+'  '+f(lon,'E','W');
+};
+function haversine(a,b){var R=6371000,toR=Math.PI/180;
+  var dLa=(b[0]-a[0])*toR,dLo=(b[1]-a[1])*toR;
+  var s=Math.sin(dLa/2)*Math.sin(dLa/2)+Math.cos(a[0]*toR)*Math.cos(b[0]*toR)*Math.sin(dLo/2)*Math.sin(dLo/2);
+  return 2*R*Math.asin(Math.sqrt(s));}
+
+function openWp(){$('screen-hub').classList.add('off');$('screen-wp').classList.remove('off');renderWp();}
+$('btnWpBack').addEventListener('click',showHub);
+
+/* tab */
+document.querySelectorAll('.wp-tabs button').forEach(function(b){
+  b.addEventListener('click',function(){
+    document.querySelectorAll('.wp-tabs button').forEach(function(x){x.classList.toggle('on',x===b);});
+    $('list-wpt').classList.toggle('on',b.dataset.t==='wpt');
+    $('list-trk').classList.toggle('on',b.dataset.t==='trk');
+  });
+});
+
+function renderWp(){
+  var wpts=lsGet('raffyca-waypoints'), trks=lsGet('raffyca-tracks'), act=activeWp();
+  $('cntWpt').textContent=wpts.length; $('cntTrk').textContent=trks.length;
+  var badge=$('wpBadge'); if(badge)badge.textContent=wpts.length+' · '+trks.length;
+
+  /* waypoint */
+  var wc=$('wptItems'); wc.innerHTML='';
+  $('wptEmpty').hidden=wpts.length>0;
+  wpts.forEach(function(w){
+    var el=document.createElement('div');
+    el.className='wp-item'+(w.id===act?' active':'');
+    el.innerHTML='<span class="wp-ic">◈</span>'+
+      '<div class="wp-meta"><div class="wp-nm"></div><div class="wp-sub"></div></div>'+
+      '<button class="wp-act on2">'+(w.id===act?'attivo':'attiva')+'</button>'+
+      '<button class="wp-act del">×</button>';
+    el.querySelector('.wp-nm').textContent=w.name;
+    el.querySelector('.wp-sub').textContent=fmtCoord(w.lat,w.lon);
+    var aBtn=el.querySelector('.wp-act.on2'); if(w.id===act)aBtn.classList.add('on');
+    aBtn.addEventListener('click',function(){setActiveWp(w.id===act?'':w.id);
+      toast(w.id===act?'Waypoint disattivato':'Attivo: '+w.name);});
+    el.querySelector('.wp-act.del').addEventListener('click',function(){
+      if(!confirm('Eliminare "'+w.name+'"?'))return;
+      lsSet('raffyca-waypoints',wpts.filter(function(x){return x.id!==w.id;}));
+      if(w.id===act)localStorage.setItem('raffyca-active-wp','');renderWp();});
+    wc.appendChild(el);
+  });
+
+  /* tracce */
+  var tc=$('trkItems'); tc.innerHTML='';
+  $('trkEmpty').hidden=trks.length>0;
+  trks.forEach(function(t){
+    var km=(t.dist/1000), dist=km>=1?km.toFixed(1)+' km':Math.round(t.dist)+' m';
+    var mins=Math.round((t.dur||0)/60000);
+    var el=document.createElement('div');
+    el.className='wp-item';
+    el.innerHTML='<span class="wp-ic" style="color:var(--amber)">〜</span>'+
+      '<div class="wp-meta"><div class="wp-nm"></div><div class="wp-sub"></div></div>'+
+      '<button class="wp-act">GPX</button>'+
+      '<button class="wp-act del">×</button>';
+    el.querySelector('.wp-nm').textContent=t.name;
+    el.querySelector('.wp-sub').textContent=(t.pts?t.pts.length:0)+' punti · '+dist+' · '+mins+' min';
+    el.querySelector('.wp-act:not(.del)').addEventListener('click',function(){exportGpx(t);});
+    el.querySelector('.wp-act.del').addEventListener('click',function(){
+      if(!confirm('Eliminare "'+t.name+'"?'))return;
+      lsSet('raffyca-tracks',trks.filter(function(x){return x.id!==t.id;}));renderWp();});
+    tc.appendChild(el);
+  });
+}
+
+/* nuovo waypoint manuale */
+$('btnNewWpt').addEventListener('click',function(){
+  var name=prompt('Nome waypoint:','WP '+(lsGet('raffyca-waypoints').length+1)); if(!name)return;
+  var lat=parseFloat((prompt('Latitudine (gradi decimali, es. 45.6480):','45.6480')||'').replace(',','.'));
+  if(isNaN(lat)){toast('Latitudine non valida');return;}
+  var lon=parseFloat((prompt('Longitudine (gradi decimali, es. 13.7560):','13.7560')||'').replace(',','.'));
+  if(isNaN(lon)){toast('Longitudine non valida');return;}
+  var w=lsGet('raffyca-waypoints'); w.push({id:'w'+Date.now(),name:name.trim(),lat:lat,lon:lon,ts:Date.now()});
+  lsSet('raffyca-waypoints',w);renderWp();toast('Waypoint salvato');
+});
+
+/* export GPX di una traccia */
+function exportGpx(t){
+  var pts=(t.pts||[]).map(function(p){
+    return '  <trkpt lat="'+p[0].toFixed(6)+'" lon="'+p[1].toFixed(6)+'">'+
+      (p[2]?'<time>'+new Date(p[2]).toISOString()+'</time>':'')+'</trkpt>';}).join('\n');
+  var gpx='<?xml version="1.0" encoding="UTF-8"?>\n'+
+    '<gpx version="1.1" creator="ProVela" xmlns="http://www.topografix.com/GPX/1/1">\n'+
+    '<trk><name>'+t.name+'</name><trkseg>\n'+pts+'\n</trkseg></trk>\n</gpx>';
+  var url=URL.createObjectURL(new Blob([gpx],{type:'application/gpx+xml'}));
+  var a=document.createElement('a');a.href=url;a.download=t.name.replace(/[^\w\-]+/g,'_')+'.gpx';
+  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+}
+
+/* import GPX (waypoint + tracce) */
+var impMode='wpt';
+$('btnImpWpt').addEventListener('click',function(){impMode='wpt';$('fileGpx').click();});
+$('btnImpTrk').addEventListener('click',function(){impMode='trk';$('fileGpx').click();});
+$('fileGpx').addEventListener('change',function(e){
+  var f=e.target.files[0]; if(!f)return;
+  var r=new FileReader();
+  r.onload=function(){importGpx(r.result);e.target.value='';};
+  r.readAsText(f);
+});
+function importGpx(txt){
+  var doc; try{doc=new DOMParser().parseFromString(txt,'application/xml');}catch(err){toast('GPX non valido');return;}
+  if(doc.querySelector('parsererror')){toast('GPX non valido');return;}
+  var addedW=0, addedT=0;
+  var wpts=lsGet('raffyca-waypoints');
+  doc.querySelectorAll('wpt').forEach(function(n){
+    var lat=parseFloat(n.getAttribute('lat')), lon=parseFloat(n.getAttribute('lon'));
+    if(isNaN(lat)||isNaN(lon))return;
+    var nm=(n.querySelector('name')&&n.querySelector('name').textContent)||('WP '+(wpts.length+1));
+    wpts.push({id:'w'+Date.now()+'_'+addedW,name:nm,lat:lat,lon:lon,ts:Date.now()});addedW++;
+  });
+  if(addedW)lsSet('raffyca-waypoints',wpts);
+  var trks=lsGet('raffyca-tracks');
+  doc.querySelectorAll('trk').forEach(function(tk){
+    var pts=[]; tk.querySelectorAll('trkpt').forEach(function(p){
+      var la=parseFloat(p.getAttribute('lat')),lo=parseFloat(p.getAttribute('lon'));
+      var tm=p.querySelector('time'); pts.push([la,lo,tm?Date.parse(tm.textContent):0]);});
+    if(!pts.length)return;
+    var dist=0; for(var i=1;i<pts.length;i++)dist+=haversine(pts[i-1],pts[i]);
+    var dur=(pts[pts.length-1][2]&&pts[0][2])?pts[pts.length-1][2]-pts[0][2]:0;
+    var nm=(tk.querySelector('name')&&tk.querySelector('name').textContent)||('Traccia '+(trks.length+1));
+    trks.push({id:'t'+Date.now()+'_'+addedT,name:nm,ts:Date.now(),dist:dist,dur:dur,pts:pts});addedT++;
+  });
+  if(addedT)lsSet('raffyca-tracks',trks);
+  renderWp();
+  toast(addedW+addedT?('Importati: '+addedW+' wp, '+addedT+' tracce'):'Nessun dato nel GPX');
+}
+
+/* ── toast ── */
+var toastTimer;
+function toast(msg){
+  var el=$('toast');el.textContent=msg;el.classList.add('on');
+  clearTimeout(toastTimer);toastTimer=setTimeout(function(){el.classList.remove('on');},2200);
+}
+
+/* tema: la classe (day/night) e' applicata dallo script di boot nel <head>.
+   Selettore unico in Impostazioni (chiave raffyca-theme). */
+
+/* ── avvio ── */
+renderWp();
+if(loadProfile())showHub();else showOnboarding();
+
+/* ── difesa dati: snapshot automatico chiavi raffyca-* in IndexedDB (ultimi 5) + rilevamento perdita ── */
+window.rfBackup=(function(){
+  var DB='raffyca-backup',STORE='snaps',KEEP=5;
+  function open(cb){try{var r=indexedDB.open(DB,1);
+    r.onupgradeneeded=function(){try{r.result.createObjectStore(STORE,{keyPath:'ts'});}catch(e){}};
+    r.onsuccess=function(){cb(r.result);};r.onerror=function(){cb(null);};
+  }catch(e){cb(null);}}
+  function collect(){var o={},i,k;for(i=0;i<localStorage.length;i++){k=localStorage.key(i);
+    if(k&&k.indexOf('raffyca-')===0)o[k]=localStorage.getItem(k);}return o;}
+  function snapshot(){var data=collect(),keys=Object.keys(data);if(!keys.length)return;
+    open(function(db){if(!db)return;try{
+      var st=db.transaction(STORE,'readwrite').objectStore(STORE);
+      st.put({ts:Date.now(),n:keys.length,data:data});
+      st.getAllKeys().onsuccess=function(ev){var a=(ev.target.result||[]).sort(function(x,y){return y-x;});
+        a.slice(KEEP).forEach(function(ts){st.delete(ts);});};
+    }catch(e){}});}
+  function latest(cb){open(function(db){if(!db){cb(null);return;}try{
+    var st=db.transaction(STORE,'readonly').objectStore(STORE);
+    st.getAll().onsuccess=function(ev){var a=(ev.target.result||[]).sort(function(x,y){return y.ts-x.ts;});cb(a[0]||null);};
+  }catch(e){cb(null);}});}
+  function restore(data){try{Object.keys(data).forEach(function(k){localStorage.setItem(k,data[k]);});return true;}catch(e){return false;}}
+  function checkLoss(){if(Object.keys(collect()).length>0)return;
+    latest(function(s){if(!s||!s.data||!Object.keys(s.data).length)return;
+      var when=new Date(s.ts).toLocaleString();
+      if(confirm('Nessun dato ProVela presente su questo dispositivo, ma esiste un backup automatico del '+when+' ('+s.n+' voci).\n\nRipristinarlo ora?')){
+        if(restore(s.data))location.reload();else alert('Ripristino non riuscito.');}});}
+  return {snapshot:snapshot,latest:latest,checkLoss:checkLoss};
+})();
+try{rfBackup.snapshot();setTimeout(rfBackup.checkLoss,800);}catch(e){}
+</script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js').catch(function(){});});}</script>
+</body>
+</html>

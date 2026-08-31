@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="MOB">
+<title>MOB · ProVela</title>
+<script>(function(){try{var t=localStorage.getItem('raffyca-theme');if(t==='sun')t='day';if(t==='day'||t==='night')document.documentElement.classList.add(t);
+/* L'inversione della schermata MOB e' indipendente dai tre temi dell'app:
+   qui si applica subito per non far lampeggiare il bianco di notte. */
+if(localStorage.getItem('raffyca-mob-scuro')==='1')document.documentElement.classList.add('mobdark');}catch(e){}})();</script>
+<!-- manifest rimosso: il modulo vive dentro la PWA ProVela, non è un'app a sé -->
+<style>
+/* ═══════════════════════════════════════════════════════════════════════
+   MOB · palette INVARIANTE rispetto ai tre temi dell'app.
+   Come le zone XTE: in emergenza la leggibilità non è una preferenza.
+   Chiara di default (in coperta col sole il bianco pieno vince), con
+   inversione MANUALE e mai automatica: la disposizione non cambia di un
+   pixel, cambiano solo fondo e inchiostro. Chi naviga di notte la gira
+   una volta e l'app se lo ricorda.
+   L'ambra #FFB020 su bianco sta sotto 2:1 di contrasto: nella variante
+   chiara diventa ocra scuro #8A5200.
+   ═══════════════════════════════════════════════════════════════════════ */
+:root{
+  --mb-fondo:#FFFFFF; --mb-pannello:#F1F4F6; --mb-linea:#C6CFD6;
+  --mb-mob:#D01A00; --mb-ink:#080D12; --mb-ambra:#8A5200; --mb-et:#586873;
+  --mb-spento:#BAC4CC; --mb-scrim:rgba(255,255,255,.94); --mb-controtipo:#FFFFFF;
+  --mb-mono:ui-monospace,"SF Mono","Roboto Mono",Menlo,Consolas,monospace;
+  --mb-sans:system-ui,-apple-system,"Segoe UI","Helvetica Neue",sans-serif;
+}
+html.mobdark{
+  --mb-fondo:#06090C; --mb-pannello:#0B1116; --mb-linea:#1B242B;
+  --mb-mob:#FF3B24; --mb-ink:#FFFFFF; --mb-ambra:#FFB020; --mb-et:#5E7079;
+  --mb-spento:#28333A; --mb-scrim:rgba(3,6,9,.94); --mb-controtipo:#06090C;
+}
+/* token raffyca.css: servono alla rf-topbar, che li consuma in HEX */
+:root{--bg:#060e18;--panel:#0e2036;--panel2:#0b1a2c;--dp:#040c14;--line:#1a3248;
+  --ink:#deedf5;--sub:#5a7a94;--teal:#2BD9C4;--amber:#FFC24B;--coral:#FF6B6B;}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{background:var(--mb-fondo);color:var(--mb-ink);font-family:var(--mb-sans);
+  overscroll-behavior:none;-webkit-user-select:none;user-select:none}
+button{font:inherit;cursor:pointer}
+
+/* ── schermata a riposo ── */
+#riposo{min-height:calc(100dvh - 40px);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:26px;padding:24px}
+#btnSegna{width:min(70vw,270px);height:min(70vw,270px);border-radius:50%;
+  background:var(--mb-mob);border:none;color:#fff;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:7px;
+  box-shadow:0 0 0 10px rgba(208,26,0,.13),0 0 0 20px rgba(208,26,0,.06)}
+html.mobdark #btnSegna{box-shadow:0 0 0 10px rgba(255,59,36,.13),0 0 0 20px rgba(255,59,36,.06)}
+#btnSegna:active{transform:scale(.97)}
+#btnSegna .g{font-family:var(--mb-mono);font-size:min(17vw,64px);font-weight:700;
+  letter-spacing:-.02em;line-height:1}
+#btnSegna .p{font-size:13px;letter-spacing:.1em;opacity:.92}
+#riposo p{color:var(--mb-et);font-size:13.5px;text-align:center;max-width:320px;
+  line-height:1.55;margin:0}
+
+/* ── barra di intestazione ── */
+#capo{background:var(--mb-mob);padding:10px 16px;display:flex;
+  align-items:baseline;justify-content:space-between;gap:10px}
+#capo .t{font-family:var(--mb-mono);font-size:17px;font-weight:700;
+  letter-spacing:.08em;color:#fff}
+#capo .c{font-family:var(--mb-mono);font-size:19px;font-weight:600;color:#fff}
+
+#annBar{display:block;width:100%;background:var(--mb-pannello);border:none;
+  border-bottom:1px solid var(--mb-linea);color:var(--mb-ambra);padding:16px;
+  font-size:17px;font-weight:600}
+
+/* ── blocco continuo: distanza + freccia, un asse solo ── */
+#continuo{flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:18px 16px 0}
+.et{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--mb-et)}
+#dist{font-family:var(--mb-mono);font-size:min(26vw,104px);font-weight:700;
+  line-height:1;letter-spacing:-.04em;margin-top:4px;color:var(--mb-ink)}
+#dist .u{font-size:.31em;color:var(--mb-et);margin-left:8px;letter-spacing:0}
+#svgDir{display:block;width:min(62vw,240px);height:auto}
+#gFrec{transition:transform .3s cubic-bezier(.2,.8,.3,1);transform-origin:120px 120px}
+@media (prefers-reduced-motion:reduce){#gFrec{transition:none}}
+#rigaScarto{display:flex;align-items:baseline;gap:12px;margin-top:-14px;
+  flex-wrap:wrap;justify-content:center}
+#scarto{font-family:var(--mb-mono);font-size:40px;font-weight:700;line-height:1;
+  color:var(--mb-ink)}
+#scarto.off{color:var(--mb-spento)}
+#verso{font-size:14px;color:var(--mb-et);max-width:230px}
+#verso.avv{color:var(--mb-ambra)}
+
+/* ── blocco VHF ── */
+#vhf{background:var(--mb-pannello);border-top:2px solid var(--mb-linea);
+  padding:4px 16px 14px}
+.rv{display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;
+  border-top:1px solid var(--mb-linea)}
+.rv .v{font-family:var(--mb-mono);font-size:15px;color:var(--mb-ink)}
+.rv .v.amb{color:var(--mb-ambra)}
+#avvFix{font-size:12px;color:var(--mb-ambra);padding-top:7px;line-height:1.45}
+#coordRiga{border-top:1px solid var(--mb-linea);padding-top:10px;margin-top:3px;
+  display:flex;align-items:flex-end;gap:12px}
+#coordRiga .col{flex:1;min-width:0}
+#coord{font-family:var(--mb-mono);font-size:17px;color:var(--mb-ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:5px}
+#btnCopia{flex:none;padding:9px 13px;background:var(--mb-fondo);
+  border:1px solid var(--mb-linea);border-radius:8px;color:var(--mb-et);
+  font-size:12.5px;white-space:nowrap}
+#btnCopia.ok{color:var(--mb-ambra);border-color:var(--mb-ambra)}
+#btnFerma{width:100%;margin-top:16px;padding:17px;background:transparent;
+  border:1.5px solid var(--mb-mob);border-radius:10px;color:var(--mb-mob);
+  font-size:16.5px;font-weight:600}
+
+/* ── tasto di inversione: sempre nello stesso angolo ── */
+#btnInv{position:fixed;right:10px;bottom:10px;z-index:30;width:44px;height:44px;
+  border-radius:50%;background:var(--mb-pannello);border:1px solid var(--mb-linea);
+  color:var(--mb-et);display:flex;align-items:center;justify-content:center;
+  font-size:18px;line-height:1}
+
+/* ── conferma: il tasto sicuro è quello grande ── */
+#conf{position:fixed;inset:0;z-index:40;background:var(--mb-scrim);
+  display:flex;align-items:center;justify-content:center;padding:20px}
+#conf[hidden]{display:none!important}
+#conf .box{width:100%;max-width:520px;background:var(--mb-pannello);
+  border:1px solid var(--mb-linea);border-radius:16px;padding:28px 24px}
+#conf h2{font-size:25px;font-weight:700;line-height:1.25;margin:0 0 14px}
+#conf p{font-size:15.5px;line-height:1.55;margin:0 0 8px;color:var(--mb-et)}
+#conf p.forte{color:var(--mb-ink);margin-bottom:26px}
+#confNo{width:100%;padding:20px;background:var(--mb-ink);border:none;
+  border-radius:12px;color:var(--mb-fondo);font-size:18px;font-weight:700}
+#confSi{width:100%;margin-top:11px;padding:17px;background:transparent;
+  border:1.5px solid var(--mb-mob);border-radius:12px;color:var(--mb-mob);
+  font-size:16px;font-weight:600}
+
+.rf-toast{position:fixed;left:50%;bottom:66px;transform:translateX(-50%) translateY(10px);
+  z-index:50;background:var(--mb-pannello);border:1px solid var(--mb-linea);
+  color:var(--mb-ink);border-radius:9px;padding:9px 14px;font-size:12.5px;opacity:0;
+  transition:.2s;pointer-events:none;max-width:88vw}
+.rf-toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+
+<div class="rf-topbar">
+  <a class="rf-home" href="../" aria-label="Home ProVela">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2BD9C4"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
+  </a>
+  <span class="rf-boat">MOB</span>
+  <span class="rf-spacer"></span>
+</div>
+<script src="../rf-topbar.js" defer></script>
+
+<!-- ─────────── a riposo ─────────── -->
+<section id="riposo">
+  <button id="btnSegna" type="button">
+    <span class="g">MOB</span>
+    <span class="p">SEGNA IL PUNTO</span>
+  </button>
+  <p>Un tocco registra la posizione. Hai dieci secondi per annullare.</p>
+</section>
+
+<!-- ─────────── attivo ─────────── -->
+<section id="attivo" hidden style="min-height:calc(100dvh - 40px);display:flex;flex-direction:column">
+  <div id="capo">
+    <span class="t">UOMO IN MARE</span>
+    <span class="c" id="crono">00:00</span>
+  </div>
+
+  <button id="annBar" type="button" hidden>Annulla — falso allarme (<span id="conto">10</span>)</button>
+
+  <div id="continuo">
+    <div class="et">DISTANZA</div>
+    <div id="dist">—<span class="u" id="distUn">m</span></div>
+
+    <svg id="svgDir" viewBox="0 0 240 240" aria-hidden="true">
+      <g id="gFrec"><path id="pFrec" d="M120 24 L168 203 L120 158 L72 203 Z"></path></g>
+    </svg>
+
+    <div id="rigaScarto">
+      <span id="scarto">—</span>
+      <span id="verso">in attesa del GPS</span>
+    </div>
+  </div>
+
+  <div id="vhf">
+    <div class="rv"><span class="et">Rilevamento vero</span><span class="v" id="rilev">—</span></div>
+    <div class="rv"><span class="et">Età del fix</span><span class="v" id="etaFix">—</span></div>
+    <div id="avvFix" hidden>Il punto è stato preso da un fix vecchio: può essere spostato di parecchio.</div>
+
+    <div id="coordRiga">
+      <div class="col">
+        <div class="et">Coordinate del punto</div>
+        <div id="coord">—</div>
+      </div>
+      <button id="btnCopia" type="button" title="Copia le coordinate">copia</button>
+    </div>
+
+    <button id="btnFerma" type="button">Ferma emergenza</button>
+  </div>
+</section>
+
+<button id="btnInv" type="button" aria-label="Inverti i colori della schermata">◐</button>
+
+<div id="conf" hidden role="dialog" aria-modal="true" aria-labelledby="confTit">
+  <div class="box">
+    <h2 id="confTit">Fermare l'emergenza?</h2>
+    <p>La schermata si chiude e il conteggio del tempo si interrompe.</p>
+    <p class="forte">Il punto <b>resta salvato</b> tra i waypoint, con l'ora in cui è stato segnato.</p>
+    <button id="confNo" type="button">Continua l'emergenza</button>
+    <button id="confSi" type="button">Sì, ferma l'emergenza</button>
+  </div>
+</div>
+
+<div class="rf-toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ═══════════════════════════════════════════════════════════════════════
+   MOB · logica
+   Contratto localStorage:
+     raffyca-mob        {on,lat,lon,ts,fixTs,wpId}   stato dell'emergenza
+     raffyca-mob-scuro  "1" | "0"                    inversione colori
+     raffyca-waypoints  il punto vi finisce SUBITO   (contratto esistente)
+     raffyca-pos        ultima posizione nota        (contratto esistente)
+
+   Lo stato vive in localStorage e non in memoria di pagina: ProVela e'
+   multipagina e in PWA basta cambiare modulo per perdere le variabili.
+   Cosi' l'emergenza sopravvive a navigazione, chiusura e riavvio.
+
+   La freccia si costruisce sul COG del GPS, mai sul magnetometro: a bordo
+   la bussola del telefono e' falsata da massa ferrosa ed elettronica,
+   mentre la rotta sul fondo e' precisa. Sotto 1,5 kn pero' il COG e'
+   rumore: li' la freccia sparisce invece di mentire.
+   ═══════════════════════════════════════════════════════════════════════ */
+(function () {
+
+  var K_MOB = "raffyca-mob", K_SCURO = "raffyca-mob-scuro",
+      K_POS = "raffyca-pos", K_WP = "raffyca-waypoints";
+  var SOG_MIN = 1.5;          /* nodi: sotto, il COG non e' attendibile */
+  var GRAZIA = 10000;         /* ms di annullamento */
+  var DERIVA_MIN = 10;        /* m fra due fix per ricavare il COG */
+
+  function $(id) { return document.getElementById(id); }
+  function leggi(k, d) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
+  function scrivi(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
+
+  var _tt = null;
+  function toast(m, ms) {
+    var t = $("toast"); t.textContent = m; t.classList.add("on");
+    clearTimeout(_tt); _tt = setTimeout(function () { t.classList.remove("on"); }, ms || 2600);
+  }
+
+  /* ─────────────── geometria ─────────────── */
+  var R2D = 180 / Math.PI, D2R = Math.PI / 180;
+
+  function distM(a, b) {
+    var dLat = (b.lat - a.lat) * D2R, dLon = (b.lon - a.lon) * D2R;
+    var la1 = a.lat * D2R, la2 = b.lat * D2R;
+    var s1 = Math.sin(dLat / 2), s2 = Math.sin(dLon / 2);
+    var h = s1 * s1 + Math.cos(la1) * Math.cos(la2) * s2 * s2;
+    return 2 * 6371000 * Math.asin(Math.min(1, Math.sqrt(h)));
+  }
+  function rilevamento(a, b) {
+    var la1 = a.lat * D2R, la2 = b.lat * D2R, dLon = (b.lon - a.lon) * D2R;
+    var y = Math.sin(dLon) * Math.cos(la2);
+    var x = Math.cos(la1) * Math.sin(la2) - Math.sin(la1) * Math.cos(la2) * Math.cos(dLon);
+    return (Math.atan2(y, x) * R2D + 360) % 360;
+  }
+  /* gradi decimali, virgola italiana, niente spazio prima dell'emisfero.
+     Cinque decimali valgono circa un metro: oltre si detterebbero al VHF
+     cifre che il GPS non conosce. */
+  function gradiDec(v, pos, neg) {
+    return Math.abs(v).toFixed(5).replace(".", ",") + "\u00b0" + (v < 0 ? neg : pos);
+  }
+  function p3(v) { v = Math.round(v) % 360; if (v < 0) v += 360; return ("00" + v).slice(-3); }
+  function mmss(s) {
+    s = Math.max(0, Math.floor(s));
+    var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), q = s % 60;
+    var base = ("0" + m).slice(-2) + ":" + ("0" + q).slice(-2);
+    return h > 0 ? h + ":" + base : base;
+  }
+
+  /* ─────────────── stato ─────────────── */
+  var MOB = null;        /* {on,lat,lon,ts,fixTs,wpId} */
+  var POS = null;        /* {lat,lon,ts,sog,cog} corrente */
+  var precedente = null; /* fix precedente, per ricavare il COG */
+  var watch = null, lock = null, tick = null;
+
+  function statoMob() { var m = leggi(K_MOB, null); return (m && m.on && isFinite(m.lat)) ? m : null; }
+
+  /* ─────────────── waypoint ───────────────
+     Il punto finisce fra i waypoint appena si segna, non alla chiusura:
+     se il telefono si riavvia o qualcuno esce dall'app, la posizione
+     resta comunque. Per questo "Ferma emergenza" non distrugge nulla. */
+  function salvaWaypoint(lat, lon, quando) {
+    var wps = leggi(K_WP, []) || [];
+    var d = new Date(quando);
+    var nome = "MOB " + ("0" + d.getDate()).slice(-2) + "/" + ("0" + (d.getMonth() + 1)).slice(-2) +
+               " " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+    var id = "w" + quando + Math.random().toString(36).slice(2, 5);
+    wps.push({ id: id, name: nome, lat: +lat.toFixed(6), lon: +lon.toFixed(6),
+               ts: quando, tag: "#FF6B6B", note: "Punto uomo in mare", icon: null, folder: null });
+    scrivi(K_WP, wps);
+    return id;
+  }
+
+  /* ─────────────── GPS ───────────────
+     coords.heading e' null da fermo su iOS e capriccioso su Android: il
+     COG si ricava dai fix successivi quando la barca si e' mossa almeno
+     dieci metri. Sotto quella soglia il valore sarebbe rumore. */
+  function onPos(p) {
+    var lat = p.coords.latitude, lon = p.coords.longitude, t = Date.now();
+    var sog = (p.coords.speed != null && isFinite(p.coords.speed)) ? p.coords.speed * 1.94384 : null;
+    var cog = (p.coords.heading != null && isFinite(p.coords.heading)) ? p.coords.heading : null;
+
+    if (precedente) {
+      var d = distM(precedente, { lat: lat, lon: lon });
+      var dt = (t - precedente.ts) / 1000;
+      if (d >= DERIVA_MIN) {
+        if (cog == null) cog = rilevamento(precedente, { lat: lat, lon: lon });
+        if (sog == null && dt > 0) sog = (d / dt) * 1.94384;
+        precedente = { lat: lat, lon: lon, ts: t };
+      }
+    } else {
+      precedente = { lat: lat, lon: lon, ts: t };
+    }
+
+    POS = { lat: lat, lon: lon, ts: t, sog: sog, cog: cog };
+    scrivi(K_POS, POS);
+    dipingi();
+  }
+
+  function avviaGps() {
+    if (watch != null || !navigator.geolocation) return;
+    watch = navigator.geolocation.watchPosition(onPos, function () {},
+      { enableHighAccuracy: true, maximumAge: 1000, timeout: 30000 });
+  }
+  function fermaGps() {
+    if (watch != null) { navigator.geolocation.clearWatch(watch); watch = null; }
+    precedente = null;
+  }
+
+  /* Wake Lock: su Android si perde ogni volta che si esce e si rientra,
+     quindi va richiesto di nuovo al ritorno in primo piano. */
+  function wake(on) {
+    try {
+      if (on && !lock && navigator.wakeLock && document.visibilityState === "visible") {
+        navigator.wakeLock.request("screen").then(function (l) {
+          lock = l;
+          l.addEventListener("release", function () { lock = null; });
+        })["catch"](function () {});
+      } else if (!on && lock) { lock.release()["catch"](function () {}); lock = null; }
+    } catch (e) {}
+  }
+
+  /* ─────────────── segna / ferma ─────────────── */
+  function segna() {
+    var ora = Date.now();
+    var p = POS || leggi(K_POS, null);
+    if (!p || !isFinite(p.lat)) {
+      toast("Nessuna posizione GPS: impossibile segnare il punto.", 4200);
+      avviaGps();
+      return;
+    }
+    var wpId = salvaWaypoint(p.lat, p.lon, ora);
+    MOB = { on: true, lat: p.lat, lon: p.lon, ts: ora, fixTs: p.ts || ora, wpId: wpId };
+    if (!scrivi(K_MOB, MOB)) toast("Attenzione: lo stato non è stato salvato su questo dispositivo.", 5000);
+    entra();
+  }
+
+  function ferma() {
+    MOB = null;
+    try { localStorage.removeItem(K_MOB); } catch (e) {}
+    $("conf").hidden = true;
+    wake(false);
+    if (tick) { clearInterval(tick); tick = null; }
+    $("attivo").hidden = true;
+    $("riposo").hidden = false;
+    document.title = "MOB \u00b7 ProVela";
+    toast("Emergenza chiusa \u00b7 il punto resta fra i waypoint", 3600);
+  }
+
+  function entra() {
+    $("riposo").hidden = true;
+    $("attivo").hidden = false;
+    avviaGps(); wake(true);
+    if (!tick) tick = setInterval(dipingi, 500);
+    dipingi();
+  }
+
+  /* ─────────────── disegno ─────────────── */
+  function dipingi() {
+    if (!MOB) return;
+    var ora = Date.now();
+    var trascorso = (ora - MOB.ts) / 1000;
+    $("crono").textContent = mmss(trascorso);
+    document.title = "MOB " + mmss(trascorso) + " \u00b7 ProVela";
+
+    /* finestra di annullamento */
+    var resta = Math.ceil((MOB.ts + GRAZIA - ora) / 1000);
+    if (resta > 0) { $("annBar").hidden = false; $("conto").textContent = resta; }
+    else $("annBar").hidden = true;
+
+    var p = POS || leggi(K_POS, null);
+    var punto = { lat: MOB.lat, lon: MOB.lon };
+
+    /* distanza */
+    if (p && isFinite(p.lat)) {
+      var d = distM(p, punto);
+      if (d < 1000) { $("dist").firstChild.nodeValue = String(Math.round(d)); $("distUn").textContent = "m"; }
+      else { $("dist").firstChild.nodeValue = (d / 1852).toFixed(2); $("distUn").textContent = "NM"; }
+    } else {
+      $("dist").firstChild.nodeValue = "\u2014"; $("distUn").textContent = "";
+    }
+
+    /* rilevamento e scarto */
+    var brg = (p && isFinite(p.lat)) ? rilevamento(p, punto) : null;
+    $("rilev").textContent = brg == null ? "\u2014" : (p3(brg) + "\u00b0");
+
+    var sog = p ? p.sog : null, cog = p ? p.cog : null;
+    var attendibile = (brg != null && cog != null && sog != null && sog >= SOG_MIN);
+    var scarto = attendibile ? (((brg - cog + 540) % 360) - 180) : 0;
+
+    var gF = $("gFrec"), pF = $("pFrec"), sc = $("scarto"), vr = $("verso");
+    gF.setAttribute("transform", "rotate(" + (attendibile ? scarto.toFixed(1) : 0) + " 120 120)");
+    if (attendibile) {
+      pF.setAttribute("fill", Math.abs(scarto) < 10 ? "var(--mb-ambra)" : "var(--mb-ink)");
+      pF.setAttribute("opacity", "1");
+      sc.className = ""; sc.textContent = Math.abs(Math.round(scarto)) + "\u00b0";
+      vr.className = "";
+      vr.textContent = Math.abs(scarto) < 4 ? "in rotta"
+                     : (scarto > 0 ? "accosta a dritta" : "accosta a sinistra");
+    } else {
+      pF.setAttribute("fill", "var(--mb-spento)");
+      pF.setAttribute("opacity", "0.3");
+      sc.className = "off"; sc.textContent = "\u2014";
+      vr.className = "avv";
+      vr.textContent = (brg == null) ? "in attesa del GPS"
+                     : "rotta sul fondo non attendibile sotto 1,5 kn";
+    }
+
+    /* eta del fix da cui e' stato preso il PUNTO: non invecchia, e'
+       la distanza fra il tocco e l'ultimo fix disponibile allora */
+    var eta = Math.max(0, Math.round((MOB.ts - MOB.fixTs) / 1000));
+    var el = $("etaFix");
+    el.textContent = eta + " s";
+    el.className = "v" + (eta > 15 ? " amb" : "");
+    $("avvFix").hidden = eta <= 15;
+
+    $("coord").textContent = gradiDec(MOB.lat, "N", "S") + "   " + gradiDec(MOB.lon, "E", "W");
+  }
+
+  /* ─────────────── copia per il VHF ─────────────── */
+  function testoVhf() {
+    var d = new Date(MOB.ts);
+    return "MOB " + gradiDec(MOB.lat, "N", "S") + " " + gradiDec(MOB.lon, "E", "W") +
+           " \u00b7 segnato alle " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+  }
+  function copia() {
+    var txt = testoVhf(), fatto = function () {
+      var b = $("btnCopia"); b.textContent = "fatto"; b.className = "ok";
+      setTimeout(function () { b.textContent = "copia"; b.className = ""; }, 1800);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(fatto)["catch"](function () { ripiego(txt, fatto); });
+    } else ripiego(txt, fatto);
+  }
+  /* Safari in PWA nega talvolta l'API clipboard: si ripiega sul metodo
+     vecchio, che richiede un nodo davvero selezionabile. */
+  function ripiego(txt, ok) {
+    try {
+      var ta = document.createElement("textarea");
+      ta.value = txt;
+      ta.style.cssText = "position:fixed;top:0;left:0;opacity:0;-webkit-user-select:text;user-select:text";
+      document.body.appendChild(ta);
+      ta.focus(); ta.setSelectionRange(0, txt.length);
+      var r = document.execCommand("copy");
+      document.body.removeChild(ta);
+      if (r) ok(); else toast("Copia non riuscita: le coordinate sono qui sopra.", 3200);
+    } catch (e) { toast("Copia non riuscita: le coordinate sono qui sopra.", 3200); }
+  }
+
+  /* ─────────────── inversione colori ─────────────── */
+  function inverti() {
+    var scuro = document.documentElement.classList.toggle("mobdark");
+    try { localStorage.setItem(K_SCURO, scuro ? "1" : "0"); } catch (e) {}
+    var m = document.querySelector('meta[name="theme-color"]');
+    if (m) m.setAttribute("content", scuro ? "#06090C" : "#ffffff");
+  }
+
+  /* ─────────────── avvio ─────────────── */
+  $("btnSegna").addEventListener("click", segna);
+  $("annBar").addEventListener("click", ferma);
+  $("btnFerma").addEventListener("click", function () { $("conf").hidden = false; });
+  $("confNo").addEventListener("click", function () { $("conf").hidden = true; });
+  $("confSi").addEventListener("click", ferma);
+  $("btnCopia").addEventListener("click", copia);
+  $("btnInv").addEventListener("click", inverti);
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && !$("conf").hidden) $("conf").hidden = true;
+  });
+
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible") {
+      MOB = statoMob();
+      if (MOB) { avviaGps(); wake(true); dipingi(); }
+    } else wake(false);
+  });
+  window.addEventListener("pageshow", function (e) {
+    if (e.persisted) { MOB = statoMob(); if (MOB) { entra(); } }
+  });
+  /* un'altra scheda puo' aver fermato l'emergenza */
+  window.addEventListener("storage", function (e) {
+    if (e.key && e.key !== K_MOB) return;
+    var m = statoMob();
+    if (!m && MOB) { MOB = null; ferma(); }
+    else if (m && !MOB) { MOB = m; entra(); }
+  });
+
+  MOB = statoMob();
+  if (MOB) entra(); else avviaGps();   /* a riposo il GPS gira lo stesso:
+                                          al tocco serve un fix gia' pronto */
+})();
+</script>
+</body>
+</html>

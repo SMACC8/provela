@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d1418">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bordo">
+<title>Calcoli di bordo · ProVela</title>
+<script>(function(){try{var t=localStorage.getItem('raffyca-theme');if(t==='sun')t='day';if(t==='day'||t==='night')document.documentElement.classList.add(t);}catch(e){}})();</script>
+
+<!-- manifest rimosso: il modulo vive dentro la PWA ProVela -->
+<style>
+/* Token della suite (hex, come raffyca.css). I nomi locali --surface,
+   --muted e --warn restano per non riscrivere 50 regole: sono alias. */
+:root{
+  --bg:#060e18; --surface:#0e2036; --panel2:#0b1a2c; --dp:#040c14;
+  --ink:#deedf5; --muted:#5a7a94; --line:#1a3248;
+  --teal:#2BD9C4; --amber:#FFC24B; --warn:#FF6B6B; --coral:#FF6B6B;
+  --hteal:172 70% 51%; --hamber:41 100% 65%;
+  --r:10px;
+}
+html.day{
+  --bg:#eef1f4; --surface:#ffffff; --panel2:#f3f6f9; --dp:#e7ecf1;
+  --ink:#0a1420; --muted:#3b4e60; --line:#c2ccd6;
+  --teal:#067d70; --amber:#8f5600; --warn:#c62020; --coral:#c62020;
+  --hteal:174 90% 26%; --hamber:36 100% 28%;
+}
+html.night{
+  --bg:#0a0202; --surface:#160404; --panel2:#110303; --dp:#0a0101;
+  --ink:#ff5b5b; --muted:#b04040; --line:#3a1010;
+  --teal:#ff4d4d; --amber:#ff7a45; --warn:#ff3b3b; --coral:#ff3b3b;
+  --hteal:0 100% 65%; --hamber:16 100% 64%;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.wrap{max-width:720px;margin:0 auto;padding:0 12px 56px}
+
+header{
+  position:sticky; top:40px; z-index:20; background:var(--surface);
+  border-bottom:1px solid var(--line);
+  padding:8px 0 0;
+}
+header .hw{max-width:720px;margin:0 auto;padding:0 12px}
+h1{font-size:16px;margin:0 0 8px;font-weight:600;letter-spacing:.2px;color:var(--teal)}
+h1 small{font-weight:400;color:var(--muted);font-size:12px;margin-left:6px}
+nav{display:flex;gap:2px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav button{
+  flex:0 0 auto;border:0;background:none;color:var(--muted);font-family:inherit;font-size:14px;
+  padding:9px 12px;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;
+}
+nav button.on{color:var(--teal);border-bottom-color:var(--teal);font-weight:600}
+
+.tab{display:none}
+.tab.on{display:block}
+
+section{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);margin-top:12px;overflow:hidden}
+section.fixed{border-color:#2d4750}
+summary{
+  list-style:none;cursor:pointer;padding:13px 14px;font-weight:600;font-size:15px;
+  display:flex;justify-content:space-between;align-items:center;gap:10px;color:var(--ink);
+}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";color:var(--teal);font-weight:400;font-size:20px;line-height:1}
+details[open] summary::after{content:"\2013"}
+details[open] summary{border-bottom:1px solid var(--line);color:var(--teal)}
+.body{padding:14px}
+.head{padding:13px 14px 0;font-weight:600;font-size:15px;color:var(--teal)}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;align-items:end}
+.f{display:flex;flex-direction:column;justify-content:flex-end;min-width:0}
+.f label{font-size:12px;color:var(--muted);margin-bottom:4px;line-height:1.25}
+.f input,.f select{
+  width:100%;font-size:16px;padding:9px 10px;border:1px solid var(--line);
+  border-radius:8px;background:var(--bg);color:var(--ink);font-family:inherit;
+}
+.f input:focus,.f select:focus{outline:2px solid var(--teal);outline-offset:1px}
+.f .u{color:var(--muted);font-size:11px;margin-left:4px}
+
+.out{margin-top:14px;border-top:1px dashed var(--line);padding-top:10px}
+.row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:7px 0}
+.row+.row{border-top:1px solid #1d2a31}
+.row .k{font-size:14px}
+.row .k em{display:block;font-style:normal;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:10.5px;color:var(--muted);margin-top:2px;letter-spacing:-.2px}
+.row .v{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap;font-size:15px;color:var(--ink)}
+.row .v s{text-decoration:none;font-weight:400;font-size:11px;color:var(--muted);display:block;text-align:right}
+.hi{background:linear-gradient(90deg,rgba(232,163,61,.10),transparent);margin:0 -6px;padding-left:6px;padding-right:6px;border-radius:6px}
+.hi .v{color:var(--amber)}
+.note{font-size:12.5px;color:var(--muted);margin-top:10px;line-height:1.45}
+.note b{color:var(--ink);font-weight:600}
+.warn{color:var(--warn);font-size:12.5px;margin-top:8px}
+input[type=range]{width:100%;accent-color:var(--teal)}
+.slabel{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:2px}
+.slabel b{color:var(--amber);font-variant-numeric:tabular-nums}
+.seg{display:flex;gap:6px;margin-top:9px}
+.seg button{
+  flex:1;border:1px solid var(--line);background:var(--bg);color:var(--muted);
+  padding:7px 4px;font-size:13px;border-radius:8px;cursor:pointer;font-family:inherit;
+}
+.seg button.on{border-color:var(--teal);color:var(--teal);background:rgba(57,194,179,.10);font-weight:600}
+.hull{font-size:12px;color:var(--muted);margin-top:7px;line-height:1.4}
+.rose{display:block;margin:6px auto 0}
+.f textarea{width:100%;font-size:16px;padding:9px 10px;border:1px solid var(--line);
+  border-radius:8px;background:var(--bg);color:var(--ink);font-family:inherit;resize:vertical;min-height:96px}
+.f textarea:focus{outline:2px solid var(--teal);outline-offset:1px}
+.tbl{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px}
+.tbl th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);
+  font-weight:600;padding:0 8px 6px 0;border-bottom:1px solid var(--line)}
+.tbl td{padding:7px 8px 7px 0;border-top:1px solid #1d2a31;vertical-align:top;line-height:1.3}
+.tbl td:last-child,.tbl th:last-child{padding-right:0}
+.tbl tr.day td{color:var(--teal);font-weight:600;font-size:12px;letter-spacing:.4px;
+  text-transform:uppercase;padding-top:14px;border-top:1px solid var(--line)}
+.tbl tr.night{background:rgba(232,163,61,.05)}
+.tbl .h{font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--ink)}
+.tbl .att{color:var(--amber);font-weight:600}
+.tbl .sup{color:var(--muted)}
+.btn{border:1px solid var(--teal);background:rgba(57,194,179,.10);color:var(--teal);
+  font-family:inherit;font-size:14px;font-weight:600;padding:9px 14px;border-radius:8px;cursor:pointer;margin-top:12px}
+.btn:active{background:rgba(57,194,179,.22)}
+</style>
+</head>
+<body>
+<!-- ===== rf-topbar: markup canonico. CSS e logica stanno in ../rf-topbar.js
+     (un solo file per tutta la suite). Il link alla home resta QUI, inline:
+     e' l'unico modo per uscire da un modulo e non deve dipendere da nulla. ===== -->
+<div class="rf-topbar" role="banner">
+  <a class="rf-home" href="../" aria-label="Menu ProVela" title="Menu ProVela">
+    <svg viewBox="0 0 64 64" width="19" height="19" aria-hidden="true"><path d="M32 8 L32 56 L10 56 Z" fill="#2BD9C4" opacity=".95"/><path d="M32 26 L54 56 L32 56 Z" fill="#2BD9C4" opacity=".45"/><line x1="32" y1="6" x2="32" y2="58" stroke="#1a4a42" stroke-width="3"/></svg>
+  </a>
+  <span class="rf-boat" id="rfBoat"></span>
+  <span class="rf-gps" id="rfGps" title="Stato GPS"><span class="gdot"></span></span>
+  <span class="rf-pol" id="rfPol" title=""></span>
+  <span class="rf-spacer"></span>
+  <span class="rf-status" id="rfStatus"></span>
+</div>
+<script src="../rf-topbar.js" defer></script>
+<script src="../rf-live.js"></script>
+<!-- ===== /rf-topbar ===== -->
+
+<header>
+ <div class="hw">
+  <h1>Calcoli di bordo <small>vela · carteggio · meteo</small></h1>
+  <nav id="nav">
+    <button class="on" data-t="carichi">Carichi</button>
+    <button data-t="carteggio">Carteggio</button>
+    <button data-t="meteo">Meteo e maree</button>
+    <button data-t="barca">Barca</button>
+    <button data-t="turni">Turni</button>
+  </nav>
+ </div>
+</header>
+
+<div class="wrap">
+
+<!-- ============ CARICHI ============ -->
+<div class="tab on" id="t-carichi">
+
+<section class="fixed">
+ <div class="head">Vento di calcolo</div>
+ <div class="body">
+  <div class="grid">
+    <div class="f"><label>Vento reale <span class="u">kn</span></label><input id="tws" inputmode="decimal" value="20"></div>
+    <div class="f"><label>Angolo TWA <span class="u">°</span></label><input id="twa" inputmode="decimal" value="45"></div>
+    <div class="f"><label>Vel. barca <span class="u">kn</span></label><input id="bs" inputmode="decimal" value="6"></div>
+    <div class="f"><label>Usa</label>
+      <select id="wmode"><option value="app">Vento apparente</option><option value="true">Vento reale</option></select>
+    </div>
+  </div>
+  <div class="seg" id="hull">
+    <button type="button" data-h="mono" class="on">Monoscafo</button>
+    <button type="button" data-h="multi">Multiscafo</button>
+    <button type="button" data-h="uldb">ULDB</button>
+  </div>
+  <div class="aw hull" id="awout"></div>
+  <div class="hull" id="hullnote"></div>
+ </div>
+</section>
+
+<section><details>
+ <summary>Vela di prua</summary>
+ <div class="body">
+  <div class="grid">
+    <div class="f"><label>Superficie SA <span class="u">m²</span></label><input id="g_sa" inputmode="decimal" value="11"></div>
+    <div class="f"><label>Rinvio al carrello <span class="u">°</span></label><input id="g_dev" inputmode="decimal" value="45"></div>
+    <div class="f"><label>Paranchi drizza</label><input id="g_pur" inputmode="decimal" value="1"></div>
+  </div>
+  <div class="out" id="g_out"></div>
+  <div class="note">SL = SA·V²·0,02104 — la V è il vento <b>apparente</b> con cui quella vela viene effettivamente portata. Drizza = SL + SA·V²·0,0125.</div>
+ </div>
+</details></section>
+
+<section><details>
+ <summary>Randa</summary>
+ <div class="body">
+  <div class="grid">
+    <div class="f"><label>Base E <span class="u">m</span></label><input id="m_e" inputmode="decimal" value="3.3"></div>
+    <div class="f"><label>Inferitura P <span class="u">m</span></label><input id="m_p" inputmode="decimal" value="8.9"></div>
+    <div class="f"><label>Sbalzo X <span class="u">m</span></label><input id="m_x" inputmode="decimal" value="0.2"></div>
+    <div class="f"><label>Mani di terzaroli</label>
+      <select id="m_reef"><option value="0">Randa piena</option><option value="1">1ª mano</option><option value="2">2ª mano</option><option value="3">3ª mano</option></select>
+    </div>
+    <div class="f"><label>Profondità mano <span class="u">m</span></label><input id="m_rd" inputmode="decimal" value="1.7"></div>
+    <div class="f"><label>Grasso randa <span class="u">%</span></label><input id="m_roach" inputmode="decimal" value="25"></div>
+  </div>
+  <div class="out" id="m_out"></div>
+  <div class="note">ML = E²·P²·0,02104·V² / (√(P²+E²)·(E−X)). Le mani riducono P geometricamente. Formula valida indicativamente su barche 9–18 m.</div>
+ </div>
+</details></section>
+
+<section><details>
+ <summary>Vang / boma</summary>
+ <div class="body">
+  <div class="grid">
+    <div class="f"><label>Attacco dalla trozza <span class="u">m</span></label><input id="v_d" inputmode="decimal" value="1.0"></div>
+    <div class="f"><label>Angolo vang/boma <span class="u">°</span></label><input id="v_b" inputmode="decimal" value="35"></div>
+  </div>
+  <div class="out" id="v_out"></div>
+  <div class="note">Equilibrio dei momenti attorno alla trozza: F = ML·(E−X)/(d·sin β). È la statica del boma con scotta lascata e leech tenuto dal solo vang.</div>
+ </div>
+</details></section>
+
+<section><details>
+ <summary>Spi / gennaker</summary>
+ <div class="body">
+  <div class="grid">
+    <div class="f"><label>Superficie <span class="u">m²</span></label><input id="s_sa" inputmode="decimal" value="60"></div>
+    <div class="f"><label>Coeff. aerodinamico C</label><input id="s_c" inputmode="decimal" value="1.3"></div>
+    <div class="f"><label>Fattore dinamico</label><input id="s_dyn" inputmode="decimal" value="2.0"></div>
+  </div>
+  <div class="out" id="s_out"></div>
+  <div class="note">F = ½·ρ·SA·V²·C. Ripartizione ≈ 45% scotta, 30% drizza, 25% braccio. Contano più gli strappi del carico stazionario.</div>
+  <div class="warn">Stima di massima, non tarata su dati sperimentali.</div>
+ </div>
+</details></section>
+
+<section><details>
+ <summary>Bozzello e angolo di rinvio</summary>
+ <div class="body">
+  <div class="grid">
+    <div class="f"><label>Tiro sulla cima T <span class="u">kg</span></label><input id="b_t" inputmode="decimal" value="300"></div>
+    <div class="f"><label>Convenzione angolo</label>
+      <select id="b_conv"><option value="dev">Deviazione della cima</option><option value="inc">Tra i due tratti</option></select>
+    </div>
+  </div>
+  <div class="f" style="margin-top:10px">
+    <div class="slabel"><span>Angolo</span><b id="b_lab">45°</b></div>
+    <input type="range" id="b_a" min="0" max="180" step="5" value="45">
+  </div>
+  <div class="out" id="b_out"></div>
+  <div class="note">F = 2·T·sin(δ/2). Vale a qualsiasi angolo e anche per rinvii sghembi, purché δ sia l'angolo reale nello spazio fra i due tratti.</div>
+ </div>
+</details></section>
+
+<section><details>
+ <summary>Golfare / landa inclinata</summary>
+ <div class="body">
+  <div class="grid">
+    <div class="f"><label>Carico risultante F <span class="u">kg</span></label><input id="p_f" inputmode="decimal" value="500"></div>
+    <div class="f"><label>Angolo sulla coperta <span class="u">°</span></label><input id="p_a" inputmode="decimal" value="30"></div>
+    <div class="f"><label>N° bulloni</label><input id="p_n" inputmode="decimal" value="4"></div>
+  </div>
+  <div class="out" id="p_out"></div>
+  <div class="note">Trazione = F·sin α (strappo, delaminazione del sandwich), taglio = F·cos α. Il momento ribaltante scarica sui bulloni sopravvento: la trazione sul più caricato può superare F/n.</div>
+ </div>
+</details></section>
+
+<section><details>
+ <summary>Dimensionamento cime e ferramenta</summary>
+ <div class="body">
+  <div class="grid">
+    <div class="f"><label>Carico di esercizio <span class="u">kg</span></label><input id="d_l" inputmode="decimal" value="500"></div>
+    <div class="f"><label>Coeff. sicurezza</label><input id="d_sf" inputmode="decimal" value="4"></div>
+    <div class="f"><label>Paranco (rapporto)</label><input id="d_pur" inputmode="decimal" value="4"></div>
+    <div class="f"><label>Rendimento puleggia <span class="u">%</span></label><input id="d_eff" inputmode="decimal" value="95"></div>
+  </div>
+  <div class="out" id="d_out"></div>
+  <div class="note">Il rendimento è cumulativo sul numero di rinvii: un 4:1 con puleggie al 95% rende ≈ 3,5:1. Riscontro rapido: carico di rottura ≈ SA·30 kg per scotte e drizze di prua, ≈ SA·13 kg per lo spi.</div>
+ </div>
+</details></section>
+</div>
+
+<!-- ============ CARTEGGIO ============ -->
+<div class="tab" id="t-carteggio">
+
+<section><details>
+ <summary>Prore e rilevamenti</summary>
+ <div class="body">
+  <div class="grid">
+    <div class="f"><label>Prora bussola Pb <span class="u">°</span></label><input id="c_pb" inputmode="decimal" value="120"></div>
+    <div class="f"><label>Deviazione δ <span class="u">° E+ / W−</span></label><input id="c_dev" inputmode="decimal" value="-2"></div>
+    <div class="f"><label>Declinazione d <span class="u">° E+ / W−</span></label><input id="c_dec" inputmode="decimal" value="3"></div>
+    <div class="f"><label>Scarroccio <span class="u">° a dritta+</span></label><input id="c_lee" inputmode="decimal" value="5"></div>
+    <div class="f"><label>Rilevamento polare <span class="u">° dritta+</span></label><input id="c_rp" inputmode="decimal" value="40"></div>
+  </div>
+  <div class="out" id="c_out"></div>
+  <div class="note">Pv = Pb + δ + d. Est positivo, Ovest negativo. La rotta di superficie è la prora corretta dello scarroccio: è quella che va riportata in carta prima di applicare la corrente.</div>
+ </div>
+</details></section>
+
+<section><details>
+ <summary>Triangolo delle correnti</summary>
+ <div class="body">
+  <div class="grid">
+    <div class="f"><label>Calcola</label>
+      <select id="cu_mode"><option value="fwd">Rotta effettiva da prora</option><option value="inv">Prora per una rotta voluta</option></select>
+    </div>
+    <div class="f"><label id="cu_lab1">Prora vera <span class="u">°</span></label><input id="cu_hdg" inputmode="decimal" value="90"></div>
+    <div class="f"><label>Velocità propria <span class="u">kn</span></label><input id="cu_vp" inputmode="decimal" value="6"></div>
+    <div class="f"><label>Corrente verso <span class="u">°</span></label><input id="cu_dc" inputmode="decimal" value="180"></div>
+    <div class="f"><label>Corrente <span class="u">kn</span></label><input id="cu_vc" inputmode="decimal" value="1.5"></div>
+  </div>
+  <div class="out" id="cu_out"></div>
+  <div class="note">Somma vettoriale prora+velocità propria con il vettore corrente. Attenzione alla convenzione: la corrente si indica con la direzione <b>verso cui scorre</b>, il vento con quella da cui proviene.</div>
+ </div>
+</details></section>
+
+<section><details>
+ <summary>Velocità, tempo, distanza</summary>
+ <div class="body">
+  <div class="grid">
+    <div class="f"><label>Calcola</label>
+      <select id="vtd_m"><option value="t">Tempo</option><option value="d">Distanza</option><option value="v">Velocità</option></select>
+    </div>
+    <div class="f"><label>Distanza <span class="u">NM</span></label><input id="vtd_d" inputmode="decimal" value="24"></div>
+    <div class="f"><label>Velocità <span class="u">kn</span></label><input id="vtd_v" inputmode="decimal" value="5.5"></div>
+    <div class="f"><label>Tempo <span class="u">h decimali</span></label><input id="vtd_t" inputmode="decimal" value="4"></div>
+    <div class="f"><label>Ora di partenza</label><input id="vtd_h" type="time" value="08:00"></div>
+  </div>
+  <div class="out" id="vtd_out"></div>
+ </div>
+</details></section>
+
+<section><details>
+ <summary>Punto nave per rilevamenti successivi</summary>
+ <div class="body">
+  <div class="grid">
+    <div class="f"><label>1° rilev. polare <span class="u">°</span></label><input id="r_a1" inputmode="decimal" value="30"></div>
+    <div class="f"><label>2° rilev. polare <span class="u">°</span></label><input id="r_a2" inputmode="decimal" value="60"></div>
+    <div class="f"><label>Cammino percorso <span class="u">NM</span></label><input id="r_m" inputmode="decimal" value="3"></div>
+  </div>
+  <div class="out" id="r_out"></div>
+  <div class="note">d₂ = m·sin α₁/sin(α₂−α₁). Con il <b>rilevamento raddoppiato</b> (α₂ = 2α₁) la distanza al secondo rilevamento è pari al cammino percorso: si controlla a mente. Rilevamenti presi sulla stessa banda e senza corrente.</div>
+ </div>
+</details></section>
+
+<section><details>
+ <summary>Fari, orizzonte e portata</summary>
+ <div class="body">
+  <div class="grid">
+    <div class="f"><label>Altezza del faro <span class="u">m</span></label><input id="l_h" inputmode="decimal" value="60"></div>
+    <div class="f"><label>Altezza dell'occhio <span class="u">m</span></label><input id="l_e" inputmode="decimal" value="2.5"></div>
+    <div class="f"><label>Portata nominale <span class="u">NM</span></label><input id="l_n" inputmode="decimal" value="16"></div>
+  </div>
+  <div class="out" id="l_out"></div>
+  <div class="note">P = 2,04·(√H + √h), altezze in metri, coefficiente di rifrazione 0,11 usato dall'Istituto Idrografico. La portata effettiva è la <b>minore</b> fra geografica e luminosa: se domina la geografica, il faro si alza sull'orizzonte e l'avvistamento è un punto di posizione.</div>
+ </div>
+</details></section>
+
+<section><details>
+ <summary>Distanza per angolo verticale</summary>
+ <div class="body">
+  <div class="grid">
+    <div class="f"><label>Altezza oggetto <span class="u">m</span></label><input id="av_h" inputmode="decimal" value="60"></div>
+    <div class="f"><label>Angolo: gradi</label><input id="av_d" inputmode="decimal" value="0"></div>
+    <div class="f"><label>Angolo: primi</label><input id="av_m" inputmode="decimal" value="25"></div>
+  </div>
+  <div class="out" id="av_out"></div>
+  <div class="note">d = H/(1852·tan α). Per angoli piccoli d(NM) ≈ 1,856·H(m)/α('). Vale se la base dell'oggetto è al livello del mare e sopra l'orizzonte.</div>
+ </div>
+</details></section>
+</div>
+
+<!-- ============ METEO ============ -->
+<div class="tab" id="t-meteo">
+
+<section><details>
+ <summary>Legge di Buys Ballot</summary>
+ <div class="body">
+  <div class="grid">
+    <div class="f"><label>Vento da <span class="u">° provenienza</span></label><input id="bb_w" inputmode="decimal" value="270"></div>
+    <div class="f"><label>Emisfero</label>
+      <select id="bb_h"><option value="1">Nord</option><option value="-1">Sud</option></select>
+    </div>
+    <div class="f"><label>Angolo di incrocio isobare <span class="u">°</span></label>
+      <select id="bb_a"><option value="15">Mare aperto 15°</option><option value="25">Costa 25°</option><option value="30">Terra 30°</option></select>
+    </div>
+  </div>
+  <div class="out" id="bb_out"></div>
+  <div class="note">Dando le spalle al vento nell'emisfero nord la bassa pressione sta a <b>sinistra e leggermente in avanti</b>: l'attrito superficiale fa incrociare le isobare verso il centro depressionario, di ~15° sul mare e fino a 30° sulla terraferma. Nell'emisfero sud tutto specchiato.</div>
+ </div>
+</details></section>
+
+<section><details>
+ <summary>Marea: regola dei dodicesimi</summary>
+ <div class="body">
+  <div class="grid">
+    <div class="f"><label>1ª marea: ora</label><input id="td_t1" type="time" value="06:00"></div>
+    <div class="f"><label>1ª marea: altezza <span class="u">m</span></label><input id="td_h1" inputmode="decimal" value="0.4"></div>
+    <div class="f"><label>2ª marea: ora</label><input id="td_t2" type="time" value="12:20"></div>
+    <div class="f"><label>2ª marea: altezza <span class="u">m</span></label><input id="td_h2" inputmode="decimal" value="3.2"></div>
+    <div class="f"><label>Ora richiesta</label><input id="td_tx" type="time" value="09:00"></div>
+    <div class="f"><label>Pescaggio + franco <span class="u">m</span></label><input id="td_p" inputmode="decimal" value="2.0"></div>
+  </div>
+  <div class="out" id="td_out"></div>
+  <div class="note">Sesti di intervallo con quote 1-2-3-3-2-1. Il modello sinusoidale è più accurato dove l'onda di marea è regolare; nei porti con stanca lunga o risonanza (Adriatico settentrionale, estuari) entrambi vanno presi con le molle.</div>
+ </div>
+</details></section>
+
+<section><details>
+ <summary>Vento reale ⇄ apparente</summary>
+ <div class="body">
+  <div class="grid">
+    <div class="f"><label>Calcola</label>
+      <select id="w_mode2"><option value="app">Apparente da reale</option><option value="true">Reale da apparente</option></select>
+    </div>
+    <div class="f"><label id="w_lab1">Vento reale <span class="u">kn</span></label><input id="w_v" inputmode="decimal" value="18"></div>
+    <div class="f"><label id="w_lab2">Angolo <span class="u">°</span></label><input id="w_a" inputmode="decimal" value="60"></div>
+    <div class="f"><label>Velocità barca <span class="u">kn</span></label><input id="w_bs" inputmode="decimal" value="7"></div>
+  </div>
+  <div class="out" id="w_out"></div>
+ </div>
+</details></section>
+
+<section><details>
+ <summary>Scala Beaufort</summary>
+ <div class="body">
+  <div class="grid">
+    <div class="f"><label>Vento <span class="u">kn</span></label><input id="bf_v" inputmode="decimal" value="24"></div>
+  </div>
+  <div class="out" id="bf_out"></div>
+  <div class="note">Altezza d'onda significativa in mare aperto, fetch e durata pieni: sottocosta o con corrente contraria l'onda è più bassa ma più ripida, che è la condizione che rompe le cose.</div>
+ </div>
+</details></section>
+</div>
+
+<!-- ============ BARCA ============ -->
+<div class="tab" id="t-barca">
+
+<section><details>
+ <summary>Velocità critica</summary>
+ <div class="body">
+  <div class="grid">
+    <div class="f"><label>Galleggiamento LWL <span class="u">m</span></label><input id="hs_l" inputmode="decimal" value="9.2"></div>
+    <div class="f"><label>Velocità attuale <span class="u">kn</span></label><input id="hs_v" inputmode="decimal" value="6.5"></div>
+  </div>
+  <div class="out" id="hs_out"></div>
+  <div class="note">Vc = 2,43·√LWL(m), cioè il vecchio 1,34·√LWL(ft): è la velocità a cui l'onda generata dallo scafo ha lunghezza pari al galleggiamento e la barca si siede nel proprio cavo. Non è un muro fisico: scafi leggeri e larghi di poppa la superano regolarmente.</div>
+ </div>
+</details></section>
+
+<section><details>
+ <summary>Rapporti di progetto</summary>
+ <div class="body">
+  <div class="grid">
+    <div class="f"><label>Dislocamento <span class="u">kg</span></label><input id="rp_d" inputmode="decimal" value="4200"></div>
+    <div class="f"><label>LWL <span class="u">m</span></label><input id="rp_lwl" inputmode="decimal" value="9.2"></div>
+    <div class="f"><label>LOA <span class="u">m</span></label><input id="rp_loa" inputmode="decimal" value="10.5"></div>
+    <div class="f"><label>Baglio max <span class="u">m</span></label><input id="rp_b" inputmode="decimal" value="3.4"></div>
+    <div class="f"><label>Superficie velica <span class="u">m²</span></label><input id="rp_sa" inputmode="decimal" value="55"></div>
+  </div>
+  <div class="out" id="rp_out"></div>
+  <div class="note">D/L sotto 200 è leggero, sopra 300 pesante. SA/D sotto 16 è sottovelato, sopra 20 potente. Il capsize screening sotto 2 è il criterio empirico per l'altura.</div>
+ </div>
+</details></section>
+
+<section><details>
+ <summary>Ancoraggio</summary>
+ <div class="body">
+  <div class="grid">
+    <div class="f"><label>Profondità <span class="u">m</span></label><input id="an_p" inputmode="decimal" value="8"></div>
+    <div class="f"><label>Altezza musone <span class="u">m</span></label><input id="an_m" inputmode="decimal" value="1.2"></div>
+    <div class="f"><label>Escursione marea <span class="u">m</span></label><input id="an_t" inputmode="decimal" value="0.4"></div>
+    <div class="f"><label>Calumo k</label>
+      <select id="an_k"><option value="3">3:1 catena, bonaccia</option><option value="5" selected>5:1 catena, vento</option><option value="7">7:1 cima o burrasca</option></select>
+    </div>
+    <div class="f"><label>LOA <span class="u">m</span></label><input id="an_loa" inputmode="decimal" value="10.5"></div>
+    <div class="f"><label>Area al vento <span class="u">m²</span></label><input id="an_a" inputmode="decimal" value="9"></div>
+    <div class="f"><label>Vento <span class="u">kn</span></label><input id="an_v" inputmode="decimal" value="35"></div>
+  </div>
+  <div class="out" id="an_out"></div>
+  <div class="note">Il tiro è la sola resistenza aerodinamica dello scafo esposto (Cd≈1,2): non comprende il rinculo dell'onda, che su mare formato può raddoppiarlo, né gli strappi se la catena si tende. Il raggio di evitata va confrontato con i vicini <b>prima</b> di calare.</div>
+ </div>
+</details></section>
+</div>
+
+
+<!-- ============ TURNI ============ -->
+<div class="tab" id="t-turni">
+
+<section class="fixed">
+ <div class="head">Equipaggio e turni di guardia</div>
+ <div class="body">
+  <div class="grid">
+    <div class="f" style="grid-column:1/-1"><label>Nomi <span class="u">uno per riga</span></label><textarea id="tu_names">Sergio
+Anna
+Marco
+Luca
+Giulia</textarea></div>
+    <div class="f"><label>Fuori turno <span class="u">skipper</span></label><select id="tu_out"></select></div>
+    <div class="f"><label>Attivi per turno</label><input id="tu_att" inputmode="numeric" value="1"></div>
+    <div class="f"><label>Supporto per turno</label><input id="tu_sup" inputmode="numeric" value="1"></div>
+    <div class="f"><label>Copertura</label>
+      <select id="tu_cov"><option value="24">h24</option><option value="night">Solo notte</option></select>
+    </div>
+    <div class="f"><label>Durata turno <span class="u">h</span></label><input id="tu_len" inputmode="decimal" value="3"></div>
+    <div class="f"><label>Inizio</label><input id="tu_start" type="time" value="18:00"></div>
+    <div class="f"><label>Giorni</label><input id="tu_days" inputmode="numeric" value="3"></div>
+    <div class="f"><label>Notte da</label><input id="tu_n1" type="time" value="21:00"></div>
+    <div class="f"><label>Notte a</label><input id="tu_n2" type="time" value="06:00"></div>
+  </div>
+  <div class="seg" id="tu_rot">
+    <button type="button" data-r="1" class="on">Bilanciato</button>
+    <button type="button" data-r="0">Ciclico fisso</button>
+  </div>
+  <div class="hull" id="tu_rotnote"></div>
+  <div id="tu_bal"></div>
+  <button class="btn" id="tu_copy" type="button">Copia il programma</button>
+  <div class="note">Il <b>supporto</b> è chi monta al turno successivo: sveglio, vestito e già dentro la situazione quando dà il cambio. <b>Bilanciato</b>: a ogni turno tocca a chi ha meno ore alle spalle, con le ore di notte contate a parte e chi ha appena smontato escluso. <b>Ciclico fisso</b>: la vecchia quartiglia, ordine sempre uguale — prevedibile ma se i turni giornalieri sono un multiplo dell'equipaggio la stessa persona becca sempre la guardia delle 03:00.</div>
+ </div>
+</section>
+
+<section><details>
+ <summary>Programma</summary>
+ <div class="body"><div id="tu_out2"></div></div>
+</details></section>
+</div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const num = id => { const v = ($(id).value||'').replace(',','.'); const n = parseFloat(v); return isFinite(n) ? n : 0; };
+const K_SHEET = 0.02104, K_PRESS = 0.01250, RHO = 1.225, KN = 0.5144;
+const D2R = Math.PI/180, R2D = 180/Math.PI;
+const norm = a => ((a % 360) + 360) % 360;
+
+function fmt(n, d=0){ if(!isFinite(n)) return '—'; return n.toLocaleString('it-IT',{minimumFractionDigits:d,maximumFractionDigits:d}); }
+function kg(n){ return `<span class="v">${fmt(n)} kg<s>${fmt(n*0.981,1)} daN</s></span>`; }
+function val(t,s){ return `<span class="v">${t}${s?`<s>${s}</s>`:''}</span>`; }
+function row(k, formula, valHtml, hi){
+  return `<div class="row${hi?' hi':''}"><span class="k">${k}${formula?`<em>${formula}</em>`:''}</span>${valHtml}</div>`;
+}
+function hm(h){ if(!isFinite(h)) return '—'; const s=h<0?'−':''; h=Math.abs(h); const H=Math.floor(h); const M=Math.round((h-H)*60); return `${s}${H}h ${String(M).padStart(2,'0')}m`; }
+function tmin(id){ const v=$(id).value; if(!v) return NaN; const [a,b]=v.split(':').map(Number); return a*60+b; }
+function clock(min){ min=((min%1440)+1440)%1440; return `${String(Math.floor(min/60)).padStart(2,'0')}:${String(Math.round(min%60)).padStart(2,'0')}`; }
+
+// ---- tabs
+$('nav').addEventListener('click', e => {
+  const b = e.target.closest('button[data-t]'); if(!b) return;
+  [...$('nav').children].forEach(x => x.classList.toggle('on', x===b));
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.id === 't-'+b.dataset.t));
+  window.scrollTo(0,0);
+});
+
+// ---- scafo
+const HULL = {
+  mono:  {f:1.00, t:'Formule calibrate su monoscafi a dislocamento: lo sbandamento sgrava le vele.'},
+  multi: {f:1.10, t:'Stabilità di forma, nessuno sgravio dallo sbandamento: vento di calcolo +10% e velocità barca reale inserita sopra.'},
+  uldb:  {f:0.88, t:'Riducono tela presto rispetto al vento reale: vento di calcolo −12%.'}
+};
+let hull = 'mono';
+$('hull').addEventListener('click', e => {
+  const b = e.target.closest('button[data-h]'); if(!b) return;
+  hull = b.dataset.h;
+  [...$('hull').children].forEach(x => x.classList.toggle('on', x===b));
+  calc();
+});
+
+function wind(){
+  const tws = num('tws'), twa = num('twa')*D2R, bs = num('bs');
+  const aws = Math.sqrt(tws*tws + bs*bs + 2*tws*bs*Math.cos(twa));
+  const awa = Math.atan2(tws*Math.sin(twa), tws*Math.cos(twa)+bs)*R2D;
+  const base = $('wmode').value==='app' ? aws : tws;
+  const h = HULL[hull], V = base*h.f;
+  $('awout').innerHTML = `Apparente <b style="color:var(--amber)">${fmt(aws,1)} kn</b> a <b style="color:var(--amber)">${fmt(Math.abs(awa),0)}°</b> — calcolo con <b style="color:var(--amber)">${fmt(V,1)} kn</b>`;
+  $('hullnote').textContent = h.t;
+  return V;
+}
+
+function calc(){
+  const V = wind(), V2 = V*V;
+
+  /* ---------- CARICHI ---------- */
+  const sa = num('g_sa'), dev = num('g_dev'), pur = Math.max(1,num('g_pur'));
+  const SL = sa*V2*K_SHEET, HL = SL + sa*V2*K_PRESS;
+  const df = 2*Math.sin(dev*D2R/2), car = SL*df;
+  $('g_out').innerHTML =
+    row('Carico scotta','SL = SA·V²·0,02104', kg(SL), true) +
+    row('Carico drizza','SL + SA·V²·0,0125', kg(HL)) +
+    (pur>1 ? row('Tiro in coda drizza',`HL / ${fmt(pur)}`, kg(HL/pur)) : '') +
+    row(`Carico carrello (rinvio ${fmt(dev)}°)`,`SL·2·sin(δ/2) = SL·${fmt(df,2)}`, kg(car)) +
+    row('Paranco punto di scotta', dev<=50?'≈ carrello/3':'≈ carrello/2', kg(car/(dev<=50?3:2)));
+
+  const E = num('m_e'), P0 = num('m_p'), X = num('m_x');
+  const nr = parseFloat($('m_reef').value), rd = num('m_rd');
+  const P = Math.max(0.1, P0 - nr*rd), lev = E - X;
+  let ML = 0, mo = '';
+  if(lev <= 0){ mo = `<div class="warn">X deve essere minore di E: braccio (E−X) nullo o negativo.</div>`; }
+  else{
+    ML = (E*E*P*P*K_SHEET*V2)/(Math.sqrt(P*P+E*E)*lev);
+    const areaM = P*E/2*(1+num('m_roach')/100);
+    mo = row(`Carico scotta randa${nr?` (${nr}ª mano, P=${fmt(P,1)} m)`:''}`,'ML = E²P²·0,02104·V²/(√(P²+E²)·(E−X))', kg(ML), true) +
+         row('Superficie randa stimata','P·E/2 · (1+grasso)', val(fmt(areaM,1)+' m²')) +
+         row('Carico drizza randa','area·V²·0,0125 + ML', kg(areaM*V2*K_PRESS + ML)) +
+         row('Paranco carrello randa','0,2 · ML', kg(ML*0.2));
+  }
+  $('m_out').innerHTML = mo;
+
+  const dd = num('v_d'), beta = num('v_b')*D2R;
+  const FV = (dd>0 && Math.sin(beta)>0) ? ML*lev/(dd*Math.sin(beta)) : NaN;
+  $('v_out').innerHTML =
+    row('Carico scotta randa','dal modulo Randa', kg(ML)) +
+    row('Tiro sul vang','ML·(E−X)/(d·sin β)', kg(FV), true) +
+    row('Compressione sul boma','≈ F·cos β', kg(FV*Math.cos(beta)));
+
+  const Fs = 0.5*RHO*num('s_sa')*Math.pow(V*KN,2)*num('s_c')/9.81;
+  $('s_out').innerHTML =
+    row('Forza totale sulla vela','½·ρ·SA·V²·C', kg(Fs)) +
+    row('Scotta','0,45 · F', kg(Fs*0.45)) +
+    row('Drizza','0,30 · F', kg(Fs*0.30)) +
+    row('Braccio / tack','0,25 · F', kg(Fs*0.25)) +
+    row('Drizza di progetto',`0,30·F · ${fmt(num('s_dyn'),1)}`, kg(Fs*0.30*num('s_dyn')), true);
+
+  const T = num('b_t'), ang = num('b_a');
+  const delta = $('b_conv').value==='dev' ? ang : 180-ang;
+  $('b_lab').textContent = fmt(ang)+'°';
+  const F = 2*T*Math.sin(delta*D2R/2);
+  $('b_out').innerHTML =
+    row('Deviazione effettiva δ','', val(fmt(delta)+'°')) +
+    row('Fattore di carico','2·sin(δ/2)', val(fmt(F/T*100)+' %')) +
+    row('Carico sul bozzello','F = 2·T·sin(δ/2)', kg(F), true);
+
+  const PF = num('p_f'), pa = num('p_a')*D2R, pn = Math.max(1,num('p_n'));
+  $('p_out').innerHTML =
+    row('Trazione (strappo)','F·sin α', kg(PF*Math.sin(pa)), true) +
+    row('Taglio sul piano coperta','F·cos α', kg(PF*Math.cos(pa))) +
+    row('Trazione media per bullone',`F·sin α / ${fmt(pn)}`, kg(PF*Math.sin(pa)/pn)) +
+    row('Area minima contropiastra','trazione / 0,5 MPa sul core', val(fmt(PF*Math.sin(pa)*9.81/0.5e6*1e4)+' cm²'));
+
+  const dl = num('d_l'), sf = Math.max(1,num('d_sf')), dp = Math.max(1,num('d_pur')), de = Math.min(1,Math.max(0.5,num('d_eff')/100));
+  const realP = de>=0.999 ? dp : (1-Math.pow(de,dp))/(1-de);
+  $('d_out').innerHTML =
+    row('Carico di rottura minimo',`carico · ${fmt(sf,1)}`, kg(dl*sf), true) +
+    row('Paranco reale',`${fmt(dp)}:1 al ${fmt(de*100)}%`, val(fmt(realP,1)+':1')) +
+    row('Tiro in coda','carico / paranco reale', kg(dl/realP)) +
+    row('Bozzello di rinvio a 180°','2 · tiro in coda', kg(2*dl/realP));
+
+  /* ---------- CARTEGGIO ---------- */
+  const Pb = num('c_pb'), dv = num('c_dev'), dc = num('c_dec'), lee = num('c_lee'), rp = num('c_rp');
+  const Pm = norm(Pb+dv), Pv = norm(Pb+dv+dc), Rs = norm(Pv+lee);
+  $('c_out').innerHTML =
+    row('Prora magnetica','Pb + δ', val(fmt(Pm)+'°')) +
+    row('Prora vera','Pb + δ + d', val(fmt(Pv)+'°'), true) +
+    row('Variazione totale','δ + d', val((dv+dc>=0?'+':'−')+fmt(Math.abs(dv+dc),1)+'°')) +
+    row('Rotta di superficie','Pv + scarroccio', val(fmt(Rs)+'°')) +
+    row('Rilevamento vero','Pv + rilev. polare', val(fmt(norm(Pv+rp))+'°'));
+
+  const cuInv = $('cu_mode').value==='inv';
+  $('cu_lab1').innerHTML = cuInv ? 'Rotta voluta <span class="u">°</span>' : 'Prora vera <span class="u">°</span>';
+  const hdg = num('cu_hdg'), vp = num('cu_vp'), dcur = num('cu_dc'), vc = num('cu_vc');
+  if(!cuInv){
+    const n = vp*Math.cos(hdg*D2R) + vc*Math.cos(dcur*D2R);
+    const e = vp*Math.sin(hdg*D2R) + vc*Math.sin(dcur*D2R);
+    const sog = Math.hypot(n,e), cog = norm(Math.atan2(e,n)*R2D);
+    $('cu_out').innerHTML =
+      row('Rotta effettiva (COG)','somma vettoriale', val(fmt(cog)+'°'), true) +
+      row('Velocità effettiva (SOG)','', val(fmt(sog,2)+' kn')) +
+      row('Deriva sulla rotta','COG − prora', val((norm(cog-hdg+180)-180>=0?'+':'−')+fmt(Math.abs(norm(cog-hdg+180)-180),1)+'°'));
+  } else {
+    const th = (dcur-hdg)*D2R;
+    const sb = vc*Math.sin(th)/vp;
+    if(Math.abs(sb)>1){
+      $('cu_out').innerHTML = `<div class="warn">Corrente troppo forte: con ${fmt(vp,1)} kn non è possibile tenere questa rotta.</div>`;
+    } else {
+      const b = Math.asin(sb)*R2D;
+      const sog = vp*Math.cos(b*D2R) + vc*Math.cos(th);
+      $('cu_out').innerHTML =
+        row('Prora da tenere','rotta − correzione', val(fmt(norm(hdg-b))+'°'), true) +
+        row('Correzione','asin(Vc·sin θ / Vp)', val((b>=0?'−':'+')+fmt(Math.abs(b),1)+'°')) +
+        row('Velocità sul fondo','Vp·cos β + Vc·cos θ', val(fmt(sog,2)+' kn')) +
+        (sog<=0 ? '<div class="warn">Velocità sul fondo nulla o negativa: si va indietro.</div>' : '');
+    }
+  }
+
+  const vm = $('vtd_m').value, vd = num('vtd_d'), vv = num('vtd_v'), vt = num('vtd_t');
+  let res, lbl, form;
+  if(vm==='t'){ res = vv>0 ? vd/vv : NaN; lbl='Tempo'; form='D / V'; }
+  else if(vm==='d'){ res = vv*vt; lbl='Distanza'; form='V · T'; }
+  else { res = vt>0 ? vd/vt : NaN; lbl='Velocità'; form='D / T'; }
+  const dur = vm==='t' ? res : vt;
+  const t0 = tmin('vtd_h');
+  $('vtd_out').innerHTML =
+    row(lbl, form, val(vm==='t'?hm(res):fmt(res,2)+(vm==='d'?' NM':' kn')), true) +
+    (vm==='t' ? row('In ore decimali','', val(fmt(res,2)+' h')) : '') +
+    (isFinite(t0)&&isFinite(dur) ? row('Ora di arrivo stimata',`partenza + ${hm(dur)}`, val(clock(t0+dur*60))) : '');
+
+  const a1 = num('r_a1')*D2R, a2 = num('r_a2')*D2R, mm = num('r_m');
+  if(a2>a1 && a1>0){
+    const d2 = mm*Math.sin(a1)/Math.sin(a2-a1);
+    $('r_out').innerHTML =
+      row('Distanza al 2° rilevamento','m·sin α₁/sin(α₂−α₁)', val(fmt(d2,2)+' NM'), true) +
+      row('Distanza al 1° rilevamento','m·sin α₂/sin(α₂−α₁)', val(fmt(mm*Math.sin(a2)/Math.sin(a2-a1),2)+' NM')) +
+      row('Distanza minima di passaggio','d₂·sin α₂', val(fmt(d2*Math.sin(a2),2)+' NM')) +
+      (Math.abs(num('r_a2')-2*num('r_a1'))<0.6 ? row('Rilevamento raddoppiato','d₂ = cammino percorso', val('sì')) : '');
+  } else $('r_out').innerHTML = `<div class="warn">Il 2° rilevamento polare deve essere maggiore del 1° (oggetto che si apre verso poppa).</div>`;
+
+  const lh = Math.max(0,num('l_h')), le = Math.max(0,num('l_e')), ln = num('l_n');
+  const pg = 2.04*(Math.sqrt(lh)+Math.sqrt(le));
+  $('l_out').innerHTML =
+    row('Portata geografica','2,04·(√H + √h)', val(fmt(pg,1)+' NM')) +
+    row('Orizzonte dall\'occhio','2,04·√h', val(fmt(2.04*Math.sqrt(le),1)+' NM')) +
+    row('Portata effettiva', ln>0 ? (ln<pg?'domina la portata luminosa':'domina la curvatura terrestre') : '', val(fmt(ln>0?Math.min(pg,ln):pg,1)+' NM'), true);
+
+  const avh = num('av_h'), avA = (num('av_d')+num('av_m')/60)*D2R;
+  const avd = avA>0 ? avh/(1852*Math.tan(avA)) : NaN;
+  $('av_out').innerHTML =
+    row('Distanza','H/(1852·tan α)', val(fmt(avd,2)+' NM'), true) +
+    row('In metri','', val(fmt(avd*1852)+' m')) +
+    row('Angolo totale','', val(fmt(avA*R2D,3)+'° = '+fmt(avA*R2D*60,1)+"'"));
+
+  /* ---------- METEO ---------- */
+  const bw = num('bb_w'), bh = parseFloat($('bb_h').value), ba = parseFloat($('bb_a').value);
+  const lowB = norm(bw + bh*(90+ba));
+  const rose = d => ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSO','SO','OSO','O','ONO','NO','NNO'][Math.round(norm(d)/22.5)%16];
+  $('bb_out').innerHTML =
+    row('Centro di bassa pressione','vento da + '+(bh>0?'+':'−')+`(90°+${fmt(ba)}°)`, val(fmt(lowB)+'° '+rose(lowB)), true) +
+    row('Alta pressione','opposta', val(fmt(norm(lowB+180))+'° '+rose(lowB+180))) +
+    row('Spalle al vento, la bassa è',`a ${bh>0?'sinistra':'dritta'}, ${fmt(90-ba)}° dalla prua`, val(fmt(90-ba)+'° '+(bh>0?'a sinistra':'a dritta'))) +
+    row('Vento senza attrito','tangente alle isobare', val(fmt(norm(lowB - bh*90))+'°'));
+
+  const t1 = tmin('td_t1'), t2 = tmin('td_t2'), tx = tmin('td_tx');
+  const h1 = num('td_h1'), h2 = num('td_h2');
+  let dur2 = t2-t1; if(dur2<=0) dur2 += 1440;
+  let el = tx-t1; if(el<0) el += 1440;
+  if(el>dur2){ $('td_out').innerHTML = `<div class="warn">L'ora richiesta cade fuori dall'intervallo fra le due maree.</div>`; }
+  else{
+    const x = el/dur2*6;
+    const cum = [0,1,3,6,9,11,12];
+    const i = Math.min(5,Math.floor(x));
+    const f12 = (cum[i] + (cum[i+1]-cum[i])*(x-i))/12;
+    const fsin = (1-Math.cos(Math.PI*el/dur2))/2;
+    const hh = h1+(h2-h1)*f12, hs = h1+(h2-h1)*fsin;
+    const dr = num('td_p');
+    $('td_out').innerHTML =
+      row('Intervallo di marea',`${clock(t1)} → ${clock(t2)}`, val(hm(dur2/60)+' · '+(h2>h1?'montante':'calante'))) +
+      row('Altezza (dodicesimi)',`f = ${fmt(f12*100)}% dell'ampiezza`, val(fmt(hh,2)+' m'), true) +
+      row('Altezza (sinusoidale)','(1−cos(π·t/T))/2', val(fmt(hs,2)+' m')) +
+      row('Fondale minimo richiesto','pescaggio + franco', val(fmt(dr,2)+' m')) +
+      row('Profondità carta necessaria','fondale − altezza marea', val(fmt(dr-hh,2)+' m'));
+  }
+
+  const wInv = $('w_mode2').value==='true';
+  $('w_lab1').innerHTML = (wInv?'Vento apparente':'Vento reale')+' <span class="u">kn</span>';
+  const wv = num('w_v'), wa = num('w_a')*D2R, wbs = num('w_bs');
+  if(!wInv){
+    const aws2 = Math.sqrt(wv*wv+wbs*wbs+2*wv*wbs*Math.cos(wa));
+    const awa2 = Math.atan2(wv*Math.sin(wa), wv*Math.cos(wa)+wbs)*R2D;
+    $('w_out').innerHTML =
+      row('Vento apparente','√(V²+Vb²+2·V·Vb·cos TWA)', val(fmt(aws2,1)+' kn'), true) +
+      row('Angolo apparente AWA','', val(fmt(Math.abs(awa2),1)+'°')) +
+      row('Scarto sul reale','', val('+'+fmt(aws2-wv,1)+' kn · '+fmt(num('w_a')-Math.abs(awa2),1)+'° più prodiero'));
+  } else {
+    const tws2 = Math.sqrt(wv*wv+wbs*wbs-2*wv*wbs*Math.cos(wa));
+    const twa2 = Math.atan2(wv*Math.sin(wa), wv*Math.cos(wa)-wbs)*R2D;
+    $('w_out').innerHTML =
+      row('Vento reale','√(A²+Vb²−2·A·Vb·cos AWA)', val(fmt(tws2,1)+' kn'), true) +
+      row('Angolo reale TWA','', val(fmt(Math.abs(twa2),1)+'°'));
+  }
+
+  const bv = num('bf_v');
+  const BF = [[1,'Calma','0'],[4,'Bava di vento','0,1'],[7,'Brezza leggera','0,2'],[11,'Brezza tesa','0,6'],
+    [17,'Vento moderato','1,0'],[22,'Vento teso','2,0'],[28,'Vento fresco','3,0'],[34,'Vento forte','4,0'],
+    [41,'Burrasca','5,5'],[48,'Burrasca forte','7,0'],[56,'Tempesta','9,0'],[64,'Tempesta violenta','11,5'],[999,'Uragano','14+']];
+  let bi = BF.findIndex(r => bv < r[0]); if(bi<0) bi = 12;
+  $('bf_out').innerHTML =
+    row('Forza','scala Beaufort', val(fmt(bi)+' Bft'), true) +
+    row('Denominazione','', val(BF[bi][1])) +
+    row('Onda significativa attesa','mare aperto, fetch pieno', val(BF[bi][2]+' m')) +
+    row('Equivalenti','', val(fmt(bv*1.852,1)+' km/h', fmt(bv*0.5144,1)+' m/s'));
+
+  /* ---------- BARCA ---------- */
+  const lwl = Math.max(0.1,num('hs_l')), hv = num('hs_v');
+  const vcrit = 2.43*Math.sqrt(lwl);
+  $('hs_out').innerHTML =
+    row('Velocità critica','2,43·√LWL(m)', val(fmt(vcrit,2)+' kn'), true) +
+    row('Rapporto V/√L attuale','V/Vc', val(fmt(hv/vcrit,2))) +
+    row('Numero di Froude','V/√(g·LWL)', val(fmt(hv*KN/Math.sqrt(9.81*lwl),3))) +
+    row('Regime', hv/vcrit<0.9?'dislocamento':hv/vcrit<1.5?'transizione, onda formata':'semiplanante o planante', val(hv/vcrit<0.9?'dislocante':hv/vcrit<1.5?'transizione':'planante')) +
+    row('Al 90% della critica','soglia di resa energetica', val(fmt(vcrit*0.9,2)+' kn'));
+
+  const dis = Math.max(1,num('rp_d')), rl = Math.max(0.1,num('rp_lwl')), rloa = num('rp_loa'), bmx = Math.max(0.1,num('rp_b')), rsa = num('rp_sa');
+  const lwlft = rl*3.28084, loaft = rloa*3.28084, bft = bmx*3.28084;
+  const dlt = dis/1016.05, dlb = dis*2.20462;
+  const DL = dlt/Math.pow(0.01*lwlft,3);
+  const volft3 = dis/1025*35.3147;
+  const SAD = rsa*10.7639/Math.pow(volft3,2/3);
+  const CSF = bft/Math.pow(dlb/64,1/3);
+  const CR = dlb/(0.65*(0.7*lwlft+0.3*loaft)*Math.pow(bft,1.33));
+  $('rp_out').innerHTML =
+    row('Dislocamento/lunghezza D/L','Δ(ton)/(0,01·LWL ft)³', val(fmt(DL)), true) +
+    row('Velico/dislocamento SA/D','SA ft²/vol ft³^⅔', val(fmt(SAD,1))) +
+    row('Capsize screening','B ft/(Δ lb/64)^⅓', val(fmt(CSF,2)+(CSF<2?' · ok altura':' · sopra soglia'))) +
+    row('Comfort ratio (Brewer)','', val(fmt(CR,1))) +
+    row('Volume di carena','Δ/1025', val(fmt(dis/1025,2)+' m³'));
+
+  const ap = num('an_p'), am = num('an_m'), at = num('an_t'), ak = parseFloat($('an_k').value), aloa = num('an_loa');
+  const hTot = ap+am+at, L = ak*hTot;
+  const Rev = Math.sqrt(Math.max(0,L*L-hTot*hTot))+aloa;
+  const av = num('an_v'), aa = num('an_a');
+  const Fw = 0.5*RHO*aa*Math.pow(av*KN,2)*1.2/9.81;
+  $('an_out').innerHTML =
+    row('Catena da filare',`${fmt(ak)} · (prof + musone + marea)`, val(fmt(L,1)+' m'), true) +
+    row('Altezza totale musone-fondo','prof + musone + marea', val(fmt(hTot,1)+' m')) +
+    row('Raggio di evitata','√(L²−h²) + LOA', val(fmt(Rev,1)+' m')) +
+    row('Tiro del vento sull\'ancora','½·ρ·A·V²·1,2', kg(Fw)) +
+    row('Con raffiche +40%','strappo di picco', kg(Fw*1.96));
+
+  turni();
+}
+
+/* ---------- TURNI ---------- */
+let balanced = true;
+$('tu_rot').addEventListener('click', e => {
+  const b = e.target.closest('button[data-r]'); if(!b) return;
+  balanced = b.dataset.r === '1';
+  [...$('tu_rot').children].forEach(x => x.classList.toggle('on', x===b));
+  turni();
+});
+$('tu_copy').addEventListener('click', () => {
+  const t = buildText();
+  const done = () => { const b=$('tu_copy'); b.textContent='Copiato'; setTimeout(()=>b.textContent='Copia il programma',1500); };
+  if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(done, fallback); }
+  else fallback();
+  function fallback(){
+    const ta=document.createElement('textarea'); ta.value=t;
+    ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    try{ document.execCommand('copy'); done(); }catch(err){}
+    document.body.removeChild(ta);
+  }
+});
+
+let lastPlan = null;
+function buildText(){
+  if(!lastPlan) return '';
+  let out = 'TURNI DI GUARDIA\n\n', day = -1;
+  lastPlan.slots.forEach(sl => {
+    if(sl.day !== day){ day = sl.day; out += `\nGiorno ${day+1}\n`; }
+    out += `${clock(sl.a)}-${clock(sl.b)}  ${sl.att.join(', ')}` + (sl.sup.length?`  (supporto: ${sl.sup.join(', ')})`:'') + '\n';
+  });
+  out += '\nORE PER PERSONA\n';
+  lastPlan.stats.forEach(p => { out += `${p.name}: ${fmt(p.h,1)} h attivo, di cui ${fmt(p.n,1)} h di notte\n`; });
+  return out;
+}
+
+function overlapNight(a, b, n1, n2){
+  // minuti di [a,b) che cadono nella finestra notturna, gestendo la mezzanotte
+  let tot = 0;
+  for(let d = -1; d <= Math.ceil(b/1440); d++){
+    let s = n1 + d*1440, e = (n2 > n1 ? n2 : n2 + 1440) + d*1440;
+    tot += Math.max(0, Math.min(b, e) - Math.max(a, s));
+  }
+  return tot;
+}
+
+function turni(){
+  $('tu_rotnote').textContent = balanced
+    ? 'Assegnazione a pareggio: ore attive e ore di notte distribuite il più uniformemente possibile.'
+    : 'Sequenza ciclica: ordine dei nomi rispettato, turno dopo turno.';
+
+  const names = $('tu_names').value.split('\n').map(x => x.trim()).filter(Boolean);
+  const outSel = $('tu_out');
+  const prev = outSel.value;
+  const opts = ['<option value="">Nessuno</option>'].concat(names.map(n => `<option value="${n}">${n}</option>`)).join('');
+  if(outSel.innerHTML !== opts){ outSel.innerHTML = opts; outSel.value = names.includes(prev) ? prev : ''; }
+
+  const P = names.filter(n => n !== outSel.value);
+  const A = Math.max(1, Math.round(num('tu_att')));
+  const S = Math.max(0, Math.round(num('tu_sup')));
+  const L = Math.max(0.5, num('tu_len'));
+  const D = Math.max(1, Math.round(num('tu_days')));
+  const st = tmin('tu_start'), n1 = tmin('tu_n1'), n2 = tmin('tu_n2');
+  const cov = $('tu_cov').value;
+
+  if(P.length < A + S){
+    $('tu_out2').innerHTML = `<div class="warn">Servono almeno ${A+S} persone in rotazione: ce ne sono ${P.length}.</div>`;
+    $('tu_bal').innerHTML = ''; lastPlan = null; return;
+  }
+  if(!isFinite(st) || !isFinite(n1) || !isFinite(n2)){ $('tu_out2').innerHTML = ''; return; }
+
+  // --- generazione degli intervalli
+  const slots = [];
+  if(cov === '24'){
+    const per = Math.max(1, Math.round(24/L)), len = 24*60/per;
+    for(let i = 0; i < per*D; i++){
+      const a = st + i*len;
+      slots.push({a:a, b:a+len, day:Math.floor(i/per)});
+    }
+  } else {
+    let nightLen = n2 - n1; if(nightLen <= 0) nightLen += 1440;
+    const per = Math.max(1, Math.round(nightLen/60/L)), len = nightLen/per;
+    for(let d = 0; d < D; d++) for(let i = 0; i < per; i++){
+      const a = n1 + d*1440 + i*len;
+      slots.push({a:a, b:a+len, day:d});
+    }
+  }
+
+  // --- assegnazione: prima gli attivi, poi il supporto accoppiato
+  const stats = P.map(name => ({name:name, h:0, n:0, s:0, turni:0, last:null, gapMin:Infinity, gapMax:0}));
+  const st_ = {}; stats.forEach((q,i) => st_[q.name] = i);
+  const r3 = x => Math.round(x*1000)/1000;
+  const q = x => stats[st_[x]];
+  let onWatch = [], p = 0;
+
+  slots.forEach(sl => {
+    const dur = (sl.b - sl.a)/60;
+    sl.nightMin = overlapNight(sl.a, sl.b, n1, n2);
+    const nh = sl.nightMin/60;
+    sl.isNight = nh > dur/2;
+
+    if(!balanced){
+      sl.att = [];
+      for(let j = 0; j < A; j++) sl.att.push(P[(p+j) % n]);
+      p += A;
+    } else {
+      let pool = P.filter(x => onWatch.indexOf(x) < 0);
+      if(pool.length < A) pool = P.slice();
+      pool.sort((x,y) => {
+        const a = q(x), b = q(y);
+        if(sl.isNight && r3(a.n) !== r3(b.n)) return a.n - b.n;
+        if(r3(a.h) !== r3(b.h)) return a.h - b.h;
+        if(!sl.isNight && r3(a.n) !== r3(b.n)) return b.n - a.n;
+        const la = a.last === null ? -1e9 : a.last, lb = b.last === null ? -1e9 : b.last;
+        if(la !== lb) return la - lb;
+        return P.indexOf(x) - P.indexOf(y);
+      });
+      sl.att = pool.slice(0, A);
+    }
+
+    sl.att.forEach(name => {
+      const w = q(name);
+      w.h += dur; w.n += nh; w.turni++;
+      if(w.last !== null){
+        const g = (sl.a - w.last)/60;
+        w.gapMin = Math.min(w.gapMin, g); w.gapMax = Math.max(w.gapMax, g);
+      }
+      w.last = sl.b;
+    });
+    onWatch = sl.att;
+  });
+
+  // supporto = chi monta al turno successivo; se ne servono più degli attivi, si completa con i più scarichi
+  slots.forEach((sl, i) => {
+    const next = slots[i+1];
+    sl.sup = next ? next.att.slice(0, S) : [];
+    if(sl.sup.length < S){
+      const free = P.filter(x => sl.att.indexOf(x) < 0 && sl.sup.indexOf(x) < 0)
+        .sort((x,y) => (r3(q(x).s) - r3(q(y).s)) || (r3(q(x).h) - r3(q(y).h)) || (P.indexOf(x) - P.indexOf(y)));
+      sl.sup = sl.sup.concat(free.slice(0, S - sl.sup.length));
+    }
+    sl.sup.forEach(name => { q(name).s += (sl.b - sl.a)/60; });
+  });
+
+  // --- tabella
+  let html = '<table class="tbl"><tr><th>Orario</th><th>Attivi</th>' + (S ? '<th>Supporto</th>' : '') + '</tr>';
+  let day = -1;
+  slots.forEach(sl => {
+    if(sl.day !== day){ day = sl.day; html += `<tr class="day"><td colspan="${S?3:2}">Giorno ${day+1}</td></tr>`; }
+    html += `<tr class="${sl.isNight?'night':''}">` +
+      `<td class="h">${clock(sl.a)}–${clock(sl.b)}</td>` +
+      `<td class="att">${sl.att.join(', ')}</td>` +
+      (S ? `<td class="sup">${sl.sup.join(', ') || '—'}</td>` : '') + '</tr>';
+  });
+  html += '</table>';
+  $('tu_out2').innerHTML = html;
+
+  // --- bilancio
+  const hs = stats.map(x => x.h), ns = stats.map(x => x.n);
+  const spread = Math.max(...hs) - Math.min(...hs), nspread = Math.max(...ns) - Math.min(...ns);
+  $('tu_bal').innerHTML = '<div class="out">' +
+    stats.map(q => row(q.name, `${q.turni} turni · stacco minimo ${isFinite(q.gapMin)?fmt(q.gapMin,1)+' h':'—'}${q.s?' · supporto '+fmt(q.s,1)+' h':''}`,
+      val(fmt(q.h,1)+' h', fmt(q.n,1)+' h di notte'))).join('') +
+    row('Sbilancio ore attive','max − min', val(fmt(spread,1)+' h'), spread > 1.01) +
+    row('Sbilancio ore notturne','max − min', val(fmt(nspread,1)+' h'), nspread > 1.01) +
+    ((slots.length*A) % P.length ? '<div class="warn">Il numero totale di guardie non è divisibile per l\'equipaggio: su questo orizzonte il pareggio esatto non esiste, allunga di un giorno per chiuderlo.</div>' : '') +
+    '</div>';
+
+  lastPlan = {slots:slots, stats:stats};
+}
+
+document.addEventListener('input', calc);
+document.addEventListener('change', calc);
+calc();
+</script>
+</body>
+</html>

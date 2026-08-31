@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 116" width="512" height="594">
+  <defs>
+    <linearGradient id="hullg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#90969d"></stop>
+      <stop offset="20%" stop-color="#dfe1e4"></stop>
+      <stop offset="50%" stop-color="#f2f3f4"></stop>
+      <stop offset="80%" stop-color="#dfe1e4"></stop>
+      <stop offset="100%" stop-color="#858c94"></stop>
+    </linearGradient>
+    <linearGradient id="deckg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#cbced3"></stop>
+      <stop offset="50%" stop-color="#eceef0"></stop>
+      <stop offset="100%" stop-color="#cbced3"></stop>
+    </linearGradient>
+    <linearGradient id="roofg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#b6bac0"></stop>
+      <stop offset="50%" stop-color="#dee0e3"></stop>
+      <stop offset="100%" stop-color="#b6bac0"></stop>
+    </linearGradient>
+    <filter id="sh" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1.6" stdDeviation="1.6" flood-color="#000000" flood-opacity="0.28"></feDropShadow>
+    </filter>
+  </defs>
+  <g transform="translate(0 4)" filter="url(#sh)">
+    <path d="M50 6 C57 26 66 56 66 84 L66 104 L34 104 L34 84 C34 56 43 26 50 6 Z" fill="url(#hullg)" stroke="#6a7078" stroke-width="0.8"></path>
+    <path d="M50 15 C55 32 61 56 61 80 L61 84 L39 84 L39 80 C39 56 45 32 50 15 Z" fill="url(#deckg)" opacity="0.85"></path>
+    <rect x="42" y="46" width="16" height="30" rx="6" fill="url(#roofg)" stroke="#a6abb1" stroke-width="0.4"></rect>
+    <line x1="50" y1="8" x2="50" y2="102" stroke="#a6abb1" stroke-width="0.3"></line>
+    <rect x="40" y="80" width="20" height="20" rx="2" fill="#33373b" opacity="0.9"></rect>
+    <path d="M44 82 L50 91 L56 82 M44 98 L50 91 L56 98" stroke="#1c1e20" stroke-width="0.8" fill="none"></path>
+    <rect x="37" y="100" width="3.4" height="6.5" rx="1" fill="#4a4f55"></rect>
+    <rect x="59.6" y="100" width="3.4" height="6.5" rx="1" fill="#4a4f55"></rect>
+    <circle cx="42" cy="48" r="1.7" fill="#54595f"></circle>
+    <circle cx="58" cy="48" r="1.7" fill="#54595f"></circle>
+    <circle cx="39" cy="90" r="1.5" fill="#54595f"></circle>
+    <circle cx="61" cy="90" r="1.5" fill="#54595f"></circle>
+    <rect x="47" y="25" width="6" height="10" rx="1.5" fill="#c2c6cb" stroke="#9aa0a7" stroke-width="0.3"></rect>
+    <circle cx="50" cy="42" r="2.1" fill="#787e85"></circle>
+  </g>
+</svg>

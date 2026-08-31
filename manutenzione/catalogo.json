@@ -1,0 +1,1145 @@
+{
+  "versione": "0.4",
+  "nota": "Catalogo di SUGGERIMENTI, non vincoli. Scadenze volutamente morbide: 12 mesi = tagliando annuale, il resto solo dove l'intervallo lungo e' reale (revisioni obbligatorie, membrane, sartiame). Il campo componente resta sempre libero e le scadenze sono modificabili per singolo componente.",
+  "attributi": {
+    "barca": [
+      {
+        "id": "armo",
+        "label": "Armo",
+        "opzioni": [
+          "sloop",
+          "cutter",
+          "ketch",
+          "yawl"
+        ]
+      },
+      {
+        "id": "volanti",
+        "label": "Sartie volanti",
+        "opzioni": [
+          "si",
+          "no"
+        ]
+      },
+      {
+        "id": "paterazzo",
+        "label": "Paterazzo",
+        "opzioni": [
+          "paranco",
+          "vite",
+          "idraulico",
+          "assente"
+        ]
+      },
+      {
+        "id": "randa",
+        "label": "Tipo randa",
+        "opzioni": [
+          "steccata",
+          "avvolgibile_albero",
+          "avvolgibile_boma"
+        ]
+      },
+      {
+        "id": "avvolgifiocco",
+        "label": "Avvolgifiocco",
+        "opzioni": [
+          "si",
+          "no"
+        ]
+      },
+      {
+        "id": "timone",
+        "label": "Governo",
+        "opzioni": [
+          "ruota",
+          "barra"
+        ]
+      },
+      {
+        "id": "coperta",
+        "label": "Coperta",
+        "opzioni": [
+          "teak",
+          "antiscivolo"
+        ]
+      },
+      {
+        "id": "acque_nere",
+        "label": "Serbatoio acque nere",
+        "opzioni": [
+          "si",
+          "no"
+        ]
+      },
+      {
+        "id": "gas",
+        "label": "Impianto gas",
+        "opzioni": [
+          "si",
+          "no"
+        ]
+      }
+    ],
+    "motore": [
+      {
+        "id": "tipo",
+        "label": "Tipo",
+        "opzioni": [
+          "fuoribordo",
+          "entrobordo",
+          "entrofuoribordo"
+        ]
+      },
+      {
+        "id": "carburante",
+        "label": "Carburante",
+        "opzioni": [
+          "diesel",
+          "benzina"
+        ]
+      },
+      {
+        "id": "raffreddamento",
+        "label": "Raffreddamento",
+        "opzioni": [
+          "diretto",
+          "indiretto"
+        ]
+      },
+      {
+        "id": "trasmissione",
+        "label": "Trasmissione",
+        "opzioni": [
+          "piede",
+          "linea_asse",
+          "saildrive"
+        ]
+      },
+      {
+        "id": "avviamento",
+        "label": "Avviamento",
+        "opzioni": [
+          "strappo",
+          "elettrico"
+        ]
+      }
+    ]
+  },
+  "categorie": [
+    {
+      "id": "motore",
+      "label": "Motore e propulsione",
+      "voci": [
+        {
+          "nome": "Olio motore",
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "Filtro olio motore",
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "Prefiltro decantatore nafta",
+          "if": {
+            "carburante": "diesel"
+          },
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "Filtro nafta motore",
+          "if": {
+            "carburante": "diesel"
+          },
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "Filtro benzina",
+          "if": {
+            "carburante": "benzina"
+          },
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "Candele",
+          "if": {
+            "carburante": "benzina"
+          },
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "Filtro aria"
+        },
+        {
+          "nome": "Girante pompa acqua mare",
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "Coperchio e guarnizione pompa acqua mare"
+        },
+        {
+          "nome": "Filtro acqua mare (pulizia)",
+          "if": {
+            "tipo": [
+              "entrobordo",
+              "entrofuoribordo"
+            ]
+          }
+        },
+        {
+          "nome": "Liquido refrigerante",
+          "if": {
+            "raffreddamento": "indiretto"
+          }
+        },
+        {
+          "nome": "Scambiatore di calore (pulizia fascio tubiero)",
+          "if": {
+            "raffreddamento": "indiretto"
+          }
+        },
+        {
+          "nome": "Anodo scambiatore",
+          "if": {
+            "raffreddamento": "indiretto"
+          },
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "Termostato",
+          "if": {
+            "raffreddamento": "indiretto"
+          }
+        },
+        {
+          "nome": "Cinghia alternatore",
+          "if": {
+            "tipo": "entrobordo"
+          }
+        },
+        {
+          "nome": "Alternatore",
+          "if": {
+            "avviamento": "elettrico"
+          }
+        },
+        {
+          "nome": "Motorino di avviamento",
+          "if": {
+            "avviamento": "elettrico"
+          }
+        },
+        {
+          "nome": "Batteria avviamento",
+          "if": {
+            "avviamento": "elettrico"
+          }
+        },
+        {
+          "nome": "Cavo avviamento a strappo",
+          "if": {
+            "avviamento": "strappo"
+          }
+        },
+        {
+          "nome": "Iniettori (revisione)",
+          "if": {
+            "carburante": "diesel"
+          }
+        },
+        {
+          "nome": "Gioco valvole (registrazione)",
+          "if": {
+            "carburante": "diesel"
+          }
+        },
+        {
+          "nome": "Manicotti scarico e fascette",
+          "if": {
+            "tipo": [
+              "entrobordo",
+              "entrofuoribordo"
+            ]
+          }
+        },
+        {
+          "nome": "Waterlock / marmitta",
+          "if": {
+            "tipo": [
+              "entrobordo",
+              "entrofuoribordo"
+            ]
+          }
+        },
+        {
+          "nome": "Collettore di scarico (ispezione)",
+          "if": {
+            "raffreddamento": "indiretto"
+          }
+        },
+        {
+          "nome": "Supporti motore / silent block",
+          "if": {
+            "tipo": "entrobordo"
+          }
+        },
+        {
+          "nome": "Serbatoio carburante (pulizia/decantazione)"
+        },
+        {
+          "nome": "Tubi carburante"
+        },
+        {
+          "nome": "Cavi comando gas e invertitore"
+        },
+        {
+          "nome": "Olio invertitore",
+          "if": {
+            "trasmissione": "linea_asse"
+          },
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "Olio piede",
+          "if": {
+            "trasmissione": "piede"
+          },
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "Olio saildrive",
+          "if": {
+            "trasmissione": "saildrive"
+          },
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "Membrana saildrive",
+          "if": {
+            "trasmissione": "saildrive"
+          },
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 84
+            }
+          ],
+          "nota": "7 anni: scadenza reale, spesso dimenticata."
+        },
+        {
+          "nome": "Anodo saildrive",
+          "if": {
+            "trasmissione": "saildrive"
+          },
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "Anodo piede",
+          "if": {
+            "trasmissione": "piede"
+          },
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "Anodo asse elica",
+          "if": {
+            "trasmissione": "linea_asse"
+          },
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "Premistoppa / baderna",
+          "if": {
+            "trasmissione": "linea_asse"
+          }
+        },
+        {
+          "nome": "Cuscinetto astuccio (cutlass bearing)",
+          "if": {
+            "trasmissione": "linea_asse"
+          }
+        },
+        {
+          "nome": "Giunto elastico",
+          "if": {
+            "trasmissione": "linea_asse"
+          }
+        },
+        {
+          "nome": "Allineamento motore",
+          "if": {
+            "trasmissione": "linea_asse"
+          }
+        },
+        {
+          "nome": "Elica (revisione/pulizia)",
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "Contaore (lettura)"
+        }
+      ]
+    },
+    {
+      "id": "scafo",
+      "label": "Scafo e opera viva",
+      "voci": [
+        {
+          "nome": "Antivegetativa",
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "Anodi di scafo",
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "Trattamento osmosi"
+        },
+        {
+          "nome": "Lucidatura opera morta",
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "Passascafi e valvole (revisione)"
+        },
+        {
+          "nome": "Prese a mare (controllo)",
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "Bulloni chiglia (serraggio/controllo)"
+        },
+        {
+          "nome": "Boccole timone (gioco)"
+        },
+        {
+          "nome": "Guarnizioni oblo'"
+        },
+        {
+          "nome": "Boccaporti"
+        },
+        {
+          "nome": "Gelcoat (riparazioni)"
+        },
+        {
+          "nome": "Ponte in teak",
+          "if": {
+            "coperta": "teak"
+          }
+        }
+      ]
+    },
+    {
+      "id": "elettrico",
+      "label": "Impianto elettrico",
+      "voci": [
+        {
+          "nome": "Batterie servizi"
+        },
+        {
+          "nome": "Caricabatterie"
+        },
+        {
+          "nome": "Staccabatterie"
+        },
+        {
+          "nome": "Pannello solare"
+        },
+        {
+          "nome": "Regolatore di carica"
+        },
+        {
+          "nome": "Quadro elettrico"
+        },
+        {
+          "nome": "Luci di via",
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "Luce di fonda / testa d'albero"
+        },
+        {
+          "nome": "Convertitore 12/220"
+        },
+        {
+          "nome": "Presa banchina 220 V e differenziale",
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "Cablaggi (controllo ossidazioni)"
+        }
+      ]
+    },
+    {
+      "id": "impianti",
+      "label": "Impianti acqua, gas, sentina",
+      "voci": [
+        {
+          "nome": "Pompa autoclave"
+        },
+        {
+          "nome": "Filtro acqua potabile",
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "Serbatoio acqua (sanificazione)",
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "Boiler"
+        },
+        {
+          "nome": "Pompa di sentina elettrica",
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "Galleggiante sentina",
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "Pompa di sentina manuale",
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "WC marino (kit guarnizioni)"
+        },
+        {
+          "nome": "Serbatoio acque nere",
+          "if": {
+            "acque_nere": "si"
+          }
+        },
+        {
+          "nome": "Tubi sanitari"
+        },
+        {
+          "nome": "Tubo gas",
+          "if": {
+            "gas": "si"
+          },
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 60
+            }
+          ],
+          "nota": "Data di scadenza stampigliata sul tubo."
+        },
+        {
+          "nome": "Bombola gas (revisione)",
+          "if": {
+            "gas": "si"
+          },
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 120
+            }
+          ]
+        },
+        {
+          "nome": "Rilevatore gas",
+          "if": {
+            "gas": "si"
+          }
+        },
+        {
+          "nome": "Fornello / cucina",
+          "if": {
+            "gas": "si"
+          }
+        },
+        {
+          "nome": "Frigorifero (compressore, gas)"
+        },
+        {
+          "nome": "Dissalatore (membrane, filtri)"
+        }
+      ]
+    },
+    {
+      "id": "coperta",
+      "label": "Attrezzatura di coperta",
+      "voci": [
+        {
+          "nome": "Winch (revisione e ingrassaggio)",
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "Verricello salpa ancora"
+        },
+        {
+          "nome": "Catena ancora (controllo/rimarcatura)",
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "Ancora principale e grillo"
+        },
+        {
+          "nome": "Ancora secondaria"
+        },
+        {
+          "nome": "Cima ancora"
+        },
+        {
+          "nome": "Bozzelli e pulegge"
+        },
+        {
+          "nome": "Stopper"
+        },
+        {
+          "nome": "Rotaia randa e carrello"
+        },
+        {
+          "nome": "Trasto randa"
+        },
+        {
+          "nome": "Avvolgifiocco (revisione)",
+          "if": {
+            "avvolgifiocco": "si"
+          }
+        },
+        {
+          "nome": "Cime d'ormeggio"
+        },
+        {
+          "nome": "Parabordi"
+        },
+        {
+          "nome": "Sprayhood"
+        },
+        {
+          "nome": "Bimini"
+        },
+        {
+          "nome": "Cuscineria pozzetto"
+        },
+        {
+          "nome": "Tender"
+        },
+        {
+          "nome": "Motore tender"
+        },
+        {
+          "nome": "Candelieri e draglie"
+        }
+      ]
+    },
+    {
+      "id": "sartiame",
+      "label": "Albero e sartiame",
+      "voci": [
+        {
+          "nome": "Sartie alte",
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 120
+            }
+          ]
+        },
+        {
+          "nome": "Sartie basse",
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 120
+            }
+          ]
+        },
+        {
+          "nome": "Sartie intermedie"
+        },
+        {
+          "nome": "Sartie volanti",
+          "if": {
+            "volanti": "si"
+          }
+        },
+        {
+          "nome": "Paranco volanti",
+          "if": {
+            "volanti": "si"
+          }
+        },
+        {
+          "nome": "Strallo di prua",
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 120
+            }
+          ]
+        },
+        {
+          "nome": "Stralletto",
+          "if": {
+            "armo": "cutter"
+          }
+        },
+        {
+          "nome": "Paterazzo",
+          "if": {
+            "paterazzo": [
+              "paranco",
+              "vite",
+              "idraulico"
+            ]
+          },
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 120
+            }
+          ]
+        },
+        {
+          "nome": "Paranco paterazzo",
+          "if": {
+            "paterazzo": "paranco"
+          }
+        },
+        {
+          "nome": "Tenditore paterazzo a vite",
+          "if": {
+            "paterazzo": "vite"
+          }
+        },
+        {
+          "nome": "Pompa idraulica paterazzo",
+          "if": {
+            "paterazzo": "idraulico"
+          }
+        },
+        {
+          "nome": "Olio e guarnizioni pompa paterazzo",
+          "if": {
+            "paterazzo": "idraulico"
+          }
+        },
+        {
+          "nome": "Terminali (controllo cricche)",
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "Landre (ispezione)"
+        },
+        {
+          "nome": "Arridatoi"
+        },
+        {
+          "nome": "Perni e coppiglie",
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "Crocette"
+        },
+        {
+          "nome": "Puleggia testa d'albero"
+        },
+        {
+          "nome": "Attacco boma / trozza"
+        },
+        {
+          "nome": "Disalberamento e controllo generale"
+        }
+      ]
+    },
+    {
+      "id": "manovre",
+      "label": "Manovre correnti",
+      "voci": [
+        {
+          "nome": "Drizza randa"
+        },
+        {
+          "nome": "Drizza genoa"
+        },
+        {
+          "nome": "Drizza spi / gennaker"
+        },
+        {
+          "nome": "Drizza tormentina"
+        },
+        {
+          "nome": "Scotte randa"
+        },
+        {
+          "nome": "Scotte genoa"
+        },
+        {
+          "nome": "Scotte gennaker"
+        },
+        {
+          "nome": "Scotte spi"
+        },
+        {
+          "nome": "Bracci spi"
+        },
+        {
+          "nome": "Caricalto tangone"
+        },
+        {
+          "nome": "Caricabasso tangone"
+        },
+        {
+          "nome": "Amantiglio boma"
+        },
+        {
+          "nome": "Vang / caricabasso boma"
+        },
+        {
+          "nome": "Tesabase (base randa)"
+        },
+        {
+          "nome": "Cunningham"
+        },
+        {
+          "nome": "Borose (mani di terzaroli)"
+        },
+        {
+          "nome": "Cima avvolgifiocco",
+          "if": {
+            "avvolgifiocco": "si"
+          }
+        },
+        {
+          "nome": "Barber hauler"
+        }
+      ]
+    },
+    {
+      "id": "vele",
+      "label": "Vele",
+      "voci": [
+        {
+          "nome": "Randa"
+        },
+        {
+          "nome": "Genoa"
+        },
+        {
+          "nome": "Fiocco"
+        },
+        {
+          "nome": "Gennaker"
+        },
+        {
+          "nome": "Spinnaker"
+        },
+        {
+          "nome": "Tormentina"
+        },
+        {
+          "nome": "Randa di cappa"
+        },
+        {
+          "nome": "Stecche randa",
+          "if": {
+            "randa": "steccata"
+          }
+        },
+        {
+          "nome": "Cursori / garrocci",
+          "if": {
+            "randa": "steccata"
+          }
+        },
+        {
+          "nome": "Protezione UV genoa",
+          "if": {
+            "avvolgifiocco": "si"
+          }
+        },
+        {
+          "nome": "Lazy bag / lazy jack"
+        }
+      ]
+    },
+    {
+      "id": "elettronica",
+      "label": "Elettronica e strumenti",
+      "voci": [
+        {
+          "nome": "Mulinello log (pulizia)",
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "Trasduttore ecoscandaglio"
+        },
+        {
+          "nome": "Anemometro testa d'albero"
+        },
+        {
+          "nome": "Display strumenti"
+        },
+        {
+          "nome": "Chartplotter (aggiornamento cartografia)"
+        },
+        {
+          "nome": "VHF fisso"
+        },
+        {
+          "nome": "VHF portatile (batteria)"
+        },
+        {
+          "nome": "Antenna VHF e cavo"
+        },
+        {
+          "nome": "AIS"
+        },
+        {
+          "nome": "Pilota automatico (attuatore)"
+        },
+        {
+          "nome": "Radar"
+        },
+        {
+          "nome": "Bussola (compensazione)"
+        }
+      ]
+    },
+    {
+      "id": "sicurezza",
+      "label": "Sicurezza",
+      "voci": [
+        {
+          "nome": "Zattera di salvataggio (revisione)",
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 24
+            }
+          ]
+        },
+        {
+          "nome": "Giubbotti autogonfiabili (revisione)",
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "Bombolette CO2 giubbotti",
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 24
+            }
+          ]
+        },
+        {
+          "nome": "Estintori (revisione)",
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "Razzi e segnali di soccorso",
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 48
+            }
+          ]
+        },
+        {
+          "nome": "Salvagente anulare e boetta luminosa"
+        },
+        {
+          "nome": "EPIRB (batteria)",
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 60
+            }
+          ]
+        },
+        {
+          "nome": "Cinture di sicurezza e life line"
+        },
+        {
+          "nome": "Jackline"
+        },
+        {
+          "nome": "Cassetta pronto soccorso (scadenze)",
+          "scadenze": [
+            {
+              "tipo": "mesi",
+              "intervallo": 12
+            }
+          ]
+        },
+        {
+          "nome": "Riflettore radar"
+        },
+        {
+          "nome": "Fanali e torcia di emergenza"
+        },
+        {
+          "nome": "Pompa e tappi di emergenza"
+        }
+      ]
+    }
+  ]
+}

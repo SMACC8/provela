@@ -1,0 +1,2027 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Manutenzione · ProVela</title>
+<script>(function(){try{var t=localStorage.getItem('raffyca-theme');if(t==='sun')t='day';if(t==='day'||t==='night')document.documentElement.classList.add(t);}catch(e){}})();</script>
+<style>
+/* Token in HEX come raffyca.css, il design system canonico: la rf-topbar consuma
+   var(--ink,#hex) e con le triplette HSL le sue regole di colore diventerebbero
+   invalide (succede oggi in Impostazioni e Percorso, che i token li hanno in HSL).
+   Per le sole TRASPARENZE tengo accanto la tripletta: hsl(var(--hteal) / .16)
+   segue il tema, mentre un rgba() cablato in Notte resterebbe azzurro sul rosso. */
+:root{
+  --bg:#060e18; --panel:#0e2036; --panel2:#0b1a2c; --dp:#040c14; --line:#1a3248;
+  --ink:#deedf5; --sub:#5a7a94; --dim:#2b4257;
+  --teal:#2BD9C4; --amber:#FFC24B; --coral:#FF6B6B; --green:#4BD07F;
+  --hteal:172 70% 51%; --hamber:41 100% 65%; --hgreen:142 57% 56%; --hpanel:212 60% 11%;
+  --mono:ui-monospace,"SF Mono","Roboto Mono",Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI","Helvetica Neue",sans-serif;
+}
+html.day{
+  --bg:#eef1f4; --panel:#ffffff; --panel2:#f3f6f9; --dp:#e7ecf1; --line:#c2ccd6;
+  --ink:#0a1420; --sub:#3b4e60; --dim:#8797a6;
+  --teal:#067d70; --amber:#8f5600; --coral:#c62020; --green:#12894f;
+  --hteal:174 90% 26%; --hamber:36 100% 28%; --hgreen:154 76% 30%; --hpanel:210 33% 96%;
+}
+html.night{
+  --bg:#0a0202; --panel:#160404; --panel2:#110303; --dp:#0a0101; --line:#3a1010;
+  --ink:#ff5b5b; --sub:#b04040; --dim:#6d2020;
+  --teal:#ff4d4d; --amber:#ff7a45; --coral:#ff3b3b; --green:#e05a5a;
+  --hteal:0 100% 65%; --hamber:16 100% 64%; --hgreen:0 65% 62%; --hpanel:0 78% 4%;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);
+  min-height:100vh;min-height:100dvh;font-size:15px;line-height:1.45;padding-bottom:92px}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+input,textarea,select{font:inherit;color:var(--ink);background:var(--dp);
+  border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:100%;outline:none}
+input:focus,textarea:focus,select:focus{border-color:var(--teal);box-shadow:0 0 0 2px hsl(var(--hteal) / .18)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* ---- intestazione modulo ---- */
+.mt-head{display:flex;align-items:center;gap:10px;padding:10px 12px;
+  background:var(--panel2);border-bottom:1px solid var(--line);position:sticky;top:40px;z-index:20}
+.mt-head .nm{font-weight:700;letter-spacing:.2px}
+.mt-head .md{color:var(--sub);font-size:13px}
+.mt-head .sp{flex:1}
+.mt-dossier{font-size:12.5px;color:var(--teal);border:1px solid var(--teal);
+  border-radius:7px;padding:5px 11px;background:transparent}
+.wrap{max-width:560px;margin:0 auto;padding:0 14px}
+
+/* ---- stato connessione ---- */
+.mt-net{margin:10px 0 0;padding:10px 12px;border-radius:9px;font-size:13px;
+  border:1px solid var(--line);background:var(--panel);color:var(--sub)}
+.mt-net.err{border-color:var(--coral);color:var(--coral)}
+.mt-net.warn{border-color:var(--amber);color:var(--amber)}
+.mt-net b{color:var(--ink)}
+.mt-net a{color:var(--teal)}
+
+/* ---- tabs ---- */
+.tabs{display:flex;gap:4px;margin:12px 0 14px;background:var(--panel2);
+  padding:4px;border-radius:10px;border:1px solid var(--line)}
+.tabs button{flex:1;padding:8px 4px;border-radius:7px;font-size:13px;font-weight:600;color:var(--sub)}
+.tabs button.on{background:hsl(var(--hteal) / .16);color:var(--teal)}
+
+/* ---- card generiche ---- */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.grid{display:grid;gap:8px}
+.nota{font-size:12.5px;color:var(--sub);margin:4px 2px;line-height:1.5}
+.vuoto{font-size:13.5px;color:var(--sub);padding:10px 2px}
+
+/* ---- albero ---- */
+.cat-hd{display:flex;align-items:center;gap:10px;width:100%;padding:11px 12px;text-align:left}
+.cat-hd .ch{color:var(--teal);font-size:12px;width:10px}
+.cat-hd .lb{flex:1;font-weight:600;font-size:14px}
+.cat-hd .n{font-size:12px;color:var(--sub)}
+.cat-body{padding:0 6px 8px}
+.nodo{display:flex;align-items:baseline;gap:8px;width:100%;text-align:left;
+  padding:9px 10px;border-radius:8px}
+.nodo .nm{flex:1}
+.nodo.arch .nm{opacity:.5;text-decoration:line-through}
+.nodo .tag{font-size:11px;color:var(--sub);font-family:var(--mono)}
+.liv{border-left:1px solid var(--line);margin-left:10px}
+
+/* ---- liste ---- */
+.item{padding:11px 12px;cursor:pointer}
+.item .r1{display:flex;align-items:baseline;gap:8px}
+.item .dt{font-size:12px;color:var(--teal);font-family:var(--mono)}
+.item .eur{margin-left:auto;font-size:13px;font-family:var(--mono)}
+.item .ti{margin-top:3px;font-weight:600}
+.item .sb{font-size:12.5px;color:var(--sub);margin-top:2px}
+.pill{font-size:10.5px;padding:2px 7px;border-radius:20px;font-weight:600;letter-spacing:.2px}
+.pill.green{background:hsl(var(--hgreen) / .16);color:var(--green)}
+.docrow{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.item .nt{font-size:12.5px;color:var(--sub);margin-top:5px;line-height:1.42;
+  border-left:2px solid var(--line);padding-left:8px;white-space:pre-wrap}
+.docchip{font-size:10.5px;padding:3px 8px;border-radius:20px;background:var(--dp);
+  color:var(--ink);border:1px solid var(--line)}
+
+/* ---- da fare ---- */
+.lav{padding:11px 12px;cursor:pointer;background:hsl(var(--hteal) / .09);
+  border:1px solid hsl(var(--hteal) / .32);border-left:3px solid var(--teal);border-radius:10px}
+.scad{padding:11px 12px;background:hsl(var(--hamber) / .09);
+  border:1px solid hsl(var(--hamber) / .32);border-left:3px solid var(--amber);border-radius:10px}
+.r1{display:flex;align-items:baseline;gap:8px}
+.r1 .t{flex:1;font-weight:600;font-size:14px}
+.meta{font-size:12px;color:var(--sub);margin-top:4px;font-family:var(--mono)}
+.legenda{display:flex;gap:14px;margin:6px 2px;font-size:12px;color:var(--sub);flex-wrap:wrap}
+.qd{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px}
+
+/* ---- galleria ---- */
+.filtri{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.chip{padding:6px 12px;border-radius:20px;font-size:13px;white-space:nowrap;
+  border:1px solid var(--line);background:var(--panel2);color:var(--sub)}
+.chip.on{border-color:var(--teal);background:hsl(var(--hteal) / .16);color:var(--teal)}
+.gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:8px}
+.gal .cell{padding:0;text-align:left;display:block;background:var(--panel);
+  border:1px solid var(--line);border-radius:10px;overflow:hidden;width:100%}
+.gal .th{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;
+  background:var(--dp);border-bottom:1px solid var(--line);position:relative;overflow:hidden}
+.gal .th img{width:100%;height:100%;object-fit:cover}
+.gal .th .ic{font-size:30px;opacity:.8}
+.gal .th .n{position:absolute;top:5px;right:5px;font-size:10px;padding:2px 6px;
+  border-radius:10px;background:var(--amber);color:var(--dp);font-weight:700;font-family:var(--mono)}
+.gal .cap{padding:7px 8px 8px}
+.gal .cap .fn{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gal .cap .dd{font-size:10.5px;color:var(--sub);margin-top:2px;font-family:var(--mono)}
+
+/* ---- fab ---- */
+.fab{position:fixed;right:16px;bottom:20px;z-index:30;display:flex;align-items:center;gap:7px;
+  padding:12px 18px;border-radius:30px;background:var(--teal);color:var(--dp);font-weight:700;
+  box-shadow:0 6px 20px rgba(0,0,0,.5)}
+html.day .fab{color:#fff}
+.fab .p{font-size:22px;line-height:1;margin-top:-2px}
+
+/* ---- sheet / overlay ---- */
+.ov{position:fixed;inset:0;z-index:9400;background:rgba(2,8,14,.78);
+  display:none;align-items:flex-end;justify-content:center}
+.ov.on{display:flex}
+.sheet{width:100%;max-width:560px;max-height:88vh;background:var(--panel);
+  border:1px solid var(--line);border-radius:14px 14px 0 0;display:flex;flex-direction:column;
+  overflow:hidden;padding-bottom:env(safe-area-inset-bottom,0px)}
+.sh-hd{display:flex;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);flex-shrink:0}
+.sh-hd strong{flex:1;font-size:15px}
+.sh-x{color:var(--sub);font-size:20px;padding:0 4px}
+.sh-body{padding:14px;display:grid;gap:12px;overflow-y:auto;flex:1;min-height:0;-webkit-overflow-scrolling:touch}
+.sh-ft{padding:14px;border-top:1px solid var(--line);flex-shrink:0;display:grid;gap:8}
+
+/* ---- campi ---- */
+.campo{display:block}
+.campo>.lb{font-size:12px;color:var(--sub);margin-bottom:5px;text-transform:uppercase;letter-spacing:.6px}
+.campo>.lb .h{text-transform:none;letter-spacing:0;opacity:.8}
+.due{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.due14{display:grid;grid-template-columns:1.4fr 1fr;gap:10px}
+.seg{display:flex;gap:6px}
+.seg button{flex:1;padding:10px 8px;border-radius:9px;font-size:14px;font-weight:600;
+  border:1px solid var(--line);background:var(--panel2);color:var(--sub)}
+.seg button.on{border-color:var(--teal);background:hsl(var(--hteal) / .16);color:var(--teal)}
+.seg.small button{padding:8px 6px;font-size:13px;font-weight:400}
+.sugg{margin-top:6px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel2)}
+.sugg button{display:flex;align-items:baseline;gap:8px;width:100%;text-align:left;
+  padding:9px 10px;border-bottom:1px solid var(--line);font-size:14}
+.sugg button:last-child{border-bottom:0}
+.sugg .nm{flex:1}
+.sugg .ct{display:block;font-size:11px;color:var(--sub);margin-top:1px}
+.sugg .fl{font-size:10.5px;color:var(--sub);font-family:var(--mono)}
+.sugg .fl.new{color:var(--green)}
+.sugg .nores{padding:9px 10px;font-size:13px;color:var(--sub)}
+.verbi{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+.verbi button{padding:5px 10px;border-radius:20px;font-size:12.5px;white-space:nowrap;
+  border:1px solid var(--line);background:var(--panel2);color:var(--ink)}
+.verbi button.on{border-color:var(--teal);background:hsl(var(--hteal) / .16);color:var(--teal)}
+.ghost{padding:8px 12px;border-radius:8px;font-size:13.5px;border:1px solid var(--line);background:var(--panel2)}
+.primario{width:100%;padding:12px;border-radius:9px;font-weight:700;font-size:15px;
+  background:var(--teal);color:var(--dp)}
+html.day .primario{color:#fff}
+.primario[disabled]{background:var(--line);color:var(--sub);cursor:not-allowed}
+.danger{padding:10px;border-radius:9px;font-size:13.5px;color:var(--coral);border:1px solid var(--coral)}
+.danger-full{flex:1;padding:10px;border-radius:9px;font-weight:700;font-size:14px;
+  background:var(--coral);color:var(--dp)}
+html.day .danger-full{color:#fff}
+.campo textarea{width:100%;background:var(--dp);border:1px solid var(--line);border-radius:8px;
+  color:var(--ink);font:inherit;font-size:15px;padding:9px 10px;resize:vertical;min-height:62px}
+.campo textarea:focus{outline:none;border-color:var(--teal)}
+.doclink{display:flex;align-items:center;gap:8px;font-size:13px;padding:7px 10px;border-radius:7px;
+  background:hsl(var(--hteal) / .10);border:1px solid hsl(var(--hteal) / .35);margin-top:4px}
+.doclink.ko{border-color:var(--coral)}
+.doclink.busy{opacity:.75}
+.doclink .fn{flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  text-decoration:underline;text-underline-offset:3px}
+.riga{display:flex;gap:10px}
+.riga .k{color:var(--sub);min-width:96px;font-size:12.5px;text-transform:capitalize}
+.sez{font-size:12px;color:var(--sub);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
+.storico{display:flex;gap:10px;font-size:13.5px;padding:8px 0;border-top:1px solid var(--line)}
+.storico .d{font-size:12px;color:var(--teal);min-width:82px;font-family:var(--mono)}
+.storico .t{flex:1}
+.badge-arch{display:inline-block;font-size:10.5px;padding:4px 10px;border-radius:20px;
+  background:hsl(var(--hamber) / .16);color:var(--amber);font-weight:600}
+.visore-file{background:var(--dp);display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:10px;min-height:240px;padding:24px;border-bottom:1px solid var(--line);
+  position:relative}
+.visore-file img{max-width:100%;max-height:60vh;object-fit:contain;border-radius:6px}
+.navb{position:absolute;top:50%;transform:translateY(-50%);width:38px;height:38px;border-radius:19px;
+  font-size:24px;line-height:1;display:flex;align-items:center;justify-content:center;
+  background:hsl(var(--hpanel) / .92);border:1px solid var(--line);color:var(--ink)}
+.chk{display:flex;align-items:center;gap:10px;text-align:left;padding:10px 12px;border-radius:9px;
+  border:1px solid var(--line);width:100%}
+.chk.on{border-color:var(--amber);background:hsl(var(--hamber) / .12)}
+.chk .bx{font-size:16px;color:var(--sub)}
+.chk.on .bx{color:var(--amber)}
+.chk .t1{font-weight:600;font-size:14px}
+.chk .t2{display:block;font-size:12.5px;color:var(--sub);margin-top:2px}
+.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(12px);
+  background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:9px;
+  padding:10px 16px;font-size:13.5px;opacity:0;pointer-events:none;transition:.22s;z-index:9600;max-width:88vw}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ---- dossier stampabile ---- */
+#ovDossier{align-items:stretch;padding:0}
+#ovDossier .sheet{max-width:700px;max-height:100vh;border-radius:0;margin:0 auto}
+.doc{background:#fff;color:#14181c;font-family:Georgia,"Times New Roman",serif;
+  font-size:11pt;line-height:1.45;padding:26px 24px}
+.doc h1{font-size:20pt;margin:0 0 2px;letter-spacing:-.2px}
+.doc h2{font-size:11pt;margin:22px 0 7px;padding-bottom:4px;
+  border-bottom:1.5px solid #14181c;text-transform:uppercase;letter-spacing:1.1px}
+.doc h3{font-size:10pt;margin:14px 0 5px;color:#3d474f;text-transform:uppercase;letter-spacing:.7px}
+.doc .sottotitolo{color:#5a646c;font-size:10.5pt;margin:0 0 3px}
+.doc table{width:100%;border-collapse:collapse;font-size:9.5pt}
+.doc th{text-align:left;font-weight:700;font-size:8pt;text-transform:uppercase;
+  letter-spacing:.6px;color:#5a646c;padding:5px 6px;border-bottom:1px solid #b9c0c6}
+.doc td{padding:5px 6px;border-bottom:1px solid #e4e8eb;vertical-align:top}
+.doc td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.doc tr.arch td{color:#8a939a}
+.doc .meta-doc{display:flex;gap:26px;flex-wrap:wrap;margin-top:14px;padding:11px 0;
+  border-top:1px solid #14181c;border-bottom:1px solid #14181c}
+.doc .meta-doc div span{display:block;font-size:8pt;text-transform:uppercase;
+  letter-spacing:.6px;color:#5a646c;margin-bottom:2px}
+.doc .meta-doc div strong{font-size:12pt;font-variant-numeric:tabular-nums}
+.doc .allegati{margin-top:4px;font-size:8.5pt;color:#3d474f}
+.doc .allegati span{display:block;padding-left:12px;text-indent:-12px}
+.doc .allegati span::before{content:"\25B8 ";color:#8a939a}
+.doc .chiusura{margin-top:24px;padding-top:10px;border-top:1px solid #b9c0c6;
+  font-size:8.5pt;color:#5a646c;font-style:italic}
+.doc .sotto{color:#5a646c;font-size:8.5pt}
+@media print{
+  /* La stampa serve SOLO al dossier. Prima si elencava cosa nascondere e
+     bastava un pannello aperto (o la barra, o i tab) per finire nel PDF:
+     uscivano 4 pagine con dentro i moduli di inserimento (segnalato 22/08).
+     Ora si parte dal nascondere tutto e si riaccende il solo dossier. */
+  body > *{display:none!important}
+  body > #ovDossier{display:block!important;position:static;background:none;padding:0}
+  #ovDossier .sheet{max-height:none;border:0;border-radius:0;box-shadow:none;background:#fff}
+  #ovDossier .no-print{display:none!important}
+  .no-print{display:none!important}
+  body{padding:0!important;background:#fff}
+  .doc{padding:0}
+  .doc h2{break-after:avoid}
+  .doc tr{break-inside:avoid}
+  @page{margin:14mm}
+}
+</style>
+</head>
+<body>
+<!-- ===== rf-topbar: markup canonico. CSS e logica stanno in ../rf-topbar.js
+     (un solo file per tutta la suite). Il link alla home resta QUI, inline:
+     e' l'unico modo per uscire da un modulo e non deve dipendere da nulla. ===== -->
+<div class="rf-topbar" role="banner">
+  <a class="rf-home" href="../" aria-label="Menu ProVela" title="Menu ProVela">
+    <svg viewBox="0 0 64 64" width="19" height="19" aria-hidden="true"><path d="M32 8 L32 56 L10 56 Z" fill="#2BD9C4" opacity=".95"/><path d="M32 26 L54 56 L32 56 Z" fill="#2BD9C4" opacity=".45"/><line x1="32" y1="6" x2="32" y2="58" stroke="#1a4a42" stroke-width="3"/></svg>
+  </a>
+  <span class="rf-boat" id="rfBoat"></span>
+  <span class="rf-gps" id="rfGps" title="Stato GPS"><span class="gdot"></span></span>
+  <span class="rf-pol" id="rfPol" title=""></span>
+  <span class="rf-spacer"></span>
+  <span class="rf-status" id="rfStatus"></span>
+</div>
+<script src="../rf-topbar.js" defer></script>
+<script src="../rf-live.js"></script>
+<!-- ===== /rf-topbar ===== -->
+
+<div class="mt-head">
+  <span class="nm" id="hdModel">—</span>
+  <span class="sp"></span>
+  <button class="mt-dossier" id="btnDossier">Dossier</button>
+</div>
+
+<div class="wrap">
+  <div class="mt-net" id="netBox" style="display:none"></div>
+  <div class="mt-net" id="boatDup" style="display:none"></div>
+
+  <div class="tabs" id="tabs">
+    <button data-t="albero" class="on">Barca</button>
+    <button data-t="lavori">Lavori</button>
+    <button data-t="dafare">Da fare</button>
+    <button data-t="doc">Documenti</button>
+  </div>
+
+  <div id="v-albero" class="vista">
+    <div class="grid" id="alberoBox"></div>
+    <p class="nota">L'elenco non si compila: nasce dagli interventi che registri. Tocca una voce
+      per correggerla, annidarla sotto un'altra o toglierla.</p>
+  </div>
+
+  <div id="v-lavori" class="vista" style="display:none">
+    <div class="grid" id="lavoriBox"></div>
+  </div>
+
+  <div id="v-dafare" class="vista" style="display:none">
+    <div class="grid" id="dafareBox"></div>
+    <div class="legenda">
+      <span><i class="qd" style="background:var(--teal)"></i> lavori decisi da te</span>
+      <span><i class="qd" style="background:var(--amber)"></i> manutenzioni ricorrenti — toccale per modificarle</span>
+    </div>
+  </div>
+
+  <div id="v-doc" class="vista" style="display:none">
+    <div class="filtri" id="docFiltri">
+      <button class="chip on" data-f="tutti">Tutti</button>
+      <button class="chip" data-f="foto">Foto</button>
+      <button class="chip" data-f="documento">Documenti</button>
+      <button class="chip" data-f="certificato">Certificati</button>
+    </div>
+    <div class="gal" id="galBox"></div>
+    <p class="nota">Il numero in alto segnala i documenti collegati a più di un intervento.</p>
+  </div>
+</div>
+
+<button class="fab" id="fab" aria-label="Registra intervento">
+  <span class="p">+</span><span style="font-size:14px;font-weight:600">Intervento</span>
+</button>
+
+<!-- ══════════ sheet: intervento ══════════ -->
+<div class="ov" id="ovInt"><div class="sheet">
+  <div class="sh-hd"><strong id="intTitle">Nuova voce</strong><button class="sh-x" data-close="ovInt">×</button></div>
+  <div class="sh-body">
+    <div class="seg" id="intStato">
+      <button data-v="fatto" class="on">Già fatto</button>
+      <button data-v="previsto">Da fare</button>
+    </div>
+
+    <label class="campo" id="wrapData"><div class="lb">Data</div>
+      <input type="date" id="intData" class="mono"></label>
+
+    <div class="campo" id="wrapPrio" style="display:none"><div class="lb">Priorità</div>
+      <div class="seg small" id="intPrio">
+        <button data-v="urgente">Urgente</button>
+        <button data-v="stagione" class="on">Questa stagione</button>
+        <button data-v="poi">Prima o poi</button>
+      </div>
+    </div>
+
+    <label class="campo"><div class="lb">Componente <span class="h" id="compHint">· cerca in tutta la barca</span></div>
+      <input id="intComp" placeholder="es. Girante" autocomplete="off">
+      <div class="sugg" id="intSugg" style="display:none"></div></label>
+
+    <label class="campo" id="wrapCat" style="display:none"><div class="lb">Categoria <span class="h">· serve solo perché la voce è nuova</span></div>
+      <select id="intCat"></select></label>
+
+    <label class="campo"><div class="lb" id="lbTitolo">Cosa hai fatto</div>
+      <input id="intTitolo" placeholder="es. Sostituito girante">
+      <div class="verbi" id="intVerbi"></div></label>
+
+    <div class="due14">
+      <label class="campo"><div class="lb" id="lbEsec">Eseguito da</div>
+        <input id="intEsec" value="io"></label>
+      <label class="campo"><div class="lb" id="lbCosto">Costo €</div>
+        <input id="intCosto" inputmode="decimal" class="mono" placeholder="0"></label>
+    </div>
+
+    <label class="campo"><div class="lb">Note <span class="h">· facoltative</span></div>
+      <textarea id="intNote" rows="3" placeholder="Ricambi usati, coppie di serraggio, cosa controllare la prossima volta…"></textarea></label>
+
+    <div class="campo"><div class="lb">Documenti</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="ghost" id="btnFoto">Foto</button>
+        <button class="ghost" id="btnFile"><span id="lbFile">Documento</span></button>
+      </div>
+      <input type="file" id="fileFoto" accept="image/*" multiple hidden>
+      <input type="file" id="fileDoc" accept="application/pdf,image/*" multiple hidden>
+      <div id="intDocs"></div>
+      <details id="intRecenti" style="margin-top:8px;display:none">
+        <summary style="font-size:13px;color:var(--teal);cursor:pointer">Usa un documento già caricato</summary>
+        <div class="grid" id="intRecentiBox" style="margin-top:6px"></div>
+      </details>
+    </div>
+  </div>
+  <div class="sh-ft">
+    <button class="primario" id="intSalva" disabled>Salva intervento</button>
+    <button class="danger" id="intElimina" style="display:none">Elimina intervento</button>
+    <div id="intConferma" style="display:none;gap:8px">
+      <button class="ghost" id="intAnnullaDel" style="flex:1;padding:10px">Annulla</button>
+      <button class="danger-full" id="intDelOk">Elimina davvero</button>
+    </div>
+  </div>
+</div></div>
+
+<!-- ══════════ sheet: dettaglio componente ══════════ -->
+<div class="ov" id="ovDet"><div class="sheet">
+  <div class="sh-hd"><strong id="detNome"></strong>
+    <button class="ghost" id="detMod" style="padding:6px 12px;font-size:13px;margin-right:6px">Modifica</button>
+    <button class="sh-x" data-close="ovDet">×</button></div>
+  <div class="sh-body" id="detBody"></div>
+</div></div>
+
+<!-- ══════════ sheet: modifica componente ══════════ -->
+<div class="ov" id="ovComp"><div class="sheet">
+  <div class="sh-hd"><strong>Modifica componente</strong><button class="sh-x" data-close="ovComp">×</button></div>
+  <div class="sh-body">
+    <label class="campo"><div class="lb">Nome</div><input id="cpNome"></label>
+    <label class="campo"><div class="lb">Categoria</div><select id="cpCat"></select></label>
+    <label class="campo"><div class="lb">Fa parte di</div><select id="cpParent"></select></label>
+    <div class="due">
+      <label class="campo"><div class="lb">Marca</div><input id="cpMarca"></label>
+      <label class="campo"><div class="lb">Modello</div><input id="cpModello"></label>
+    </div>
+    <label class="campo"><div class="lb">Numero di serie</div><input id="cpSeriale" class="mono"></label>
+    <div class="due">
+      <label class="campo"><div class="lb">Installato il</div><input type="date" id="cpInst" class="mono"></label>
+      <label class="campo"><div class="lb">Garanzia fino al</div><input type="date" id="cpGar" class="mono"></label>
+    </div>
+    <div class="campo"><div class="lb">Scadenza ricorrente</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="ghost" id="cpScadOn">Nessuna</button>
+        <span id="cpScadWrap" style="display:none;align-items:center;gap:8px">
+          <span style="font-size:13.5px;color:var(--sub)">ogni</span>
+          <input id="cpMesi" inputmode="numeric" class="mono" style="width:70px" value="12">
+          <span style="font-size:13.5px;color:var(--sub)">mesi</span>
+        </span>
+      </div>
+    </div>
+    <label class="campo"><div class="lb">Note</div><textarea id="cpNote" rows="2"></textarea></label>
+    <button class="chk" id="cpArch">
+      <span class="bx">☐</span>
+      <span><span class="t1">Dismesso</span>
+        <span class="t2">Non più a bordo: resta nello storico, esce dalle scadenze</span></span>
+    </button>
+  </div>
+  <div class="sh-ft">
+    <button class="primario" id="cpSalva">Salva componente</button>
+    <button class="danger" id="cpElimina" style="display:none">Elimina componente</button>
+    <div class="nota" id="cpNoDel" style="display:none;margin:0"></div>
+    <div id="cpConferma" style="display:none;gap:8px">
+      <button class="ghost" id="cpAnnullaDel" style="flex:1;padding:10px">Annulla</button>
+      <button class="danger-full" id="cpDelOk">Elimina davvero</button>
+    </div>
+  </div>
+</div></div>
+
+<!-- ══════════ sheet: visore documento ══════════ -->
+<div class="ov" id="ovDoc"><div class="sheet" style="max-height:92vh">
+  <div class="sh-hd"><strong id="dcNome" style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></strong>
+    <span class="mono" id="dcIdx" style="font-size:11.5px;color:var(--sub);margin-right:8px"></span>
+    <button class="sh-x" data-close="ovDoc">×</button></div>
+  <div style="overflow-y:auto;flex:1;min-height:0;-webkit-overflow-scrolling:touch">
+    <div class="visore-file" id="dcFile"></div>
+    <div style="padding:14px;display:grid;gap:14px" id="dcMeta"></div>
+  </div>
+  <div style="padding:14px;border-top:1px solid var(--line);flex-shrink:0;display:flex;gap:8px">
+    <button class="ghost" id="dcApri" style="flex:1;padding:11px">Apri / Scarica</button>
+    <button class="danger" id="dcDel" style="flex:1;padding:11px">Elimina</button>
+  </div>
+</div></div>
+
+<!-- ══════════ dossier ══════════ -->
+<div class="ov" id="ovDossier"><div class="sheet">
+  <div class="sh-hd no-print" style="flex-wrap:wrap;gap:8px">
+    <button class="sh-x" data-close="ovDossier" style="font-size:20px">←</button>
+    <strong style="font-size:14px;flex:0">Dossier di bordo</strong>
+    <span class="sp" style="flex:1"></span>
+    <button class="chip on" id="dsCosti">✓ Costi</button>
+    <button class="chip on" id="dsAlleg">✓ Allegati</button>
+    <button class="chip on" id="dsArch">✓ Dismessi</button>
+    <button class="chip" id="dsPrint" style="border-color:var(--teal);background:var(--teal);color:var(--dp);font-weight:700">PDF</button>
+  </div>
+  <div style="overflow-y:auto;flex:1;min-height:0;-webkit-overflow-scrolling:touch">
+    <div class="doc" id="dossierBody"></div>
+  </div>
+</div></div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+
+<script>
+(function(){
+"use strict";
+
+/* ══════════════════════════════════════════════════════════════════
+   ProVela · Manutenzione
+   Supabase-first: la fonte di verità è il database. Il localStorage
+   tiene solo una copia di lettura, per poter consultare l'albero
+   e lo storico anche senza rete (in sola lettura).
+   ══════════════════════════════════════════════════════════════════ */
+
+var K_CFG   = "raffyca-supabase";      // {url, key, bucket}  — scritta da Impostazioni
+var K_SESS  = "raffyca-supabase-sess"; // {access_token, refresh_token, exp}
+var K_CACHE = "raffyca-manut-cache";   // copia di lettura
+var K_SCH   = "raffyca-manut-schema";  // mappa colonne risolta
+
+var $ = function(id){ return document.getElementById(id); };
+function esc(x){ return String(x==null?"":x).replace(/[&<>"]/g,function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+
+/* ---------- configurazione ---------- */
+var CFG = (function(){
+  try{ return JSON.parse(localStorage.getItem(K_CFG)||"null") || {}; }catch(e){ return {}; }
+})();
+/* Lo schema crea il bucket privato 'boat-docs' con la policy che pretende
+   {boat_id}/... come primo segmento del percorso, e 10 MB per file. */
+var BUCKET = CFG.bucket || "boat-docs";
+var PESO_MAX = 10*1024*1024;
+var ONLINE = false;              // true quando il database risponde
+
+/* ---------- stato in memoria ---------- */
+var ST = { boat:null, comps:[], ints:[], docs:[], scads:[], links:[] };
+var CAT = null;                  // catalogo suggerimenti (catalogo.json)
+var CATEGORIE = [];              // [{id,label}]
+/* Coppie [gia' fatto, da fare]: il participio racconta, il sostantivo programma.
+   Stesso indice = stessa azione, cosi' al cambio di modo il titolo si riconiuga. */
+var AZIONI = [
+  ["Sostituito","Sostituzione"], ["Riparato","Riparazione"], ["Revisionato","Revisione"],
+  ["Controllato","Controllo"],   ["Pulito","Pulizia"],       ["Ingrassato","Ingrassaggio"],
+  ["Installato","Installazione"],["Smontato","Smontaggio"],  ["Rabboccato","Rabbocco"]
+];
+function verbi(prev){ return AZIONI.map(function(a){ return a[prev?1:0]; }); }
+var PRIORITA = [{id:"urgente",label:"Urgente",rank:0},
+                {id:"stagione",label:"Questa stagione",rank:200},
+                {id:"poi",label:"Prima o poi",rank:900}];
+function prio(id){ for(var i=0;i<PRIORITA.length;i++) if(PRIORITA[i].id===id) return PRIORITA[i];
+                   return PRIORITA[2]; }
+
+/* ---------- date ---------- */
+function oggiISO(){ var d=new Date(); return d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate()); }
+function p2(n){ return (n<10?"0":"")+n; }
+function addMesi(iso,m){ var d=new Date(iso+"T00:00:00"); d.setMonth(d.getMonth()+Number(m)); return d; }
+function fmtData(iso){ if(!iso) return "—";
+  return new Date(iso+"T00:00:00").toLocaleDateString("it-IT",{day:"2-digit",month:"short",year:"numeric"}); }
+function eur(n){ return Number(n).toLocaleString("it-IT")+" €"; }
+
+/* ══════════════════════════════════════════════════════════════════
+   Livello REST su Supabase (niente SDK: fetch e basta)
+   ══════════════════════════════════════════════════════════════════ */
+/* Le policy della migrazione 002 sono "for all to authenticated": con la sola chiave
+   anon PostgREST usa il ruolo anon e non vede NULLA. Serve il token di un utente. */
+var SESS = (function(){
+  try{ return JSON.parse(localStorage.getItem(K_SESS)||"null") || null; }catch(e){ return null; }
+})();
+function token(){ return (SESS && SESS.access_token) ? SESS.access_token : (CFG.key||""); }
+function hdr(extra){
+  var h = { "apikey": CFG.key||"", "Authorization": "Bearer "+token() };
+  if(extra) for(var k in extra) h[k]=extra[k];
+  return h;
+}
+function scriviSess(j){
+  if(!j || !j.access_token){ SESS=null; try{ localStorage.removeItem(K_SESS); }catch(e){} return null; }
+  SESS = { access_token:j.access_token, refresh_token:j.refresh_token,
+           exp: Date.now() + ((j.expires_in||3600)-60)*1000,
+           email: (j.user&&j.user.email)||(SESS&&SESS.email)||"" };
+  try{ localStorage.setItem(K_SESS, JSON.stringify(SESS)); }catch(e){}
+  return SESS;
+}
+var RINFRESCO = null;
+function rinfresca(){
+  if(!SESS || !SESS.refresh_token) return Promise.reject(new Error("NOSESS"));
+  if(RINFRESCO) return RINFRESCO;
+  RINFRESCO = fetch(CFG.url.replace(/\/+$/,"")+"/auth/v1/token?grant_type=refresh_token",{
+      method:"POST", headers:{ "apikey":CFG.key||"", "Content-Type":"application/json" },
+      body: JSON.stringify({ refresh_token: SESS.refresh_token }) })
+    .then(function(r){ return r.ok?r.json():null; })
+    .then(function(j){ RINFRESCO=null;
+      if(!j){ scriviSess(null); throw new Error("SESSIONE SCADUTA"); }
+      return scriviSess(j); },
+      function(e){ RINFRESCO=null; throw e; });
+  return RINFRESCO;
+}
+function rest(path, opt, giaRiprovato){
+  opt = opt||{};
+  if(!CFG.url || !CFG.key) return Promise.reject(new Error("NOCFG"));
+  var u = CFG.url.replace(/\/+$/,"") + "/rest/v1/" + path;
+  return fetch(u, { method: opt.method||"GET", headers: hdr(opt.headers), body: opt.body })
+    .then(function(r){
+      return r.text().then(function(t){
+        var j=null; try{ j = t?JSON.parse(t):null; }catch(e){ j=null; }
+        if(r.status===401 && SESS && !giaRiprovato){
+          /* token scaduto: lo rinnovo una volta sola e ripeto la richiesta */
+          return rinfresca().then(function(){ return rest(path,opt,true); });
+        }
+        if(!r.ok){
+          var msg = (j&&(j.message||j.hint))||("HTTP "+r.status);
+          if(r.status===401) msg = "accesso non valido: rifai l'accesso in Impostazioni";
+          var er=new Error(msg); er.status=r.status; er.body=j; throw er;
+        }
+        return j;
+      });
+    });
+}
+function sel(table,q){ return rest(table+"?"+q); }
+function ins(table,row){
+  return rest(table, { method:"POST",
+    headers:{ "Content-Type":"application/json", "Prefer":"return=representation" },
+    body: JSON.stringify(row) }).then(function(r){ return r&&r[0]; });
+}
+function upd(table,idCol,id,patch){
+  return rest(table+"?"+idCol+"=eq."+encodeURIComponent(id), { method:"PATCH",
+    headers:{ "Content-Type":"application/json", "Prefer":"return=representation" },
+    body: JSON.stringify(patch) }).then(function(r){ return r&&r[0]; });
+}
+function del(table,filtro){
+  return rest(table+"?"+filtro, { method:"DELETE", headers:{ "Prefer":"return=minimal" } });
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Risoluzione dello schema
+   La migrazione 003 fissa alcune colonne; le altre le trovo provando.
+   PostgREST risponde 400 su colonna inesistente: e' la sonda.
+   Risultato in cache: si rifa' solo se cambia la configurazione.
+   ══════════════════════════════════════════════════════════════════ */
+var SCH = null;
+
+var CANDIDATI = {
+  components: {
+    id:        ["id"],
+    boat:      ["boat_id"],
+    nome:      ["nome"],
+    cat:       ["categoria","cat","category"],
+    parent:    ["parent_id","parent","padre_id"],
+    archiviato:["archiviato"],
+    marca:     ["marca"],
+    modello:   ["modello"],
+    seriale:   ["seriale","numero_serie","matricola","serial"],
+    installato:["installato_il","installato","data_installazione"],
+    garanzia:  ["garanzia_fino","garanzia","garanzia_scadenza"],
+    note:      ["note"],
+    attributi: ["attributi"]
+  },
+  interventions: {
+    id:      ["id"],
+    boat:    ["boat_id"],
+    comp:    ["component_id"],
+    data:    ["data"],
+    titolo:  ["titolo"],
+    stato:   ["stato"],
+    priorita:["priorita"],
+    costoPre:["costo_previsto"],
+    esecutore:["esecutore","eseguito_da","fornitore","chi"],
+    costo:   ["costo","costo_effettivo","importo","spesa"],
+    note:    ["descrizione","note"]
+  },
+  documents: {
+    id:       ["id"],
+    boat:     ["boat_id"],
+    tipo:     ["tipo"],
+    nome:     ["nome_file","nome","filename"],
+    fornitore:["fornitore"],
+    numero:   ["numero"],
+    data:     ["data_documento","data"],
+    totale:   ["importo_totale","totale","importo"],
+    path:     ["storage_path","percorso","path","file_path","url"],
+    mime:     ["mime"],
+    peso:     ["dimensione"],
+    note:     ["note"]
+  },
+  schedules: {
+    id:       ["id"],
+    boat:     ["boat_id"],
+    comp:     ["component_id"],
+    tipo:     ["tipo"],
+    interv:   ["intervallo"],
+    ultimo:   ["ultimo_fatto"],
+    attiva:   ["attiva"]
+  },
+  boats: {
+    id:    ["id"],
+    nome:  ["nome","name"],
+    cantiere:["cantiere"],
+    modello:["modello","model"],
+    anno:  ["anno"],
+    matricola:["matricola"],
+    attributi:["attributi"]
+  }
+};
+/* La migrazione 002 la chiama document_links: un collegamento punta a un intervento
+   OPPURE a un componente (vincolo num_nonnulls=1) e porta sempre il boat_id, che un
+   trigger verifica contro la barca del documento. Le altre voci restano come rete. */
+var LINK_TAB = ["document_links","intervention_documents","interventi_documenti",
+                "intervention_document","documenti_interventi","document_interventions"];
+
+function provaCol(tab,col){
+  return sel(tab, "select="+col+"&limit=1").then(function(){ return col; },
+    function(){ return null; });
+}
+function risolviTab(tab,mappa){
+  var chiavi = Object.keys(mappa), out = {};
+  /* scorciatoia: se lo schema e' quello atteso basta UNA richiesta per tabella
+     (63 sonde al primo avvio su rete mobile sono troppe). Solo se fallisce
+     scendo a provare colonna per colonna. */
+  var primi = chiavi.map(function(k){ return mappa[k][0]; });
+  return sel(tab, "select="+primi.join(",")+"&limit=1").then(function(){
+    chiavi.forEach(function(k,i){ out[k]=primi[i]; });
+    return out;
+  }, function(){ return risolviTabLento(tab,mappa); });
+}
+function risolviTabLento(tab,mappa){
+  var chiavi = Object.keys(mappa), out = {};
+  var passi = chiavi.map(function(k){
+    var cand = mappa[k], i = 0;
+    function next(){
+      if(i>=cand.length) return Promise.resolve(null);
+      var c = cand[i++];
+      return provaCol(tab,c).then(function(r){ return r || next(); });
+    }
+    return next().then(function(r){ out[k]=r; });
+  });
+  return Promise.all(passi).then(function(){ return out; });
+}
+function risolviLink(){
+  var i=0;
+  function ripiego(){
+    /* nessuna tabella ponte: cerco il vecchio legame 1:N, che pero' la
+       migrazione 002 rimuove dopo aver travasato i collegamenti */
+    return provaCol("documents","intervention_id").then(function(c){
+      if(c) SCH.documents.int = c;
+      return null;
+    });
+  }
+  function next(){
+    if(i>=LINK_TAB.length) return ripiego();
+    var t = LINK_TAB[i++];
+    return sel(t,"select=*&limit=1").then(function(){
+      return risolviTab(t,{ int:["intervention_id","intervento_id"],
+                            doc:["document_id","documento_id"],
+                            boat:["boat_id"] })
+        .then(function(m){ return { tab:t, int:m.int, doc:m.doc, boat:m.boat }; });
+    }, function(){ return next(); });
+  }
+  return next();
+}
+function risolviSchema(){
+  var firma = (CFG.url||"")+"|"+(CFG.key||"").slice(0,12);
+  try{
+    var c = JSON.parse(localStorage.getItem(K_SCH)||"null");
+    if(c && c.firma===firma){ SCH = c.sch; return Promise.resolve(SCH); }
+  }catch(e){}
+  var tabs = ["components","interventions","documents","schedules","boats"];
+  var sch = {};
+  return Promise.all(tabs.map(function(t){
+      return risolviTab(t,CANDIDATI[t]).then(function(m){ sch[t]=m; });
+    }))
+    .then(risolviLink)
+    .then(function(lk){
+      sch.link = lk;
+      SCH = sch;
+      try{ localStorage.setItem(K_SCH, JSON.stringify({firma:firma, sch:sch})); }catch(e){}
+      return sch;
+    });
+}
+/* costruisce un oggetto riga usando solo le colonne che esistono davvero */
+function riga(tab,dati){
+  var m = SCH[tab], out = {};
+  for(var k in dati){ if(m[k] && dati[k]!==undefined) out[m[k]] = dati[k]; }
+  return out;
+}
+function leggi(tab,row,k){ var c = SCH[tab][k]; return c ? row[c] : undefined; }
+
+/* ══════════════════════════════════════════════════════════════════
+   Caricamento
+   ══════════════════════════════════════════════════════════════════ */
+function normComp(r){
+  return { id:leggi("components",r,"id"), nome:leggi("components",r,"nome")||"(senza nome)",
+    cat:leggi("components",r,"cat")||"motore", parent:leggi("components",r,"parent")||null,
+    archiviato:!!leggi("components",r,"archiviato"), marca:leggi("components",r,"marca")||"",
+    modello:leggi("components",r,"modello")||"", seriale:leggi("components",r,"seriale")||"",
+    installato:leggi("components",r,"installato")||null, garanzia:leggi("components",r,"garanzia")||null,
+    note:leggi("components",r,"note")||"", attributi:leggi("components",r,"attributi")||null };
+}
+function normInt(r){
+  return { id:leggi("interventions",r,"id"), comp:leggi("interventions",r,"comp")||null,
+    data:leggi("interventions",r,"data")||null, titolo:leggi("interventions",r,"titolo")||"",
+    stato:leggi("interventions",r,"stato")||"fatto", priorita:leggi("interventions",r,"priorita")||null,
+    costo:num(leggi("interventions",r,"costo")), costoPrev:num(leggi("interventions",r,"costoPre")),
+    esecutore:leggi("interventions",r,"esecutore")||"", note:leggi("interventions",r,"note")||"",
+    docs:[] };
+}
+function normDoc(r){
+  return { id:leggi("documents",r,"id"), tipo:leggi("documents",r,"tipo")||"documento",
+    nome:leggi("documents",r,"nome")||"documento", fornitore:leggi("documents",r,"fornitore")||"",
+    numero:leggi("documents",r,"numero")||"", data:leggi("documents",r,"data")||null,
+    totale:num(leggi("documents",r,"totale")), path:leggi("documents",r,"path")||"",
+    int:leggi("documents",r,"int")||null };
+}
+function normScad(r){
+  return { id:leggi("schedules",r,"id"), comp:leggi("schedules",r,"comp"),
+    tipo:leggi("schedules",r,"tipo")||"mesi", mesi:Number(leggi("schedules",r,"interv"))||0,
+    ultimo:leggi("schedules",r,"ultimo")||null, attiva:leggi("schedules",r,"attiva")!==false };
+}
+function num(v){ return (v===null||v===undefined||v==="")?null:Number(v); }
+
+/* La riga scelta viene ANCORATA in raffyca-boat-id e riusata.
+   Prima si prendeva rows[0] da una select senza ORDER BY: con piu' righe
+   omonime in boats (capita: cinque "Raffyca" trovate il 22/08) Postgres non
+   garantisce l'ordine, quindi il modulo poteva agganciare una barca diversa
+   a ogni caricamento. Siccome componenti e interventi sono legati a boat_id,
+   il sintomo non era solo il modello sbagliato in testa: erano i DATI che
+   sparivano e ricomparivano. */
+var BOATS_OMONIME = 0;
+function trovaBarca(){
+  var pr=null; try{ pr=JSON.parse(localStorage.getItem("raffyca-profile")||"null"); }catch(e){}
+  var nome = (pr&&pr.boat)||"";
+  var cNome = SCH.boats.nome, cId = SCH.boats.id;
+  var ancora=""; try{ ancora=localStorage.getItem("raffyca-boat-id")||""; }catch(e){}
+  return sel("boats","select=*&limit=50").then(function(rows){
+    if(!rows||!rows.length) return null;
+    var i, scelta=null;
+    /* 1. la riga gia' usata in passato, se c'e' ancora */
+    if(ancora && cId){
+      for(i=0;i<rows.length;i++) if(String(rows[i][cId])===ancora){ scelta=rows[i]; break; }
+    }
+    /* 2. altrimenti per nome, con ordinamento STABILE per id: senza, la
+          scelta cambia da una chiamata all'altra */
+    var cand = rows;
+    if(nome && cNome) {
+      var perNome = rows.filter(function(r){
+        return String(r[cNome]||"").toLowerCase()===nome.toLowerCase(); });
+      if(perNome.length) cand = perNome;
+    }
+    BOATS_OMONIME = cand.length;
+    if(!scelta){
+      if(cId) cand = cand.slice().sort(function(a,b){
+        return String(a[cId]) < String(b[cId]) ? -1 : 1; });
+      scelta = cand[0];
+    }
+    if(scelta && cId){ try{ localStorage.setItem("raffyca-boat-id", String(scelta[cId])); }catch(e){} }
+    return scelta;
+  });
+}
+
+function carica(){
+  return risolviSchema().then(trovaBarca).then(function(b){
+    if(!b) throw new Error("Nessuna barca in tabella boats.");
+    var col = function(k){ return SCH.boats[k] ? b[SCH.boats[k]] : null; };
+    ST.boat = { id:col("id"), nome:col("nome")||"Barca", cantiere:col("cantiere")||"",
+                modello:col("modello")||"", anno:col("anno")||null,
+                matricola:col("matricola")||"", attributi:col("attributi")||{} };
+    var f = function(tab){ var c=SCH[tab].boat;
+      return c ? ("select=*&"+c+"=eq."+encodeURIComponent(ST.boat.id)+"&limit=2000")
+               : "select=*&limit=2000"; };
+    return Promise.all([
+      sel("components",f("components")),
+      sel("interventions",f("interventions")),
+      sel("documents",f("documents")),
+      sel("schedules",f("schedules")),
+      SCH.link ? sel(SCH.link.tab,"select=*&limit=5000") : Promise.resolve([])
+    ]);
+  }).then(function(r){
+    ST.comps = (r[0]||[]).map(normComp);
+    ST.ints  = (r[1]||[]).map(normInt);
+    ST.docs  = (r[2]||[]).map(normDoc);
+    ST.scads = (r[3]||[]).map(normScad).filter(function(s){ return s.attiva && s.mesi>0; });
+    ST.links = r[4]||[];
+    collegaDoc();
+    ONLINE = true;
+    salvaCache();
+    return ST;
+  });
+}
+function collegaDoc(){
+  var byId = {}; ST.ints.forEach(function(i){ i.docs=[]; byId[i.id]=i; });
+  if(SCH && SCH.link && ST.links.length){
+    ST.links.forEach(function(l){
+      var i = byId[l[SCH.link.int]];
+      if(i) i.docs.push(l[SCH.link.doc]);
+    });
+  }else{
+    // niente tabella ponte: ripiego sul legame 1:N documents.intervention_id
+    ST.docs.forEach(function(d){ if(d.int && byId[d.int]) byId[d.int].docs.push(d.id); });
+  }
+}
+function salvaCache(){
+  try{ localStorage.setItem(K_CACHE, JSON.stringify({
+    ts:Date.now(), boat:ST.boat, comps:ST.comps, ints:ST.ints, docs:ST.docs, scads:ST.scads
+  })); }catch(e){}
+}
+function daCache(){
+  try{
+    var c = JSON.parse(localStorage.getItem(K_CACHE)||"null");
+    if(!c) return null;
+    ST.boat=c.boat; ST.comps=c.comps||[]; ST.ints=c.ints||[];
+    ST.docs=c.docs||[]; ST.scads=c.scads||[];
+    return c.ts;
+  }catch(e){ return null; }
+}
+
+/* ---------- indici ---------- */
+function compById(id){ for(var i=0;i<ST.comps.length;i++) if(ST.comps[i].id===id) return ST.comps[i]; return null; }
+function docById(id){ for(var i=0;i<ST.docs.length;i++) if(ST.docs[i].id===id) return ST.docs[i]; return null; }
+function percorso(id){
+  var parti=[], c=compById(id), g=0;
+  while(c && g++<20){ parti.unshift(c.nome); c = c.parent?compById(c.parent):null; }
+  return parti.join(" › ");
+}
+function scadDi(id){ for(var i=0;i<ST.scads.length;i++) if(ST.scads[i].comp===id) return ST.scads[i]; return null; }
+
+/* ══════════════════════════════════════════════════════════════════
+   Viste
+   ══════════════════════════════════════════════════════════════════ */
+var TAB = "albero";
+function mostraTab(t){
+  TAB = t;
+  ["albero","lavori","dafare","doc"].forEach(function(k){
+    var el=$("v-"+k); if(el) el.style.display = (k===t)?"":"none";
+  });
+  var bs = $("tabs").querySelectorAll("button");
+  for(var i=0;i<bs.length;i++) bs[i].className = (bs[i].getAttribute("data-t")===t)?"on":"";
+  render();
+}
+function render(){
+  if(TAB==="albero") renderAlbero();
+  else if(TAB==="lavori") renderLavori();
+  else if(TAB==="dafare") renderDaFare();
+  else renderGalleria();
+}
+
+/* ---------- albero ---------- */
+var APERTE = {};
+function renderAlbero(){
+  var box = $("alberoBox"); box.innerHTML="";
+  var perCat = {};
+  ST.comps.forEach(function(c){ (perCat[c.cat]=perCat[c.cat]||[]).push(c); });
+  var vuoto = true;
+  CATEGORIE.forEach(function(cat){
+    var lista = perCat[cat.id]; if(!lista||!lista.length) return;
+    vuoto = false;
+    if(APERTE[cat.id]===undefined) APERTE[cat.id] = false;
+    var sec = document.createElement("section"); sec.className="card";
+    var hd = document.createElement("button"); hd.className="cat-hd";
+    hd.innerHTML = '<span class="ch">'+(APERTE[cat.id]?"▾":"▸")+'</span>'+
+      '<span class="lb">'+esc(cat.label)+'</span><span class="n mono">'+lista.length+'</span>';
+    hd.onclick = function(){ APERTE[cat.id]=!APERTE[cat.id]; renderAlbero(); };
+    sec.appendChild(hd);
+    if(APERTE[cat.id]){
+      var body = document.createElement("div"); body.className="cat-body";
+      figli(lista,null).forEach(function(c){ nodo(body,c,lista,0); });
+      sec.appendChild(body);
+    }
+    box.appendChild(sec);
+  });
+  if(vuoto) box.innerHTML = '<p class="vuoto">Ancora nessun componente. Registra un intervento: '+
+    'l\'albero della barca si costruisce da solo.</p>';
+}
+function figli(lista,parent){ return lista.filter(function(c){ return (c.parent||null)===parent; }); }
+function nodo(box,c,lista,liv){
+  var n = ST.ints.filter(function(i){ return i.comp===c.id && i.stato!=="previsto"; }).length;
+  var b = document.createElement("button");
+  b.className = "nodo"+(c.archiviato?" arch":"")+(liv>0?" liv":"");
+  b.style.paddingLeft = (10+liv*16)+"px";
+  b.innerHTML = '<span class="nm">'+esc(c.nome)+'</span>'+
+    (c.archiviato?'<span class="tag">dism.</span>':'')+
+    (n>0?'<span class="tag">'+n+'×</span>':'')+
+    (c.installato?'<span class="tag">'+esc(String(c.installato).slice(0,4))+'</span>':'');
+  b.onclick = function(){ apriDettaglio(c.id); };
+  box.appendChild(b);
+  figli(lista,c.id).forEach(function(f){ nodo(box,f,lista,liv+1); });
+}
+
+/* ---------- lavori fatti ---------- */
+function renderLavori(){
+  var box=$("lavoriBox"); box.innerHTML="";
+  var lista = ST.ints.filter(function(i){ return i.stato!=="previsto"; })
+    .sort(function(a,b){ return (a.data<b.data)?1:(a.data>b.data?-1:0); });
+  if(!lista.length){ box.innerHTML='<p class="vuoto">Nessun intervento registrato.</p>'; return; }
+  lista.forEach(function(i){
+    var a=document.createElement("article"); a.className="card item";
+    var chips="";
+    (i.docs||[]).forEach(function(id){ var d=docById(id); if(d)
+      chips += '<button class="docchip" data-doc="'+esc(d.id)+'">'+
+        (d.tipo==="foto"?"📷":"📄")+" "+esc(d.nome)+'</button>'; });
+    a.innerHTML =
+      '<div class="r1"><span class="dt">'+esc(fmtData(i.data))+'</span>'+
+      '<span class="eur mono">'+(i.costo!=null?esc(eur(i.costo)):"—")+'</span></div>'+
+      '<div class="ti">'+esc(i.titolo)+'</div>'+
+      '<div class="sb">'+(i.comp?esc(percorso(i.comp)):"Nessun componente")+
+        (i.esecutore?" · "+esc(i.esecutore):"")+'</div>'+
+      (i.note?'<div class="nt">'+esc(i.note)+'</div>':'')+
+      (chips?'<div class="docrow">'+chips+'</div>':'');
+    a.onclick = function(ev){
+      var dd = ev.target.closest ? ev.target.closest("[data-doc]") : null;
+      if(dd){ ev.stopPropagation(); apriVisore(dd.getAttribute("data-doc"), i.docs); return; }
+      apriIntervento(i.id);
+    };
+    box.appendChild(a);
+  });
+}
+
+/* ---------- da fare ---------- */
+function renderDaFare(){
+  var box=$("dafareBox"); box.innerHTML="";
+  var oggi = new Date(oggiISO()+"T00:00:00");
+  var righe = [];
+  ST.scads.forEach(function(s){
+    var c = compById(s.comp); if(!c || c.archiviato || !s.ultimo) return;
+    var d = addMesi(s.ultimo,s.mesi);
+    var gg = Math.round((d-oggi)/86400000);
+    righe.push({ genere:"scadenza", ordine:gg, gg:gg, s:s, c:c, d:d });
+  });
+  ST.ints.filter(function(i){ return i.stato==="previsto"; }).forEach(function(i){
+    righe.push({ genere:"lavoro", ordine:prio(i.priorita).rank, i:i });
+  });
+  righe.sort(function(a,b){ return a.ordine-b.ordine; });
+  if(!righe.length){ box.innerHTML='<p class="vuoto">Niente in sospeso.</p>'; return; }
+  righe.forEach(function(r){
+    var a=document.createElement("article");
+    if(r.genere==="lavoro"){
+      var i=r.i, p=prio(i.priorita), urg=(i.priorita==="urgente");
+      a.className="lav";
+      a.innerHTML='<div class="r1"><span class="t">'+esc(i.titolo)+'</span>'+
+        '<span class="mono" style="font-size:11px;color:'+(urg?"var(--coral)":"var(--teal)")+
+        ';font-weight:'+(urg?700:400)+'">'+esc(p.label)+'</span></div>'+
+        '<div class="sb" style="margin-top:3px">'+(i.comp?esc(percorso(i.comp)):"Nessun componente")+
+        (i.esecutore?" · "+esc(i.esecutore):"")+'</div>'+
+        '<div class="meta">'+(i.costoPrev!=null?("preventivo "+esc(eur(i.costoPrev))):"senza preventivo")+
+        ((i.docs&&i.docs.length)?(" · "+i.docs.length+" document"+(i.docs.length>1?"i":"o")):"")+'</div>';
+      a.onclick=function(){ apriIntervento(i.id); };
+    }else{
+      var sc = r.gg<0;
+      var t = sc ? ("scaduta da "+Math.abs(r.gg)+" gg")
+        : (r.gg<60 ? ("tra "+r.gg+" gg") : ("tra "+Math.round(r.gg/30)+" mesi"));
+      a.className="scad";
+      a.innerHTML='<div class="r1"><span class="t">'+esc(r.c.nome)+'</span>'+
+        '<span class="mono" style="font-size:12px;color:'+(sc?"var(--coral)":"var(--amber)")+
+        ';font-weight:'+(sc?700:400)+'">'+esc(t)+'</span></div>'+
+        '<div class="sb" style="margin-top:3px">'+esc(percorso(r.c.id))+'</div>'+
+        '<div class="meta">ogni '+r.s.mesi+' mesi · ultimo '+esc(fmtData(r.s.ultimo))+' · dovuto '+
+        esc(r.d.toLocaleDateString("it-IT",{month:"short",year:"numeric"}))+'</div>';
+      a.style.cursor="pointer";
+      a.onclick=function(){ apriDettaglio(r.c.id); };   /* da qui si modifica o si toglie */
+    }
+    box.appendChild(a);
+  });
+}
+
+/* ---------- galleria documenti ---------- */
+/* "Fatture" e "Preventivi" erano due chip per la stessa cosa: carta con sopra
+   un importo. Unificati in "Documenti" (27/08). Il campo tipo sul database non
+   cambia: resta fattura/preventivo, cambia solo come lo si filtra e come lo si
+   chiama a schermo. */
+var FILTRO = "tutti";
+var TIPI_DOC = ["fattura","preventivo","documento","ricevuta","scontrino"];
+function passaFiltro(d,f){
+  if(f==="documento") return TIPI_DOC.indexOf(d.tipo)>=0;
+  return d.tipo===f;
+}
+function tipoLabel(t){
+  if(t==="foto") return "foto";
+  if(t==="certificato") return "certificato";
+  return "documento";
+}
+function renderGalleria(){
+  var box=$("galBox"); box.innerHTML="";
+  var lista = ST.docs.filter(function(d){ return FILTRO==="tutti"||passaFiltro(d,FILTRO); })
+    .sort(function(a,b){ return (a.data<b.data)?1:(a.data>b.data?-1:0); });
+  var ids = lista.map(function(d){ return d.id; });
+  if(!lista.length){ box.innerHTML='<p class="vuoto">Nessun documento di questo tipo.</p>'; return; }
+  lista.forEach(function(d){
+    var n = ST.ints.filter(function(i){ return (i.docs||[]).indexOf(d.id)>=0; }).length;
+    var b=document.createElement("button"); b.className="cell";
+    var foto = (d.tipo==="foto") || /\.(jpe?g|png|heic|webp)$/i.test(d.nome||"");
+    b.innerHTML='<div class="th"><span class="ic">'+(foto?"🖼":"📄")+'</span>'+
+      (n>1?'<span class="n">'+n+'×</span>':'')+'</div>'+
+      '<div class="cap"><div class="fn">'+esc(d.nome)+'</div>'+
+      '<div class="dd">'+(d.data?esc(fmtData(d.data)):"—")+'</div></div>';
+    b.onclick=function(){ apriVisore(d.id, ids); };
+    box.appendChild(b);
+    if(foto && d.path) miniatura(d, b.querySelector(".th"));
+  });
+}
+function miniatura(d,cont){
+  urlFirmato(d.path).then(function(u){
+    if(!u) return;
+    var img=new Image(); img.src=u; img.alt="";
+    img.onload=function(){ var ic=cont.querySelector(".ic"); if(ic) ic.remove(); cont.insertBefore(img,cont.firstChild); };
+  }).catch(function(){});
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Dossier di bordo
+   ══════════════════════════════════════════════════════════════════ */
+var DS = { costi:true, alleg:true, arch:true };
+function renderDossier(){
+  var visibili = ST.comps.filter(function(c){ return DS.arch || !c.archiviato; });
+  var fatti = ST.ints.filter(function(i){ return i.stato!=="previsto"; });
+  var crono = fatti.slice().sort(function(a,b){ return (a.data<b.data)?1:(a.data>b.data?-1:0); });
+  var spesa = fatti.reduce(function(t,i){ return t+(i.costo||0); },0);
+  var date = fatti.map(function(i){ return i.data; }).filter(Boolean).sort();
+  var periodo = date.length ? (date[0].slice(0,4)+"–"+date[date.length-1].slice(0,4)) : "—";
+
+  function ultimoInt(id){
+    var r = fatti.filter(function(i){ return i.comp===id; })
+      .sort(function(a,b){ return (a.data<b.data)?1:(a.data>b.data?-1:0); })[0];
+    return r?r.data:null;
+  }
+  function prossima(id){
+    var s = scadDi(id); var c = compById(id);
+    if(!s||!s.ultimo||(c&&c.archiviato)) return null;
+    return addMesi(s.ultimo,s.mesi);
+  }
+  var perCat={}; visibili.forEach(function(c){ (perCat[c.cat]=perCat[c.cat]||[]).push(c); });
+
+  var B = ST.boat||{};
+  var ident = [B.cantiere,B.modello].filter(Boolean).join(" ");
+  if(B.anno) ident += (ident?" · ":"")+B.anno;
+  if(B.matricola) ident += (ident?" · ":"")+"matr. "+B.matricola;
+  var h = '<h1>'+esc(B.nome||"Barca")+'</h1>'+
+    '<p class="sottotitolo">'+esc(ident?ident+" · ":"")+
+    'Registro di manutenzione</p>'+
+    '<div class="meta-doc">'+
+      '<div><span>Interventi</span><strong>'+fatti.length+'</strong></div>'+
+      '<div><span>Periodo</span><strong>'+esc(periodo)+'</strong></div>'+
+      '<div><span>Componenti</span><strong>'+visibili.length+'</strong></div>'+
+      (DS.costi?'<div><span>Totale speso</span><strong>'+esc(eur(spesa))+'</strong></div>':'')+
+      '<div><span>Documenti</span><strong>'+ST.docs.length+'</strong></div>'+
+    '</div><h2>1 · Stato dei componenti</h2>';
+
+  CATEGORIE.forEach(function(cat){
+    var lista = perCat[cat.id]; if(!lista||!lista.length) return;
+    h += '<h3>'+esc(cat.label)+'</h3><table><thead><tr>'+
+      '<th style="width:40%">Componente</th><th>Marca e modello</th>'+
+      '<th class="num">Installato</th><th class="num">Prossima</th></tr></thead><tbody>';
+    lista.forEach(function(c){
+      var pr = prossima(c.id), ul = ultimoInt(c.id)||c.installato;
+      h += '<tr'+(c.archiviato?' class="arch"':'')+'>'+
+        '<td>'+esc(percorso(c.id))+(c.archiviato?" (dismesso)":"")+'</td>'+
+        '<td>'+esc([c.marca,c.modello].filter(Boolean).join(" ")||"—")+'</td>'+
+        '<td class="num">'+(ul?esc(String(ul).split("-").reverse().join("/")):"—")+'</td>'+
+        '<td class="num">'+(pr?esc(pr.toLocaleDateString("it-IT",{month:"2-digit",year:"numeric"})):"—")+'</td></tr>';
+    });
+    h += '</tbody></table>';
+  });
+
+  h += '<h2>2 · Cronologia degli interventi</h2><table><thead><tr>'+
+    '<th class="num" style="width:78px">Data</th><th>Intervento</th><th>Eseguito da</th>'+
+    (DS.costi?'<th class="num">Costo</th>':'')+'</tr></thead><tbody>';
+  crono.forEach(function(i){
+    var all="";
+    if(DS.alleg && i.docs && i.docs.length){
+      all = '<div class="allegati">'+i.docs.map(function(id){ var d=docById(id);
+        return d?('<span>'+esc(tipoLabel(d.tipo))+" · "+esc(d.nome)+'</span>'):""; }).join("")+'</div>';
+    }
+    h += '<tr><td class="num">'+(i.data?esc(String(i.data).split("-").reverse().join("/")):"—")+'</td>'+
+      '<td><strong>'+esc(i.titolo)+'</strong>'+
+      (i.comp&&compById(i.comp)?'<div class="sotto">'+esc(percorso(i.comp))+'</div>':'')+all+'</td>'+
+      '<td>'+esc(i.esecutore||"—")+'</td>'+
+      (DS.costi?'<td class="num">'+(i.costo!=null?esc(eur(i.costo)):"—")+'</td>':'')+'</tr>';
+  });
+  h += '</tbody></table>';
+
+  var previsti = ST.ints.filter(function(i){ return i.stato==="previsto"; })
+    .sort(function(a,b){ return prio(a.priorita).rank-prio(b.priorita).rank; });
+  if(previsti.length){
+    h += '<h2>3 · Lavori previsti</h2><table><thead><tr><th>Lavoro</th><th>Priorità</th>'+
+      '<th>Chi</th>'+(DS.costi?'<th class="num">Preventivo</th>':'')+'</tr></thead><tbody>';
+    previsti.forEach(function(i){
+      h += '<tr><td><strong>'+esc(i.titolo)+'</strong>'+
+        (i.comp&&compById(i.comp)?'<div class="sotto">'+esc(percorso(i.comp))+'</div>':'')+'</td>'+
+        '<td>'+esc(prio(i.priorita).label)+'</td><td>'+esc(i.esecutore||"—")+'</td>'+
+        (DS.costi?'<td class="num">'+(i.costoPrev!=null?esc(eur(i.costoPrev)):"—")+'</td>':'')+'</tr>';
+    });
+    h += '</tbody></table>';
+  }
+
+  h += '<p class="chiusura">Documento generato da ProVela il '+
+    esc(new Date().toLocaleDateString("it-IT",{day:"numeric",month:"long",year:"numeric"}))+
+    '. Riporta quanto registrato dall\'armatore; i documenti elencati sono forniti a parte '+
+    'in formato originale. Non costituisce perizia né certificazione dello stato dell\'imbarcazione.</p>';
+
+  $("dossierBody").innerHTML = h;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Storage: file su bucket Supabase
+   ══════════════════════════════════════════════════════════════════ */
+function caricaFile(file){
+  var pulito = (file.name||"file").replace(/[^\w.\-]+/g,"_");
+  var path = (ST.boat?ST.boat.id:"barca")+"/"+Date.now()+"-"+pulito;
+  if(file.size>PESO_MAX)
+    return Promise.reject(new Error("il file pesa "+(file.size/1048576).toFixed(1)+
+      " MB, il limite del bucket e' 10 MB"));
+  var u = CFG.url.replace(/\/+$/,"")+"/storage/v1/object/"+encodeURIComponent(BUCKET)+"/"+path;
+  return fetch(u,{ method:"POST", headers:hdr({ "Content-Type": file.type||"application/octet-stream",
+    "x-upsert":"true" }), body:file })
+    .then(function(r){ if(!r.ok) return r.text().then(function(t){ throw new Error("upload: "+t.slice(0,120)); });
+      return path; });
+}
+var FIRMATI = {};
+function urlFirmato(path){
+  if(!path) return Promise.resolve(null);
+  var c = FIRMATI[path];
+  if(c && c.scade>Date.now()) return Promise.resolve(c.url);
+  var u = CFG.url.replace(/\/+$/,"")+"/storage/v1/object/sign/"+encodeURIComponent(BUCKET)+"/"+path;
+  return fetch(u,{ method:"POST", headers:hdr({"Content-Type":"application/json"}),
+    body: JSON.stringify({ expiresIn: 3600 }) })
+    .then(function(r){ return r.ok?r.json():null; })
+    .then(function(j){
+      if(!j||!j.signedURL) return null;
+      var full = CFG.url.replace(/\/+$/,"")+"/storage/v1"+j.signedURL.replace(/^\/object/,"/object");
+      FIRMATI[path] = { url:full, scade:Date.now()+50*60*1000 };
+      return full;
+    }).catch(function(){ return null; });
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Form intervento
+   ══════════════════════════════════════════════════════════════════ */
+var F = null;   // stato del form aperto
+function apriNuovo(){
+  F = { id:null, stato:"fatto", priorita:"stagione", data:oggiISO(), cat:"motore",
+        compId:null, compNome:"", titolo:"", esecutore:"io", costo:"", note:"",
+        docIds:[], nuovi:[], mesiSug:null, conferma:false };
+  CODA=[]; disegnaForm(); apri("ovInt"); setTimeout(function(){ $("intComp").focus(); },120);
+}
+function apriIntervento(id){
+  var i = null; ST.ints.forEach(function(x){ if(x.id===id) i=x; });
+  if(!i) return;
+  var c = i.comp?compById(i.comp):null;
+  F = { id:i.id, stato:i.stato, priorita:i.priorita||"stagione", data:i.data||oggiISO(),
+        cat:c?c.cat:"motore", compId:i.comp, compNome:c?c.nome:"",
+        titolo:i.titolo, esecutore:i.esecutore, note:i.note||"", 
+        costo: (i.costo!=null?String(i.costo):(i.costoPrev!=null?String(i.costoPrev):"")),
+        docIds:(i.docs||[]).slice(), nuovi:[], mesiSug:null, conferma:false };
+  CODA=[]; disegnaForm(); apri("ovInt");
+}
+function disegnaForm(){
+  var prev = (F.stato==="previsto");
+  $("intTitle").textContent = F.id ? (prev?"Modifica lavoro":"Modifica intervento") : "Nuova voce";
+  segOn("intStato",F.stato); segOn("intPrio",F.priorita);
+  $("wrapData").style.display = prev?"none":"";
+  $("wrapPrio").style.display = prev?"":"none";
+  $("intData").value = F.data;
+  $("intComp").value = F.compNome;
+  $("intComp").disabled = !!F.id;
+  $("compHint").textContent = F.id ? "· non modificabile da qui" : "· cerca in tutta la barca";
+  $("intTitolo").value = F.titolo;
+  $("intEsec").value = F.esecutore;
+  $("intCosto").value = F.costo;
+  $("intNote").value = F.note||"";
+  $("lbTitolo").textContent = prev?"Cosa c'è da fare":"Cosa hai fatto";
+  $("intTitolo").placeholder = prev?"es. Sostituire girante":"es. Sostituito girante";
+  $("lbEsec").textContent = prev?"Chi lo farà":"Eseguito da";
+  $("lbCosto").textContent = prev?"Preventivo €":"Costo €";
+  $("lbFile").textContent = "Documento";
+  $("intSalva").textContent = F.id?"Salva modifiche":(prev?"Salva lavoro":"Salva intervento");
+  $("intSalva").disabled = !F.titolo.trim();
+  $("intElimina").style.display = (F.id && !F.conferma)?"":"none";
+  $("intElimina").textContent = "Elimina "+(prev?"lavoro":"intervento");
+  $("intConferma").style.display = (F.id && F.conferma)?"flex":"none";
+  disegnaVerbi(); disegnaSugg(); disegnaDocForm();
+  var nuovo = !F.id && !F.compId && F.compNome.trim();
+  $("wrapCat").style.display = (nuovo && nessunMatch())?"":"none";
+}
+function segOn(id,v){
+  var bs=$(id).querySelectorAll("button");
+  for(var i=0;i<bs.length;i++) bs[i].className = (bs[i].getAttribute("data-v")===v)?"on":"";
+}
+function disegnaVerbi(){
+  var box=$("intVerbi"); box.innerHTML="";
+  var cur = F.titolo.trim().toLowerCase();
+  verbi(F.stato==="previsto").forEach(function(v){
+    var b=document.createElement("button");
+    b.textContent=v; b.className = cur.indexOf(v.toLowerCase())===0?"on":"";
+    b.onclick=function(){ applicaVerbo(v); };
+    box.appendChild(b);
+  });
+}
+/* Se il titolo inizia con un'azione nota (in una qualsiasi delle due forme),
+   restituisce {i: indice azione, resto: il complemento}. Altrimenti i = -1. */
+function scomponi(titolo){
+  var t = titolo.trim(), tl = t.toLowerCase();
+  for(var i=0;i<AZIONI.length;i++){
+    for(var f=0;f<2;f++){
+      var x = AZIONI[i][f].toLowerCase();
+      if(tl.indexOf(x+" ")===0) return { i:i, resto:t.slice(x.length+1) };
+      if(tl===x)                return { i:i, resto:"" };
+    }
+  }
+  return { i:-1, resto:t };
+}
+function applicaVerbo(v){
+  var d = scomponi(F.titolo);
+  var resto = d.resto;
+  if(!resto){ var n=F.compNome.trim(); resto = n?(n.charAt(0).toLowerCase()+n.slice(1)):""; }
+  F.titolo = (v+" "+resto).trim();
+  disegnaForm();
+}
+/* Al cambio di modo riscrivo il titolo SOLO se inizia con un'azione che conosco:
+   "Sostituito girante" -> "Sostituzione girante", ma un titolo libero resta intatto. */
+function riconiuga(prev){
+  var d = scomponi(F.titolo);
+  if(d.i<0) return;
+  F.titolo = (AZIONI[d.i][prev?1:0]+" "+d.resto).trim();
+}
+function attrBarca(){
+  var a = {};
+  if(ST.boat && ST.boat.attributi) for(var k in ST.boat.attributi) a[k]=ST.boat.attributi[k];
+  ST.comps.forEach(function(c){ if(c.attributi) for(var k2 in c.attributi) a[k2]=c.attributi[k2]; });
+  return a;
+}
+function matchIf(cond,attrs){
+  if(!cond) return true;
+  for(var k in cond){
+    var v = cond[k], vals = Array.isArray(v)?v:[v];
+    if(vals.indexOf(attrs[k])<0) return false;
+  }
+  return true;
+}
+function suggerimenti(){
+  var t = F.compNome.trim().toLowerCase();
+  if(!t) return [];
+  var attrs = attrBarca();
+  var ex = ST.comps.filter(function(c){ return c.nome.toLowerCase().indexOf(t)>=0; })
+    .map(function(c){ return { nome:c.nome, id:c.id, cat:c.cat, esistente:true }; });
+  var nu = [];
+  CATEGORIE.forEach(function(k){
+    ((CAT&&CAT[k.id])||[]).forEach(function(s){
+      if(!matchIf(s.if,attrs)) return;
+      if(s.nome.toLowerCase().indexOf(t)<0) return;
+      for(var i=0;i<ST.comps.length;i++) if(ST.comps[i].nome===s.nome) return;
+      nu.push({ nome:s.nome, id:null, cat:k.id, esistente:false, mesi:s.mesi||null });
+    });
+  });
+  var ord = function(a,b){ return a.nome.toLowerCase().indexOf(t)-b.nome.toLowerCase().indexOf(t); };
+  return ex.sort(ord).concat(nu.sort(ord)).slice(0,8);
+}
+function nessunMatch(){
+  var t = F.compNome.trim().toLowerCase(); if(!t) return false;
+  if(F.compId) return false;
+  var s = suggerimenti();
+  for(var i=0;i<s.length;i++) if(s[i].nome.toLowerCase()===t) return false;
+  return true;
+}
+function disegnaSugg(){
+  var box=$("intSugg");
+  if(F.id || !F.compNome.trim()){ box.style.display="none"; box.innerHTML=""; return; }
+  var lista = suggerimenti();
+  box.innerHTML="";
+  lista.forEach(function(s){
+    var b=document.createElement("button");
+    b.innerHTML='<span class="nm">'+esc(s.nome)+'<span class="ct">'+esc(labelCat(s.cat))+'</span></span>'+
+      (s.esistente?'<span class="fl">in elenco</span>':'<span class="fl new">+ crea</span>');
+    b.onclick=function(){
+      F.compNome=s.nome; F.compId=s.id; F.cat=s.cat; F.mesiSug=s.mesi||null;
+      disegnaForm();
+    };
+    box.appendChild(b);
+  });
+  if(nessunMatch()){
+    var d=document.createElement("div"); d.className="nores";
+    d.textContent = "Nessun suggerimento — «"+F.compNome.trim()+"» verrà creato come nuovo componente.";
+    box.appendChild(d);
+  }
+  box.style.display = box.children.length?"":"none";
+}
+function labelCat(id){ for(var i=0;i<CATEGORIE.length;i++) if(CATEGORIE[i].id===id) return CATEGORIE[i].label; return id; }
+function disegnaDocForm(){
+  var box=$("intDocs"); box.innerHTML="";
+  /* Nessuna troncatura: si mostrano TUTTI gli allegati collegati, piu' i
+     file ancora in transito. Un allegato il cui documento non si trova
+     piu' (cancellato altrove) prima spariva in silenzio: ora resta
+     visibile come voce mancante, cosi' il conto torna sempre. */
+  F.docIds.forEach(function(id){
+    var d = docById(id) || trovaNuovo(id);
+    var row=document.createElement("div"); row.className="doclink";
+    if(!d){
+      row.innerHTML='<span>⚠</span><button class="fn" style="color:var(--sub)">documento non più disponibile</button>'+
+        '<button class="x" style="color:var(--sub);font-size:17px">×</button>';
+    }else{
+      row.innerHTML='<span>'+(d.tipo==="foto"?"📷":"📄")+'</span>'+
+        '<button class="fn">'+esc(d.nome)+'</button><button class="x" style="color:var(--sub);font-size:17px">×</button>';
+      row.querySelector(".fn").onclick=function(){ if(docById(id)) apriVisore(id,F.docIds); };
+    }
+    row.querySelector(".x").onclick=function(){
+      F.docIds = F.docIds.filter(function(x){ return x!==id; });
+      F.nuovi = F.nuovi.filter(function(x){ return x.id!==id; });
+      disegnaDocForm();
+    };
+    box.appendChild(row);
+  });
+  CODA.forEach(function(job){
+    var row=document.createElement("div"); row.className="doclink"+(job.stato==="ko"?" ko":" busy");
+    row.innerHTML='<span>'+(job.stato==="ko"?"⚠":"⏳")+'</span>'+
+      '<span class="fn" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(job.nome)+
+      '<span style="display:block;font-size:11px;color:var(--sub)">'+
+      (job.stato==="ko"?esc(job.err):"caricamento in corso…")+'</span></span>'+
+      (job.stato==="ko"?'<button class="rt" style="color:var(--teal);font-size:12px;padding:0 6px">riprova</button>':'')+
+      '<button class="x" style="color:var(--sub);font-size:17px">×</button>';
+    var rt=row.querySelector(".rt"); if(rt) rt.onclick=function(){ ritenta(job); };
+    row.querySelector(".x").onclick=function(){
+      CODA = CODA.filter(function(x){ return x!==job; }); disegnaDocForm(); };
+    box.appendChild(row);
+  });
+  var nf = contaFoto();
+  if(nf){
+    var c=document.createElement("div");
+    c.style.cssText="font-size:11.5px;color:var(--sub);margin-top:6px";
+    c.textContent = nf+" foto su "+MAX_FOTO+(nf>=MAX_FOTO?" · limite raggiunto":"");
+    box.appendChild(c);
+  }
+  $("btnFoto").disabled = nf>=MAX_FOTO;
+  var rec = ST.docs.slice().sort(function(a,b){ return (a.data<b.data)?1:-1; }).slice(0,8)
+    .filter(function(d){ return F.docIds.indexOf(d.id)<0; });
+  var det=$("intRecenti"), rb=$("intRecentiBox");
+  rb.innerHTML="";
+  if(rec.length){
+    det.style.display="";
+    rec.forEach(function(d){
+      var b=document.createElement("button");
+      b.className="sugg"; b.style.cssText="display:flex;align-items:baseline;gap:8px;text-align:left;padding:8px 10px;border-radius:7px;font-size:13px;border:1px solid var(--line);background:var(--panel2);width:100%";
+      b.innerHTML='<span>'+(d.tipo==="foto"?"📷":"📄")+'</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+
+        esc(d.nome)+(d.fornitore?('<span style="display:block;font-size:11px;color:var(--sub)">'+esc(d.fornitore)+" · "+esc(fmtData(d.data))+'</span>'):"")+
+        '</span><span class="fl new" style="font-size:10.5px;color:var(--green)">+ collega</span>';
+      b.onclick=function(){ F.docIds.push(d.id); disegnaDocForm(); };
+      rb.appendChild(b);
+    });
+  }else det.style.display="none";
+}
+function trovaNuovo(id){ for(var i=0;i<F.nuovi.length;i++) if(F.nuovi[i].id===id) return F.nuovi[i]; return null; }
+
+/* ---------- upload dal form ---------- */
+/* ---- compressione foto ------------------------------------------------
+   Una foto da telefono pesa 3-5 MB: su rete mobile in banchina il
+   caricamento va in timeout e finora l'unico segnale era un toast che
+   spariva in tre secondi (e veniva sovrascritto dal toast successivo se
+   si allegavano piu' foto di fila). Da qui l'impressione che alcune
+   sparissero. Ora si comprime prima e la coda resta a schermo.
+   Non si comprime: i PDF, i file gia' piccoli, e tutto cio' che il
+   browser non sa decodificare (HEIC di iPhone su Android: Safari lo
+   apre, Chrome no). In quei casi si carica l'originale. */
+var FOTO_LATO = 1600, FOTO_Q = 0.75, FOTO_SOGLIA = 350*1024;
+function comprimiFoto(file){
+  return new Promise(function(risolvi){
+    if(!/^image\//.test(file.type||"") || file.size<=FOTO_SOGLIA) return risolvi(file);
+    if(!window.URL || !window.URL.createObjectURL) return risolvi(file);
+    var url = URL.createObjectURL(file), img = new Image();
+    var fine = function(out){ try{ URL.revokeObjectURL(url); }catch(e){} risolvi(out||file); };
+    img.onerror = function(){ fine(null); };            /* formato non decodificabile */
+    img.onload = function(){
+      try{
+        var w=img.naturalWidth, h=img.naturalHeight;
+        if(!w||!h) return fine(null);
+        var k = Math.min(1, FOTO_LATO/Math.max(w,h));
+        var cv = document.createElement("canvas");
+        cv.width = Math.round(w*k); cv.height = Math.round(h*k);
+        cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);
+        if(!cv.toBlob) return fine(null);
+        cv.toBlob(function(b){
+          if(!b || b.size>=file.size) return fine(null);   /* non ha guadagnato nulla */
+          var nome = (file.name||"foto").replace(/\.[^.]+$/,"")+".jpg";
+          try{ fine(new File([b],nome,{type:"image/jpeg"})); }
+          catch(e){ b.name=nome; fine(b); }                /* WebView senza costruttore File */
+        }, "image/jpeg", FOTO_Q);
+      }catch(e){ fine(null); }
+    };
+    img.src = url;
+  });
+}
+
+/* ---- coda di caricamento --------------------------------------------
+   CODA e' l'elenco dei file in transito, con il loro stato. Vive nel
+   form accanto agli allegati gia' salvati, cosi' un caricamento fallito
+   resta visibile (e ritentabile) invece di scivolare via in un toast. */
+var CODA = [];
+var MAX_FOTO = 4;
+function contaFoto(){
+  var n = 0, i;
+  for(i=0;i<F.docIds.length;i++){ var d=docById(F.docIds[i]); if(d&&d.tipo==="foto") n++; }
+  for(i=0;i<CODA.length;i++){ if(CODA[i].tipo==="foto"&&CODA[i].stato!=="ko") n++; }
+  return n;
+}
+function aggiungiFiles(files,tipo){
+  var arr = [], i;
+  for(i=0;i<files.length;i++) arr.push(files[i]);
+  if(tipo==="foto"){
+    var spazio = MAX_FOTO - contaFoto();
+    if(spazio<=0){ toast("Massimo "+MAX_FOTO+" foto per intervento."); return; }
+    if(arr.length>spazio){
+      toast("Massimo "+MAX_FOTO+" foto: ne carico "+spazio+".");
+      arr = arr.slice(0,spazio);
+    }
+  }
+  arr.forEach(function(f){ aggiungiFile(f,tipo); });
+}
+function aggiungiFile(file,tipo){
+  if(!file) return;
+  if(!ONLINE){ toast("Serve la rete per caricare un documento."); return; }
+  var job = { key:"j"+Date.now()+Math.random().toString(36).slice(2,6),
+              nome:file.name||"file", tipo:tipo, file:file, stato:"su", err:"" };
+  CODA.push(job); disegnaDocForm();
+  comprimiFoto(file).then(function(f2){
+    job.file = f2;
+    return caricaFile(f2);
+  }).then(function(path){
+    return ins("documents", riga("documents",{
+      boat: ST.boat.id, tipo: tipo, nome: job.file.name||job.nome, data: F.data||oggiISO(),
+      path: path, mime: job.file.type||null, peso: job.file.size||null
+    }));
+  }).then(function(row){
+    var d = normDoc(row); ST.docs.push(d); F.docIds.push(d.id);
+    CODA = CODA.filter(function(x){ return x!==job; });
+    disegnaDocForm();
+  }).catch(function(e){
+    job.stato="ko"; job.err=e.message||"errore"; disegnaDocForm();
+  });
+}
+function ritenta(job){
+  job.stato="su"; job.err=""; disegnaDocForm();
+  caricaFile(job.file).then(function(path){
+    return ins("documents", riga("documents",{
+      boat: ST.boat.id, tipo: job.tipo, nome: job.file.name||job.nome, data: F.data||oggiISO(),
+      path: path, mime: job.file.type||null, peso: job.file.size||null
+    }));
+  }).then(function(row){
+    var d = normDoc(row); ST.docs.push(d); F.docIds.push(d.id);
+    CODA = CODA.filter(function(x){ return x!==job; });
+    disegnaDocForm();
+  }).catch(function(e){ job.stato="ko"; job.err=e.message||"errore"; disegnaDocForm(); });
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Salvataggio intervento
+   ══════════════════════════════════════════════════════════════════ */
+function salvaIntervento(){
+  if(!ONLINE){ toast("Sei senza rete: la scrittura richiede il collegamento."); return; }
+  var prev = (F.stato==="previsto");
+  var costo = F.costo.trim()===""?null:Number(String(F.costo).replace(",","."));
+  $("intSalva").disabled = true;
+
+  var passo;
+  if(F.id){
+    /* modifica: non tocca l'albero */
+    passo = upd("interventions", SCH.interventions.id, F.id, riga("interventions",{
+      stato: F.stato,
+      priorita: prev?F.priorita:null,
+      data: prev?null:F.data,
+      titolo: F.titolo.trim(),
+      esecutore: F.esecutore.trim(),
+      note: F.note.trim(),
+      costo: prev?null:costo,
+      costoPre: prev?costo:undefined
+    })).then(function(row){ return { row:row, compId:F.compId, creato:false }; });
+  }else{
+    passo = Promise.resolve().then(function(){
+      if(F.compId) return F.compId;
+      if(!F.compNome.trim()) return null;
+      return ins("components", riga("components",{
+        boat: ST.boat.id, nome: F.compNome.trim(), cat: F.cat,
+        parent: null, installato: prev?null:F.data, archiviato:false
+      })).then(function(row){
+        var c = normComp(row); ST.comps.push(c);
+        if(F.mesiSug && !prev){
+          return ins("schedules", riga("schedules",{
+            boat: ST.boat.id, comp: c.id, tipo:"mesi", interv: F.mesiSug,
+            ultimo: F.data, attiva:true
+          })).then(function(s){ if(s) ST.scads.push(normScad(s)); return c.id; })
+            .catch(function(){ return c.id; });
+        }
+        return c.id;
+      });
+    }).then(function(compId){
+      var creato = !F.compId && !!compId;
+      return ins("interventions", riga("interventions",{
+        boat: ST.boat.id, comp: compId||null, stato: F.stato,
+        data: prev?null:F.data, priorita: prev?F.priorita:null,
+        titolo: F.titolo.trim(), esecutore: F.esecutore.trim(),
+        note: F.note.trim(),
+        costo: prev?null:costo, costoPre: prev?costo:null
+      })).then(function(row){ return { row:row, compId:compId, creato:creato }; });
+    });
+  }
+
+  passo.then(function(r){
+    var iid = r.row ? leggi("interventions",r.row,"id") : F.id;
+    return collegaDocumenti(iid, F.docIds).then(function(){ return r; });
+  }).then(function(r){
+    /* un intervento eseguito fa ripartire l'orologio della scadenza */
+    if(!prev && r.compId && !r.creato){
+      var s = scadDi(r.compId);
+      var jobs = [];
+      if(s) jobs.push(upd("schedules", SCH.schedules.id, s.id,
+        riga("schedules",{ ultimo:F.data })).catch(function(){}));
+      jobs.push(upd("components", SCH.components.id, r.compId,
+        riga("components",{ installato:F.data })).catch(function(){}));
+      return Promise.all(jobs);
+    }
+  }).then(function(){
+    chiudi("ovInt"); toast(prev?"Lavoro salvato.":"Intervento salvato.");
+    return carica();
+  }).then(function(){
+    mostraTab(prev?"dafare":"lavori");
+  }).catch(function(e){
+    $("intSalva").disabled = false;
+    toast("Salvataggio fallito: "+e.message);
+  });
+}
+function collegaDocumenti(iid, ids){
+  if(!iid) return Promise.resolve();
+  if(SCH.link){
+    var t=SCH.link.tab;
+    return del(t, SCH.link.int+"=eq."+encodeURIComponent(iid)).catch(function(){})
+      .then(function(){
+        if(!ids.length) return null;
+        var rows = ids.map(function(d){
+          var o={}; o[SCH.link.int]=iid; o[SCH.link.doc]=d;
+          if(SCH.link.boat) o[SCH.link.boat]=ST.boat.id;   // NOT NULL + trigger di coerenza
+          return o; });
+        return rest(t,{ method:"POST", headers:{ "Content-Type":"application/json","Prefer":"return=minimal" },
+          body: JSON.stringify(rows) });
+      });
+  }
+  if(SCH.documents.int){
+    return Promise.all(ids.map(function(d){
+      return upd("documents", SCH.documents.id, d, riga("documents",{ int:iid })).catch(function(){});
+    }));
+  }
+  return Promise.resolve();
+}
+function eliminaIntervento(){
+  if(!F.id) return;
+  var iid=F.id;
+  var p = SCH.link ? del(SCH.link.tab, SCH.link.int+"=eq."+encodeURIComponent(iid)).catch(function(){})
+                   : Promise.resolve();
+  p.then(function(){ return del("interventions", SCH.interventions.id+"=eq."+encodeURIComponent(iid)); })
+   .then(function(){ chiudi("ovInt"); toast("Eliminato."); return carica(); })
+   .then(render)
+   .catch(function(e){ toast("Eliminazione fallita: "+e.message); });
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Dettaglio componente
+   ══════════════════════════════════════════════════════════════════ */
+var DET = null;
+function apriDettaglio(id){
+  var c = compById(id); if(!c) return;
+  DET = id;
+  $("detNome").textContent = c.nome;
+  var s = scadDi(id);
+  var pross = (s&&s.ultimo)?addMesi(s.ultimo,s.mesi):null;
+  var ints = ST.ints.filter(function(i){ return i.comp===id && i.stato!=="previsto"; })
+    .sort(function(a,b){ return (a.data<b.data)?1:-1; });
+  var h = '<div class="sb" style="font-size:12.5px;color:var(--sub)">'+esc(percorso(id))+'</div>';
+  if(c.archiviato) h += '<div><span class="badge-arch">Dismesso — non più a bordo</span></div>';
+  h += '<div style="display:grid;gap:6px;font-size:13.5px">';
+  if(c.marca) h += rigaKV("Marca",[c.marca,c.modello].filter(Boolean).join(" "));
+  if(c.seriale) h += rigaKV("Serie",c.seriale);
+  if(c.installato) h += rigaKV("Installato",fmtData(c.installato));
+  if(c.garanzia) h += rigaKV("Garanzia",fmtData(c.garanzia));
+  if(pross) h += rigaKV("Prossima",pross.toLocaleDateString("it-IT",{month:"long",year:"numeric"}));
+  if(c.attributi) for(var k in c.attributi) h += rigaKV(k,String(c.attributi[k]).replace(/_/g," "));
+  if(c.note) h += rigaKV("Note",c.note);
+  h += '</div><div><div class="sez">Storico</div>';
+  if(!ints.length) h += '<p class="vuoto" style="padding:0">Nessun intervento registrato su questo componente.</p>';
+  ints.forEach(function(i){
+    h += '<div class="storico"><span class="d">'+esc(fmtData(i.data))+'</span>'+
+      '<span class="t">'+esc(i.titolo)+'</span>'+
+      '<span class="mono" style="font-size:12px">'+(i.costo!=null?esc(eur(i.costo)):"")+'</span></div>';
+  });
+  h += '</div>';
+  $("detBody").innerHTML = h;
+  apri("ovDet");
+}
+function rigaKV(k,v){ return '<div class="riga"><span class="k">'+esc(k)+'</span><span>'+esc(v)+'</span></div>'; }
+
+/* ══════════════════════════════════════════════════════════════════
+   Modifica componente
+   ══════════════════════════════════════════════════════════════════ */
+var CP = null;
+function apriModComp(id){
+  var c = compById(id); if(!c) return;
+  var s = scadDi(id);
+  CP = { id:id, arch:!!c.archiviato, scad:!!s, scadId:s?s.id:null, conferma:false };
+  $("cpNome").value=c.nome; $("cpMarca").value=c.marca; $("cpModello").value=c.modello;
+  $("cpSeriale").value=c.seriale; $("cpInst").value=c.installato||""; $("cpGar").value=c.garanzia||"";
+  $("cpNote").value=c.note; $("cpMesi").value = s?s.mesi:12;
+  var sc=$("cpCat"); sc.innerHTML="";
+  CATEGORIE.forEach(function(k){ var o=document.createElement("option");
+    o.value=k.id; o.textContent=k.label; sc.appendChild(o); });
+  sc.value=c.cat;
+  riempiParentComp(c);
+  sc.onchange=function(){ riempiParentComp({ id:id, cat:sc.value, parent:null }); };
+  aggiornaCP();
+  chiudi("ovDet"); apri("ovComp");
+}
+function riempiParentComp(c){
+  /* niente cicli: un componente non puo' finire sotto se stesso o sotto un discendente */
+  var vietati = {}; vietati[c.id]=1;
+  var cresce=true, g=0;
+  while(cresce && g++<30){ cresce=false;
+    ST.comps.forEach(function(x){ if(x.parent && vietati[x.parent] && !vietati[x.id]){ vietati[x.id]=1; cresce=true; } });
+  }
+  var s=$("cpParent"); s.innerHTML='<option value="">— elemento principale —</option>';
+  ST.comps.filter(function(x){ return !vietati[x.id] && x.cat===c.cat; }).forEach(function(x){
+    var o=document.createElement("option"); o.value=x.id; o.textContent=percorso(x.id); s.appendChild(o);
+  });
+  var cur = compById(c.id);
+  s.value = (cur&&cur.parent)||"";
+}
+/* Cancellabile solo cio' che non ha storia: una voce nata per sbaglio si toglie,
+   un pezzo davvero stato a bordo si archivia, altrimenti si perde la cronologia. */
+function motivoNoDelete(id){
+  var n = ST.ints.filter(function(i){ return i.comp===id; }).length;
+  if(n) return "Non si può eliminare: ha "+n+" intervent"+(n>1?"i":"o")+" nello storico. "+
+    "Se non è più a bordo, segnalo come dismesso.";
+  var f = ST.comps.filter(function(c){ return c.parent===id; }).length;
+  if(f) return "Non si può eliminare: ci sono "+f+" component"+(f>1?"i":"e")+" sotto questa voce. "+
+    "Spostali o eliminali prima.";
+  return null;
+}
+function aggiornaCP(){
+  $("cpScadOn").textContent = CP.scad?"Attiva":"Nessuna";
+  $("cpScadOn").style.borderColor = CP.scad?"var(--teal)":"var(--line)";
+  $("cpScadOn").style.color = CP.scad?"var(--teal)":"var(--sub)";
+  $("cpScadWrap").style.display = CP.scad?"inline-flex":"none";
+  $("cpArch").className = "chk"+(CP.arch?" on":"");
+  $("cpArch").querySelector(".bx").textContent = CP.arch?"☑":"☐";
+  var motivo = motivoNoDelete(CP.id);
+  $("cpElimina").style.display = (!motivo && !CP.conferma)?"":"none";
+  $("cpNoDel").style.display   = (motivo && !CP.conferma)?"":"none";
+  $("cpNoDel").textContent     = motivo||"";
+  $("cpConferma").style.display = CP.conferma?"flex":"none";
+}
+function eliminaComponente(){
+  if(!ONLINE){ toast("Sei senza rete: la scrittura richiede il collegamento."); return; }
+  var id = CP.id, s = scadDi(id);
+  var p = s ? del("schedules", SCH.schedules.id+"=eq."+encodeURIComponent(s.id)).catch(function(){})
+            : Promise.resolve();
+  p.then(function(){ return del("components", SCH.components.id+"=eq."+encodeURIComponent(id)); })
+   .then(function(){ chiudi("ovComp"); toast("Componente eliminato."); return carica(); })
+   .then(render)
+   .catch(function(e){ toast("Eliminazione fallita: "+e.message); });
+}
+function salvaComponente(){
+  if(!ONLINE){ toast("Sei senza rete: la scrittura richiede il collegamento."); return; }
+  var id = CP.id;
+  var patch = riga("components",{
+    nome: $("cpNome").value.trim(), cat: $("cpCat").value, parent: $("cpParent").value||null,
+    marca: $("cpMarca").value.trim(), modello: $("cpModello").value.trim(),
+    seriale: $("cpSeriale").value.trim(), installato: $("cpInst").value||null,
+    garanzia: $("cpGar").value||null, note: $("cpNote").value.trim(), archiviato: CP.arch
+  });
+  upd("components", SCH.components.id, id, patch).then(function(){
+    var s = scadDi(id);
+    var mesi = Number($("cpMesi").value)||12;
+    var ultimo = $("cpInst").value || (s&&s.ultimo) || oggiISO();
+    if(CP.scad && s)  return upd("schedules", SCH.schedules.id, s.id,
+      riga("schedules",{ interv:mesi, ultimo:ultimo, attiva:true }));
+    if(CP.scad && !s) return ins("schedules", riga("schedules",{
+      boat:ST.boat.id, comp:id, tipo:"mesi", interv:mesi, ultimo:ultimo, attiva:true }));
+    if(!CP.scad && s) return upd("schedules", SCH.schedules.id, s.id, riga("schedules",{ attiva:false }));
+  }).then(function(){
+    chiudi("ovComp"); toast("Componente salvato."); return carica();
+  }).then(render)
+    .catch(function(e){ toast("Salvataggio fallito: "+e.message); });
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Visore documento
+   ══════════════════════════════════════════════════════════════════ */
+var VIS = null;
+function apriVisore(id,lista){
+  var d = docById(id); if(!d) return;
+  VIS = { id:id, lista:(lista&&lista.length)?lista.slice():[id] };
+  disegnaVisore(); apri("ovDoc");
+}
+function disegnaVisore(){
+  var d = docById(VIS.id); if(!d) return;
+  var idx = VIS.lista.indexOf(VIS.id);
+  $("dcNome").textContent = d.nome;
+  $("dcIdx").textContent = VIS.lista.length>1 ? ((idx+1)+"/"+VIS.lista.length) : "";
+  var foto = (d.tipo==="foto") || /\.(jpe?g|png|heic|webp)$/i.test(d.nome||"");
+  var fb=$("dcFile");
+  fb.innerHTML = '<span style="font-size:46px;opacity:.75">'+(foto?"🖼":"📄")+'</span>'+
+    '<span style="font-size:12.5px;color:var(--sub)">'+(d.path?"apro il file…":"nessun file allegato")+'</span>';
+  if(VIS.lista.length>1){
+    var p=document.createElement("button"); p.className="navb"; p.style.left="8px"; p.textContent="‹";
+    p.onclick=function(){ if(idx>0){ VIS.id=VIS.lista[idx-1]; disegnaVisore(); } };
+    var n=document.createElement("button"); n.className="navb"; n.style.right="8px"; n.textContent="›";
+    n.onclick=function(){ if(idx<VIS.lista.length-1){ VIS.id=VIS.lista[idx+1]; disegnaVisore(); } };
+    fb.appendChild(p); fb.appendChild(n);
+  }
+  if(d.path && foto) urlFirmato(d.path).then(function(u){
+    if(!u || VIS.id!==d.id) return;
+    fb.innerHTML=""; var img=new Image(); img.src=u; img.alt=d.nome; fb.appendChild(img);
+    if(VIS.lista.length>1) disegnaFrecce(fb,idx);
+  });
+  else if(d.path) fb.querySelector("span:last-of-type").textContent = "PDF · usa «Apri / Scarica»";
+
+  var collegati = ST.ints.filter(function(i){ return (i.docs||[]).indexOf(d.id)>=0; });
+  var h = '<div style="display:grid;gap:6px;font-size:13.5px">'+
+    rigaKV("Tipo",tipoLabel(d.tipo))+
+    (d.fornitore?rigaKV("Fornitore",d.fornitore):"")+
+    (d.numero?rigaKV("Numero",d.numero):"")+
+    (d.data?rigaKV("Data",fmtData(d.data)):"")+
+    (d.totale!=null?rigaKV("Totale",eur(d.totale)):"")+
+    '</div><div><div class="sez">Collegato a '+collegati.length+' interven'+
+    (collegati.length===1?"to":"ti")+'</div>';
+  collegati.forEach(function(i){
+    h += '<div class="storico"><span class="d">'+esc(fmtData(i.data))+'</span>'+
+      '<span class="t">'+esc(i.titolo)+(i.comp?('<span style="display:block;font-size:12px;color:var(--sub)">'+
+      esc(percorso(i.comp))+'</span>'):"")+'</span>'+
+      '<span class="mono" style="font-size:12px">'+(i.costo!=null?esc(eur(i.costo)):"")+'</span></div>';
+  });
+  h += '</div>';
+  $("dcMeta").innerHTML = h;
+}
+function disegnaFrecce(fb,idx){
+  var p=document.createElement("button"); p.className="navb"; p.style.left="8px"; p.textContent="‹";
+  p.onclick=function(){ if(idx>0){ VIS.id=VIS.lista[idx-1]; disegnaVisore(); } };
+  var n=document.createElement("button"); n.className="navb"; n.style.right="8px"; n.textContent="›";
+  n.onclick=function(){ if(idx<VIS.lista.length-1){ VIS.id=VIS.lista[idx+1]; disegnaVisore(); } };
+  fb.appendChild(p); fb.appendChild(n);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Overlay, toast
+   ══════════════════════════════════════════════════════════════════ */
+function apri(id){ $(id).classList.add("on"); }
+function chiudi(id){ $(id).classList.remove("on"); }
+var TT=null;
+function toast(msg){
+  var t=$("toast"); t.textContent=msg; t.classList.add("on");
+  clearTimeout(TT); TT=setTimeout(function(){ t.classList.remove("on"); },3200);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Collegamenti
+   ══════════════════════════════════════════════════════════════════ */
+function wiring(){
+  $("tabs").addEventListener("click",function(e){
+    var b=e.target.closest("button[data-t]"); if(b) mostraTab(b.getAttribute("data-t"));
+  });
+  document.addEventListener("click",function(e){
+    var x=e.target.closest("[data-close]"); if(x) chiudi(x.getAttribute("data-close"));
+  });
+  ["ovInt","ovDet","ovComp","ovDoc","ovDossier"].forEach(function(id){
+    var ov=$(id);
+    ov.addEventListener("click",function(e){ if(e.target===ov) chiudi(id); });
+  });
+
+  $("fab").onclick = function(){
+    if(!ONLINE){ toast("Serve la rete per registrare un intervento."); return; }
+    apriNuovo();
+  };
+
+  /* --- form intervento --- */
+  $("intStato").addEventListener("click",function(e){
+    var b=e.target.closest("button[data-v]"); if(!b) return;
+    var nuovo = b.getAttribute("data-v");
+    if(nuovo===F.stato) return;
+    F.stato = nuovo;
+    riconiuga(F.stato==="previsto");
+    disegnaForm();
+  });
+  $("intPrio").addEventListener("click",function(e){
+    var b=e.target.closest("button[data-v]"); if(!b) return;
+    F.priorita=b.getAttribute("data-v"); segOn("intPrio",F.priorita);
+  });
+  $("intComp").addEventListener("input",function(){
+    F.compNome=this.value; F.compId=null; F.mesiSug=null;
+    disegnaSugg();
+    var nuovo = !F.compId && F.compNome.trim();
+    $("wrapCat").style.display=(nuovo&&nessunMatch())?"":"none";
+  });
+  $("intCat").addEventListener("change",function(){ F.cat=this.value; });
+  $("intData").addEventListener("change",function(){ F.data=this.value; });
+  $("intTitolo").addEventListener("input",function(){
+    F.titolo=this.value; $("intSalva").disabled=!F.titolo.trim(); disegnaVerbi();
+  });
+  $("intEsec").addEventListener("input",function(){ F.esecutore=this.value; });
+  $("intCosto").addEventListener("input",function(){ F.costo=this.value; });
+  $("intNote").addEventListener("input",function(){ F.note=this.value; });
+  $("btnFoto").onclick=function(){ $("fileFoto").click(); };
+  $("btnFile").onclick=function(){ $("fileDoc").click(); };
+  $("fileFoto").addEventListener("change",function(){
+    if(this.files&&this.files.length) aggiungiFiles(this.files,"foto"); this.value=""; });
+  $("fileDoc").addEventListener("change",function(){
+    if(this.files&&this.files.length) aggiungiFiles(this.files, F.stato==="previsto"?"preventivo":"fattura");
+    this.value=""; });
+  $("intSalva").onclick = salvaIntervento;
+  $("intElimina").onclick = function(){ F.conferma=true; disegnaForm(); };
+  $("intAnnullaDel").onclick = function(){ F.conferma=false; disegnaForm(); };
+  $("intDelOk").onclick = eliminaIntervento;
+
+  /* --- componente --- */
+  $("detMod").onclick = function(){ if(DET) apriModComp(DET); };
+  $("cpScadOn").onclick = function(){ CP.scad=!CP.scad; aggiornaCP(); };
+  $("cpArch").onclick = function(){ CP.arch=!CP.arch; aggiornaCP(); };
+  $("cpSalva").onclick = salvaComponente;
+  $("cpElimina").onclick = function(){ CP.conferma=true; aggiornaCP(); };
+  $("cpAnnullaDel").onclick = function(){ CP.conferma=false; aggiornaCP(); };
+  $("cpDelOk").onclick = eliminaComponente;
+
+  /* --- documenti --- */
+  $("docFiltri").addEventListener("click",function(e){
+    var b=e.target.closest("button[data-f]"); if(!b) return;
+    FILTRO=b.getAttribute("data-f");
+    var bs=this.querySelectorAll("button");
+    for(var i=0;i<bs.length;i++) bs[i].className="chip"+(bs[i]===b?" on":"");
+    renderGalleria();
+  });
+  $("dcApri").onclick = function(){
+    var d=docById(VIS.id); if(!d||!d.path){ toast("Nessun file allegato."); return; }
+    urlFirmato(d.path).then(function(u){ if(u) window.open(u,"_blank"); else toast("Non riesco ad aprire il file."); });
+  };
+  $("dcDel").onclick = function(){
+    var d=docById(VIS.id); if(!d) return;
+    if(!confirm("Elimino «"+d.nome+"»? Sparisce da tutti gli interventi che lo citano.")) return;
+    var p = SCH.link ? del(SCH.link.tab, SCH.link.doc+"=eq."+encodeURIComponent(d.id)).catch(function(){})
+                     : Promise.resolve();
+    p.then(function(){ return del("documents", SCH.documents.id+"=eq."+encodeURIComponent(d.id)); })
+     .then(function(){ chiudi("ovDoc"); toast("Documento eliminato."); return carica(); })
+     .then(render)
+     .catch(function(e){ toast("Eliminazione fallita: "+e.message); });
+  };
+
+  /* --- dossier --- */
+  $("btnDossier").onclick=function(){ renderDossier(); apri("ovDossier"); };
+  function opz(id,k){ $(id).onclick=function(){
+    DS[k]=!DS[k]; this.className="chip"+(DS[k]?" on":"");
+    this.textContent=(DS[k]?"✓ ":"")+this.textContent.replace(/^✓\s*/,"");
+    renderDossier(); }; }
+  opz("dsCosti","costi"); opz("dsAlleg","alleg"); opz("dsArch","arch");
+  $("dsPrint").onclick=function(){ window.print(); };
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Avvio
+   ══════════════════════════════════════════════════════════════════ */
+function netBox(cls,html){
+  var b=$("netBox"); b.className="mt-net"+(cls?(" "+cls):""); b.innerHTML=html; b.style.display="";
+}
+function intestazione(){
+  /* Il nome barca lo mostra gia' la topbar: qui il modello, che la topbar non ha
+     (quella casella e' occupata dalla polare). */
+  var b = ST.boat||{};
+  var parti = [b.cantiere, b.modello].filter(Boolean).join(" ");
+  if(b.anno) parti += (parti?" · ":"")+b.anno;
+  $("hdModel").textContent = parti || b.nome || "—";
+  /* Il codice non puo' indovinare quale delle righe omonime sia quella buona:
+     lo dice e basta, cosi' il registro si ripulisce a mano una volta sola. */
+  var av = $("boatDup");
+  if(av){
+    var molte = BOATS_OMONIME > 1;
+    av.style.display = molte ? "" : "none";
+    if(molte) av.textContent = "Nel registro ci sono " + BOATS_OMONIME +
+      " barche con questo nome. Sto usando sempre la stessa, ma le altre andrebbero cancellate da Supabase: finché ci sono, interventi e componenti possono risultare legati a una riga diversa.";
+  }
+}
+function caricaCatalogo(){
+  return fetch("catalogo.json").then(function(r){ return r.json(); }).then(function(j){
+    CATEGORIE = (j.categorie||[]).map(function(c){ return { id:c.id, label:c.label }; });
+    CAT = {};
+    (j.categorie||[]).forEach(function(c){
+      CAT[c.id] = (c.voci||[]).map(function(v){
+        var mesi=null;
+        (v.scadenze||[]).forEach(function(s){ if(s.tipo==="mesi") mesi=s.intervallo; });
+        return { nome:v.nome, if:v.if||null, mesi:mesi };
+      });
+    });
+    var sel=$("intCat"); sel.innerHTML="";
+    CATEGORIE.forEach(function(k){ var o=document.createElement("option");
+      o.value=k.id; o.textContent=k.label; sel.appendChild(o); });
+  }).catch(function(){
+    CATEGORIE=[{id:"motore",label:"Motore e propulsione"},{id:"scafo",label:"Scafo e opera viva"},
+      {id:"elettrico",label:"Impianto elettrico"},{id:"impianti",label:"Impianti acqua, gas, sentina"},
+      {id:"coperta",label:"Attrezzatura di coperta"},{id:"sartiame",label:"Albero e sartiame"},
+      {id:"manovre",label:"Manovre correnti"},{id:"vele",label:"Vele"},
+      {id:"elettronica",label:"Elettronica e strumenti"},{id:"sicurezza",label:"Sicurezza"}];
+    CAT={};
+  });
+}
+function avvia(){
+  wiring();
+  caricaCatalogo().then(function(){
+    if(!CFG.url || !CFG.key){
+      netBox("warn","<b>Database non configurato.</b> Il modulo Manutenzione tiene i dati su Supabase. "+
+        'Inserisci indirizzo del progetto e chiave <i>anon</i> in <a href="../impostazioni/">Impostazioni → Manutenzione</a>.');
+      var ts0 = daCache();
+      if(ts0){ intestazione(); render(); }
+      return;
+    }
+    if(!SESS){
+      var ts1 = daCache();
+      netBox("warn","<b>Accesso non effettuato.</b> Le regole del database (RLS) mostrano i dati solo "+
+        'a un utente riconosciuto: la sola chiave anon non basta. Accedi in '+
+        '<a href="../impostazioni/">Impostazioni → Manutenzione</a>.'+
+        (ts1?(" Intanto vedi la copia locale del "+new Date(ts1).toLocaleString("it-IT")+
+              ", in sola lettura."):""));
+      if(ts1){ intestazione(); render(); }
+      return;
+    }
+    var ts = daCache();
+    if(ts){ intestazione(); render();
+      netBox("", "Collegamento in corso… mostro intanto la copia locale del "+
+        new Date(ts).toLocaleString("it-IT")+"."); }
+    else netBox("", "Collegamento al database…");
+
+    carica().then(function(){
+      $("netBox").style.display="none";
+      intestazione(); render();
+    }).catch(function(e){
+      ONLINE=false;
+      var m = (e&&e.message)||"errore";
+      if(m==="NOCFG") m="configurazione mancante";
+      if(ts) netBox("warn","<b>Senza collegamento</b> ("+esc(m)+"). Vedi la copia locale del "+
+        new Date(ts).toLocaleString("it-IT")+", in sola lettura.");
+      else netBox("err","<b>Non riesco a leggere il database</b>: "+esc(m)+
+        '. Controlla indirizzo, chiave e regole RLS in <a href="../impostazioni/">Impostazioni</a>.');
+      intestazione(); render();
+    });
+  });
+}
+if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",avvia);
+else avvia();
+
+})();
+
+</script>
+
+</body>
+</html>
