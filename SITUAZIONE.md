@@ -590,3 +590,37 @@ Due test erano difettosi e sono stati corretti, non il codice: la formula dello 
 - Bug layer Fari con due fari quasi sovrapposti (invariato).
 - Foto "solo 2" in Manutenzione: da riverificare dopo la consegna del 27/08.
 
+---
+
+## 28/08/2026 (sera) — MOB: freccia che spariva
+
+**Etichetta: solo logica** (una regola CSS rimossa, nessuno spostamento di elementi). `mob/index.html`, `sw.js` → **provela-hub-v10**.
+
+### Il difetto: due centri di rotazione sovrapposti
+Segnalato: "la freccia sparisce, sembra ruotare attorno a un asse fuori schermo". Descrizione esatta.
+
+Il JS scriveva l'attributo SVG `transform="rotate(angolo 120 120)"`, che **contiene gia' il proprio centro**. Il CSS aggiungeva `transform-origin:120px 120px` sullo stesso elemento. I browser mappano l'attributo `transform` sulla proprieta' CSS `transform`, quindi le due traslazioni si **sommano** invece di sostituirsi: il perno finiva a circa (240,240), fuori dal riquadro 240x240, e dopo pochi gradi la sagoma era gia' oltre il bordo.
+
+Aggravante di compatibilita': `transform-origin` su SVG dipende da `transform-box`, il cui valore predefinito e' cambiato nel tempo e differisce fra Safari e Chromium. Anche scritto "giusto" sarebbe rimasto fragile proprio sui dispositivi non provabili qui.
+
+**Correzione:** la rotazione vive solo nell'attributo SVG. Via `transform-origin`, via `transition`, via la dipendenza da `transform-box`.
+
+### Conseguenza: lisciatura spostata in JS
+Tolta la transizione CSS serviva un sostituto, perche' il COG grezzo balla di qualche grado a ogni fix e una freccia che sobbalza si legge peggio di una ferma. Nessuna interpolazione CSS comunque: a 1 Hz una transizione di 0,3 s mostrerebbe per un terzo del tempo una direzione che non e' quella corrente, e su uno strumento di emergenza il ritardo e' una piccola bugia.
+
+Filtro a due stadi, e **l'ordine conta**:
+1. **zona morta sul bersaglio** (1,5°): un movimento sotto soglia e' rumore e non viene accettato;
+2. **inseguimento** del bersaglio accettato con coefficiente 0,35, senza soglia.
+
+La prima stesura applicava la zona morta all'**errore residuo**: la freccia si bloccava appena entrata entro 1,5° e restava disallineata per sempre, mentre la cifra sotto mostrava il valore esatto. Difetto trovato dai test di convergenza, non a occhio. Con la zona morta sull'ingresso la convergenza e' completa (errore < 0,01° dopo 200 passi) e il rumore di ±1° continua a non muovere nulla.
+
+Entrambi gli stadi lavorano sull'angolo **piu' corto**: da 179° a −179° sono due gradi, non 358.
+
+La cifra sotto la freccia resta lo scarto **reale**, non quello lisciato: la freccia si guarda, il numero si legge.
+
+### Validazione
+18 test mirati nuovi (perno unico, coerenza fra centro dichiarato e sagoma, via corta su 6000 combinazioni, convergenza, zona morta, assenza di errore residuo) piu' i 75 del modulo e i 49 del ciclo precedente. Tutti verdi.
+
+Due test della tornata precedente erano difettosi: cercavano `transform-origin` e `transform-box` in tutto il file e pescavano il **commento** che spiega perche' non ci sono. Ora guardano le sole dichiarazioni CSS, coi commenti rimossi.
+
+**Da provare a bordo:** che la freccia ruoti davvero su se stessa a tutti gli angoli, e che la lisciatura non risulti troppo lenta con il COG reale. Se sembra pigra, il numero da toccare e' `MORBIDO` (0,35: piu' alto = piu' pronta e piu' nervosa).

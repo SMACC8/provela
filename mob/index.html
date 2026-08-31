@@ -81,8 +81,18 @@ html.mobdark #btnSegna{box-shadow:0 0 0 10px rgba(255,59,36,.13),0 0 0 20px rgba
   line-height:1;letter-spacing:-.04em;margin-top:4px;color:var(--mb-ink)}
 #dist .u{font-size:.31em;color:var(--mb-et);margin-left:8px;letter-spacing:0}
 #svgDir{display:block;width:min(62vw,240px);height:auto}
-#gFrec{transition:transform .3s cubic-bezier(.2,.8,.3,1);transform-origin:120px 120px}
-@media (prefers-reduced-motion:reduce){#gFrec{transition:none}}
+/* La rotazione sta TUTTA nell'attributo SVG transform="rotate(a 120 120)",
+   che porta gia' il suo centro. Qui non deve esserci ne' transform-origin
+   ne' transition: i browser mappano quell'attributo sulla proprieta' CSS
+   transform, quindi un transform-origin si SOMMEREBBE al centro gia'
+   contenuto nel rotate() e la freccia girerebbe attorno a un punto fuori
+   dal riquadro, sparendo dopo pochi gradi (segnalato 28/08). In piu'
+   transform-origin su SVG dipende da transform-box, il cui valore
+   predefinito differisce fra Safari e Chromium: anche scritto giusto
+   resterebbe fragile proprio dove non posso provare.
+   Niente interpolazione: a 1 Hz una transizione di 0,3 s mostrerebbe per
+   un terzo del tempo una direzione che non e' quella corrente. Su uno
+   strumento di emergenza il ritardo e' una piccola bugia. */
 #rigaScarto{display:flex;align-items:baseline;gap:12px;margin-top:-14px;
   flex-wrap:wrap;justify-content:center}
 #scarto{font-family:var(--mb-mono);font-size:40px;font-weight:700;line-height:1;
@@ -241,6 +251,8 @@ html.mobdark #btnSegna{box-shadow:0 0 0 10px rgba(255,59,36,.13),0 0 0 20px rgba
   var K_MOB = "raffyca-mob", K_SCURO = "raffyca-mob-scuro",
       K_POS = "raffyca-pos", K_WP = "raffyca-waypoints";
   var SOG_MIN = 1.5;          /* nodi: sotto, il COG non e' attendibile */
+  var MORBIDO = 0.35;         /* lisciatura del COG: 0 = fermo, 1 = nessuna */
+  var ZONA_MORTA = 1.5;       /* gradi sotto i quali la freccia non si muove */
   var GRAZIA = 10000;         /* ms di annullamento */
   var DERIVA_MIN = 10;        /* m fra due fix per ricavare il COG */
 
@@ -286,6 +298,8 @@ html.mobdark #btnSegna{box-shadow:0 0 0 10px rgba(255,59,36,.13),0 0 0 20px rgba
 
   /* ─────────────── stato ─────────────── */
   var MOB = null;        /* {on,lat,lon,ts,fixTs,wpId} */
+  var scartoVisto = null;/* angolo attualmente disegnato */
+  var scartoBers = null; /* bersaglio accettato, gia' ripulito dal rumore */
   var POS = null;        /* {lat,lon,ts,sog,cog} corrente */
   var precedente = null; /* fix precedente, per ricavare il COG */
   var watch = null, lock = null, tick = null;
@@ -374,6 +388,7 @@ html.mobdark #btnSegna{box-shadow:0 0 0 10px rgba(255,59,36,.13),0 0 0 20px rgba
 
   function ferma() {
     MOB = null;
+    scartoVisto = null; scartoBers = null;
     try { localStorage.removeItem(K_MOB); } catch (e) {}
     $("conf").hidden = true;
     wake(false);
@@ -426,7 +441,30 @@ html.mobdark #btnSegna{box-shadow:0 0 0 10px rgba(255,59,36,.13),0 0 0 20px rgba
     var scarto = attendibile ? (((brg - cog + 540) % 360) - 180) : 0;
 
     var gF = $("gFrec"), pF = $("pFrec"), sc = $("scarto"), vr = $("verso");
-    gF.setAttribute("transform", "rotate(" + (attendibile ? scarto.toFixed(1) : 0) + " 120 120)");
+
+    /* Lisciatura in JS invece della transizione CSS: il COG grezzo balla
+       di qualche grado a ogni fix e una freccia che sobbalza si legge
+       peggio di una ferma.
+       Due stadi distinti, e l'ordine conta:
+       1. ZONA MORTA sul BERSAGLIO: un movimento sotto la soglia e' rumore
+          e non viene accettato. Applicarla invece all'errore residuo (come
+          nella prima stesura) bloccava la freccia appena entrata entro
+          1,5 gradi, lasciandola disallineata per sempre mentre la cifra
+          sotto mostrava il valore esatto.
+       2. INSEGUIMENTO del bersaglio accettato, senza soglia, cosi' la
+          convergenza e' completa.
+       Entrambi gli stadi lavorano sull'angolo PIU' CORTO: altrimenti da
+       179 a -179, che sono due gradi, la freccia farebbe il giro lungo. */
+    if (!attendibile) { scartoVisto = null; scartoBers = null; }
+    else if (scartoVisto == null) { scartoVisto = scarto; scartoBers = scarto; }
+    else {
+      var rumore = ((scarto - scartoBers + 540) % 360) - 180;
+      if (Math.abs(rumore) >= ZONA_MORTA) scartoBers = scarto;
+      var delta = ((scartoBers - scartoVisto + 540) % 360) - 180;
+      scartoVisto = ((scartoVisto + delta * MORBIDO + 540) % 360) - 180;
+    }
+    gF.setAttribute("transform",
+      "rotate(" + (attendibile ? scartoVisto.toFixed(1) : "0") + " 120 120)");
     if (attendibile) {
       pF.setAttribute("fill", Math.abs(scarto) < 10 ? "var(--mb-ambra)" : "var(--mb-ink)");
       pF.setAttribute("opacity", "1");
