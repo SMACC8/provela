@@ -624,3 +624,71 @@ La cifra sotto la freccia resta lo scarto **reale**, non quello lisciato: la fre
 Due test della tornata precedente erano difettosi: cercavano `transform-origin` e `transform-box` in tutto il file e pescavano il **commento** che spiega perche' non ci sono. Ora guardano le sole dichiarazioni CSS, coi commenti rimossi.
 
 **Da provare a bordo:** che la freccia ruoti davvero su se stessa a tutti gli angoli, e che la lisciatura non risulti troppo lenta con il COG reale. Se sembra pigra, il numero da toccare e' `MORBIDO` (0,35: piu' alto = piu' pronta e piu' nervosa).
+
+---
+
+## 01/09/2026 — Via CARTO: le tile stampavano "API KEY REQUIRED"
+
+**Etichetta: fornitore esterno** (nessuna logica dell'app toccata). `carta/index.html`,
+`meteo/index.html`, `routing/raffyca-traversata-map.html`, `routing/sw.js` →
+**raffyca-meteo v16**, **raffyca-rt v13**.
+
+### Il difetto non era nostro
+Segnalato: scritta "API KEY REQUIRED · carto.com/basemaps/apikey" in diagonale sopra
+tutte le tile, in Carta Nautica e in Traversata. CARTO ha reso obbligatoria una API key
+per i basemap raster: le tile continuano a tornare 200, ma con il watermark cotto dentro
+l'immagine. Colpiti tre punti: base Nautica e base Minimal in Carta, base della
+Traversata, base del radar RainViewer nel Meteo.
+
+### Cosa ho provato e scartato
+Confronto su Sottomarina a zoom 13, con l'overlay OpenSeaMap sopra:
+
+- **Esri Ocean** — a zoom 13 risponde "Map data not yet available". Copertura troppo
+  grossolana per la navigazione costiera.
+- **Esri Light Gray Canvas** — pulitissimo e con pochissime strade, ma dipinge **mare e
+  terra dello stesso grigio**. Su una carta nautica non e' una questione estetica: non
+  distingui la costa. Scartato.
+- **Wikimedia** — non serve tile fuori dai siti Wikimedia.
+- **CARTO con chiave gratuita** — avrebbe conservato l'aspetto identico, ma la chiave
+  andrebbe messa in localStorage e reinserita su ogni dispositivo (come Upstash), e in
+  un repo pubblico non puo' stare nel codice. Costo di gestione sproporzionato.
+- **Positron come tile vettoriali** (OpenFreeMap) — lo stile esatto esiste ancora
+  gratis, ma richiederebbe MapLibre al posto di Leaflet. Fuori proporzione.
+
+### La sostituzione
+**OSM Humanitarian** (`tile-{s}.openstreetmap.fr/hot`, sottodomini `abc`): gratuito,
+senza chiave, toni pastello, acqua verde-azzurra nettamente distinta dalla terra. E' il
+piu' vicino all'obiettivo con cui era stato scelto il Voyager il 17/07 — poche strade,
+acqua chiara, i simboli nautici risaltano.
+
+**La base "Minimal" e' caduta.** Era il Positron; senza chiave un equivalente non
+esiste, e le alternative minimali provate sono quelle scartate sopra. Meglio due basi
+leggibili che tre di cui una pericolosa. Le viste gia' salvate in `raffyca-carta-view`
+con `base:'minimal'` ricadono su `'nautica'` senza errori: il ramo e' esplicito, non e'
+un caso fortunato.
+
+### Aggiunta: vista Satellite
+Colta l'occasione, visto che il selettore delle basi era gia' aperto. **Esri World
+Imagery**, gratuito e senza chiave, fino a zoom 19. Con i simboli OpenSeaMap sopra si
+leggono bene secche e basse. Valore salvato: `base:'sat'`.
+
+### Un match troppo largo, evitato per un soffio
+In `routing/sw.js` l'host in cache era `basemaps.cartocdn.com`. La prima stesura lo
+sostituiva con un match generico su `openstreetmap.org` — che avrebbe intercettato anche
+`nominatim.openstreetmap.org`, che venti righe piu' sotto deve restare **solo rete, senza
+cache**, mettendo in cache le ricerche di localita'. Il match ora e' sugli host specifici
+(`tile.openstreetmap.org`, `openstreetmap.fr`, `openseamap.org`).
+
+### Perche' i bump dei service worker
+Non per il codice — per la **cache**: le tile con il watermark sono gia' finite nei
+bucket TILES dei dispositivi, e senza bump continuerebbero a essere servite anche dopo
+l'aggiornamento. L'`activate` cancella i bucket che non iniziano con la versione nuova.
+
+### Validazione
+Verificato in locale su tutte e tre le mappe: Carta (tre basi, satellite compreso),
+Traversata, radar del Meteo. Nessun watermark, attribuzioni aggiornate; il radar carica
+40 tile da `openstreetmap.fr`, zero da CARTO. Corretta anche la didascalia del radar, che
+citava ancora CARTO a video.
+
+**Da provare a bordo:** leggibilita' della base HOT al sole, e se la satellite regge in
+zone con rete scarsa (le tile pesano piu' delle vettoriali di prima).
