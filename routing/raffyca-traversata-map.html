@@ -424,6 +424,9 @@ function coastDist(lat,lon){var m=(typeof MED_MASKS!=='undefined')&&MED_MASKS[FI
 
 // ---------- costa on-device: rasterizza un riquadro qualsiasi del Mediterraneo ----------
 var COAST=null,COAST_BOX=null,COAST_SEGS=[];
+/* maschera OSM della zona di profilo, tenuta da parte: MED_MASKS['custom'] viene
+   sovrascritto dalle aree su misura, e questa serve a ricostruirle sulla costa giusta */
+var ZONE_MASK=null;
 /* "costa modello" = il confine terra/mare che il router usa davvero, e da quando
    le zone hanno la maschera OSM precotta quel confine sono i suoi anelli. Prima
    qui si disegnava sempre la costa GSHHG di mediterranean_land_10m.geojson, che
@@ -456,8 +459,25 @@ function rasterMask(latN,latS,lonW,lonE,w,h){var E=COAST,nE=E.length,dlat=latN-l
     for(var c=0;c<w;c++){var lon=lonW+(c+0.5)/w*dlon,lo=0,hi=xs.length;while(lo<hi){var m=(lo+hi)>>1;if(xs[m]<lon)lo=m+1;else hi=m;}
       if(lo&1){var i=row*w+c;bytes[i>>3]|=(1<<(i&7));}}}
   return bytes;}
+/* Maschera per un'area su misura: "Area su A<->B", ricerca Nominatim, e ripiego
+   quando la maschera di zona non si scarica. Tutte e tre passano da qui.
+
+   Se la zona di profilo ha la sua maschera OSM e il riquadro chiesto ci sta
+   dentro, si RICAMPIONA quella invece di rasterizzare la costa GSHHG. La cella
+   resta quella grossa della zona, ma la costa e' quella giusta - GSHHG ha lo
+   shift di ~250 m per cui era gia' stata abbandonata. Soprattutto: e' la stessa
+   costa che il router usa nella zona. Prima, premere "Area su A<->B" cambiava di
+   nascosto il modello terra/mare sotto i piedi, e la stessa barca vedeva due
+   coste diverse a seconda del pulsante premuto. */
 function buildCoastMask(box,maxCells){var dlat=box.latN-box.latS,dlon=box.lonE-box.lonW,w,h;
   if(dlon>=dlat){w=maxCells;h=Math.max(8,Math.round(maxCells*dlat/dlon));}else{h=maxCells;w=Math.max(8,Math.round(maxCells*dlon/dlat));}
+  var Z=ZONE_MASK;
+  if(Z&&box.latN<=Z.latN&&box.latS>=Z.latS&&box.lonW>=Z.lonW&&box.lonE<=Z.lonE){
+    var bits=new Uint8Array(Math.ceil(w*h/8));
+    for(var r=0;r<h;r++){var la=box.latN-(r+0.5)/h*dlat;
+      for(var c=0;c<w;c++){var lo=box.lonW+(c+0.5)/w*dlon;
+        if(maskLand(Z,la,lo)){var i=r*w+c;bits[i>>3]|=(1<<(i&7));}}}
+    return {w:w,h:h,latN:box.latN,latS:box.latS,lonW:box.lonW,lonE:box.lonE,_bits:bits,rings:Z.rings};}
   return {w:w,h:h,latN:box.latN,latS:box.latS,lonW:box.lonW,lonE:box.lonE,_bits:rasterMask(box.latN,box.latS,box.lonW,box.lonE,w,h)};}
 // distanza dalla costa in NM per ogni cella (chamfer 2 passate). Calcolata lato main, viaggia al worker col mask.
 function coastDistField(m){if(!m||m._dist)return m&&m._dist;var W=m.w,H=m.h,N=W*H,INF=1e9,d=new Float32Array(N);
@@ -1051,7 +1071,7 @@ function loadZoneMaskOSM(name,box,cb){
   if(!slug||typeof fetch==='undefined'){cb(false);return;}
   fetch('./coastmasks/'+slug+'.json').then(function(r){return r.ok?r.json():Promise.reject();}).then(function(m){
     var raw=atob(m.bits),u=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)u[i]=raw.charCodeAt(i);m._bits=u;
-    MED_MASKS['custom']=m;
+    MED_MASKS['custom']=m;ZONE_MASK=m;
     var clat=(box.latN+box.latS)/2,clon=(box.lonW+box.lonE)/2;
     var As=findSea(m,clat,clon),Bs=findSea(m,clamp(clat+(box.latN-box.latS)*0.22,box.latS+0.05,box.latN-0.05),clamp(clon+(box.lonE-box.lonW)*0.22,box.lonW+0.05,box.lonE-0.05));
     AREAS['custom']={name:name,latN:m.latN,latS:m.latS,lonW:m.lonW,lonE:m.lonE,A:[As.lat,As.lon],B:[Bs.lat,Bs.lon]};

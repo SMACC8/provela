@@ -929,3 +929,140 @@ Carta la batimetria **non** e' disponibile offline, cosa che resta aperta.)
 **Da provare a bordo:** se il corridoio al 30% e' troppo stretto su traversate
 lunghe; se il filo scuro sotto le frecce vento appesantisce troppo la carta al
 sole.
+
+---
+
+## 01/09/2026 (quarto) — La costa rifatta dalle land polygons OSM: in Basso Adriatico mancava metà della terra
+
+**Etichetta: dati + modello.** `build_coastmasks.py` (nuovo), `routing/coastmasks/*`
+(9 file rigenerati), `routing/raffyca-traversata-map.html`, `routing/sw.js` →
+**raffyca-rt v16→v17**.
+
+### Il difetto, misurato
+
+Segnalata «la linea di costa». Cercando la causa e' venuto fuori che non era un
+problema di disegno. Confrontando la maschera OSM del router con la costa GSHHG —
+imprecisa ma **completa** — cella per cella, contando solo le celle di terra con
+tutte e quattro le vicine di terra (per non contare il frastaglio del bordo):
+
+| zona | terra riconosciuta | terra mancante |
+|---|---|---|
+| basso-adriatico | 5.377 | **6.691** |
+| alto-adriatico | 8.364 | 397 |
+| sicilia | 6.659 | 9 |
+| le altre sei | — | 0 |
+
+**In Basso Adriatico mancava piu' terra di quanta ne fosse riconosciuta**: tutta la
+sponda orientale da lon 16.5 a 20.3 — Dalmazia sud, Curzola, Sabbioncello,
+Montenegro, Albania. Per il router non era costa, era mare aperto: una rotta verso
+la Croazia del sud passava dentro le isole. La nota del 21/07 lo diceva a mezza
+bocca («residui non italiani: Dalmazia sud/Montenegro, isole 17E, Corfu,
+Pantelleria») ma non diceva quanto, e messo cosi' sembrava un dettaglio.
+
+### Perche' non un'altra query Overpass
+
+Overpass restituisce i tratti grezzi di `natural=coastline`: pezzi di linea, non
+una costa. Vanno cuciti per `@id`, chiusi e controllati — ed e' esattamente li'
+che il giro del 21/07 ha lasciato i buchi (9.554 tratti, con «buchi Rimini-Pesaro
+e Vasto/Molise tappati» a mano: i tappi a mano sono il sintomo).
+
+**Scartato — rattoppare solo i buchi con una query mirata:** il master OSM del
+21/07 non e' nel repo, ci sono solo le 9 maschere derivate. Qualunque correzione
+richiedeva comunque di rigenerare da una sorgente, quindi tanto valeva prenderne
+una intera e buona.
+
+**Scartato — tappare con GSHHG**, che e' gia' nel repo ed e' completa: ha lo shift
+di ~250 m per cui era stata abbandonata, e ci sarebbe stata una cucitura visibile
+dove le coste straniere incontrano quelle italiane.
+
+**Fatto:** le **land polygons** di `osmdata.openstreetmap.de` — lo stesso dato OSM
+gia' cucito, chiuso e validato da OSMCoastline, rigenerato ogni giorno.
+`land-polygons-complete-4326`, 877 MB, 831.139 poligoni, WGS84. **Questa e' la
+risposta alla domanda «dove trovo una fonte affidabile»: non una query fatta
+meglio, ma il prodotto gia' assemblato.**
+
+### `build_coastmasks.py`
+
+Legge il .shp in streaming: il riquadro sta nell'intestazione di ogni record,
+quindi i poligoni che non servono si saltano senza leggerne i punti — 831 mila
+record diventano 6.240 poligoni in 37 secondi, senza librerie geospaziali (non ci
+sono: niente GDAL, niente shapely; c'e' numpy).
+
+Il riempimento e' lo stesso even-odd per scanline di `rasterMask()` nel modulo,
+cosi' la maschera nuova si comporta come quella che sostituisce. Due scarti che
+sembrano azzardati e non lo sono, e vale la pena scriverli perche' rileggendo il
+codice non si vedono:
+
+- un anello **chiuso** tutto a ovest (o tutto a est) del riquadro taglia una data
+  latitudine un numero **pari** di volte, quindi non cambia la parita' dentro il
+  riquadro: si puo' buttare. Senza questo bisognerebbe tenere le coste
+  dell'Atlantico per contare giusto;
+- un singolo segmento tutto a est di `lonE` produce un attraversamento che nessuna
+  colonna del riquadro conta mai (si contano solo quelli a sinistra).
+
+### Gli anelli non sono piu' chiusi, ed e' voluto
+
+I `rings` di prima erano poligoni chiusi dal ritaglio, che pero' **correva lungo i
+bordi del riquadro**: 9 segmenti per 3,91 gradi complessivi in Alto Adriatico,
+righe dritte che da stamattina — da quando la carta disegna gli anelli invece
+della costa GSHHG — finivano disegnate come se fossero costa. Sono quelle le
+righe sottili che tagliano la mappa negli screenshot di prova. Ora il ritaglio e'
+per polilinea e produce **catene aperte**: ne restano 2 in tutte e nove le zone.
+
+### Il buco nella correzione di stamattina, trovato provando
+
+Con la zona attiva la costa ora e' giusta. Premendo **«Area su A↔B»** no: quel
+pulsante — come la ricerca Nominatim, e come il ripiego quando la maschera di zona
+non si scarica — ricostruiva la maschera con `buildCoastMask()`, che rasterizza
+**GSHHG**. Quindi la stessa barca vedeva due coste diverse a seconda del pulsante
+premuto, e la correzione di stamattina non arrivava proprio nel percorso che si usa
+per preparare una traversata.
+
+Tutti e tre passano da `buildCoastMask()`, quindi si e' corretto li' una volta
+sola: se la zona di profilo ha la sua maschera OSM (`ZONE_MASK`, tenuta da parte
+perche' `MED_MASKS['custom']` viene sovrascritto) e il riquadro chiesto ci sta
+dentro, quella viene **ricampionata** invece di rasterizzare GSHHG, e si porta
+dietro i suoi anelli per il disegno. La cella resta quella grossa della zona: non
+si guadagna risoluzione, si guadagna che e' la stessa costa. Fuori dalla zona, o
+senza maschera, GSHHG resta il ripiego.
+
+### Verifica
+
+- **Terra GSHHG mancante**, stesso conteggio di prima: basso-adriatico **6.691 →
+  2**, alto-adriatico **397 → 2**, sicilia **9 → 0**. Le altre erano e restano 0.
+- **46 punti noti** (citta', isole, mare aperto) su vecchia e nuova maschera:
+  **nessun peggioramento**, cinque miglioramenti (Dubrovnik, Curzola, Montenegro,
+  Albania, Pantelleria). I punti che restano sbagliati — Ancona, Bari, Taranto,
+  Siracusa, Capri, Ponza, Capraia, La Maddalena — lo erano **identici** anche
+  prima: e' la griglia a 200 colonne (1,5–2,9 km per cella), non il dato.
+- **Lagune** (Venezia, Marano, Grado, Comacchio, Orbetello, Stagnone): 10 punti,
+  comportamento **identico** a prima. Nessun cambio di nascosto.
+- **Isole piccole presenti fra gli anelli** disegnati: Capri, Ponza, Ustica,
+  Capraia, La Maddalena, Tremiti, Levanzo, Palagruza, Pantelleria.
+- **Rotta vera**: Gargano (41.90, 16.60) → Montenegro (42.60, 18.00), 43 punti,
+  ETA 16,7 h, **0 punti di rotta a terra**. Prima quella traversata attraversava
+  isole che il modello non conosceva.
+- **Area su A↔B** nello stesso riquadro: 90 celle su 9.800 (0,9%) in disaccordo
+  fra maschera ricampionata e GSHHG, tutte sottocosta — fra cui Mljet, che GSHHG
+  decimata si era persa.
+- File: **1,93 MB** in tutto, meno dei 2,03 MB di prima, con molta piu' costa.
+- Integrita': 9/9 file, chiavi attese, lunghezza dei bit = w×h/8, nessuna catena
+  degenere.
+
+### Cache
+`routing/sw.js` v16→v17: le coastmasks stanno nel bucket app-shell, che ha il
+prefisso di versione. **Nota:** la v16 dello stesso giorno non era ancora stata
+pubblicata quando e' arrivata questa modifica; il bump a v17 vale per entrambe.
+
+### Aperti
+- **La griglia resta a 200 colonne** (1,5–2,9 km per cella). E' il motivo per cui
+  Capri, Ponza, Capraia e i centri storici sul mare cadono ancora fra due celle.
+  Alzarla costa pochissimo in byte (i bit sono ~4 KB su file da 200–400 KB, il
+  peso sono gli anelli) ma cambia il comportamento del router — passaggi stretti
+  fra isole che oggi risultano navigabili diventerebbero chiusi. Non toccata qui
+  per non muovere due cose insieme.
+- L'area su misura **fuori** dalla zona di profilo usa ancora GSHHG. Serve la
+  maschera di un'altra zona, quindi va caricata a richiesta: non fatto.
+- Le land polygons scaricate (877 MB zip + 1,3 GB scompattato) stanno nella
+  cartella temporanea di sessione, **non** nel repo. Per rieseguire lo script
+  vanno riscaricate.
