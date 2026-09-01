@@ -692,3 +692,86 @@ citava ancora CARTO a video.
 
 **Da provare a bordo:** leggibilita' della base HOT al sole, e se la satellite regge in
 zone con rete scarsa (le tile pesano piu' delle vettoriali di prima).
+
+---
+
+## 01/09/2026 (seguito) — Selettore basi in Traversata, toponimi, e la batimetria che non tornava
+
+**Etichetta: mappa + un difetto vecchio venuto a galla.** `carta/index.html`,
+`routing/raffyca-traversata-map.html`, `routing/sw.js` → **raffyca-rt v13→v15**.
+
+### Selettore basi anche in Traversata
+Aveva una base fissa. Ora ha le stesse tre di Carta Nautica con gli stessi nomi
+(Nautica chiara / OpenStreetMap / Satellite): passando da un modulo all'altro si
+ritrova la stessa scelta, non un'altra grammatica. La base attiva e' persistita in
+`raffyca-traversata-ui` come campo **`base`** — campo nuovo, nessuna chiave
+rinominata; le UI salvate senza quel campo partono da `nautica`.
+
+### Toponimi sulla satellite, e perche' non da Overpass
+`World_Imagery` non porta un solo nome. Ipotesi valutata: estrarli da Overpass
+Turbo e disegnarli noi. **Scartata**, e non per pigrizia: significherebbe scegliere
+quali nomi mostrare a quale zoom, disegnarli con l'anti-sovrapposizione, tenerli
+aggiornati e portarsi il peso nel repo. Il vantaggio teorico sarebbe l'offline, ma
+le immagini satellitari sono tile pure anche loro: senza rete non c'e' comunque la
+mappa, quindi non si guadagna nulla.
+
+Usato invece **World_Boundaries_and_Places**, il layer di sole scritte che Esri
+pubblica apposta per stare sopra le sue immagini: trasparente, gratuito, senza
+chiave. La satellite e' ora un `layerGroup` immagini+etichette in entrambi i moduli,
+cosi' non si puo' finire per sbaglio con le immagini mute.
+
+**Limite noto:** le etichette Esri sono in **inglese** (Rome, Florence). Localizzarle
+richiede l'API ArcGIS con chiave, non l'endpoint libero. In Traversata pesa poco,
+perche' i 17 nomi curati a mano del layer TOPONIMI restano sopra in italiano e non
+vanno in conflitto; in Carta quel layer non c'e', quindi li' e' tutto inglese.
+
+### Il difetto di impilamento (introdotto con il selettore)
+`L.control.layers` assegna da se' uno z-index crescente alle basi man mano che le
+registra. In Traversata la satellite, **terza voce dell'elenco**, finiva a z 3 dentro
+il `tilePane` e copriva il seamark a z 1. Non dipendeva dalla satellite: bastava
+cambiare l'ordine delle voci per spostare il difetto altrove.
+
+Correzione strutturale, non aritmetica: le basi vivono ora in un pane proprio
+(**`basePane`, z 150**) sotto il `tilePane` (200) del seamark e sotto tutti gli altri
+— griglia 350, fari 360, isobate e tracce in overlayPane 400. I pane sono contesti di
+impilamento separati, quindi nessun ordine di registrazione puo' piu' ribaltare le
+cose. Applicato a Carta e Traversata.
+
+### Il difetto vero: la batimetria non tornava mai accesa
+Segnalato come "la base copre le isobate". Non le copriva: **non venivano disegnate**.
+
+`ISO_ON`, `ISO_COL`, `ISO_SLUG` e `ISO_LABEL_DEPTHS` erano inizializzate in fondo al
+file, **dopo il boot**. La sequenza era: il ripristino delle impostazioni scatena
+`change` su `tBathy` → il gestore mette `ISO_ON=true` e accende la legenda → poi le
+`var` in coda rimettono `ISO_ON=false`. In piu' `ISO_SLUG` era ancora `undefined`, e
+`refreshIsobate` moriva con un TypeError silenzioso. Risultato: casella spuntata,
+legenda visibile, nessuna isobata.
+
+**Si vedeva solo dopo un ricaricamento.** Cliccando la casella a mano durante la
+sessione funzionava, perche' a quel punto le righe incriminate erano gia' passate —
+ed e' per questo che il difetto e' sopravvissuto tanto a lungo senza essere isolato.
+
+Le quattro dichiarazioni sono ora in cima con le altre variabili di modulo; le
+funzioni erano gia' hoistate, quindi non serviva altro. **Solo Traversata:** in Carta
+la dichiarazione di `isoOn` (riga 617) precede gia' il ripristino (riga 824).
+
+### Cache
+`arcgisonline` aggiunto al ramo delle tile in `routing/sw.js`. Senza, le immagini
+satellitari sarebbero cadute nel ramo generico in fondo, che scrive nella app-shell —
+dove il tetto di 600 tile non c'e' e la cache sarebbe cresciuta senza limite sul
+telefono.
+
+### Validazione
+Verificato in locale con zona "Alto Adriatico": isobate scaricate, disegnate e
+leggibili sopra la satellite insieme a costa modello, frecce vento e marker A/B;
+selettore funzionante e scelta ricordata dopo il ricaricamento; `basePane` a 150 sotto
+il seamark a 200. Verificato anche sul sito pubblicato dopo il deploy.
+
+**Non provato:** i fari con la nuova satellite. Vivono in pane dedicati a 360 e 450,
+quindi sono strutturalmente sopra le basi e la correzione li copre, ma non sono stati
+accesi a video.
+
+**Da provare a bordo:** leggibilita' della base HOT al sole; se la satellite regge dove
+la rete e' scarsa (le tile pesano piu' di prima). Nota: `openstreetmap.fr` e' un server
+di volontari con una politica d'uso, non un CDN commerciale come era CARTO — se un
+giorno le tile non caricassero, il sospettato e' quello.
