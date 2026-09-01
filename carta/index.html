@@ -331,7 +331,15 @@ var CV=cartaView();
    su una carta nautica). Le viste salvate con base:'minimal' ricadono su 'nautica'. */
 var baseNautica=L.tileLayer('https://tile-{s}.openstreetmap.fr/hot/{z}/{x}/{y}.png',{maxZoom:19,subdomains:'abc',attribution:'© OpenStreetMap · Humanitarian OSM Team'});
 var baseOSM=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'});
-var baseSat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'© Esri · Maxar · Earthstar Geographics'});
+/* Satellite = immagini + etichette. Le immagini da sole non portano un solo toponimo:
+   riconoscere una cala e' un conto, sapere come si chiama il paese davanti e' un altro.
+   "World Boundaries and Places" e' il layer di sole scritte che Esri pubblica apposta
+   per stare sopra World_Imagery: trasparente, gratuito, senza chiave. */
+var ESRI='https://server.arcgisonline.com/ArcGIS/rest/services/';
+var baseSat=L.layerGroup([
+  L.tileLayer(ESRI+'World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'© Esri · Maxar · Earthstar Geographics'}),
+  L.tileLayer(ESRI+'Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19})
+]);
 var seamark=L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',{maxZoom:19,opacity:1,attribution:'© OpenSeaMap'});
 var map=L.map('map',{zoomControl:true}).setView((CV&&CV.c)?CV.c:(POS||[ZV[0],ZV[1]]),(CV&&CV.c)?CV.z:(POS?12:ZV[2]));
 ((CV&&CV.base==='osm')?baseOSM:(CV&&CV.base==='sat')?baseSat:baseNautica).addTo(map);if(!CV||CV.sea!==false)seamark.addTo(map);
