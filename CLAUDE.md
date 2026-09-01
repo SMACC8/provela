@@ -82,5 +82,14 @@ difetti silenziosi: quelli che non si vedono rileggendo il codice.
   compilato, il sorgente non è qui. Non sono modificabili da questo repository.
 - L'allarme di `anchor/` è dichiaratamente foreground-only: i browser non
   permettono audio affidabile in background.
-- Resta scoperta una tacca fra i rettangoli `ZONE_BOX` a Vasto/Abruzzo, e le
-  isobate di alcune zone non sono complete. Dettagli in `SITUAZIONE.md`.
+- Le etichette della vista Satellite (Esri) sono in inglese: localizzarle
+  richiede l'API ArcGIS con chiave, non l'endpoint libero.
+
+**Il resto dei punti aperti sta nella sezione "Aperti" di `SITUAZIONE.md`, ed è
+lì che va letto — non qui.** Quel file è cronologico: una voce che segnala un
+problema può essere superata da una voce successiva che lo chiude. Va letto
+**fino in fondo** prima di dare per aperto qualcosa. Elencare qui i punti aperti
+è già stato provato ed è andato male: due voci ("tacca `ZONE_BOX` a
+Vasto/Abruzzo", "isobate incomplete") erano state copiate da note del 21/07
+senza vedere il `[FATTO]` che le chiudeva poche righe dopo. Nel codice
+`Medio Adriatico` ha `latS:41.50` e le isobate coprono tutte e 9 le zone.
