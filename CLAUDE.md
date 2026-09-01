@@ -68,6 +68,14 @@ o il bug delle maschere `bits` che dipingevano terra in eccesso. **Va letto
 prima di intervenire su routing, coste o maschere di zona**, altrimenti si
 rischia di rifare strade già rivelatesi sbagliate.
 
+**E va aggiornato: fa parte del lavoro, non è un extra da concordare ogni
+volta.** Ogni intervento non banale si chiude con una voce nuova in fondo,
+scritta senza chiedere il permesso. Il formato lo dettano le voci esistenti:
+separatore `---`, titolo `## gg/mm/aaaa — cosa`, poi il difetto osservato, le
+alternative valutate **e scartate con il motivo**, la correzione, cosa è stato
+verificato e cosa no. Il valore sta soprattutto nelle strade scartate e nei
+difetti silenziosi: quelli che non si vedono rileggendo il codice.
+
 ## Limiti noti
 
 - `performance/` e `partenza/` sono build React: nel repo c'è solo l'`index.html`
