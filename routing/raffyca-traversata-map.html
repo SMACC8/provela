@@ -494,6 +494,39 @@ function findSea(m,lat,lon){if(!maskLand(m,lat,lon))return{lat:lat,lon:lon};  va
   for(var rad=1;rad<Math.max(m.w,m.h);rad++)for(var a=0;a<360;a+=12){var la=lat+Math.sin(a*Math.PI/180)*rad*sLat,lo=lon+Math.cos(a*Math.PI/180)*rad*sLon;
     if(la<=m.latS||la>=m.latN||lo<=m.lonW||lo>=m.lonE)continue;if(!maskLand(m,la,lo))return{lat:la,lon:lo};}
   return{lat:lat,lon:lon};}
+/* Punto di esempio "in acqua aperta". findSea() restituisce il mare PIU' VICINO,
+   e va bene per scostare un punto finito a terra. Come A/B di partenza no: il
+   centro geometrico dell'Alto Adriatico cade nel Quarnaro, in mezzo alle isole,
+   e il mare piu' vicino e' una pozza a 0,4 M dalla costa da cui la rotta non
+   esce - il modulo si apriva con una rotta che non partiva. Qui si cerca invece,
+   in una finestra attorno al punto chiesto, la cella di mare piu' LONTANA dalla
+   costa: le pozze hanno per definizione distanze piccole, quindi perdono. La
+   penalita' sulla distanza tiene il punto vicino a dov'era chiesto a parita' di
+   apertura. Il campo delle distanze e' lo stesso gia' usato dal buffer costa, ed
+   e' memoizzato sulla maschera: si paga una volta per area. */
+function findOpenSea(m,lat,lon){
+  var d=(typeof coastDistField==='function')&&coastDistField(m);
+  if(!d)return findSea(m,lat,lon);
+  var W=m.w,H=m.h;
+  var c0=Math.round((lon-m.lonW)/(m.lonE-m.lonW)*W),r0=Math.round((m.latN-lat)/(m.latN-m.latS)*H);
+  var RAD=Math.max(6,Math.round(Math.max(W,H)*0.35));
+  var rA=Math.max(0,r0-RAD),rB=Math.min(H,r0+RAD+1),cA=Math.max(0,c0-RAD),cB=Math.min(W,c0+RAD+1);
+  var maxd=0,r,c,i;
+  for(r=rA;r<rB;r++)for(c=cA;c<cB;c++){i=r*W+c;
+    if(((m._bits[i>>3]>>(i&7))&1)===0&&d[i]>maxd)maxd=d[i];}
+  if(maxd<=0)return findSea(m,lat,lon);
+  // "abbastanza aperto", non "il piu' aperto": massimizzare l'apertura porterebbe
+  // A e B nello stesso identico punto, il piu' al largo della zona, e la rotta di
+  // esempio sarebbe lunga zero. Si fissa una soglia e fra le celle che la passano
+  // si prende quella piu' VICINA a dove il punto era stato chiesto.
+  var thr=Math.min(3,maxd*0.5),bd=Infinity,bc=-1,br=-1;
+  for(r=rA;r<rB;r++)for(c=cA;c<cB;c++){i=r*W+c;
+    if((m._bits[i>>3]>>(i&7))&1)continue;
+    if(d[i]<thr)continue;
+    var q=(c-c0)*(c-c0)+(r-r0)*(r-r0);
+    if(q<bd){bd=q;bc=c;br=r;}}
+  if(bc<0)return findSea(m,lat,lon);
+  return {lat:m.latN-(br+0.5)/H*(m.latN-m.latS),lon:m.lonW+(bc+0.5)/W*(m.lonE-m.lonW)};}
 function makeCustomArea(clat,clon,name){
   if(!COAST){return false;}
   var hLat=1.1,hLon=1.1/Math.max(0.3,Math.cos(clat*Math.PI/180));
@@ -501,7 +534,7 @@ function makeCustomArea(clat,clon,name){
     lonW:clamp(clon-hLon,COAST_BOX.lonW,COAST_BOX.lonE),lonE:clamp(clon+hLon,COAST_BOX.lonW,COAST_BOX.lonE)};
   if(box.latN-box.latS<0.3||box.lonE-box.lonW<0.3)return false;
   var m=buildCoastMask(box,200);MED_MASKS['custom']=m;
-  var Asea=findSea(m,clat,clon),Bsea=findSea(m,clamp(clat+hLat*0.55,box.latS+0.05,box.latN-0.05),clamp(clon+hLon*0.55,box.lonW+0.05,box.lonE-0.05));
+  var Asea=findOpenSea(m,clat,clon),Bsea=findOpenSea(m,clamp(clat+hLat*0.55,box.latS+0.05,box.latN-0.05),clamp(clon+hLon*0.55,box.lonW+0.05,box.lonE-0.05));
   AREAS['custom']={name:name||'Su misura',latN:box.latN,latS:box.latS,lonW:box.lonW,lonE:box.lonE,A:[Asea.lat,Asea.lon],B:[Bsea.lat,Bsea.lon]};
   return true;}
 
@@ -1055,7 +1088,7 @@ function makeZoneArea(box,name){
   if(b.latN-b.latS<0.3||b.lonE-b.lonW<0.3)return false;
   MED_MASKS['custom']=buildCoastMask(b,200);
   var clat=(b.latN+b.latS)/2,clon=(b.lonW+b.lonE)/2,m=MED_MASKS['custom'];
-  var As=findSea(m,clat,clon),Bs=findSea(m,clamp(clat+(b.latN-b.latS)*0.22,b.latS+0.05,b.latN-0.05),clamp(clon+(b.lonE-b.lonW)*0.22,b.lonW+0.05,b.lonE-0.05));
+  var As=findOpenSea(m,clat,clon),Bs=findOpenSea(m,clamp(clat+(b.latN-b.latS)*0.22,b.latS+0.05,b.latN-0.05),clamp(clon+(b.lonE-b.lonW)*0.22,b.lonW+0.05,b.lonE-0.05));
   AREAS['custom']={name:name||'Zona',latN:b.latN,latS:b.latS,lonW:b.lonW,lonE:b.lonE,A:[As.lat,As.lon],B:[Bs.lat,Bs.lon]};
   return true;
 }
@@ -1073,7 +1106,7 @@ function loadZoneMaskOSM(name,box,cb){
     var raw=atob(m.bits),u=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)u[i]=raw.charCodeAt(i);m._bits=u;
     MED_MASKS['custom']=m;ZONE_MASK=m;
     var clat=(box.latN+box.latS)/2,clon=(box.lonW+box.lonE)/2;
-    var As=findSea(m,clat,clon),Bs=findSea(m,clamp(clat+(box.latN-box.latS)*0.22,box.latS+0.05,box.latN-0.05),clamp(clon+(box.lonE-box.lonW)*0.22,box.lonW+0.05,box.lonE-0.05));
+    var As=findOpenSea(m,clat,clon),Bs=findOpenSea(m,clamp(clat+(box.latN-box.latS)*0.22,box.latS+0.05,box.latN-0.05),clamp(clon+(box.lonE-box.lonW)*0.22,box.lonW+0.05,box.lonE-0.05));
     AREAS['custom']={name:name,latN:m.latN,latS:m.latS,lonW:m.lonW,lonE:m.lonE,A:[As.lat,As.lon],B:[Bs.lat,Bs.lon]};
     activateZoneCustom(name,box); if(map&&typeof redraw==='function')redraw(); cb(true);
   }).catch(function(){cb(false);});

@@ -1,7 +1,7 @@
 /* ProVela service worker — offline per la traversata.
    Strategia: navigazione network-first (niente trappola della cache vecchia),
    app-shell e dati statici cache-first, tile e forecast con fallback alla cache. */
-var VERSION = 'raffyca-rt-v17';
+var VERSION = 'raffyca-rt-v18';
 var SHELL = VERSION + '-shell';
 var TILES = VERSION + '-tiles';
 var DATA  = VERSION + '-data';

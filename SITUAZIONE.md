@@ -1066,3 +1066,106 @@ pubblicata quando e' arrivata questa modifica; il bump a v17 vale per entrambe.
 - Le land polygons scaricate (877 MB zip + 1,3 GB scompattato) stanno nella
   cartella temporanea di sessione, **non** nel repo. Per rieseguire lo script
   vanno riscaricate.
+
+---
+
+## 01/09/2026 (quinto) — Griglia della maschera a cella fissa: l'area sbagliata si dimezza
+
+**Etichetta: modello.** `build_coastmasks.py`, `routing/coastmasks/*` (9 file
+rigenerati), `routing/raffyca-traversata-map.html`, `routing/sw.js` →
+**raffyca-rt v17→v18**.
+
+### Il tetto lo detta il router, non la carta
+
+La maschera aveva **200 colonne fisse**, quindi la cella cambiava da zona a zona
+(0.014° in Mar Ligure, 0.026° in Basso Adriatico: da 1,1 a 2,9 km). Alzare per
+alzare non ha senso: `hitsLand()` campiona la terra ogni **0,4 M = 741 m** lungo
+il segmento, quindi una maschera piu' fine di cosi' descrive isolotti che il passo
+di campionamento salta comunque, e non sarebbero nemmeno colpiti in modo
+prevedibile — un'isola larga meno del passo viene presa o mancata a seconda di
+dove cadono i campioni.
+
+Il criterio e' quindi passato da "200 colonne" a **cella di lato fisso, 0.010°**:
+815×1113 m a 45N, 889×1113 m a 37N. Sempre sopra i 741 m, quindi **qualunque
+singola cella di terra attraversata viene per forza colpita da un campione**, e
+sotto quel valore non si scende perche' non servirebbe.
+
+### Misurato, non stimato
+
+Il conteggio sui punti noti non basta a decidere: sono 46 punti scelti a mano,
+quasi tutti sottocosta. La misura giusta e' **quanta area viene classificata
+male**. Rasterizzata la sorgente a 0.002° (cinque volte piu' fine) e presa come
+verita', confrontando cella per cella:
+
+| zona | 200 colonne | cella 0.010 |
+|---|---|---|
+| alto-adriatico | 1,42% | **0,85%** |
+| basso-adriatico | 0,93% | **0,41%** |
+| sicilia | 0,68% | **0,33%** |
+| mar-ligure | 0,31% | **0,23%** |
+
+**L'area sbagliata si dimezza.** Costo: +155 KB su tutte e nove le zone (1,93 →
+2,08 MB) — i bit sono 12–25 KB per zona, il peso dei file restano gli anelli.
+`coastDistField` passa da 2–5 ms a 7–18 ms, ma e' memoizzato sulla maschera: si
+paga **una volta per area**, non a ogni ricalcolo. Il tempo di calcolo della rotta
+non cambia (830–950 ms in Basso e Medio Adriatico, come prima): lo domina la
+ricerca a fascio, non la maschera.
+
+### I passaggi stretti non si chiudono
+
+Il rischio vero di una maschera piu' fine e' che un canale navigabile diventi
+terra. Misurato il varco d'acqua che ogni maschera lascia lungo un transetto, su
+12 passaggi: **nessuno si chiude**, e diversi diventano piu' veritieri — Vela
+Vrata da 2.550 a 3.750 m (vero ~5.000), Passo della Moneta da 2.000 a 1.100 m
+(vero ~400). Messina, Bonifacio, Piombino, Bocca Piccola, Procida, Zara,
+Morlacca, Mali Ston, San Pietro: tutti aperti prima e dopo.
+
+### Attenzione a come si misura: i punti sul bordo cella
+
+Il primo confronto sui 46 punti dava tre **peggioramenti** — Dubrovnik, Genova,
+Sanremo. Erano un artefatto del test, non della maschera: sono coordinate a due
+decimali su una griglia di 0.010° allineata a `lonW`/`latN`, anch'essi a due
+decimali, quindi **cadono esatte sul bordo di una cella** e l'arrotondamento in
+virgola mobile decide da che parte. Verificati i centri di cella contro il
+poligono sorgente: coerenti tutti e tre. Scostando i punti dal bordo il conto
+diventa 35/46 → **39/46, quattro miglioramenti e nessun peggioramento**
+(Taranto, Siracusa, Capri, Palermo).
+
+Vale come regola: **un punto di prova a coordinate tonde su una griglia a
+coordinate tonde non prova niente.**
+
+### Il difetto che la griglia fine ha fatto emergere
+
+Con la cella fine l'Alto Adriatico si apriva con **una rotta di un punto solo**.
+Non era la griglia: il centro geometrico di quella zona cade **nel Quarnaro, in
+mezzo alle isole**, e `findSea()` — che cerca il mare *piu' vicino*, giusto per
+scostare un punto finito a terra — piazzava A e B a **0,42 M dalla costa**, in
+due pozze chiuse. Il difetto c'era gia' (con la maschera di stamattina erano 13
+punti e la rotta non chiudeva lo stesso), la cella fine risolve le pozze e lo
+porta all'estremo.
+
+Nuova `findOpenSea()`, usata **solo** per gli A/B di esempio (i tre punti che li
+scelgono: zona da profilo, area su misura da Nominatim, ripiego). `findSea()`
+resta dov'era per il resto.
+
+**Scartato — prendere il mare piu' aperto della zona:** provato, e A e B finivano
+nella **stessa identica cella**, la piu' al largo. In Medio Adriatico la rotta di
+esempio veniva lunga 0,4 ore. Massimizzare l'apertura e' la cosa sbagliata.
+
+**Fatto:** soglia, non massimo. Si guarda l'apertura massima nella finestra, si
+fissa la soglia a `min(3 M, meta' del massimo)`, e fra le celle che la superano si
+prende quella **piu' vicina a dove il punto era stato chiesto**. Le pozze hanno
+per definizione distanze piccole e perdono; il punto resta dove ha senso.
+
+Risultato: **8 zone su 9** aprono con una rotta di esempio sensata (A-B fra 16 e
+73 M, tutte chiuse, 0 punti a terra).
+
+### Aperto: la Sicilia
+La nona non chiude, e non e' colpa della griglia. Il centro geometrico della zona
+Sicilia cade **dentro l'isola**: A finisce sulla costa sud (Agrigento) e B su
+quella nord (Cefalu'). Sono 73 M in linea d'aria ma la rotta deve girare intorno
+alla Sicilia, oltre l'orizzonte di calcolo. Il vecchio `findSea` dava la stessa
+coppia sui medesimi due versanti (70,4 M): il difetto e' preesistente e
+indipendente da tutto questo. Servirebbe scegliere B **nello stesso specchio
+d'acqua** di A — un riempimento per connessita' sulla maschera, che e' poco
+codice ma e' un'altra cosa e non e' stato fatto qui.

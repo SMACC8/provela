@@ -36,7 +36,14 @@ ZONE = {   # unione dei ZONE_BOX di routing/ e carta/ (Alto Tirreno: lonW 7.50)
     "sardegna":        {"latN": 41.50, "latS": 38.70, "lonW":  7.90, "lonE": 12.00},
     "sicilia":         {"latN": 38.70, "latS": 36.30, "lonW": 11.80, "lonE": 15.80},
 }
-W_CELLS = 200          # colonne per zona: come le maschere che sostituisce
+# Lato della cella in gradi, uguale per tutte le zone (prima erano 200 colonne
+# fisse, quindi la cella cambiava da 0.014 a 0.026 gradi a seconda della zona).
+# Il tetto utile lo detta il router, non la carta: hitsLand() campiona la terra
+# ogni 0.4 M = 741 m, quindi una maschera piu' fine di cosi' descrive isolotti
+# che il passo di campionamento salta. A 0.010 gradi la cella misura 815 x 1113 m
+# a 43N e 889 x 1113 m a 37N: sempre sopra i 741 m, quindi qualunque singola
+# cella di terra attraversata viene per forza colpita da un campione.
+CELL_DEG = 0.010
 DP_TOL  = 0.00036      # semplificazione degli anelli, ~40 m: come prima
 MIN_LEN = 0.00020      # catene piu' corte di ~22 m: scarti del ritaglio, non costa
 OUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "routing", "coastmasks")
@@ -211,9 +218,9 @@ def main():
     print("riquadro unione: lon %.2f..%.2f lat %.2f..%.2f" % (union["lonW"], union["lonE"], union["latS"], union["latN"]))
     rings = read_polygons(src, union)
     for slug, z in ZONE.items():
-        cell = (z["lonE"] - z["lonW"]) / W_CELLS
-        h = int(round((z["latN"] - z["latS"]) / cell))
-        bits = rasterize(rings, z, W_CELLS, h)
+        w = int(round((z["lonE"] - z["lonW"]) / CELL_DEG))
+        h = int(round((z["latN"] - z["latS"]) / CELL_DEG))
+        bits = rasterize(rings, z, w, h)
         land = sum(bin(b).count("1") for b in bits)
         chains = []
         for r, bb in rings:
@@ -222,14 +229,14 @@ def main():
                 s = dp(ch, DP_TOL)
                 if len(s) >= 2 and length_deg(s) >= MIN_LEN:
                     chains.append([[round(p[0], 4), round(p[1], 4)] for p in s])
-        out = {"w": W_CELLS, "h": h, "latN": z["latN"], "latS": z["latS"],
+        out = {"w": w, "h": h, "latN": z["latN"], "latS": z["latS"],
                "lonW": z["lonW"], "lonE": z["lonE"],
                "bits": base64.b64encode(bytes(bits)).decode(),
                "rings": chains}
         path = os.path.join(OUT_DIR, slug + ".json")
         with open(path, "w") as f: json.dump(out, f, separators=(",", ":"))
-        print("  %-16s %3dx%-3d  terra %5d/%-5d  catene %5d  punti %7d  %6.1f KB" % (
-            slug, W_CELLS, h, land, W_CELLS * h, len(chains),
+        print("  %-16s %4dx%-4d terra %6d/%-6d catene %5d  punti %7d  %6.1f KB" % (
+            slug, w, h, land, w * h, len(chains),
             sum(len(c) for c in chains), os.path.getsize(path) / 1024))
 
 if __name__ == "__main__":
