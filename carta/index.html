@@ -329,19 +329,26 @@ var CV=cartaView();
    La base "Minimal" e' caduta: senza chiave non esiste un equivalente del Positron
    (gli stili minimali gratuiti rendono mare e terra dello stesso grigio, inaccettabile
    su una carta nautica). Le viste salvate con base:'minimal' ricadono su 'nautica'. */
-var baseNautica=L.tileLayer('https://tile-{s}.openstreetmap.fr/hot/{z}/{x}/{y}.png',{maxZoom:19,subdomains:'abc',attribution:'© OpenStreetMap · Humanitarian OSM Team'});
-var baseOSM=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'});
+/* Le basi vivono in un pane proprio ('basePane', z 150) SOTTO il tilePane (200), dove
+   stanno i simboli OpenSeaMap, e sotto tutti gli altri pane (griglia 350, fari 360,
+   isobate e tracce in overlayPane 400). Senza, L.control.layers assegna da se' uno
+   z-index crescente alle basi man mano che le registra: la terza base finisce SOPRA
+   il seamark, che sta nello stesso pane, e i simboli nautici spariscono. Il pane
+   rende la cosa strutturale invece che dipendente dall'ordine delle voci. */
+var baseNautica=L.tileLayer('https://tile-{s}.openstreetmap.fr/hot/{z}/{x}/{y}.png',{pane:'basePane',maxZoom:19,subdomains:'abc',attribution:'© OpenStreetMap · Humanitarian OSM Team'});
+var baseOSM=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{pane:'basePane',maxZoom:19,attribution:'© OpenStreetMap'});
 /* Satellite = immagini + etichette. Le immagini da sole non portano un solo toponimo:
    riconoscere una cala e' un conto, sapere come si chiama il paese davanti e' un altro.
    "World Boundaries and Places" e' il layer di sole scritte che Esri pubblica apposta
    per stare sopra World_Imagery: trasparente, gratuito, senza chiave. */
 var ESRI='https://server.arcgisonline.com/ArcGIS/rest/services/';
 var baseSat=L.layerGroup([
-  L.tileLayer(ESRI+'World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'© Esri · Maxar · Earthstar Geographics'}),
-  L.tileLayer(ESRI+'Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19})
+  L.tileLayer(ESRI+'World_Imagery/MapServer/tile/{z}/{y}/{x}',{pane:'basePane',maxZoom:19,attribution:'© Esri · Maxar · Earthstar Geographics'}),
+  L.tileLayer(ESRI+'Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{pane:'basePane',maxZoom:19})
 ]);
 var seamark=L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',{maxZoom:19,opacity:1,attribution:'© OpenSeaMap'});
 var map=L.map('map',{zoomControl:true}).setView((CV&&CV.c)?CV.c:(POS||[ZV[0],ZV[1]]),(CV&&CV.c)?CV.z:(POS?12:ZV[2]));
+map.createPane('basePane');map.getPane('basePane').style.zIndex=150;   /* prima di aggiungere le basi */
 ((CV&&CV.base==='osm')?baseOSM:(CV&&CV.base==='sat')?baseSat:baseNautica).addTo(map);if(!CV||CV.sea!==false)seamark.addTo(map);
 L.control.layers({'Nautica (chiara)':baseNautica,'OpenStreetMap':baseOSM,'Satellite':baseSat},{'Simboli nautici (OpenSeaMap)':seamark},{collapsed:true}).addTo(map);
 var layer=L.layerGroup().addTo(map), posMarker=null;

@@ -914,6 +914,15 @@ function exportDiarioPDF(){var R=R_CACHE;if(!R||!R.diag||!R.diag.length){toast('
 // ---------- Leaflet wiring ----------
 var map=null,baseLayer=null,seaLayer=null,markA=null,markB=null,activeAB='A',_toastT=null,AB_MOVE=false;
 var BASES=null,CURBASE='nautica';   /* basi mappa selezionabili + quella attiva (persistita) */
+/* Stato batimetria dichiarato QUI e non piu' in fondo al file. Stava dopo il boot: il
+   ripristino delle impostazioni scatenava 'change' su tBathy (ISO_ON=true, legenda
+   accesa), poi l'inizializzazione in coda rimetteva ISO_ON=false. Casella spuntata,
+   legenda visibile, isobate mai disegnate - e solo dopo un ricaricamento, perche'
+   cliccando a mano la riga incriminata era gia' passata. */
+var ISO_ON=false,ISO_LAYER=null,ISO_CACHE={};
+var ISO_COL={"-5":"#8fe3ff","-10":"#2BD9C4","-20":"#46d68a","-50":"#FFC24B","-100":"#FF6B6B","-200":"#c792ea","-500":"#f78fb3","-1000":"#9aa7ff"};
+var ISO_SLUG={"Alto Adriatico":"alto_adriatico","Medio Adriatico":"medio_adriatico","Basso Adriatico":"basso_adriatico","Mar Ionio":"mar_ionio","Basso Tirreno":"basso_tirreno","Alto Tirreno":"alto_tirreno","Mar Ligure":"mar_ligure","Sardegna":"sardegna","Sicilia":"sicilia"};
+var ISO_LABEL_DEPTHS=[-5,-10,-20,-50,-100,-200,-500];
 function toast(msg){var el=document.getElementById('toast');if(!el)return;el.textContent=msg;el.classList.add('show');clearTimeout(_toastT);_toastT=setTimeout(function(){el.classList.remove('show');},2600);}
 function redraw(){if(!map)return;var svg=document.getElementById('rfOverlay'),op=map.getPanes().overlayPane;
   if(svg.parentNode!==op){op.appendChild(svg);svg.style.position='absolute';}
@@ -1111,12 +1120,17 @@ function initMap(){if(typeof L==='undefined'){return;}
      La satellite si porta dietro le etichette Esri (le immagini da sole non hanno
      toponimi). La scelta e' persistita in raffyca-traversata-ui, campo 'base'. */
   var ESRI='https://server.arcgisonline.com/ArcGIS/rest/services/';
+  /* Le basi in un pane proprio ('basePane', z 150) SOTTO il tilePane (200), dove sta il
+     seamark, e sotto l'overlayPane (400) di costa, isobate e isocrone. Senza pane,
+     L.control.layers assegna alle basi uno z-index crescente man mano che le registra:
+     la satellite, terza voce, finiva a z 3 sopra il seamark a z 1 e lo copriva. */
+  map.createPane('basePane');map.getPane('basePane').style.zIndex=150;
   BASES={
-    nautica:L.tileLayer('https://tile-{s}.openstreetmap.fr/hot/{z}/{x}/{y}.png',{subdomains:'abc',maxZoom:18,attribution:'© OpenStreetMap · Humanitarian OSM Team'}),
-    osm:L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenStreetMap'}),
+    nautica:L.tileLayer('https://tile-{s}.openstreetmap.fr/hot/{z}/{x}/{y}.png',{pane:'basePane',subdomains:'abc',maxZoom:18,attribution:'© OpenStreetMap · Humanitarian OSM Team'}),
+    osm:L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{pane:'basePane',maxZoom:18,attribution:'© OpenStreetMap'}),
     sat:L.layerGroup([
-      L.tileLayer(ESRI+'World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:18,attribution:'© Esri · Maxar · Earthstar Geographics'}),
-      L.tileLayer(ESRI+'Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:18})
+      L.tileLayer(ESRI+'World_Imagery/MapServer/tile/{z}/{y}/{x}',{pane:'basePane',maxZoom:18,attribution:'© Esri · Maxar · Earthstar Geographics'}),
+      L.tileLayer(ESRI+'Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{pane:'basePane',maxZoom:18})
     ])
   };
   if(SAVED_UI&&BASES[SAVED_UI.base])CURBASE=SAVED_UI.base;   /* loadSavedUI() gira prima di initMap() */
@@ -1334,10 +1348,8 @@ if('serviceWorker' in navigator){window.addEventListener('load',function(){
 });}
 
 /* ---- Batimetria: isobate per zona (EMODnet) ---- */
-var ISO_ON=false,ISO_LAYER=null,ISO_CACHE={};
-var ISO_COL={"-5":"#8fe3ff","-10":"#2BD9C4","-20":"#46d68a","-50":"#FFC24B","-100":"#FF6B6B","-200":"#c792ea","-500":"#f78fb3","-1000":"#9aa7ff"};
-var ISO_SLUG={"Alto Adriatico":"alto_adriatico","Medio Adriatico":"medio_adriatico","Basso Adriatico":"basso_adriatico","Mar Ionio":"mar_ionio","Basso Tirreno":"basso_tirreno","Alto Tirreno":"alto_tirreno","Mar Ligure":"mar_ligure","Sardegna":"sardegna","Sicilia":"sicilia"};
-var ISO_LABEL_DEPTHS=[-5,-10,-20,-50,-100,-200,-500];
+/* ISO_ON / ISO_LAYER / ISO_CACHE dichiarate in cima con le altre variabili di modulo:
+   qui l'inizializzazione girava DOPO il boot e annullava il ripristino della casella. */
 function isoZone(){try{var p=JSON.parse(localStorage.getItem("raffyca-profile")||"{}");return (p.zone||"").trim();}catch(e){return"";}}
 function isoStyle(f){var d=f.properties.depth;return {color:(ISO_COL[String(d)]||"#6b7f95"),weight:(d>=-50?1.1:0.8),opacity:.85};}
 function isoClear(){if(ISO_LAYER&&map){map.removeLayer(ISO_LAYER);}ISO_LAYER=null;}
