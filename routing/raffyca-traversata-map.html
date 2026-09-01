@@ -504,7 +504,40 @@ function findSea(m,lat,lon){if(!maskLand(m,lat,lon))return{lat:lat,lon:lon};  va
    penalita' sulla distanza tiene il punto vicino a dov'era chiesto a parita' di
    apertura. Il campo delle distanze e' lo stesso gia' usato dal buffer costa, ed
    e' memoizzato sulla maschera: si paga una volta per area. */
-function findOpenSea(m,lat,lon){
+/* Linea di vista sulla maschera, campionata a mezza cella. Non usa hitsLand()
+   perche' quello guarda MED_MASKS[FIELD.area], e qui la maschera e' ancora in
+   costruzione: l'area attiva non e' questa. */
+function seaLineFree(m,a,b){
+  var i,t;
+  // scrematura a sei campioni: la stragrande maggioranza dei candidati e' dietro
+  // un'isola e cade qui, senza pagare il campionamento fitto.
+  for(i=1;i<6;i++){t=i/6;
+    if(maskLand(m,a.lat+(b.lat-a.lat)*t,a.lon+(b.lon-a.lon)*t))return false;}
+  var sLat=(m.latN-m.latS)/m.h,sLon=(m.lonE-m.lonW)/m.w;
+  var n=Math.max(2,Math.ceil(Math.max(Math.abs(b.lat-a.lat)/sLat,Math.abs(b.lon-a.lon)/sLon)*2));
+  for(i=0;i<=n;i++){t=i/n;
+    if(maskLand(m,a.lat+(b.lat-a.lat)*t,a.lon+(b.lon-a.lon)*t))return false;}
+  return true;}
+/* Punto di esempio in acqua aperta. findSea() restituisce il mare PIU' VICINO, e
+   va bene per scostare un punto finito a terra; come A/B di partenza no. Due
+   difetti, tutti e due visti a video:
+
+   - il centro geometrico dell'Alto Adriatico cade nel Quarnaro, in mezzo alle
+     isole: il mare piu' vicino e' una pozza a 0,4 M dalla costa da cui la rotta
+     non esce, e il modulo si apriva con una rotta di un punto solo;
+   - il centro della zona Sicilia cade DENTRO l'isola: A finiva sulla costa sud e
+     B su quella nord. Sono 73 M in linea d'aria, ma per mare bisogna girare
+     intorno alla Sicilia, oltre l'orizzonte di calcolo.
+
+   Il secondo NON si risolve per connessita': il mare a nord e a sud dell'isola e'
+   lo stesso specchio d'acqua (si passa lo Stretto, o si gira). Serve invece che B
+   sia un punto che A VEDE in linea retta - cioe' una traversata, non un periplo.
+
+   Quindi: soglia di apertura (non massimo - vedi sotto), poi fra le celle che la
+   passano si prende la piu' vicina a dove il punto era stato chiesto CHE ABBIA
+   linea di vista libera da `from`. Senza `from` (cioe' per A) il vincolo non si
+   applica. */
+function findOpenSea(m,lat,lon,from){
   var d=(typeof coastDistField==='function')&&coastDistField(m);
   if(!d)return findSea(m,lat,lon);
   var W=m.w,H=m.h;
@@ -515,18 +548,25 @@ function findOpenSea(m,lat,lon){
   for(r=rA;r<rB;r++)for(c=cA;c<cB;c++){i=r*W+c;
     if(((m._bits[i>>3]>>(i&7))&1)===0&&d[i]>maxd)maxd=d[i];}
   if(maxd<=0)return findSea(m,lat,lon);
-  // "abbastanza aperto", non "il piu' aperto": massimizzare l'apertura porterebbe
-  // A e B nello stesso identico punto, il piu' al largo della zona, e la rotta di
-  // esempio sarebbe lunga zero. Si fissa una soglia e fra le celle che la passano
-  // si prende quella piu' VICINA a dove il punto era stato chiesto.
-  var thr=Math.min(3,maxd*0.5),bd=Infinity,bc=-1,br=-1;
+  /* "abbastanza aperto", non "il piu' aperto": massimizzare l'apertura, provato
+     prima, portava A e B nella stessa identica cella - la piu' al largo della
+     zona - e la rotta di esempio veniva lunga zero. */
+  var thr=Math.min(3,maxd*0.5),cand=[];
   for(r=rA;r<rB;r++)for(c=cA;c<cB;c++){i=r*W+c;
     if((m._bits[i>>3]>>(i&7))&1)continue;
     if(d[i]<thr)continue;
-    var q=(c-c0)*(c-c0)+(r-r0)*(r-r0);
-    if(q<bd){bd=q;bc=c;br=r;}}
-  if(bc<0)return findSea(m,lat,lon);
-  return {lat:m.latN-(br+0.5)/H*(m.latN-m.latS),lon:m.lonW+(bc+0.5)/W*(m.lonE-m.lonW)};}
+    cand.push([(c-c0)*(c-c0)+(r-r0)*(r-r0),c,r]);}
+  if(!cand.length)return findSea(m,lat,lon);
+  cand.sort(function(a,b){return a[0]-b[0];});
+  function pt(k){return {lat:m.latN-(cand[k][2]+0.5)/H*(m.latN-m.latS),lon:m.lonW+(cand[k][1]+0.5)/W*(m.lonE-m.lonW)};}
+  if(!from)return pt(0);
+  /* Si scorre TUTTA la lista: un tetto basso (4.000, provato) si esaurisce prima
+     di uscire dal mare a nord della Sicilia, e il vincolo non morde proprio dove
+     serve. Con la scrematura di seaLineFree il costo resta nell'ordine dei ms, e
+     si paga una volta sola al caricamento dell'area. */
+  for(var k=0;k<cand.length;k++){var q=pt(k);if(seaLineFree(m,from,q))return q;}
+  return pt(0);                                  // nessuna in vista: meglio di niente
+}
 function makeCustomArea(clat,clon,name){
   if(!COAST){return false;}
   var hLat=1.1,hLon=1.1/Math.max(0.3,Math.cos(clat*Math.PI/180));
@@ -534,7 +574,7 @@ function makeCustomArea(clat,clon,name){
     lonW:clamp(clon-hLon,COAST_BOX.lonW,COAST_BOX.lonE),lonE:clamp(clon+hLon,COAST_BOX.lonW,COAST_BOX.lonE)};
   if(box.latN-box.latS<0.3||box.lonE-box.lonW<0.3)return false;
   var m=buildCoastMask(box,200);MED_MASKS['custom']=m;
-  var Asea=findOpenSea(m,clat,clon),Bsea=findOpenSea(m,clamp(clat+hLat*0.55,box.latS+0.05,box.latN-0.05),clamp(clon+hLon*0.55,box.lonW+0.05,box.lonE-0.05));
+  var Asea=findOpenSea(m,clat,clon),Bsea=findOpenSea(m,clamp(clat+hLat*0.55,box.latS+0.05,box.latN-0.05),clamp(clon+hLon*0.55,box.lonW+0.05,box.lonE-0.05),Asea);
   AREAS['custom']={name:name||'Su misura',latN:box.latN,latS:box.latS,lonW:box.lonW,lonE:box.lonE,A:[Asea.lat,Asea.lon],B:[Bsea.lat,Bsea.lon]};
   return true;}
 
@@ -1088,7 +1128,7 @@ function makeZoneArea(box,name){
   if(b.latN-b.latS<0.3||b.lonE-b.lonW<0.3)return false;
   MED_MASKS['custom']=buildCoastMask(b,200);
   var clat=(b.latN+b.latS)/2,clon=(b.lonW+b.lonE)/2,m=MED_MASKS['custom'];
-  var As=findOpenSea(m,clat,clon),Bs=findOpenSea(m,clamp(clat+(b.latN-b.latS)*0.22,b.latS+0.05,b.latN-0.05),clamp(clon+(b.lonE-b.lonW)*0.22,b.lonW+0.05,b.lonE-0.05));
+  var As=findOpenSea(m,clat,clon),Bs=findOpenSea(m,clamp(clat+(b.latN-b.latS)*0.22,b.latS+0.05,b.latN-0.05),clamp(clon+(b.lonE-b.lonW)*0.22,b.lonW+0.05,b.lonE-0.05),As);
   AREAS['custom']={name:name||'Zona',latN:b.latN,latS:b.latS,lonW:b.lonW,lonE:b.lonE,A:[As.lat,As.lon],B:[Bs.lat,Bs.lon]};
   return true;
 }
@@ -1106,7 +1146,7 @@ function loadZoneMaskOSM(name,box,cb){
     var raw=atob(m.bits),u=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)u[i]=raw.charCodeAt(i);m._bits=u;
     MED_MASKS['custom']=m;ZONE_MASK=m;
     var clat=(box.latN+box.latS)/2,clon=(box.lonW+box.lonE)/2;
-    var As=findOpenSea(m,clat,clon),Bs=findOpenSea(m,clamp(clat+(box.latN-box.latS)*0.22,box.latS+0.05,box.latN-0.05),clamp(clon+(box.lonE-box.lonW)*0.22,box.lonW+0.05,box.lonE-0.05));
+    var As=findOpenSea(m,clat,clon),Bs=findOpenSea(m,clamp(clat+(box.latN-box.latS)*0.22,box.latS+0.05,box.latN-0.05),clamp(clon+(box.lonE-box.lonW)*0.22,box.lonW+0.05,box.lonE-0.05),As);
     AREAS['custom']={name:name,latN:m.latN,latS:m.latS,lonW:m.lonW,lonE:m.lonE,A:[As.lat,As.lon],B:[Bs.lat,Bs.lon]};
     activateZoneCustom(name,box); if(map&&typeof redraw==='function')redraw(); cb(true);
   }).catch(function(){cb(false);});

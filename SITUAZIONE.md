@@ -1169,3 +1169,69 @@ coppia sui medesimi due versanti (70,4 M): il difetto e' preesistente e
 indipendente da tutto questo. Servirebbe scegliere B **nello stesso specchio
 d'acqua** di A — un riempimento per connessita' sulla maschera, che e' poco
 codice ma e' un'altra cosa e non e' stato fatto qui.
+
+---
+
+## 01/09/2026 (sesto) — Sicilia: A e B di esempio sulle due coste opposte
+
+**Etichetta: carta.** Solo `routing/raffyca-traversata-map.html`. **Nessun bump:**
+il SW serve l'HTML network-first, e i dati non sono stati toccati.
+
+### Il difetto
+Il centro geometrico della zona Sicilia cade **dentro l'isola**. `findOpenSea()`
+scostava A sulla costa sud (al largo di Agrigento) e B — che parte dal centro piu'
+uno scarto del 22% — su quella nord (al largo di Cefalu'). Sono 73 M in linea
+d'aria, ma per mare bisogna girare intorno alla Sicilia: la rotta di esempio
+correva 71 passi e 28 ore senza arrivare, e il modulo si apriva con «NON CHIUSA».
+Difetto vecchio, indipendente dalla griglia: il `findSea()` originale dava la
+stessa coppia sui medesimi due versanti (70,4 M).
+
+### Scartato — il riempimento per connessita'
+Era l'idea ovvia, ed e' sbagliata: **il mare a nord e a sud della Sicilia e' lo
+stesso specchio d'acqua**. Ci si passa dallo Stretto di Messina, che sta dentro il
+riquadro della zona, e comunque si gira intorno all'isola. Un riempimento a
+quattro vicini li trova connessi e non separa niente. Vale la pena scriverlo
+perche' e' la prima cosa che verrebbe da riprovare.
+
+### Fatto — linea di vista
+Il criterio giusto non e' «raggiungibile» ma «**una traversata, non un periplo**»:
+B dev'essere un punto che A vede in linea retta. `findOpenSea()` prende un quarto
+parametro facoltativo `from`; quando c'e', fra le celle che passano la soglia di
+apertura si prende la piu' vicina a dove il punto era stato chiesto **che abbia
+linea di vista libera da `from`**. Per A (nessun `from`) niente cambia.
+
+Il test e' su `maskLand()` e non su `hitsLand()`, perche' quello guarda
+`MED_MASKS[FIELD.area]` e qui la maschera e' ancora in costruzione: l'area attiva
+non e' quella.
+
+**Difetto introdotto e corretto durante il lavoro.** Prima versione con un tetto
+di 4.000 candidati per non pagare troppo: non cambiava niente. La lista e' ordinata
+per distanza dal punto chiesto, e 4.000 celle attorno a un punto a nord della
+Sicilia sono ancora tutte a nord della Sicilia — il vincolo si esauriva prima di
+arrivare al mare giusto. Tolto il tetto e aggiunta invece una **scrematura a sei
+campioni** in testa a `seaLineFree()`: quasi tutti i candidati sono dietro un'isola
+e cadono li', senza pagare il campionamento a mezza cella. Il caricamento della
+zona Sicilia resta a 168 ms.
+
+### Verifica
+Tutte e 9 le zone, con le impostazioni salvate azzerate:
+
+| | A-B | vista libera | rotta | ETA | punti a terra | setup |
+|---|---|---|---|---|---|---|
+| Alto Adriatico | 16 M | si | chiusa 14 pt | 5,0 h | 0 | 345 ms |
+| Medio Adriatico | 58 M | si | chiusa 32 pt | 12,3 h | 0 | 666 ms |
+| Basso Adriatico | 59 M | si | chiusa 32 pt | 12,3 h | 0 | 566 ms |
+| Mar Ionio | 73 M | si | chiusa 40 pt | 15,5 h | 0 | 257 ms |
+| Basso Tirreno | 51 M | si | chiusa 29 pt | 11,3 h | 0 | 294 ms |
+| Alto Tirreno | 53 M | si | chiusa 30 pt | 11,6 h | 0 | 432 ms |
+| Mar Ligure | 33 M | si | chiusa 23 pt | 8,9 h | 0 | 102 ms |
+| Sardegna | 56 M | si | chiusa 31 pt | 12,0 h | 0 | 312 ms |
+| **Sicilia** | **37 M** | **si** | **chiusa 18 pt** | **6,9 h** | **0** | **168 ms** |
+
+In Sicilia A e B stanno ora tutti e due sulla costa sud: Licata → Gela/Pozzallo,
+guardato anche a video.
+
+**Nota su cosa succede a B:** con il vincolo, B non finisce piu' dove lo scarto del
+22% lo chiedeva, ma nel punto in vista piu' vicino a quello. E' voluto — meglio una
+traversata corta e sensata che una lunga e impossibile — ma vuol dire che in una
+zona con molte isole l'esempio puo' venire piu' corto di prima.
