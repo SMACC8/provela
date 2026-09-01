@@ -775,3 +775,157 @@ accesi a video.
 la rete e' scarsa (le tile pesano piu' di prima). Nota: `openstreetmap.fr` e' un server
 di volontari con una politica d'uso, non un CDN commerciale come era CARTO — se un
 giorno le tile non caricassero, il sospettato e' quello.
+
+---
+
+## 01/09/2026 (terzo) — Isobate ritagliate da capo, lagune tolte, e la costa che il router usa davvero
+
+**Etichetta: dati + carta.** `build_isobate.py` (nuovo), `routing/isobate/*` (9 file
+rigenerati), `routing/raffyca-traversata-map.html`, `routing/sw.js` → **raffyca-rt v15→v16**.
+
+### 1. Il ritaglio delle isobate era fermo ai riquadri di prima
+
+Il 21/07 quattro `ZONE_BOX` erano stati allargati per chiudere le tacche di
+copertura del vento — Alto Tirreno a nord, Medio Adriatico fino a 41.50, Basso
+Tirreno fino ad Anzio, Sardegna fino al continente. Le isobate no: restavano
+ritagliate sui riquadri vecchi. Vasto, il Gargano, Anzio e il canale di Sardegna
+erano dentro la zona e senza fondali, e non si vedeva rileggendo il codice perche'
+il codice era giusto: erano i **dati** a essere vecchi. La nota del 21/07 lo
+diceva («Vento/isobate residue e batimetrie: ancora da vedere») ed e' rimasta li'.
+
+Ora il ritaglio sta in `build_isobate.py`, con i riquadri scritti dentro **una
+volta sola**: sono l'unione di quelli di `routing/` e di `carta/`, che
+differiscono su Alto Tirreno (`lonW` 7.50 contro 9.00) — vale il piu' largo, cosi'
+un pacchetto solo serve tutti e due i moduli. In piu' un **margine di 0.15°** (~17
+km) oltre ogni bordo: le zone confinanti si accavallano e passando un confine,
+dove il file cambia, i fondali non spariscono per un istante.
+
+### 2. Le lagune
+
+EMODnet e' un dato scientifico interpolato: dentro Marano, Grado e Venezia produce
+contorni che non sono fondali navigabili. A video sembravano isobate vere in mezzo
+alla terra, cosa che nella carta di un modulo di navigazione e' peggio che non
+averne.
+
+**Scartato — buttare i contorni interi che toccano una laguna:** un solo contorno
+-5 corre da Venezia a Grado entrando e uscendo dalle lagune. Buttarlo avrebbe
+cancellato anche il tratto sottocosta buono.
+
+**Scartato — togliere tutto cio' che cade a terra usando la maschera del router:**
+la maschera e' a ~1.5 km per cella, mangerebbe i tratti veri appena sottocosta.
+
+**Fatto:** due poligoni disegnati a mano (`LAGUNE` in `build_isobate.py`) e
+sottrazione **per tratto**, non per contorno: ogni segmento e' spezzato sulle
+intersezioni col bordo e ogni pezzo tenuto o buttato in base al suo punto medio.
+I poligoni hanno il lato di mare sulla linea dei lidi — Lido/Pellestrina/
+Sottomarina a Venezia, Bibione/Lignano/Grado in Friuli — e il lato di terra
+volutamente largo, molto oltre la costa, dove isobate non ce ne sono comunque:
+**la precisione serve solo sul lato di mare**, ed e' li' che vanno riguardati se
+un giorno si toccano.
+
+### 3. Lo shapefile e' piu' rado dei file che sostituisce, ma non piu' impreciso
+
+Sospetto legittimo: `isobate_ITALIA_v2` ha ~99 vertici per grado di linea, i file
+zona vecchi ne avevano ~148 nello stesso riquadro. Misurato invece di dedurlo:
+scarto geometrico massimo fra vecchio e nuovo, su 12 contorni lunghi presi a caso,
+**7 metri**. Era ridondanza piu' arrotondamento a 4 decimali (11 m), non forma
+persa. Il file `.geojson` gemello nell'archivio e' identico allo shapefile
+(verificato contorno per contorno), quindi la sorgente e' una sola.
+
+**Non fatto — rigenerare i contorni dai 7 grid EMODnet grezzi**, che sono di nuovo
+nel Dropbox dell'utente (7 `.asc`, ~300 MB l'uno, in `Batimetria/Dati grezzi/`).
+Darebbe la risoluzione piena, ma e' un'altra pipeline (smussatura NaN-aware +
+contouring + filtri) e, visti i 7 m di scarto, non e' li' che sta il guadagno. Se
+un giorno serve, quella e' la strada.
+
+### 4. Verifica delle isobate
+
+- **Vertici ben dentro terra** (celle di terra con tutte e quattro le vicine di
+  terra, contro la maschera OSM della zona): Alto Adriatico **246 → 3**, Medio
+  Adriatico 5 → 5, Alto Tirreno 13 → 9. Su 103.000 vertici totali ne restano 19.
+- Copertura: tutte e 9 le zone arrivano ora al bordo del riquadro + margine.
+- Totale 2,3 MB, come prima.
+- A video in Traversata e in Carta, sopra OSM: niente dentro le lagune, i contorni
+  al largo di Grado e dei lidi intatti.
+
+**Non verificato:** le altre lagune (Orbetello, Comacchio, Stagnone) — non
+chieste, e non guardate. **Resta aperto** il difetto dei contorni che non
+chiudono: non e' stato toccato.
+
+### 5. Traversata: l'azzurro spariva sulle basi chiare
+
+Con il selettore di basi introdotto stamattina le basi vanno dal quasi-bianco
+(Nautica chiara) al quasi-nero (Satellite). Isocrone `#bfe6ff`, linea diretta
+`#cfe0f0` e vento debole `#2BD9C4` sulla prima non si leggevano.
+
+**Scartato — cambiare i colori:** qui sono semantici (la scala del vento si legge
+a colpo d'occhio) e SITUAZIONE dice da luglio di non toccarli.
+
+**Fatto:** sotto ogni tratto un filo scuro (`CASE`, `halo()`) — stessa geometria,
+piu' spesso, quasi opaco. E' la stessa soluzione dei fari in Carta («casing scuro
+sotto per leggibilita' su Voyager chiara», 06/08). Le punte delle frecce vento
+hanno un bordo scuro dentro il `<marker>`, con `overflow="visible"` perche'
+altrimenti il riquadro del marker lo taglia.
+
+**Difetto introdotto e corretto durante il lavoro:** avevo ingrandito il marker a
+9×9 per far stare il bordo. Le misure del marker sono in **unita' di
+stroke-width**, non in pixel: le frecce erano diventate triangoli enormi.
+Ripristinate le misure originali, bordo sottile piu' `overflow`.
+
+Le isocrone si disegnano in **due passate** — prima tutti i fili scuri, poi tutti
+gli azzurri. Per elemento, il filo scuro di un'isocrona mangiava quella accanto
+dove si addossano.
+
+### 6. Traversata: isocrone solo lungo la rotta
+
+Il fronte si apre a ventaglio e dopo qualche ora copre mezza zona, schiacciandosi
+sulla costa. Quei lobi non dicono nulla sulla traversata: la rendono solo
+illeggibile.
+
+Nuova casella **«solo lungo la rotta»** (`tIsoCorr`, accesa di default, persistita
+in `raffyca-traversata-ui`; le UI salvate senza il campo partono dal default
+dell'HTML, cioe' accesa). Filtra i nodi su assi A→B: fascia di traverso pari al
+30% della distanza A-B (fra 3 e 30 M) e avanzamento fra -10% e +110%. Spegnendola
+si torna al ventaglio intero.
+
+**Scartato — filtrare per raggio o per numero di nodi:** il ventaglio e' un
+problema di direzione, non di quantita'; tagliare per raggio accorcia le isocrone
+utili e lascia i lobi.
+
+### 7. La costa disegnata non era la costa del router
+
+L'errore segnalato a Bibione: la linea passava mezzo chilometro dentro il paese.
+Non e' una fonte da cercare — la fonte buona era gia' nel repo.
+
+`buildCoastSegs()` disegnava **sempre** `mediterranean_land_10m.geojson`, cioe' la
+costa **GSHHG**, quella con lo shift di ~250 m e la deformazione per cui il 21/07
+le maschere erano gia' passate a OpenStreetMap. Dal 21/07 il router usa gli anelli
+OSM di `coastmasks/<slug>.json`; la casella diceva «costa modello — il confine
+della maschera terra/mare che il router usa davvero» e mostrava un'altra linea.
+Confrontate le due sopra OSM a Bibione: GSHHG taglia dentro l'abitato e fa
+poligoni ad angoli attorno a Valle Vecchia, gli anelli OSM seguono la battigia e
+risalgono la bocca di Porto Baseleghe.
+
+`buildCoastSegs()` ora preferisce `MED_MASKS[FIELD.area].rings` quando ci sono
+(11.893 segmenti in Alto Adriatico) e tiene GSHHG come **ripiego**: area di
+default, zona senza maschera, maschera non ancora scaricata. `mediterranean_land_10m.geojson`
+resta comunque necessario — `makeZoneArea`, `rasterMask` e l'area su misura da
+Nominatim ci girano sopra.
+
+**Sulla domanda «dove trovo una fonte affidabile»:** Overpass da' i tratti grezzi
+di `natural=coastline`, non una costa: vanno cuciti, chiusi e controllati, ed e'
+li' che il risultato delude. Il prodotto gia' cucito e validato esiste ed e' lo
+stesso dato — le **land polygons** di `osmdata.openstreetmap.de` (uscita di
+OSMCoastline, rigenerate ogni giorno). Se un giorno le maschere vanno rifatte,
+quella e' la sorgente, non una nuova query Overpass.
+
+### Cache
+`routing/sw.js` v15→v16: le isobate stanno nel bucket app-shell, che ha il
+prefisso di versione, quindi il bump le spurga. **Carta non ha bisogno di bump:**
+e' servita dal SW dell'hub, che sui non-navigazione fa `caches.match(req) || fetch(req)`
+e non scrive mai — le isobate non ci finiscono. (Che e' anche il motivo per cui in
+Carta la batimetria **non** e' disponibile offline, cosa che resta aperta.)
+
+**Da provare a bordo:** se il corridoio al 30% e' troppo stretto su traversate
+lunghe; se il filo scuro sotto le frecce vento appesantisce troppo la carta al
+sole.

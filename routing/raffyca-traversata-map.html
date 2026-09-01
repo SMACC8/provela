@@ -221,6 +221,7 @@ html.day [fill="#46d68a"]{fill:#12894f;} html.night [fill="#46d68a"]{fill:#c23a3
     <label><input type="checkbox" id="tCoast" checked> costa modello</label>
     <label><input type="checkbox" id="tWind" checked> vento</label>
     <label><input type="checkbox" id="tIso" checked> isocrone</label>
+    <label><input type="checkbox" id="tIsoCorr" checked> solo lungo la rotta</label>
     <label><input type="checkbox" id="tNames" checked> toponimi</label>
     <label><input type="checkbox" id="tBathy"> batimetria</label>
   </div>
@@ -423,7 +424,23 @@ function coastDist(lat,lon){var m=(typeof MED_MASKS!=='undefined')&&MED_MASKS[FI
 
 // ---------- costa on-device: rasterizza un riquadro qualsiasi del Mediterraneo ----------
 var COAST=null,COAST_BOX=null,COAST_SEGS=[];
-function buildCoastSegs(){COAST_SEGS=[];if(!COAST)return;var a=AREAS[FIELD.area],E=COAST,m=0.02;
+/* "costa modello" = il confine terra/mare che il router usa davvero, e da quando
+   le zone hanno la maschera OSM precotta quel confine sono i suoi anelli. Prima
+   qui si disegnava sempre la costa GSHHG di mediterranean_land_10m.geojson, che
+   e' un'altra linea: a Bibione passa dentro il paese, mezzo chilometro a monte
+   della spiaggia (lo shift ~250 m + deformazione per cui il 21/07 le maschere
+   erano gia' passate a OpenStreetMap). La legenda diceva una cosa e il disegno
+   ne mostrava un'altra. GSHHG resta il ripiego: area di default, zona senza
+   maschera, o maschera non ancora scaricata. */
+function buildCoastSegs(){COAST_SEGS=[];var a=AREAS[FIELD.area],m=0.02;if(!a)return;
+  var mk=(typeof MED_MASKS!=='undefined')&&MED_MASKS[FIELD.area];
+  if(mk&&mk.rings&&mk.rings.length){
+    for(var r=0;r<mk.rings.length;r++){var ring=mk.rings[r];
+      for(var k=0;k<ring.length-1;k++){var p1=ring[k],p2=ring[k+1];
+        if(Math.min(p1[1],p2[1])>a.latN+m||Math.max(p1[1],p2[1])<a.latS-m||Math.min(p1[0],p2[0])>a.lonE+m||Math.max(p1[0],p2[0])<a.lonW-m)continue;
+        COAST_SEGS.push(p1[1],p1[0],p2[1],p2[0]);}}
+    return;}
+  if(!COAST)return;var E=COAST;
   for(var e=0;e<E.length;e+=4){var la1=E[e],lo1=E[e+1],la2=E[e+2],lo2=E[e+3];
     if(Math.min(la1,la2)>a.latN+m||Math.max(la1,la2)<a.latS-m||Math.min(lo1,lo2)>a.lonE+m||Math.max(lo1,lo2)<a.lonW-m)continue;
     COAST_SEGS.push(la1,lo1,la2,lo2);}}
@@ -637,16 +654,42 @@ function computeRoute(){
   if(rfBusy){rfPending=true;return;}              // durante drag/slider: tieni solo l'ultimo
   rfBusy=true;try{RF_WORKER.postMessage(jobParams());}catch(err){rfBusy=false;RF_WORKER=null;routeSync();}}
 var WIND_VIEW=null; // ora vento mostrata in carta (null = ora di partenza)
+/* Le basi selezionabili vanno dal quasi-bianco (Nautica chiara) al quasi-nero
+   (Satellite). Un azzurro chiaro - isocrone, vento debole, linea diretta - sparisce
+   sulla prima. Invece di cambiare i colori, che qui sono semantici (la scala del
+   vento si legge a colpo d'occhio), sotto ogni tratto va un filo scuro: stessa
+   geometria, piu' spesso, quasi opaco. E' la stessa soluzione dei fari in Carta. */
+var CASE='#06121F';
+function halo(d,w,op){return d?'<path d="'+d+'" fill="none" stroke="'+CASE+'" stroke-opacity="'+(op==null?0.5:op)+'" stroke-width="'+w+'" stroke-linecap="round" stroke-linejoin="round"/>':'';}
+/* Corridoio delle isocrone. Il fronte si apre a ventaglio e dopo qualche ora copre
+   mezza zona, schiacciandosi sulla costa: quei lobi non dicono nulla sulla rotta,
+   la rendono solo illeggibile. Filtra i nodi su assi A->B: fascia di traverso pari
+   al 30% della distanza A-B (fra 3 e 30 M) e avanzamento fra -10% e +110%, cosi'
+   resta la parte che riguarda la traversata. Restituisce null quando il filtro e'
+   spento o A e B sono troppo vicini perche' abbia senso. */
+function isoCorridor(R){
+  var t=document.getElementById('tIsoCorr');
+  if(!t||!t.checked||!R||!R.start||!R.goal)return null;
+  var A=R.start,B=R.goal,cl=cosLat(FIELD.area);
+  var dx=(B.lon-A.lon)*60*cl,dy=(B.lat-A.lat)*60,D=Math.sqrt(dx*dx+dy*dy);
+  if(D<0.5)return null;
+  var ux=dx/D,uy=dy/D,W=clamp(D*0.30,3,30);
+  return function(p){
+    var px=(p.lon-A.lon)*60*cl,py=(p.lat-A.lat)*60,along=px*ux+py*uy,cross=px*uy-py*ux;
+    return along>=-0.10*D&&along<=1.10*D&&Math.abs(cross)<=W;
+  };
+}
 function buildOverlay(P){
   if(!R_CACHE)computeRoute();var R=R_CACHE,A=AREAS[FIELD.area],dep=STATE.dep,s='';
   // vero solo se la rotta in cache è dell'area attuale: evita che isocrone/rotta della zona
   // precedente restino disegnate nella breve finestra prima che il worker restituisca la nuova.
   var routeOK=!!(R&&R.path&&R.layers&&(!R.area||R.area===FIELD.area));
-  var defs='<defs>'+
-    '<marker id="wha" markerWidth="7" markerHeight="7" refX="5.8" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill="#2BD9C4"/></marker>'+
-    '<marker id="whb" markerWidth="7" markerHeight="7" refX="5.8" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill="#7BD88A"/></marker>'+
-    '<marker id="whc" markerWidth="7" markerHeight="7" refX="5.8" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill="#FFC24B"/></marker>'+
-    '<marker id="whd" markerWidth="7" markerHeight="7" refX="5.8" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill="#FF6B6B"/></marker></defs>';
+  // stessa punta di prima (le misure sono in unita' di stroke-width: cambiarle la
+  // ingrandirebbe), piu' un bordo scuro sottile. overflow=visible perche' il bordo
+  // esce dal riquadro del marker, che altrimenti lo taglierebbe.
+  function whead(id,col){return '<marker id="'+id+'" markerWidth="7" markerHeight="7" refX="5.8" refY="3.5" orient="auto" overflow="visible">'+
+    '<path d="M0 0 L7 3.5 L0 7 z" fill="'+col+'" stroke="'+CASE+'" stroke-width="0.7" stroke-linejoin="round" paint-order="stroke"/></marker>';}
+  var defs='<defs>'+whead('wha','#2BD9C4')+whead('whb','#7BD88A')+whead('whc','#FFC24B')+whead('whd','#FF6B6B')+'</defs>';
   // costa del modello (confine della maschera terra/mare che il router usa davvero)
   var tc=document.getElementById('tCoast');
   if((!tc||tc.checked)&&COAST_SEGS.length){var cs='';for(var ci=0;ci<COAST_SEGS.length;ci+=4){var c1=P(COAST_SEGS[ci],COAST_SEGS[ci+1]),c2=P(COAST_SEGS[ci+2],COAST_SEGS[ci+3]);
@@ -655,11 +698,13 @@ function buildOverlay(P){
   // isochrones — una ogni ~N passi (i passi hanno durata uniforme => spaziatura ~oraria):
   // niente ammassi vicino ad A/B o costa, e non dipende da campi (.t) assenti nel risultato del worker.
   if(routeOK&&document.getElementById('tIso').checked){
-    var Ntot=R.layers.length,kStep=Math.max(1,Math.round(Ntot/10));
+    var inCorr=isoCorridor(R);
+    var Ntot=R.layers.length,kStep=Math.max(1,Math.round(Ntot/10)),isoD=[];
     for(var li=0;li<Ntot;li++){
     if(((li+1)%kStep!==0)&&li!==Ntot-1)continue;   // salta i passi intermedi e le prime isocrone minuscole attorno ad A
     var Lr0=R.layers[li];if(!Lr0||Lr0.length<3)continue;
-    var Lr=Lr0.slice();
+    var Lr=inCorr?Lr0.filter(inCorr):Lr0.slice();
+    if(Lr.length<3)continue;
     for(var n0=0;n0<Lr.length;n0++){Lr[n0]._b=bearing(R.start,Lr[n0]);Lr[n0]._r=dist(R.start,Lr[n0]);}
     Lr.sort(function(a,b){return a._b-b._b;});
     var maxr=0;for(var n1=0;n1<Lr.length;n1++)if(Lr[n1]._r>maxr)maxr=Lr[n1]._r;
@@ -667,20 +712,32 @@ function buildOverlay(P){
     for(var jx=0;jx<Lr.length;jx++){var q=P(Lr[jx].lat,Lr[jx].lon),brk=(jx===0);
       if(jx>0){if(Math.abs(Lr[jx]._b-Lr[jx-1]._b)>22||Math.abs(Lr[jx]._r-Lr[jx-1]._r)>rThr)brk=true;}
       d+=(brk?' M ':' L ')+q.x.toFixed(1)+' '+q.y.toFixed(1);}
-    s+='<path d="'+d+'" fill="none" stroke="#bfe6ff" stroke-opacity="0.92" stroke-width="2.6"/>';}}
+    isoD.push(d);}
+    // due passate: prima tutti i fili scuri, poi tutti gli azzurri. Per elemento, il
+    // filo scuro di un'isocrona mangerebbe quella accanto dove si addossano.
+    for(var ib=0;ib<isoD.length;ib++)s+=halo(isoD[ib],4.6);
+    for(var it=0;it<isoD.length;it++)s+='<path d="'+isoD[it]+'" fill="none" stroke="#bfe6ff" stroke-opacity="0.98" stroke-width="2.6" stroke-linecap="round"/>';}
   // wind arrows all'ora mostrata (default = partenza) — sopra le isocrone, piu marcate
   var _wv=(WIND_VIEW==null?dep:WIND_VIEW);
   if(document.getElementById('tWind').checked){var sl=FIELD.slices[clamp(Math.round(_wv),0,FIELD.slices.length-1)];
+    var wCas='',wTop='';
     for(var j=0;j<NY;j++)for(var i=0;i<NX;i++){var lon=A.lonW+(A.lonE-A.lonW)*i/(NX-1),lat=A.latN-(A.latN-A.latS)*j/(NY-1);
       var w=uv2dir(sl.u[j][i],sl.v[j][i]),pt=P(lat,lon),ar=(w.twd+180)*Math.PI/180,L=clamp(6+w.tws*0.6,8,16),dx=Math.sin(ar)*L,dy=-Math.cos(ar)*L;
       var col=speedColor(w.tws),mk=w.tws<7?'wha':w.tws<13?'whb':w.tws<18?'whc':'whd';
-      s+='<line x1="'+(pt.x-dx).toFixed(1)+'" y1="'+(pt.y-dy).toFixed(1)+'" x2="'+(pt.x+dx).toFixed(1)+'" y2="'+(pt.y+dy).toFixed(1)+'" stroke="'+col+'" stroke-opacity="0.98" stroke-width="2.2" marker-end="url(#'+mk+')"/>';}}
+      wCas+='M'+(pt.x-dx).toFixed(1)+' '+(pt.y-dy).toFixed(1)+'L'+(pt.x+dx).toFixed(1)+' '+(pt.y+dy).toFixed(1);
+      wTop+='<line x1="'+(pt.x-dx).toFixed(1)+'" y1="'+(pt.y-dy).toFixed(1)+'" x2="'+(pt.x+dx).toFixed(1)+'" y2="'+(pt.y+dy).toFixed(1)+'" stroke="'+col+'" stroke-opacity="0.98" stroke-width="2.2" marker-end="url(#'+mk+')"/>';}
+    s+=halo(wCas,3.8,0.4)+wTop;}
   // direct line — sempre da A/B correnti (STATE), così è coerente anche mentre la rotta si ricalcola
   var pa=P(STATE.A.lat,STATE.A.lon),pb=P(STATE.B.lat,STATE.B.lon);
-  s+='<line x1="'+pa.x.toFixed(1)+'" y1="'+pa.y.toFixed(1)+'" x2="'+pb.x.toFixed(1)+'" y2="'+pb.y.toFixed(1)+'" stroke="#cfe0f0" stroke-opacity="0.5" stroke-width="1.2" stroke-dasharray="2 5"/>';
+  s+=halo('M'+pa.x.toFixed(1)+' '+pa.y.toFixed(1)+'L'+pb.x.toFixed(1)+' '+pb.y.toFixed(1),3,0.35)+
+     '<line x1="'+pa.x.toFixed(1)+'" y1="'+pa.y.toFixed(1)+'" x2="'+pb.x.toFixed(1)+'" y2="'+pb.y.toFixed(1)+'" stroke="#cfe0f0" stroke-opacity="0.85" stroke-width="1.4" stroke-dasharray="2 5"/>';
   // route
-  var Pth=routeOK?R.path:[];for(var k=1;k<Pth.length;k++){var u1=P(Pth[k-1].lat,Pth[k-1].lon),u2=P(Pth[k].lat,Pth[k].lon);
-    s+='<line x1="'+u1.x.toFixed(1)+'" y1="'+u1.y.toFixed(1)+'" x2="'+u2.x.toFixed(1)+'" y2="'+u2.y.toFixed(1)+'" stroke="'+(Pth[k].motor?'#FFC24B':'#2BD9C4')+'" stroke-width="3.4" '+(Pth[k].motor?'stroke-dasharray="6 4"':'')+' stroke-linecap="round" stroke-opacity="0.95"/>';}
+  var Pth=routeOK?R.path:[],rCas='';
+  for(var k=1;k<Pth.length;k++){var u1=P(Pth[k-1].lat,Pth[k-1].lon),u2=P(Pth[k].lat,Pth[k].lon);
+    rCas+='M'+u1.x.toFixed(1)+' '+u1.y.toFixed(1)+'L'+u2.x.toFixed(1)+' '+u2.y.toFixed(1);}
+  if(rCas)s+=halo(rCas,6.4,0.6);
+  for(var k=1;k<Pth.length;k++){var u1=P(Pth[k-1].lat,Pth[k-1].lon),u2=P(Pth[k].lat,Pth[k].lon);
+    s+='<line x1="'+u1.x.toFixed(1)+'" y1="'+u1.y.toFixed(1)+'" x2="'+u2.x.toFixed(1)+'" y2="'+u2.y.toFixed(1)+'" stroke="'+(Pth[k].motor?'#FFC24B':'#2BD9C4')+'" stroke-width="3.4" '+(Pth[k].motor?'stroke-dasharray="6 4"':'')+' stroke-linecap="round" stroke-opacity="0.98"/>';}
   // posizione lungo la rotta all'ora del vento mostrato
   var _e=_wv-dep;
   if(Pth.length>1&&_e>=0&&_e<=Pth[Pth.length-1].t){var _bk=Pth[0];for(var _z=0;_z<Pth.length;_z++){if(Pth[_z].t<=_e)_bk=Pth[_z];else break;}
@@ -1182,6 +1239,7 @@ document.getElementById('polReset').addEventListener('click',function(){resetPol
 document.getElementById('navReroute').addEventListener('change',function(){if(NAV.on&&NAV.pos)navStartFrom(NAV.pos);});
 document.getElementById('navFollow').addEventListener('change',function(){if(NAV.on&&NAV.pos&&this.checked&&map)map.panTo([NAV.pos.lat,NAV.pos.lon],{animate:false});});
 document.getElementById('tIso').addEventListener('change',redraw);
+document.getElementById('tIsoCorr').addEventListener('change',redraw);
 document.getElementById('tBathy').addEventListener('change',function(){ISO_ON=this.checked;var lg=document.getElementById('isoLegend');if(lg)lg.style.display=ISO_ON?'block':'none';refreshIsobate();});
 
 /* ---------- toponimi (quadro sinottico) ---------- */
@@ -1283,7 +1341,7 @@ function saveUI(){if(!_uiReady)return;
       dep:STATE.dep,mot:STATE.mot,maxWind:STATE.maxWind,coastBuf:STATE.coastBuf,tackPen:STATE.tackPen,polarEff:STATE.polarEff,
       motRaw:rv('mot'),windCapRaw:rv('windCap'),coastBufRaw:rv('coastBuf'),
       motorChk:cv('motorOn'),windCapChk:cv('windCapOn'),coastChk:cv('coastOn'),
-      tSea:cv('tSea'),tCoast:cv('tCoast'),tWind:cv('tWind'),tIso:cv('tIso'),tNames:cv('tNames'),tBathy:cv('tBathy'),navFollow:cv('navFollow'),
+      tSea:cv('tSea'),tCoast:cv('tCoast'),tWind:cv('tWind'),tIso:cv('tIso'),tIsoCorr:cv('tIsoCorr'),tNames:cv('tNames'),tBathy:cv('tBathy'),navFollow:cv('navFollow'),
       base:CURBASE};
     localStorage.setItem(UIKEY,JSON.stringify(u));
   }catch(e){}
@@ -1307,7 +1365,7 @@ function restoreSettings(){var u=SAVED_UI;if(!u)return;
   setv('coastBuf',u.coastBufRaw,'coastV');
   var tp=document.getElementById('tackPen');if(tp&&isFinite(u.tackPen)){tp.value=u.tackPen;var tv=document.getElementById('tackV');if(tv)tv.textContent=u.tackPen;}
   var pe=document.getElementById('polarEff');if(pe&&isFinite(u.polarEff)){var pv=Math.round(u.polarEff*100);pe.value=pv;var ev=document.getElementById('effV');if(ev)ev.textContent=pv;}
-  ['tSea','tCoast','tWind','tIso','tNames','tBathy','navFollow'].forEach(function(id){var val=u[id];if(val==null)return;var e=document.getElementById(id);if(e)e.checked=val;});
+  ['tSea','tCoast','tWind','tIso','tIsoCorr','tNames','tBathy','navFollow'].forEach(function(id){var val=u[id];if(val==null)return;var e=document.getElementById(id);if(e)e.checked=val;});
 }
 /* riallinea gli strati della mappa ai toggle salvati (dopo initMap) */
 function applyRestoredToggles(){var u=SAVED_UI;if(!u||!map)return;
@@ -1332,7 +1390,7 @@ initWorker();
 _uiReady=true;
 // persisti anche i toggle di sola visualizzazione (non passano da computeRoute)
 document.addEventListener('change',function(e){var id=e.target&&e.target.id;
-  if(id&&/^(tSea|tCoast|tWind|tIso|tNames|tBathy|navFollow)$/.test(id))saveUI();});
+  if(id&&/^(tSea|tCoast|tWind|tIso|tIsoCorr|tNames|tBathy|navFollow)$/.test(id))saveUI();});
 // PWA: registra il service worker (offline). Network-first sulla navigazione evita la trappola della cache vecchia.
 /* picker A/B da lista waypoint (Carta Nautica) */
 (function(){var sel=document.getElementById('wpPick');if(!sel)return;
