@@ -89,7 +89,13 @@ difetti silenziosi: quelli che non si vedono rileggendo il codice.
 lì che va letto — non qui.** Quel file è cronologico: una voce che segnala un
 problema può essere superata da una voce successiva che lo chiude. Va letto
 **fino in fondo** prima di dare per aperto qualcosa. Elencare qui i punti aperti
-è già stato provato ed è andato male: due voci ("tacca `ZONE_BOX` a
-Vasto/Abruzzo", "isobate incomplete") erano state copiate da note del 21/07
-senza vedere il `[FATTO]` che le chiudeva poche righe dopo. Nel codice
-`Medio Adriatico` ha `latS:41.50` e le isobate coprono tutte e 9 le zone.
+è già stato provato ed è andato male: la voce "tacca `ZONE_BOX` a
+Vasto/Abruzzo" era stata copiata da una nota del 21/07 senza vedere il
+`[FATTO]` che la chiudeva poche righe dopo (nel codice `Medio Adriatico` ha
+`latS:41.50`, in `routing/` e in `carta/`).
+
+**Le isobate restano un punto aperto**, e qui c'è la seconda lezione: erano
+state date per risolte perché esistono 9 file su 9 zone. Ma la presenza del
+file non dice nulla sul dato che contiene — ci sono contorni che non chiudono
+e zone dove le isobate andrebbero tolte del tutto. Contare i file non è
+verificare.
