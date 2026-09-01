@@ -1104,7 +1104,8 @@ function initMap(){if(typeof L==='undefined'){return;}
   L.DomEvent.on(map.getContainer(),'wheel',function(e){
     if(e.ctrlKey||e.metaKey||e.altKey){L.DomEvent.preventDefault(e);var z=map.getZoom()+(e.deltaY<0?1:-1);
       map.setZoomAround(map.mouseEventToLatLng(e),clamp(z,map.getMinZoom()||0,map.getMaxZoom()||18));}});
-  baseLayer=L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:18,attribution:'© OpenStreetMap · © CARTO'}).addTo(map);
+  /* era CARTO Positron: dal 2026 senza API key le tile arrivano con sopra "API KEY REQUIRED". */
+  baseLayer=L.tileLayer('https://tile-{s}.openstreetmap.fr/hot/{z}/{x}/{y}.png',{subdomains:'abc',maxZoom:18,attribution:'© OpenStreetMap · Humanitarian OSM Team'}).addTo(map);
   seaLayer=L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenSeaMap'}).addTo(map);
   var LocateCtl=L.Control.extend({options:{position:'topleft'},onAdd:function(){var b=L.DomUtil.create('a','leaflet-bar');b.href='#';b.title='La mia posizione';b.innerHTML='◎';b.style.cssText='width:30px;height:30px;line-height:30px;text-align:center;font-size:17px;background:#0e2036;color:#2BD9C4;text-decoration:none';L.DomEvent.on(b,'click',function(e){L.DomEvent.stop(e);if(!navigator.geolocation){toast('GPS non disponibile');return;}navigator.geolocation.getCurrentPosition(function(pp){map.setView([pp.coords.latitude,pp.coords.longitude],11);toast('La tua posizione');},function(){toast('Posizione non disponibile');},{enableHighAccuracy:true,timeout:15000});});return b;}});map.addControl(new LocateCtl());
   namesLayer=buildNames();namesLayer.addTo(map);

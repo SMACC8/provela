@@ -323,14 +323,19 @@ var ZV=zoneView();
 function cartaView(){try{return JSON.parse(localStorage.getItem('raffyca-carta-view')||'null');}catch(e){return null;}}
 var CV=cartaView();
 /* mappa: basi selezionabili + overlay simboli nautici OpenSeaMap.
-   Base "Nautica (chiara)" = poche strade, acqua chiara: i simboli nautici risaltano, aspetto vicino a una carta. */
-var baseNautica=L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{maxZoom:20,subdomains:'abcd',attribution:'© OpenStreetMap · © CARTO'});
-var baseMinimal=L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:20,subdomains:'abcd',attribution:'© OpenStreetMap · © CARTO'});
+   Base "Nautica (chiara)" = poche strade, acqua chiara: i simboli nautici risaltano, aspetto vicino a una carta.
+   NB: erano tile CARTO (Voyager e Positron). Dal 2026 CARTO richiede una API key e
+   senza chiave stampa "API KEY REQUIRED" sopra ogni tile, quindi sono state sostituite.
+   La base "Minimal" e' caduta: senza chiave non esiste un equivalente del Positron
+   (gli stili minimali gratuiti rendono mare e terra dello stesso grigio, inaccettabile
+   su una carta nautica). Le viste salvate con base:'minimal' ricadono su 'nautica'. */
+var baseNautica=L.tileLayer('https://tile-{s}.openstreetmap.fr/hot/{z}/{x}/{y}.png',{maxZoom:19,subdomains:'abc',attribution:'© OpenStreetMap · Humanitarian OSM Team'});
 var baseOSM=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'});
+var baseSat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'© Esri · Maxar · Earthstar Geographics'});
 var seamark=L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',{maxZoom:19,opacity:1,attribution:'© OpenSeaMap'});
 var map=L.map('map',{zoomControl:true}).setView((CV&&CV.c)?CV.c:(POS||[ZV[0],ZV[1]]),(CV&&CV.c)?CV.z:(POS?12:ZV[2]));
-((CV&&CV.base==='minimal')?baseMinimal:(CV&&CV.base==='osm')?baseOSM:baseNautica).addTo(map);if(!CV||CV.sea!==false)seamark.addTo(map);
-L.control.layers({'Nautica (chiara)':baseNautica,'Minimal':baseMinimal,'OpenStreetMap':baseOSM},{'Simboli nautici (OpenSeaMap)':seamark},{collapsed:true}).addTo(map);
+((CV&&CV.base==='osm')?baseOSM:(CV&&CV.base==='sat')?baseSat:baseNautica).addTo(map);if(!CV||CV.sea!==false)seamark.addTo(map);
+L.control.layers({'Nautica (chiara)':baseNautica,'OpenStreetMap':baseOSM,'Satellite':baseSat},{'Simboli nautici (OpenSeaMap)':seamark},{collapsed:true}).addTo(map);
 var layer=L.layerGroup().addTo(map), posMarker=null;
 /* scia della registrazione in corso: magenta, convenzione dei plotter.
    Il nero sparirebbe sul fondo scuro in tema Notte e si confonderebbe
@@ -790,7 +795,7 @@ map.on('click',function(){if(fariOn&&fariSel){fariSel=null;fariRender();}});
 /* ---- persistenza vista carta (raffyca-carta-view) ---- */
 function saveView(){try{
   var c=map.getCenter();
-  var base=map.hasLayer(baseMinimal)?'minimal':map.hasLayer(baseOSM)?'osm':'nautica';
+  var base=map.hasLayer(baseOSM)?'osm':map.hasLayer(baseSat)?'sat':'nautica';
   localStorage.setItem('raffyca-carta-view',JSON.stringify({
     c:[+c.lat.toFixed(5),+c.lng.toFixed(5)],z:map.getZoom(),base:base,sea:map.hasLayer(seamark),
     grid:gridOn,zones:zonesOn,bathy:isoOn,fari:fariOn,fariMode:fariMode}));

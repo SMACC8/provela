@@ -1,7 +1,7 @@
 /* ProVela service worker — offline per la traversata.
    Strategia: navigazione network-first (niente trappola della cache vecchia),
    app-shell e dati statici cache-first, tile e forecast con fallback alla cache. */
-var VERSION = 'raffyca-rt-v12';
+var VERSION = 'raffyca-rt-v13';
 var SHELL = VERSION + '-shell';
 var TILES = VERSION + '-tiles';
 var DATA  = VERSION + '-data';
@@ -82,8 +82,11 @@ self.addEventListener('fetch', function (e) {
     return;
   }
 
-  // tile mappa (CARTO / OpenSeaMap): cache-first + rete in sottofondo, con tetto
-  if (host.indexOf('basemaps.cartocdn.com') >= 0 || host.indexOf('openseamap.org') >= 0) {
+  // tile mappa (OSM / OpenSeaMap): cache-first + rete in sottofondo, con tetto
+  // NB: era basemaps.cartocdn.com, sostituito quando CARTO ha reso obbligatoria la API key.
+  // (host specifici: un match generico su openstreetmap.org catturerebbe anche
+  //  nominatim, che piu' sotto deve restare solo-rete)
+  if (host.indexOf('openstreetmap.fr') >= 0 || host.indexOf('tile.openstreetmap.org') >= 0 || host.indexOf('openseamap.org') >= 0) {
     e.respondWith(
       caches.open(TILES).then(function (c) {
         return c.match(req).then(function (hit) {

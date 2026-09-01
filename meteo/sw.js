@@ -1,5 +1,5 @@
 /* ProVela service worker — network-first HTML + passthrough API meteo + offline shell */
-const CACHE='raffyca-meteo-v15';
+const CACHE='raffyca-meteo-v16';
 const SHELL=['../rf-topbar.js','../rf-live.js','./','./index.html','./manifest.json','./icon-192.png','./icon-512.png','./icon-maskable-512.png','./apple-touch-icon.png'];
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>Promise.all(SHELL.map(u=>c.add(new Request(u,{cache:'reload'})).catch(()=>{})))));});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('raffyca-meteo')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});

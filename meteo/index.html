@@ -296,7 +296,7 @@ html.day .demoNote{color:#7A3FB0;}
       <button class="rvBtn" id="rvNext" title="Frame successivo">›</button>
       <span class="rvTime" id="rvTime">Radar: —</span>
     </div>
-    <div class="credit">Radar © RainViewer · base © CARTO/OpenStreetMap</div>
+    <div class="credit">Radar © RainViewer · base © OpenStreetMap / Humanitarian OSM Team</div>
   </div>
   <!-- RIBBON -->
   <div id="passageView" class="hidden">
@@ -947,7 +947,8 @@ function openRadar(){
   rvLoadLeaflet(function(){
     if(!rvMap){
       rvMap=L.map('radarMap',{zoomControl:true}).setView(rvCenter(),6);
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{maxZoom:12,subdomains:'abcd',attribution:'© OpenStreetMap · © CARTO'}).addTo(rvMap);
+      /* era CARTO Voyager: dal 2026 senza API key le tile arrivano con sopra "API KEY REQUIRED". */
+      L.tileLayer('https://tile-{s}.openstreetmap.fr/hot/{z}/{x}/{y}.png',{maxZoom:12,subdomains:'abc',attribution:'© OpenStreetMap · Humanitarian OSM Team'}).addTo(rvMap);
     }
     setTimeout(function(){rvMap.invalidateSize();},80);
     rvLoadFrames();
