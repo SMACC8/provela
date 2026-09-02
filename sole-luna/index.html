@@ -260,7 +260,7 @@ button:active{filter:brightness(1.35)}
       <div class="sl-arr-level" id="arrLevel"></div>
       <div class="sl-arr-sub" id="arrSub"></div>
       <div class="sl-arr-soglia off" id="arrSoglia"></div>
-      <div class="sl-arr-alert off" id="arrAlert">⚠ Arrivi al buio: sole sotto i −12° e contributo lunare trascurabile.</div>
+      <div class="sl-arr-alert off" id="arrAlert">⚠ Arrivi al buio: l'orizzonte non si distingue più e la luna non aiuta.</div>
       <div class="sl-arr-disclaimer">Il calcolo non tiene conto della nuvolosità, che può incidere molto sulla luce reale.</div>
     </div>
   </section>
@@ -644,7 +644,11 @@ function renderArrival() {
   showIf('etaRicalcola', ST.etaMode === 'manuale' && CUR.canAuto);
 
   document.getElementById('arrLevel').textContent = eta.label;
-  document.getElementById('arrSub').textContent = 'sole ' + fA(eta.sun.alt) + ' · ' + eta.moonLabel +
+  /* L'altezza del sole in grassetto: e' l'UNICA cifra misurata del riquadro. Le
+     soglie della scala (-12, -18) non compaiono piu' nel testo qui sotto - erano
+     tre angoli nello stesso blocco e a leggere di fretta non si capiva quale
+     fosse quello vero (segnalato 02/09). La fascia la dice gia' l'etichetta. */
+  document.getElementById('arrSub').innerHTML = 'sole <b>' + fA(eta.sun.alt) + '</b> · ' + eta.moonLabel +
     (eta.moonUp ? ' (' + Math.round(eta.il.fraction * 100) + '%, ' + fA(eta.moon.alt) + ')' : '');
 
   /* La riga sotto e' il dato che trasforma l'informazione in una scelta:
@@ -658,7 +662,7 @@ function renderArrival() {
       (th.before ? 'prima ' + th.prima : 'dopo ' + th.dopo) + ', alle ' + fT(th.time) + '.';
     sog.classList.remove('off');
   } else if (eta.level >= 5) {
-    sog.textContent = 'Il sole è sotto i −18°: la notte è ormai piena e non ci sono altri passaggi di luce da attendere.';
+    sog.textContent = 'Nessun passaggio di luce da attendere: la notte è al suo punto più scuro.';
     sog.classList.remove('off');
   } else { sog.classList.add('off'); }
 

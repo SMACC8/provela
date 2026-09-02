@@ -1,5 +1,5 @@
 /* ProVela hub — service worker minimale per installabilità e offline della schermata iniziale. */
-var VERSION='provela-hub-v10', SHELL=VERSION+'-shell';
+var VERSION='provela-hub-v11', SHELL=VERSION+'-shell';
 var PRECACHE=['./','./index.html','./rf-topbar.js','./rf-astro.js','./rf-live.js','./manutenzione/','./manutenzione/catalogo.json','./calcoli/','./sole-luna/','./mob/','./manifest.webmanifest','./pwa-192.png','./pwa-512.png','./pwa-maskable-512.png','./apple-touch-icon.png'];
 self.addEventListener('install',function(e){e.waitUntil(caches.open(SHELL).then(function(c){return Promise.all(PRECACHE.map(function(u){return c.add(new Request(u,{cache:'reload'})).catch(function(){});}));}).then(function(){return self.skipWaiting();}));});
 self.addEventListener('activate',function(e){e.waitUntil(caches.keys().then(function(keys){return Promise.all(keys.map(function(k){if(k.indexOf('provela-hub-')===0&&k.indexOf(VERSION)!==0)return caches.delete(k);}));}).then(function(){return self.clients.claim();}));});

@@ -287,7 +287,7 @@ html.day [fill="#46d68a"]{fill:#12894f;} html.night [fill="#46d68a"]{fill:#c23a3
     <div class="ctrl">
       <label class="togg"><input type="checkbox" id="coastOn"> Non avvicinarti troppo alla costa</label>
       <div class="row" style="margin-top:6px"><span class="k">Buffer</span><span class="v"><span id="coastV">2</span> NM</span></div>
-      <input type="range" id="coastBuf" min="1" max="6" step="0.5" value="2" disabled>
+      <input type="range" id="coastBuf" min="0" max="7" step="1" value="3" disabled>
       <div class="hint">Distanza minima dalla terra (un punto sottocosta può comunque uscire).</div>
     </div>
   </div>
@@ -586,6 +586,29 @@ function moveTo(p,h,dnm){var cl=cosLat(FIELD.area),rad=h*Math.PI/180;return{lat:
 function hitsLand(p,q){var n=Math.max(2,Math.ceil(dist(p,q)/0.4));for(var i=0;i<=n;i++){var t=i/n;if(isLand(p.lat+(q.lat-p.lat)*t,p.lon+(q.lon-p.lon)*t))return true;}return false;}
 
 var STATE={dep:2,motorOn:false,mot:5.5,maxWind:0,coastBuf:0,tackPen:12,polarEff:1,A:null,B:null};
+/* Fermate del buffer costa: lo slider e' un INDICE, non le miglia. Serviva
+   scendere sotto il miglio, e con un passo fisso di 0,5 le fermate sarebbero
+   cadute su 0,7 / 1,2 / 1,7. Con l'indice si scelgono i valori che hanno senso e
+   la corsa non si riempie di passi inutili fra 3 e 6.
+
+   PERCHE' 0,5 E NON 0,2. coastDist non e' una distanza continua: e' un campo
+   calcolato sulla griglia della maschera, quindi quantizzato sulla cella. Il
+   valore non nullo piu' piccolo che esiste e' 0,42 M in Alto Adriatico, 0,45 in
+   Basso Adriatico, 0,48 in Sicilia (la cella e' 0,010 gradi, che in longitudine
+   valgono meno mano a mano che si scende). Un buffer di 0,2 M non escluderebbe
+   nemmeno una cella: sarebbe un comando che non fa niente, indistinguibile dal
+   buffer spento. 0,5 M invece esclude esattamente il primo anello di celle
+   attorno a terra, in tutte le zone - "stai almeno una cella al largo". */
+var COAST_STEPS=[0.5,1,1.5,2,3,4,5,6];
+function coastStepValue(){var s=document.getElementById('coastBuf');
+  if(!s)return 2;return COAST_STEPS[clamp(Math.round(+s.value),0,COAST_STEPS.length-1)];}
+/* Arrotonda per ECCESSO, non alla fermata piu' vicina: e' un margine di
+   sicurezza, e un 2,5 NM salvato con lo slider vecchio non deve tornare come 2.
+   Le uniche distanze che cambiano sono le mezze sopra i 2 NM, e cambiano in su. */
+function coastStepIndex(nm){
+  for(var i=0;i<COAST_STEPS.length;i++)if(COAST_STEPS[i]>=nm-1e-9)return i;
+  return COAST_STEPS.length-1;}
+function setCoastLabel(){var e=document.getElementById('coastV');if(e)e.textContent=coastStepValue();}
 function resetAB(area){var a=AREAS[area];STATE.A={lat:a.A[0],lon:a.A[1]};STATE.B={lat:a.B[0],lon:a.B[1]};}
 function clampToArea(area,lat,lon){var a=AREAS[area];return{lat:clamp(lat,a.latS+0.01,a.latN-0.01),lon:clamp(lon,a.lonW+0.01,a.lonE-0.01)};}
 function route(){
@@ -866,6 +889,13 @@ function updateReadout(){var R=R_CACHE||route(),A=AREAS[FIELD.area],P=R.path;
    Il dato che vale di piu' e' il terzo: quanto ti separa dal passaggio di
    luce successivo. In Traversata conta il doppio, perche' qui la partenza
    la puoi ancora spostare.
+   UNA SOLA CIFRA, ed e' la misura. Prima nello stesso riquadro comparivano
+   tre angoli del sole - quello vero dell'arrivo, il -18 che definisce la
+   notte piena e il -12 che fa scattare l'avviso - e a leggere di fretta non
+   si capiva quale fosse l'altezza del sole (segnalato 02/09). Le soglie sono
+   proprieta' della scala, non di questo arrivo: la fascia la dice gia'
+   l'etichetta, quindi i numeri delle soglie sono usciti dal testo e l'unico
+   rimasto e' in grassetto.
    FIELD.times arriva da Open-Meteo con timezone=auto, quindi e' gia' ora
    locale della zona: coerente con rf-astro, che ragiona in ora locale. */
 function parseOraLocale(t){
@@ -893,13 +923,13 @@ function renderLuceArrivo(R,t){
   var ora=arr.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
   var giorno=arr.toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'});
   var h='Arrivo in <b>'+L.label+'</b> · '+giorno+' <b>'+ora+'</b>';
-  h+=' · sole '+Math.round(L.sun.alt)+'°';
+  h+=' · sole <b>'+Math.round(L.sun.alt)+'°</b>';
   h+=' · '+L.moonLabel+(L.moonUp?' ('+Math.round(L.il.fraction*100)+'%)':'');
   if(th)h+='<br>Arrivi <b>'+RFA.durata(th.deltaMin)+'</b> '+
     (th.before?'prima '+th.prima:'dopo '+th.dopo)+', alle '+
     th.time.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})+'.';
-  else if(L.level>=5)h+='<br>Il sole è sotto i −18°: notte piena, nessun altro passaggio di luce da attendere.';
-  if(RFA.arrivoAlBuio(L))h+='<br><b style="color:var(--coral)">⚠ Arrivi al buio: sole sotto i −12° e contributo lunare trascurabile.</b>';
+  else if(L.level>=5)h+='<br>Nessun passaggio di luce da attendere: la notte è al suo punto più scuro.';
+  if(RFA.arrivoAlBuio(L))h+='<br><b style="color:var(--coral)">⚠ Arrivi al buio: l\'orizzonte non si distingue più e la luna non aiuta.</b>';
   h+='<span class="disc">Il calcolo non tiene conto della nuvolosità, che può incidere molto sulla luce reale.</span>';
   box.innerHTML=h;
   box.style.borderLeftColor=col;
@@ -1317,8 +1347,8 @@ document.getElementById('motorOn').addEventListener('change',function(){STATE.mo
 document.getElementById('mot').addEventListener('input',function(){STATE.mot=+this.value;document.getElementById('motV').textContent=this.value;computeRoute();});
 document.getElementById('windCapOn').addEventListener('change',function(){var s=document.getElementById('windCap');s.disabled=!this.checked;STATE.maxWind=this.checked?+s.value:0;computeRoute();});
 document.getElementById('windCap').addEventListener('input',function(){document.getElementById('windCapV').textContent=this.value;if(document.getElementById('windCapOn').checked){STATE.maxWind=+this.value;computeRoute();}});
-document.getElementById('coastOn').addEventListener('change',function(){var s=document.getElementById('coastBuf');s.disabled=!this.checked;STATE.coastBuf=this.checked?+s.value:0;computeRoute();});
-document.getElementById('coastBuf').addEventListener('input',function(){document.getElementById('coastV').textContent=this.value;if(document.getElementById('coastOn').checked){STATE.coastBuf=+this.value;computeRoute();}});
+document.getElementById('coastOn').addEventListener('change',function(){var s=document.getElementById('coastBuf');s.disabled=!this.checked;STATE.coastBuf=this.checked?coastStepValue():0;computeRoute();});
+document.getElementById('coastBuf').addEventListener('input',function(){setCoastLabel();if(document.getElementById('coastOn').checked){STATE.coastBuf=coastStepValue();computeRoute();}});
 document.getElementById('tackPen').addEventListener('input',function(){document.getElementById('tackV').textContent=this.value;STATE.tackPen=+this.value;computeRoute();});
 document.getElementById('polarEff').addEventListener('input',function(){document.getElementById('effV').textContent=this.value;STATE.polarEff=(+this.value)/100;computeRoute();});
 document.getElementById('scanBtn').addEventListener('click',function(){var b=this;b.textContent='calcolo…';setTimeout(function(){renderScan();b.textContent='Trova il miglior orario';},20);});
@@ -1432,7 +1462,7 @@ function saveUI(){if(!_uiReady)return;
       A:STATE.A?{lat:STATE.A.lat,lon:STATE.A.lon}:null,
       B:STATE.B?{lat:STATE.B.lat,lon:STATE.B.lon}:null,
       dep:STATE.dep,mot:STATE.mot,maxWind:STATE.maxWind,coastBuf:STATE.coastBuf,tackPen:STATE.tackPen,polarEff:STATE.polarEff,
-      motRaw:rv('mot'),windCapRaw:rv('windCap'),coastBufRaw:rv('coastBuf'),
+      motRaw:rv('mot'),windCapRaw:rv('windCap'),
       motorChk:cv('motorOn'),windCapChk:cv('windCapOn'),coastChk:cv('coastOn'),
       tSea:cv('tSea'),tCoast:cv('tCoast'),tWind:cv('tWind'),tIso:cv('tIso'),tIsoCorr:cv('tIsoCorr'),tNames:cv('tNames'),tBathy:cv('tBathy'),navFollow:cv('navFollow'),
       base:CURBASE};
@@ -1455,7 +1485,13 @@ function restoreSettings(){var u=SAVED_UI;if(!u)return;
   if(u.windCapChk!=null){var wo=document.getElementById('windCapOn');wo.checked=u.windCapChk;var wc=document.getElementById('windCap');if(wc)wc.disabled=!u.windCapChk;}
   setv('windCap',u.windCapRaw,'windCapV');
   if(u.coastChk!=null){var co=document.getElementById('coastOn');co.checked=u.coastChk;var cb=document.getElementById('coastBuf');if(cb)cb.disabled=!u.coastChk;}
-  setv('coastBuf',u.coastBufRaw,'coastV');
+  /* Il grezzo dello slider costa NON si ripristina: da fermate a passo fisso e'
+     passato a indice, quindi un "2" salvato prima significherebbe 1 NM invece di 2.
+     L'unico valore stabile e' quello in miglia, e da li' si risale alla fermata. */
+  var cbs=document.getElementById('coastBuf');
+  if(cbs&&isFinite(u.coastBuf)&&u.coastBuf>0){cbs.value=coastStepIndex(u.coastBuf);
+    STATE.coastBuf=COAST_STEPS[+cbs.value];}   // riallinea: 2,5 salvato prima non e' una fermata
+  setCoastLabel();
   var tp=document.getElementById('tackPen');if(tp&&isFinite(u.tackPen)){tp.value=u.tackPen;var tv=document.getElementById('tackV');if(tv)tv.textContent=u.tackPen;}
   var pe=document.getElementById('polarEff');if(pe&&isFinite(u.polarEff)){var pv=Math.round(u.polarEff*100);pe.value=pv;var ev=document.getElementById('effV');if(ev)ev.textContent=pv;}
   ['tSea','tCoast','tWind','tIso','tIsoCorr','tNames','tBathy','navFollow'].forEach(function(id){var val=u[id];if(val==null)return;var e=document.getElementById(id);if(e)e.checked=val;});

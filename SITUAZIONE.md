@@ -1235,3 +1235,95 @@ guardato anche a video.
 22% lo chiedeva, ma nel punto in vista piu' vicino a quello. E' voluto — meglio una
 traversata corta e sensata che una lunga e impossibile — ma vuol dire che in una
 zona con molte isole l'esempio puo' venire piu' corto di prima.
+
+---
+
+## 02/09/2026 — Tre angoli del sole nello stesso riquadro, e il buffer costa sotto il miglio
+
+**Etichetta: carta + comandi.** `routing/raffyca-traversata-map.html`,
+`sole-luna/index.html`, `routing/sw.js` → **raffyca-rt v18→v19**, `sw.js` →
+**provela-hub-v10→v11** (`./sole-luna/` sta nel precache dell'hub).
+
+### La luce all'arrivo diceva tre numeri e uno solo era una misura
+
+Segnalato leggendo il riquadro di fretta: «il sole sarà a −12, −18 o −20?».
+Comparivano insieme
+
+- `sole −20°` — l'altezza vera del sole all'arrivo, **l'unico fatto**;
+- «Il sole è sotto i −18°: notte piena…» — la soglia che **definisce** la fascia;
+- «Arrivi al buio: sole sotto i −12°…» — il criterio che fa scattare l'avviso.
+
+Le ultime due sono proprieta' della **scala**, non di quell'arrivo, e la fascia
+la dice gia' l'etichetta in grassetto ("Notte piena"): ripeterne il confine non
+aggiunge nulla e trasforma una misura in un indovinello.
+
+Correzione: i numeri delle soglie escono dal testo, l'altezza del sole va in
+**grassetto** perche' si veda che e' lei la misura.
+
+| | prima | dopo |
+|---|---|---|
+| fascia | `Il sole è sotto i −18°: notte piena, nessun altro passaggio di luce da attendere.` | `Nessun passaggio di luce da attendere: la notte è al suo punto più scuro.` |
+| avviso | `⚠ Arrivi al buio: sole sotto i −12° e contributo lunare trascurabile.` | `⚠ Arrivi al buio: l'orizzonte non si distingue più e la luna non aiuta.` |
+
+L'avviso nuovo dice **cosa vuol dire** −12°: e' la fine del crepuscolo nautico,
+cioe' il punto in cui l'orizzonte non si stacca piu' dal cielo. Piu' utile a
+bordo del numero, e non si somma alle altre cifre.
+
+Applicato a tutti e due i moduli che usano `rf-astro.js`, con le stesse parole:
+`renderLuceArrivo()` in Traversata, `arrSub` / `arrSoglia` / `arrAlert` in Sole e
+Luna. **Nessun cambiamento di logica:** `lightLevel`, `nextThreshold` e
+`arrivoAlBuio` sono intatti, sono cambiate solo le stringhe e un `<b>`.
+
+### Buffer costa: fermate scelte invece di un passo fisso
+
+Chiesto di poter scendere sotto il miglio. Lo slider andava da 1 a 6 con passo
+0,5; abbassare il minimo a 0,2 tenendo il passo avrebbe prodotto fermate su 0,7 /
+1,2 / 1,7. Ora lo slider e' un **indice** in `COAST_STEPS = [0.5, 1, 1.5, 2, 3, 4,
+5, 6]`: sotto il miglio si scende, e sopra i 3 NM non ci sono passi inutili.
+
+**0,2 NM chiesto e non messo, con la misura in mano.** `coastDist` non e' una
+distanza continua: e' un campo calcolato sulla griglia della maschera, quindi
+quantizzato sulla cella. Il valore non nullo piu' piccolo che esiste e' **0,42 M
+in Alto Adriatico, 0,45 in Basso Adriatico, 0,48 in Sicilia** — la cella e' 0,010
+gradi, che in longitudine valgono meno mano a mano che si scende di latitudine.
+Un buffer di 0,2 M non escluderebbe **nemmeno una cella**: sarebbe un comando
+indistinguibile dal buffer spento. Verificato invece che 0,5 M morde davvero, su
+una rotta sottocosta in Istria:
+
+| buffer | rotta | punto piu' vicino a terra |
+|---|---|---|
+| spento | chiusa, 8,2 h | 0,42 M |
+| **0,5 NM** | chiusa, 8,2 h | **0,73 M** |
+| 1 NM | chiusa, 8,3 h | 1,16 M |
+| 2 NM | chiusa, 8,4 h | 2,00 M |
+
+Monotono e a costo zero in tempo. 0,5 NM vuol dire, in pratica, «stai almeno una
+cella al largo».
+
+**Migrazione della chiave.** `raffyca-traversata-ui` salvava `coastBufRaw`, cioe'
+il valore grezzo dello slider quando erano miglia. Adesso il grezzo e' un indice,
+quindi un "2" salvato prima significherebbe 1,5 NM. `coastBufRaw` **non si salva
+e non si legge piu'**: la fermata si ricostruisce da `coastBuf`, che e' in miglia
+ed e' l'unico valore stabile. L'arrotondamento e' **per eccesso**, non alla
+fermata piu' vicina: e' un margine di sicurezza e un 2,5 salvato non deve tornare
+come 2. Verificato con impostazioni in formato vecchio (`coastBuf: 2.5`,
+`coastBufRaw: "2.5"`): tornano slider su 3 NM, etichetta "3", `STATE.coastBuf` 3 e
+readout «costa ≥3 NM», tutti d'accordo.
+
+### Verificato
+Le nove fermate percorse una per una con etichetta e `STATE` allineati; blocco
+luce riletto a video in tutte e due i moduli, con arrivo in notte piena e con
+avviso forzato; migrazione dal formato vecchio; nessun residuo di `coastBufRaw`
+nel file.
+
+### Aperto
+- `route()` esenta dal buffer un corridoio attorno ad A e B pari a
+  `max(coastBuf, 0.8)`. Con il buffer a 0,5 NM il pavimento di 0,8 diventa piu'
+  largo del buffer stesso — prima non poteva succedere, perche' il minimo era 1
+  NM. Effetto pratico trascurabile (con mezzo miglio la rotta sta gia' sottocosta)
+  e non toccato per non cambiare il comportamento anche da 1 a 6 NM, ma e' un
+  regime nuovo e va saputo.
+- La registrazione del service worker fallisce nel browser di prova incorporato
+  ("An unknown error occurred when fetching the script"): e' l'ambiente, non i
+  moduli — `RF_WORKER` parte e le rotte si calcolano. Non verificabile da qui se
+  sul telefono va.
