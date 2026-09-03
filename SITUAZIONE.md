@@ -1657,3 +1657,72 @@ Con server locale e browser vero, non a lettura:
 - Nessuna delle cose di oggi e' stata vista su telefono: **tocca il layout** il
   filetto delle bandiere, i distintivi A/B e il tasto in piu' nella barra di
   Traversata (ora sono due bottoni dove ce n'era uno).
+
+---
+
+## 03/09/2026 (2) — Il motore dei fari esce dal Prontuario, e una regressione mia
+
+### Regressione: "vedila" nella legenda non funzionava
+Segnalata da Sergio. Causa: riscrivendo il simulatore per il confronto a due luci
+ho sostituito `CURNAME` con `NOMI`/`SEL`, ma **due punti continuavano ad
+assegnare a `CURNAME`** — il salto dalla legenda e il deep link `?ch=&n=`.
+Il file e' `"use strict"`, quindi assegnare a una variabile inesistente **lancia**
+e il gestore muore prima di cambiare vista.
+
+Due lezioni, entrambe gia' note a questo repo e ripetute lo stesso:
+- il difetto **non si vedeva al caricamento**, solo al clic: nessun errore in
+  console finche' non tocchi quella riga;
+- avevo provato il salto dalla legenda **prima** della riscrittura e non l'ho
+  riprovato **dopo**. Una prova fatta prima di un rifacimento non vale piu'.
+
+Ironia utile: lo stesso difetto avrebbe rotto il deep link, cioe' proprio
+l'aggancio dalla Carta che stavo per costruire.
+
+### `rf-fari.js`: motore condiviso
+Il calcolo delle caratteristiche (parser, fasi, descrizione in italiano,
+riconoscimento cardinali) esce dal Prontuario e diventa `rf-fari.js` in radice,
+accanto a `rf-topbar.js` / `rf-astro.js` / `rf-live.js`, che e' la convenzione
+gia' in uso. Motivo: due copie dello stesso disegno divergono, e a divergere
+sarebbe la risposta a "che luce sto vedendo".
+
+API: `rfFari.parse / phases / stateAt / describe / cardinale / COL / lampada`.
+`lampada(host, ch, opt)` disegna e anima un riquadro autonomo e restituisce uno
+`stop()`.
+
+Il Prontuario ora ha solo **alias** con i nomi locali (`parseCh`, `buildPhases`,
+`describe`, `cardinale`, `stateAt`): il resto del modulo non e' stato toccato,
+scelta deliberata dopo la regressione qui sopra.
+
+### Carta Nautica: "come si vede" sul faro toccato
+Toccando un faro, il popup ora apre **sopra** i dati un riquadro con la luce che
+lampeggia davvero, la sua barra dei tempi e la descrizione a parole. Una luce
+sola: qui stai identificando QUESTO faro. Il confronto a due luci resta nel
+Prontuario, dove serve a distinguerne due — scelta di Sergio, ed e' giusta.
+
+Il popup ha fondo chiaro ma il riquadro ha il suo fondo scuro: una luce va vista
+su scuro, come di notte.
+
+Una sola animazione viva per volta (`fariAnim`): si ferma su `popupclose` e
+prima di aprirne un'altra, altrimenti ogni faro toccato lascia un
+`requestAnimationFrame` che gira a vuoto.
+
+SW hub v12 -> v13, `rf-fari.js` aggiunto al precache.
+
+### Verificato
+- "vedila": clic **sul testo** e clic **sulla riga**, entrambi portano al
+  simulatore con la caratteristica giusta; deep link `?v=fari&ch=&n=` carica
+  caratteristica e nome. Zero errori.
+- Prontuario sul motore condiviso: decodifica, confronto A/B, esempio caricato
+  su B, caratteristica non riconosciuta. Zero errori.
+- Carta: 3110 fari caricati, popup su "Isola Palmaiola" (`Fl W 5s 10M`) mostra
+  lampada, 2 segmenti di barra e "1 lampo bianco, ogni 5 s · portata 10 M".
+  **Lampeggio misurato**: 26 campioni a 200 ms su un periodo da 5 s, 2 accesi —
+  coerente con un lampo da 0,5 s; testina che avanza; animazione **fermata**
+  alla chiusura del popup.
+
+### Aperti
+- Il riquadro in Carta **non e' stato visto su telefono**: e' dentro un popup
+  Leaflet, che su schermo stretto e' la cosa piu' facile da far strabordare.
+- La lampada nel popup parte sempre da t=0 del proprio `rfFari.lampada`, quindi
+  la fase non e' sincronizzata con l'orologio: serve a riconoscere il ritmo, non
+  a prevedere quando il faro lampeggera' davvero. Vale gia' per il Prontuario.
