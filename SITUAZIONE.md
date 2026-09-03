@@ -1737,3 +1737,86 @@ disegnare, non come si calcola. SW routing v20 -> v21.
 Verificato: etichetta e suggerimento a video, spunta spenta all'apertura,
 `isoCorridor()` restituisce una funzione con la casella accesa e `null` con la
 casella spenta.
+
+---
+
+## 03/09/2026 (3) — "vedila" apre un foglio, e il simulatore sa cosa vedi da qui
+
+Due richieste di Sergio sul Prontuario, piu' un secondo pezzo di motore condiviso.
+
+### "vedila" non porta piu' via dalla legenda
+Prima il collegamento dalla legenda **cambiava vista**: stavi leggendo le sigle,
+toccavi "vedila" e ti ritrovavi nel simulatore, con la ricerca da rifare per
+tornare alla riga dopo. Ora apre il **foglio** gia' usato dalle bandiere, con
+dentro il riquadro di `rfFari.lampada`: guardi il lampeggio, chiudi, sei ancora
+al tuo posto nell'elenco.
+
+Una sola lampada viva per volta (`sheetAnim`), fermata alla chiusura: senza,
+ogni apertura lasciava un `requestAnimationFrame` a girare a vuoto. Stessa
+attenzione gia' presa in Carta con `fariAnim`.
+
+### "Fari visibili da qui" al posto degli esempi
+Nel simulatore, bottone **◎ Fari visibili da qui**: legge `raffyca-pos`, calcola
+quali luci ti raggiungono davvero e le mette al posto degli esempi, dalla piu'
+vicina, ognuna col rilevamento e le miglia sul chip
+(`Isola Palmaiola · 103° 1.1M`) e il dettaglio completo nel suggerimento. Il
+bottone fa da interruttore e si torna agli esempi.
+
+E' la domanda vera: non "com'e' fatta una Fl(2)" ma "quella luce laggiu', quale
+delle tre e'". Gli esempi restano perche' servono a un'altra cosa: imparare a
+leggere una caratteristica quando la carta non ce l'hai davanti.
+
+**Il dato non si carica all'apertura.** `carta/fari.geojson` sono 549 KB: il
+Prontuario deve aprirsi leggero e senza rete, quindi si scarica al primo tocco
+del bottone e poi resta in memoria. Se manca la rete e il file non e' mai stato
+preso, lo dice e indica come procurarselo (aprire i Fari in Carta una volta).
+
+Ereditata da Carta la **regola prudente**: senza portata nota nel dato, la
+visibilita' **non si afferma**. Meglio tacere che dire che vedi una luce che non
+vedi. Ed e' scritto in chiaro che la portata e' quella **nominale** — quanto il
+faro puo' arrivare, non quanto vedi tu stanotte.
+
+### La geometria passa in `rf-fari.js`
+`brg`, `distM`, `inSector` e il nuovo `visibili(features, pos)` stanno ora nel
+motore condiviso. In Carta `frBrg` / `frDist` / `frInSector` sono diventati
+**alias**, come gia' fatto per il calcolo delle caratteristiche: il resto del
+modulo non e' stato toccato.
+
+### Ancora lo stesso tranello di stamattina
+Riscrivendo il disegnatore dei chip ho tolto il `var box` locale di `initFari`,
+e una funzione piu' sotto (`scritto`) continuava a usarlo: sotto `"use strict"`
+sarebbe esploso al primo carattere digitato, esattamente come `CURNAME`.
+Trovato **prima** di provarlo, cercando i riferimenti orfani con uno script
+invece che a occhio. E' la seconda volta in un giorno: quando si sposta o
+rinomina una variabile in questo file, la ricerca dei riferimenti va fatta
+sull'intero blocco, non sulla funzione che si sta modificando.
+
+### Verificato
+- **Foglio dalla legenda**: si apre con caratteristica, titolo, barra a 6
+  segmenti e testo giusti per `Oc(3) W 12s 15M`; la vista resta `v-legenda`
+  prima, durante e dopo; chiusura pulita.
+- **Fari visibili**, dal canale di Piombino (42.87 N, 10.45 E): 11 luci, prima
+  "Isola Palmaiola · 103° 1.1M" con suggerimento
+  `Fl W 5s 10M · rilevamento 103°T · 1.1 M · portata nominale 10 M`; toccandola
+  carica `Fl W 5s 10M` col nome vero; ritorno agli esempi corretto; senza
+  posizione, messaggio che spiega come ottenerla.
+- **Carta non rotta dalla delega**: rilevamento verso est 89,99°, distanza 1630 m
+  su 0,02° di longitudine a 42,87° (atteso ~1632), settore dentro/fuori e
+  **a scavalco dello zero** corretti; "cosa vedo" disegna 22 elementi.
+- **Conferma incrociata**: dalla stessa posizione Carta traccia 11 luci (22
+  elementi, due polilinee per luce) e il Prontuario ne elenca 11. I due moduli
+  concordano perche' ora fanno lo stesso conto — che era il motivo di
+  `rf-fari.js`.
+- Zero errori nuovi intercettando `window.onerror` in tutti i giri.
+
+SW hub v13 -> v14.
+
+### Aperti
+- Niente di questo e' stato visto **su telefono**: il foglio con la lampada e la
+  fila di chip con rilevamento e miglia sono le due cose che possono strabordare
+  su schermo stretto.
+- I chip mostrano le **14 piu' vicine**: con molte luci vicine (rade affollate)
+  il taglio potrebbe togliere proprio quella che cerchi. Da vedere in uso se 14
+  e' il numero giusto.
+- La lampada parte da t=0 all'apertura: riconosce il **ritmo**, non prevede
+  quando il faro lampeggera'. Vale per tutti e tre i posti dove appare.

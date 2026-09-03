@@ -215,7 +215,49 @@ function lampada(host, ch, opt){
   return { stop: function(){ vivo = false; }, parsed: p, phases: ph };
 }
 
+/* ---- geometria: chi si vede da qui ----
+   Portata dalla Carta Nautica, dove girava gia'. I settori sono dati "from
+   seaward", quindi il rilevamento da confrontare e' quello barca -> faro.
+   Regola prudente e voluta: senza portata nota NON si afferma la visibilita'. */
+var _rad = Math.PI / 180, _R = 6371000;
+function brg(la1, lo1, la2, lo2){
+  var f1 = la1*_rad, f2 = la2*_rad, dl = (lo2-lo1)*_rad;
+  var y = Math.sin(dl)*Math.cos(f2), x = Math.cos(f1)*Math.sin(f2)-Math.sin(f1)*Math.cos(f2)*Math.cos(dl);
+  return (Math.atan2(y,x)/_rad + 360) % 360;
+}
+function distM(la1, lo1, la2, lo2){
+  var f1 = la1*_rad, f2 = la2*_rad, df = (la2-la1)*_rad, dl = (lo2-lo1)*_rad;
+  var a = Math.sin(df/2)*Math.sin(df/2)+Math.cos(f1)*Math.cos(f2)*Math.sin(dl/2)*Math.sin(dl/2);
+  return _R*2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+function inSector(b, s, e){
+  var delta = ((e-s)%360+360)%360, off = ((b-s)%360+360)%360;
+  return off <= delta;
+}
+/* features GeoJSON + [lat,lon] -> luci visibili, dalla piu' vicina */
+function visibili(features, pos){
+  if (!features || !pos) return [];
+  var out = [];
+  features.forEach(function(f){
+    var p = f.properties, c = f.geometry && f.geometry.coordinates;
+    if (!p || !c) return;
+    var lat = c[1], lon = c[0];
+    var d = distM(pos[0], pos[1], lat, lon)/1852, b = brg(pos[0], pos[1], lat, lon);
+    var col = null, rng = null, i, s;
+    if (p.ss) { for (i=0;i<p.ss.length;i++){ s=p.ss[i]; if (inSector(b, s[1], s[2])) { col=s[0]; rng=s[3]; break; } } }
+    else if (p.ar) { col = p.ar[0][0] || "W"; rng = p.ar[0][1]; }
+    else return;
+    if (col === null) return;              /* fuori dai settori luminosi */
+    if (!rng || d > rng) return;           /* portata ignota o fuori portata */
+    out.push({ f:f, nome:p.nm || p.ref || "Faro", ch:p.ch || "", colore:col,
+               portata:rng, brg:b, dist:d });
+  });
+  out.sort(function(a,b2){ return a.dist - b2.dist; });
+  return out;
+}
+
 glob.rfFari = {
+  brg: brg, distM: distM, inSector: inSector, visibili: visibili,
   parse: parseCh, phases: buildPhases, stateAt: stateAt,
   describe: describe, cardinale: cardinale, COL: COL, lampada: lampada
 };

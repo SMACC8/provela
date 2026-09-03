@@ -153,6 +153,24 @@ html.day .sheet{background:rgba(20,35,50,.42)}
           display:flex;flex-direction:column;gap:11px}
 .sheet-in svg{width:96px;border:1px solid var(--line);border-radius:3px}
 .sheet-in .big{font:600 26px ui-monospace,Menlo,monospace;line-height:1}
+/* riquadro luce dentro il foglio: stessa struttura che rf-fari.js disegna in Carta */
+.sheet-in .rff{display:flex;gap:11px;align-items:flex-start}
+.sheet-in .rff-l{width:56px;height:56px;flex:0 0 56px;border-radius:50%;background:var(--dp);
+  border:1px solid var(--line);display:flex;align-items:center;justify-content:center}
+.sheet-in .rff-l b{display:block;width:34px;height:34px;border-radius:50%;background:#111b25}
+html.day .sheet-in .rff-l b{background:#c3ccd6}
+.sheet-in .rff-l b.on{background:var(--lc);box-shadow:0 0 12px 4px var(--lc),0 0 32px 11px var(--lc)}
+.sheet-in .rff-r{flex:1;min-width:0}
+.sheet-in .rff-nm{font:600 13px system-ui,sans-serif;margin-bottom:2px}
+.sheet-in .rff-ch{font:600 11.5px ui-monospace,Menlo,monospace;color:var(--muted);letter-spacing:.04em}
+.sheet-in .rff-tl{position:relative;display:flex;height:13px;margin:7px 0 6px;border-radius:3px;
+  overflow:hidden;background:var(--panel2);border:1px solid var(--line)}
+.sheet-in .rff-tl i{height:100%}
+.sheet-in .rff-tl u{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--ink);
+  opacity:.85;border-radius:2px;text-decoration:none}
+.sheet-in .rff-tx{font-size:12.5px;line-height:1.5}
+.sheet-in .rff-tx b{color:var(--teal);font-weight:600}
+.sheet-in .rff-tx em{display:block;font-style:normal;color:var(--amber);margin-top:4px;font-size:11.5px}
 .sheet-row{display:flex;gap:13px;align-items:center}
 .meaning{font-size:14px;line-height:1.45}
 .reg{font-size:12.5px;color:var(--amber);line-height:1.45}
@@ -260,6 +278,8 @@ td.p{color:var(--muted);font-style:italic}
       <div class="field" style="margin-top:10px">
         <label class="lb"><span id="lbPre">Esempi reali dalla carta</span></label>
         <div class="chips" id="presets"></div>
+        <button class="btn" id="vediBtn" style="margin-top:9px">&#9678; Fari visibili da qui</button>
+        <p class="hint" id="vediStato" hidden style="margin-top:6px"></p>
       </div>
       <button class="btn" id="cmpBtn" aria-pressed="false" style="margin-top:10px">&#8646; Confronta due luci</button>
       <p class="hint" id="cmpHint" hidden style="margin-top:7px">Gli esempi qui sopra caricano la
@@ -551,9 +571,7 @@ function syncFari(){
       " s · durate secondo convenzione IALA</span>";
   }
   $("lbA").textContent = cmpOn ? "Luce A — quella che stai riconoscendo" : "Caratteristica";
-  $("lbPre").textContent = cmpOn
-    ? ("Esempi reali dalla carta → caricano la luce " + (SEL ? "B" : "A"))
-    : "Esempi reali dalla carta";
+  $("lbPre").textContent = etichettaChip();
   renderLamps(); renderTimeline();
 }
 
@@ -570,12 +588,23 @@ var PRESETS = [
   {n:"Cardinale ovest",      c:"VQ(9) W 10s 5M"},
   {n:"Cardinale sud",        c:"Q+LFl(6) W 15s 8M"}
 ];
-(function initFari(){
+/* I chip sono la stessa cosa in due modi: esempi fissi, oppure i fari che da
+   qui dovresti vedere davvero. Un solo disegnatore per entrambi. */
+var FARIDATA = null, modoVis = false;
+
+function etichettaChip(){
+  var dove = modoVis ? "Fari visibili da qui, dal piu\u2019 vicino" : "Esempi reali dalla carta";
+  return dove + (cmpOn ? (" \u2192 caricano la luce " + (SEL ? "B" : "A")) : "");
+}
+function disegnaChip(lista, attivoIniziale){
   var box = $("presets");
-  PRESETS.forEach(function(p, i){
+  box.innerHTML = "";
+  lista.forEach(function(p, i){
     var b = document.createElement("button");
-    b.className = "chip"; b.type = "button"; b.textContent = p.n;
-    b.setAttribute("aria-pressed", i === 0 ? "true" : "false");
+    b.className = "chip"; b.type = "button";
+    b.textContent = p.n + (p.extra ? " \u00b7 " + p.extra : "");
+    if (p.titolo) b.title = p.titolo;
+    b.setAttribute("aria-pressed", (attivoIniziale && i === 0) ? "true" : "false");
     b.addEventListener("click", function(){
       [].forEach.call(box.children, function(c){ c.setAttribute("aria-pressed", "false"); });
       b.setAttribute("aria-pressed", "true");
@@ -585,10 +614,73 @@ var PRESETS = [
     });
     box.appendChild(b);
   });
+  $("lbPre").textContent = etichettaChip();
+}
+
+/* ---- fari visibili dalla posizione nota ----
+   Il dato e' carta/fari.geojson (549 KB, 3110 luci): NON si carica all'apertura,
+   perche' il Prontuario deve restare leggero e aprirsi anche senza rete.
+   Si scarica al primo tocco del bottone e poi resta in memoria. */
+function posNota(){
+  try{ var p = JSON.parse(localStorage.getItem("raffyca-pos") || "null");
+       if (p && isFinite(p.lat) && isFinite(p.lon)) return [p.lat, p.lon]; }catch(e){}
+  return null;
+}
+function stato(txt, mostra){ var el = $("vediStato"); el.hidden = !mostra; el.innerHTML = txt || ""; }
+function tornaAgliEsempi(){
+  modoVis = false;
+  $("vediBtn").textContent = "\u25CE Fari visibili da qui";
+  disegnaChip(PRESETS, false);
+  stato("", false);
+}
+function mostraVisibili(){
+  var pos = posNota();
+  if (!pos) {
+    stato("Posizione non disponibile. Apri la <b>Carta Nautica</b> o il <b>Cruscotto</b> " +
+          "una volta con il GPS acceso: la posizione e\u2019 condivisa fra i moduli.", true);
+    return;
+  }
+  function calcola(){
+    var v = rfFari.visibili(FARIDATA.features, pos).filter(function(x){ return x.ch; });
+    if (!v.length) {
+      stato("Da qui non ti raggiunge nessun faro con caratteristica nota. " +
+            "I fari senza portata nel dato non vengono affermati: meglio tacere " +
+            "che dire che vedi una luce che non vedi.", true);
+      return;
+    }
+    var lista = v.slice(0, 14).map(function(x){
+      return { n: x.nome, c: x.ch,
+               extra: Math.round(x.brg) + "\u00b0 " + x.dist.toFixed(1) + "M",
+               titolo: x.ch + " \u00b7 rilevamento " + Math.round(x.brg) + "\u00b0T \u00b7 " +
+                       x.dist.toFixed(1) + " M \u00b7 portata nominale " + x.portata + " M" };
+    });
+    modoVis = true;
+    $("vediBtn").textContent = "\u21BA Torna agli esempi";
+    disegnaChip(lista, false);
+    stato(v.length + " luci ti raggiungono da questa posizione" +
+          (v.length > 14 ? " (mostrate le 14 piu\u2019 vicine)" : "") +
+          ". La portata e\u2019 quella <b>nominale</b>: e\u2019 quanto il faro puo\u2019 " +
+          "arrivare, non quanto vedi tu stanotte.", true);
+  }
+  if (FARIDATA) { calcola(); return; }
+  stato("Carico l\u2019elenco dei fari\u2026", true);
+  fetch("../carta/fari.geojson").then(function(r){ return r.json(); })
+    .then(function(j){ FARIDATA = j; calcola(); })
+    .catch(function(){
+      stato("Elenco dei fari non disponibile offline. Serve la rete una volta: " +
+            "aprendo i <b>Fari</b> in Carta Nautica il file viene scaricato.", true);
+    });
+}
+
+(function initFari(){
+  disegnaChip(PRESETS, true);
+  $("vediBtn").addEventListener("click", function(){
+    if (modoVis) tornaAgliEsempi(); else mostraVisibili();
+  });
   function scritto(slot){
     return function(){
       NOMI[slot] = slot ? "Luce B" : "Luce";
-      [].forEach.call(box.children, function(c){ c.setAttribute("aria-pressed", "false"); });
+      [].forEach.call($("presets").children, function(c){ c.setAttribute("aria-pressed", "false"); });
       SEL = slot; syncFari();
     };
   }
@@ -800,6 +892,18 @@ var GRUPPI = [
   });
 })();
 
+/* una sola lampada viva nel foglio: si ferma alla chiusura, altrimenti ogni
+   apertura lascia un requestAnimationFrame che gira a vuoto */
+var sheetAnim = null;
+function fermaFoglio(){ if (sheetAnim) { sheetAnim.stop(); sheetAnim = null; } }
+function apriLuce(ch, titolo){
+  fermaFoglio();
+  $("sheetIn").innerHTML = '<div class="sh-luce"></div>' +
+    '<button class="btn" data-close>Chiudi</button>';
+  sheetAnim = rfFari.lampada($("sheetIn").querySelector(".sh-luce"), ch, {nome:titolo || ""});
+  $("sheet").hidden = false;
+}
+
 function openFlag(f){
   var h = '<div class="sheet-row"><div class="sh-fl">' + f.s + '</div>' +
           '<div class="big"></div></div>' +
@@ -813,7 +917,7 @@ function openFlag(f){
   $("sheet").hidden = false;
 }
 $("sheet").addEventListener("click", function(e){
-  if (e.target === this || e.target.closest("[data-close]")) this.hidden = true;
+  if (e.target === this || e.target.closest("[data-close]")) { this.hidden = true; fermaFoglio(); }
 });
 
 /* ============================================================
@@ -899,14 +1003,10 @@ var GLOSS = [
       if (g[2]) {                             /* le sigle di luce portano al simulatore */
         tr.style.cursor = "pointer";
         tr.children[1].innerHTML += ' <span style="color:var(--teal)">› vedila</span>';
-        tr.addEventListener("click", function(){
-          /* NOMI/SEL hanno sostituito CURNAME quando il simulatore e' passato a
-             due luci: con "use strict" assegnare a una variabile inesistente
-             lancia, e il gestore moriva prima di cambiare vista. */
-          NOMI[0] = g[0]; SEL = 0; $("chIn").value = g[2];
-          [].forEach.call($("presets").children, function(c){ c.setAttribute("aria-pressed","false"); });
-          syncFari(); show("fari");
-        });
+        /* Apre un foglio invece di portare al simulatore: stai leggendo la
+           legenda, e dopo aver visto il lampeggio vuoi tornare alla riga dopo,
+           non ritrovarti in un'altra vista con la ricerca da rifare. */
+        tr.addEventListener("click", function(){ apriLuce(g[2], g[0] + " — " + g[1]); });
       }
       tb.appendChild(tr);
     });

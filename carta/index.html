@@ -732,13 +732,12 @@ function frDest(lat,lon,brg,dM){var d=dM/_R,b=brg*_rad,f1=lat*_rad,l1=lon*_rad;
   var f2=Math.asin(Math.sin(f1)*Math.cos(d)+Math.cos(f1)*Math.sin(d)*Math.cos(b));
   var l2=l1+Math.atan2(Math.sin(b)*Math.sin(d)*Math.cos(f1),Math.cos(d)-Math.sin(f1)*Math.sin(f2));
   return [f2/_rad,l2/_rad];}
-function frBrg(la1,lo1,la2,lo2){var f1=la1*_rad,f2=la2*_rad,dl=(lo2-lo1)*_rad;
-  var y=Math.sin(dl)*Math.cos(f2),x=Math.cos(f1)*Math.sin(f2)-Math.sin(f1)*Math.cos(f2)*Math.cos(dl);
-  return (Math.atan2(y,x)/_rad+360)%360;}
-function frDist(la1,lo1,la2,lo2){var f1=la1*_rad,f2=la2*_rad,df=(la2-la1)*_rad,dl=(lo2-lo1)*_rad;
-  var a=Math.sin(df/2)*Math.sin(df/2)+Math.cos(f1)*Math.cos(f2)*Math.sin(dl/2)*Math.sin(dl/2);
-  return _R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
-function frInSector(brg,s,e){var delta=((e-s)%360+360)%360,off=((brg-s)%360+360)%360;return off<=delta;}
+/* rilevamento, distanza e appartenenza al settore stanno in ../rf-fari.js:
+   la stessa geometria la usa il Prontuario per l'elenco "visibili da qui".
+   Qui restano gli alias con i nomi locali, il resto del modulo non cambia. */
+function frBrg(la1,lo1,la2,lo2){return rfFari.brg(la1,lo1,la2,lo2);}
+function frDist(la1,lo1,la2,lo2){return rfFari.distM(la1,lo1,la2,lo2);}
+function frInSector(brg,s,e){return rfFari.inSector(brg,s,e);}
 function frWedge(lat,lon,s,e,r){var delta=((e-s)%360+360)%360;if(delta===0)delta=360;
   var steps=Math.max(3,Math.round(delta/3)),pts=[[lat,lon]],i;
   for(i=0;i<=steps;i++){pts.push(frDest(lat,lon,s+delta*(i/steps)+180,r));} // +180: si disegna dal faro (settori dati "from seaward")
