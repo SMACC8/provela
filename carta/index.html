@@ -322,6 +322,16 @@ function zoneView(){try{var p=JSON.parse(localStorage.getItem("raffyca-profile")
 var ZV=zoneView();
 function cartaView(){try{return JSON.parse(localStorage.getItem('raffyca-carta-view')||'null');}catch(e){return null;}}
 var CV=cartaView();
+/* ---- vista condivisa con la Traversata (raffyca-map-view) ----
+   Chiave CONDIVISA, e volutamente minima: solo centro e zoom. Base e overlay
+   restano privati di ogni modulo, perche' le basi non coincidono (qui
+   nautica/sat/osm, in Traversata le sue) e un overlay acceso di la' non
+   significa niente di qua. Si attiva da Impostazioni. */
+var MVKEY='raffyca-map-view';
+function syncViewOn(){try{var s=JSON.parse(localStorage.getItem('raffyca-settings')||'{}');return !!(s&&s.syncMapView);}catch(e){return false;}}
+function sharedView(){try{var v=JSON.parse(localStorage.getItem(MVKEY)||'null');
+  return (v&&v.c&&isFinite(v.c[0])&&isFinite(v.c[1])&&isFinite(v.z))?v:null;}catch(e){return null;}}
+var SYNCV=syncViewOn(), SV=SYNCV?sharedView():null;
 /* mappa: basi selezionabili + overlay simboli nautici OpenSeaMap.
    Base "Nautica (chiara)" = poche strade, acqua chiara: i simboli nautici risaltano, aspetto vicino a una carta.
    NB: erano tile CARTO (Voyager e Positron). Dal 2026 CARTO richiede una API key e
@@ -347,7 +357,10 @@ var baseSat=L.layerGroup([
   L.tileLayer(ESRI+'Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{pane:'basePane',maxZoom:19})
 ]);
 var seamark=L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',{maxZoom:19,opacity:1,attribution:'© OpenSeaMap'});
-var map=L.map('map',{zoomControl:true}).setView((CV&&CV.c)?CV.c:(POS||[ZV[0],ZV[1]]),(CV&&CV.c)?CV.z:(POS?12:ZV[2]));
+/* Ordine di precedenza dell'inquadratura: vista condivisa (se agganciata) >
+   ultima vista della Carta > posizione GPS nota > riquadro della zona di profilo. */
+var VIEW0=SV||(CV&&CV.c?{c:CV.c,z:CV.z}:null);
+var map=L.map('map',{zoomControl:true}).setView(VIEW0?VIEW0.c:(POS||[ZV[0],ZV[1]]),VIEW0?VIEW0.z:(POS?12:ZV[2]));
 map.createPane('basePane');map.getPane('basePane').style.zIndex=150;   /* prima di aggiungere le basi */
 ((CV&&CV.base==='osm')?baseOSM:(CV&&CV.base==='sat')?baseSat:baseNautica).addTo(map);if(!CV||CV.sea!==false)seamark.addTo(map);
 L.control.layers({'Nautica (chiara)':baseNautica,'OpenStreetMap':baseOSM,'Satellite':baseSat},{'Simboli nautici (OpenSeaMap)':seamark},{collapsed:true}).addTo(map);
@@ -814,19 +827,21 @@ function saveView(){try{
   localStorage.setItem('raffyca-carta-view',JSON.stringify({
     c:[+c.lat.toFixed(5),+c.lng.toFixed(5)],z:map.getZoom(),base:base,sea:map.hasLayer(seamark),
     grid:gridOn,zones:zonesOn,bathy:isoOn,fari:fariOn,fariMode:fariMode}));
+  if(SYNCV)localStorage.setItem(MVKEY,JSON.stringify({c:[+c.lat.toFixed(5),+c.lng.toFixed(5)],z:map.getZoom()}));
 }catch(e){}}
 map.on('moveend zoomend baselayerchange overlayadd overlayremove',saveView);
 ['tGrid','tZone','tBathy','tFari','fariModeSett','fariModeVedo'].forEach(function(id){
   var el=$(id);if(el)el.addEventListener('click',function(){setTimeout(saveView,0);});});
-if(CV){
-  if(CV.grid)$('tGrid').click();
-  if(CV.zones)$('tZone').click();
-  if(CV.bathy)$('tBathy').click();
-  if(CV.fari){$('tFari').click();if(CV.fariMode==='vedo')$('fariModeVedo').click();}
-}
+/* Gli overlay NON si riaccendono all'apertura: la Carta si apre pulita, con la
+   sola base + simboli nautici. Griglia, zone venti, batimetria e fari sono strati
+   d'analisi, si accendono quando servono; ritrovarli accesi il giorno dopo vuol
+   dire aprire su una carta illeggibile e non ricordarsi perche'. Restano invece
+   persistiti base, centro e zoom (la parte utile della voce 08/08).
+   I campi grid/zones/bathy/fari continuano a essere SCRITTI in raffyca-carta-view:
+   non costano nulla e servono se un giorno si vuole un'opzione "riapri com'era". */
 
 render();
-setTimeout(function(){map.invalidateSize();if(POS&&!(CV&&CV.c))map.setView(POS,12);},300);
+setTimeout(function(){map.invalidateSize();if(POS&&!VIEW0)map.setView(POS,12);},300);
 </script>
 <div id="isoLegend" style="display:none;position:absolute;left:8px;bottom:26px;z-index:650;background:rgba(6,14,24,.85);border:1px solid #1a3248;border-radius:8px;padding:6px 9px;font:600 10px ui-monospace,monospace;color:#cfe">
 <div style="opacity:.65;margin-bottom:3px;letter-spacing:.5px">BATIMETRIA (m)</div>

@@ -218,10 +218,10 @@ html.day [fill="#46d68a"]{fill:#12894f;} html.night [fill="#46d68a"]{fill:#c23a3
   </div>
   <div class="toggle">
     <label><input type="checkbox" id="tSea" checked> OpenSeaMap</label>
-    <label><input type="checkbox" id="tCoast" checked> costa modello</label>
+    <label><input type="checkbox" id="tCoast"> costa modello</label>
     <label><input type="checkbox" id="tWind" checked> vento</label>
-    <label><input type="checkbox" id="tIso" checked> isocrone</label>
-    <label><input type="checkbox" id="tIsoCorr" checked> solo lungo la rotta</label>
+    <label><input type="checkbox" id="tIso"> isocrone</label>
+    <label><input type="checkbox" id="tIsoCorr"> solo lungo la rotta</label>
     <label><input type="checkbox" id="tNames" checked> toponimi</label>
     <label><input type="checkbox" id="tBathy"> batimetria</label>
   </div>
@@ -254,7 +254,8 @@ html.day [fill="#46d68a"]{fill:#12894f;} html.night [fill="#46d68a"]{fill:#c23a3
     <button class="navbtn" id="navBtn">▶ Naviga</button>
     <label><input type="checkbox" id="navFollow" checked> segui la barca</label>
     <label title="In navigazione: rifà la rotta partendo dalla tua posizione GPS attuale (invece che da A)"><input type="checkbox" id="navReroute"> ricalcola da qui</label>
-    <button class="go" id="gpxBtn" style="margin-left:auto">⬇ Esporta GPX</button>
+    <button class="go" id="saveTrkBtn" style="margin-left:auto">⤓ Salva in Carta</button>
+    <button class="go" id="gpxBtn">⬇ Esporta GPX</button>
   </div>
   <div class="navp" id="navp"></div>
 
@@ -1280,6 +1281,72 @@ function buildGPX(R){R=R||R_CACHE;if(!R||!R.path||R.path.length<1)return null;
   x+='<trk><name>'+esc('Rotta ProVela '+area)+'</name><trkseg>\n';
   for(var i=0;i<R.path.length;i++){x+='<trkpt lat="'+f(R.path[i].lat)+'" lon="'+f(R.path[i].lon)+'"></trkpt>\n';}
   x+='</trkseg></trk>\n</gpx>\n';return x;}
+/* ---------- salva la rotta come traccia nella Carta Nautica ----------
+   Contratto condiviso: raffyca-tracks [{id,name,ts,pts:[[lat,lon,ele]],dist,dur,tag,folder,note}]
+   e raffyca-folders [{id,name,kind}]. Si scrive da qui: la Carta li rilegge al
+   suo avvio e non va toccata (zero modifiche al modulo che custodisce i dati).
+
+   Perche' non basta il GPX: sul telefono il GPX diventa un file da ritrovare,
+   mentre in Carta la rotta diventa una TRACCIA, e una traccia si puo' rendere
+   attiva (raffyca-active-track) e farsi seguire dal Cruscotto. E' quello il
+   guadagno vero, non l'archivio.
+
+   La cartella si crea PIGRAMENTE al primo salvataggio ed e' una cartella
+   normale: cancellarla non cancella le rotte (tornano "senza cartella", come
+   gia' fa la Carta), e il salvataggio successivo la ricrea. Niente eccezioni
+   nel modello delle cartelle. */
+var CART_ROTTE='Rotte Traversata', TAG_ROTTA='#c792ea';
+function lsJSON(k){try{var v=JSON.parse(localStorage.getItem(k)||'[]');return Array.isArray(v)?v:[];}catch(e){return[];}}
+function cartellaRotte(){
+  var fs=lsJSON('raffyca-folders');
+  for(var i=0;i<fs.length;i++)
+    if(fs[i]&&fs[i].kind==='trk'&&fs[i].name===CART_ROTTE)return fs[i].id;
+  var id='f'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  fs.push({id:id,name:CART_ROTTE,kind:'trk'});
+  localStorage.setItem('raffyca-folders',JSON.stringify(fs));
+  return id;
+}
+function salvaInCarta(){
+  var R=R_CACHE;
+  if(!R||!R.path||R.path.length<2){toast('Nessuna rotta da salvare');return;}
+  if(R.area!==FIELD.area){toast('Rotta non aggiornata: ricalcola prima di salvare');return;}
+  var pts=R.path.map(function(n){return [+n.lat.toFixed(5),+n.lon.toFixed(5),0];});
+  /* dist() e' la stessa usata dal router: la distanza scritta in Carta
+     coincide con quella su cui la rotta e' stata calcolata */
+  var d=0;for(var i=1;i<R.path.length;i++)d+=dist(R.path[i-1],R.path[i]);
+
+  /* Nome e nota portano le CONDIZIONI del calcolo: una rotta di routing invecchia
+     col vento, e in Carta e' indistinguibile da una traccia registrata. Senza
+     l'ora di partenza scritta sopra, fra tre giorni sembra un piano valido. */
+  var area=(AREAS[FIELD.area]&&AREAS[FIELD.area].name)||FIELD.area;
+  var ora=windClock(STATE.dep), oggi=new Date();
+  var gg=('0'+oggi.getDate()).slice(-2)+'/'+('0'+(oggi.getMonth()+1)).slice(-2);
+  var nome='Rotta '+gg+' '+ora+' · '+area;
+  /* due rotte con la stessa partenza avrebbero lo stesso nome, e in lista
+     diventano indistinguibili: numero solo i duplicati, senza sporcare il primo */
+  var esistenti=lsJSON('raffyca-tracks').map(function(t){return t&&t.name;});
+  if(esistenti.indexOf(nome)>=0){var k=2;while(esistenti.indexOf(nome+' ('+k+')')>=0)k++;nome=nome+' ('+k+')';}
+  var nota=[
+    'Calcolata in Traversata il '+oggi.toLocaleString('it-IT'),
+    'Zona: '+area+' · campo vento: '+(FIELD.source==='live'?('live '+MODELN):'sintetico'),
+    'Partenza impostata: '+ora,
+    'ETA: '+(R.finished?fmtH(R.eta):'rotta non chiusa'),
+    'Buffer costa: '+(STATE.coastBuf||0)+' NM · perdita manovra: '+STATE.tackPen+'% · efficienza polare: '+Math.round(STATE.polarEff*100)+'%',
+    (STATE.motorOn?('Motore consentito a '+STATE.mot+' kn'):'Solo vela'),
+    (STATE.maxWind?('Evita vento oltre '+STATE.maxWind+' kn'):'Nessun limite di vento'),
+    '',
+    'Le condizioni cambiano: ricalcola prima di usarla.'
+  ].join('\n');
+
+  var trks=lsJSON('raffyca-tracks');
+  trks.push({id:'t'+Date.now()+Math.random().toString(36).slice(2,5),
+    name:nome,ts:Date.now(),pts:pts,dist:+d.toFixed(2),dur:0,
+    tag:TAG_ROTTA,folder:cartellaRotte(),note:nota});
+  try{localStorage.setItem('raffyca-tracks',JSON.stringify(trks));}
+  catch(e){toast('Memoria piena: salvataggio non riuscito');return;}
+  toast('Salvata in Carta · '+pts.length+' punti, '+d.toFixed(1)+' NM');
+}
+
 function downloadGPX(){var gpx=buildGPX();if(!gpx){toast('Nessuna rotta da esportare');return;}
   try{var blob=new Blob([gpx],{type:'application/gpx+xml'}),url=URL.createObjectURL(blob),a=document.createElement('a');
     a.href=url;a.download='provela-'+(FIELD.area||'rotta')+'.gpx';document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(url);},1500);
@@ -1289,6 +1356,31 @@ function downloadGPX(){var gpx=buildGPX();if(!gpx){toast('Nessuna rotta da espor
 function stopNav(){NAV.on=false;var b=document.getElementById('navBtn');if(b){b.classList.remove('on');b.textContent='▶ Naviga';}
   if(NAV.watch!=null&&navigator.geolocation){navigator.geolocation.clearWatch(NAV.watch);}NAV.watch=null;
   if(NAV.marker&&map){map.removeLayer(NAV.marker);}NAV.marker=null;NAV.pos=null;renderNav();}
+/* ---- vista condivisa con la Carta Nautica (raffyca-map-view) ----
+   Solo centro e zoom: base e overlay restano privati del modulo.
+   QUI c'e' una guardia che in Carta non serve: la Traversata inquadra l'area di
+   lavoro, e una vista ereditata da un porto lascerebbe A e B fuori schermo —
+   a video sembrerebbe che la rotta sia sparita. Se la vista condivisa non
+   contiene A e B, vince fitArea. */
+var MVKEY='raffyca-map-view';
+function syncViewOn(){try{var s=JSON.parse(localStorage.getItem('raffyca-settings')||'{}');return !!(s&&s.syncMapView);}catch(e){return false;}}
+function sharedView(){try{var v=JSON.parse(localStorage.getItem(MVKEY)||'null');
+  return (v&&v.c&&isFinite(v.c[0])&&isFinite(v.c[1])&&isFinite(v.z))?v:null;}catch(e){return null;}}
+function saveSharedView(){if(!syncViewOn()||!map)return;
+  try{var c=map.getCenter();
+    localStorage.setItem(MVKEY,JSON.stringify({c:[+c.lat.toFixed(5),+c.lng.toFixed(5)],z:map.getZoom()}));}catch(e){}}
+function applySharedView(){
+  if(!syncViewOn()||!map)return false;
+  var v=sharedView(); if(!v)return false;
+  if(!STATE.A||!STATE.B)return false;
+  var prima=map.getCenter(), primaZ=map.getZoom();
+  map.setView(v.c,v.z,{animate:false});
+  var b=map.getBounds();
+  if(b.contains([STATE.A.lat,STATE.A.lon])&&b.contains([STATE.B.lat,STATE.B.lon]))return true;
+  map.setView(prima,primaZ,{animate:false});   /* non ci stanno: torno com'era */
+  return false;
+}
+
 function initMap(){if(typeof L==='undefined'){return;}
   map=L.map('map',{zoomControl:true,zoomAnimation:false,attributionControl:true,scrollWheelZoom:false});
   L.DomEvent.on(map.getContainer(),'wheel',function(e){
@@ -1325,6 +1417,7 @@ function initMap(){if(typeof L==='undefined'){return;}
   var LocateCtl=L.Control.extend({options:{position:'topleft'},onAdd:function(){var b=L.DomUtil.create('a','leaflet-bar');b.href='#';b.title='La mia posizione';b.innerHTML='◎';b.style.cssText='width:30px;height:30px;line-height:30px;text-align:center;font-size:17px;background:#0e2036;color:#2BD9C4;text-decoration:none';L.DomEvent.on(b,'click',function(e){L.DomEvent.stop(e);if(!navigator.geolocation){toast('GPS non disponibile');return;}navigator.geolocation.getCurrentPosition(function(pp){map.setView([pp.coords.latitude,pp.coords.longitude],11);toast('La tua posizione');},function(){toast('Posizione non disponibile');},{enableHighAccuracy:true,timeout:15000});});return b;}});map.addControl(new LocateCtl());
   namesLayer=buildNames();namesLayer.addTo(map);
   map.on('move zoom viewreset zoomend moveend resize',redraw);
+  map.on('moveend zoomend',saveSharedView);
   map.on('click',function(e){if(!AB_MOVE){toast('Tocca “Muovi A/B” per spostare i punti');return;}setAB(activeAB,e.latlng.lat,e.latlng.lng);});
   fitArea(FIELD.area);placeMarkers();redraw();}
 
@@ -1357,6 +1450,7 @@ document.getElementById('tWind').addEventListener('change',redraw);
 document.getElementById('tCoast').addEventListener('change',redraw);
 document.getElementById('navBtn').addEventListener('click',function(){if(NAV.on)stopNav();else startNav();});
 document.getElementById('gpxBtn').addEventListener('click',downloadGPX);
+document.getElementById('saveTrkBtn').addEventListener('click',salvaInCarta);
 document.getElementById('polApply').addEventListener('click',function(){var r=parsePolarText(document.getElementById('polText').value);if(r.error){toast(r.error);return;}applyPolar(r);saveSharedPolar(r,{source:'csv'});toast('Polare applicata e condivisa · max '+r.maxB.toFixed(1)+' kt');});
 document.getElementById('polReset').addEventListener('click',function(){resetPolar();toast('Polare ProVela ripristinata');});
 document.getElementById('navReroute').addEventListener('change',function(){if(NAV.on&&NAV.pos)navStartFrom(NAV.pos);});
@@ -1494,7 +1588,13 @@ function restoreSettings(){var u=SAVED_UI;if(!u)return;
   setCoastLabel();
   var tp=document.getElementById('tackPen');if(tp&&isFinite(u.tackPen)){tp.value=u.tackPen;var tv=document.getElementById('tackV');if(tv)tv.textContent=u.tackPen;}
   var pe=document.getElementById('polarEff');if(pe&&isFinite(u.polarEff)){var pv=Math.round(u.polarEff*100);pe.value=pv;var ev=document.getElementById('effV');if(ev)ev.textContent=pv;}
-  ['tSea','tCoast','tWind','tIso','tIsoCorr','tNames','tBathy','navFollow'].forEach(function(id){var val=u[id];if(val==null)return;var e=document.getElementById(id);if(e)e.checked=val;});
+  /* I toggle di SOLA VISTA non si ripristinano piu': la Traversata si riapre
+     sempre nello stato di lettura (mare + vento + toponimi), perche' isocrone,
+     costa modello e batimetria sono strumenti d'analisi che si accendono quando
+     servono; lasciarli accesi da una sessione all'altra vuol dire riaprire su una
+     carta illeggibile. Restano persistite le SCELTE (A/B, motore, buffer, ...).
+     Supera in parte la persistenza introdotta il 20/07. */
+  ['navFollow'].forEach(function(id){var val=u[id];if(val==null)return;var e=document.getElementById(id);if(e)e.checked=val;});
 }
 /* riallinea gli strati della mappa ai toggle salvati (dopo initMap) */
 function applyRestoredToggles(){var u=SAVED_UI;if(!u||!map)return;
@@ -1514,12 +1614,14 @@ resetAB('adriatico');synthField('adriatico');setPill();
 restoreSettings();
 computeRoute();renderPolarPreview();loadSharedPolar();
 loadCoast();
-if(typeof L!=='undefined'){initMap();applySavedAB();applyRestoredToggles();}
+if(typeof L!=='undefined'){initMap();applySavedAB();applyRestoredToggles();
+  /* dopo applySavedAB: la guardia su A/B ha senso solo con A/B definitivi */
+  try{applySharedView();}catch(e){}}
 initWorker();
 _uiReady=true;
 // persisti anche i toggle di sola visualizzazione (non passano da computeRoute)
 document.addEventListener('change',function(e){var id=e.target&&e.target.id;
-  if(id&&/^(tSea|tCoast|tWind|tIso|tIsoCorr|tNames|tBathy|navFollow)$/.test(id))saveUI();});
+  if(id&&/^navFollow$/.test(id))saveUI();});
 // PWA: registra il service worker (offline). Network-first sulla navigazione evita la trappola della cache vecchia.
 /* picker A/B da lista waypoint (Carta Nautica) */
 (function(){var sel=document.getElementById('wpPick');if(!sel)return;

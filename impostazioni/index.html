@@ -344,6 +344,36 @@ select.rf-sel{color:hsl(var(--ink));text-align:left;appearance:none;padding-righ
         </select>
       </div>
     </div>
+
+    <div class="field">
+      <div class="lbl">
+        <div class="k">MMSI</div>
+        <div class="h">Nove cifre. Va nel messaggio VHF di emergenza del Prontuario</div>
+      </div>
+      <div class="ctl rf-dp dp-txt">
+        <input class="rf-txt" id="mmsi" type="text" inputmode="numeric" maxlength="9" placeholder="es. 247123456" autocomplete="off" spellcheck="false">
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="lbl">
+        <div class="k">Nominativo internazionale</div>
+        <div class="h">Il call sign della licenza radio, es. IZ1ABC</div>
+      </div>
+      <div class="ctl rf-dp dp-txt">
+        <input class="rf-txt" id="callsign" type="text" maxlength="12" placeholder="es. IZ1ABC" autocomplete="off" spellcheck="false">
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="lbl">
+        <div class="k">Armatore</div>
+        <div class="h">Nome di chi risponde della barca</div>
+      </div>
+      <div class="ctl rf-dp dp-txt">
+        <input class="rf-txt" id="owner" type="text" maxlength="60" placeholder="es. Mario Rossi" autocomplete="off">
+      </div>
+    </div>
   </section>
 
   <!-- ASPETTO -->
@@ -361,6 +391,19 @@ select.rf-sel{color:hsl(var(--ink));text-align:left;appearance:none;padding-righ
           <button type="button" id="themeDark" aria-pressed="true">Scuro</button>
           <button type="button" id="themeDay" aria-pressed="false">Giorno</button>
           <button type="button" id="themeNight" aria-pressed="false">Notte</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="lbl">
+        <div class="k">Vista carta condivisa</div>
+        <div class="h">Passando fra Carta Nautica e Traversata si mantiene lo stesso punto e lo stesso zoom. In Traversata vale solo se A e B restano inquadrati</div>
+      </div>
+      <div class="ctl">
+        <div class="seg" data-accent="amber" role="group" aria-label="Vista carta condivisa">
+          <button type="button" id="mvOff" aria-pressed="true">Separate</button>
+          <button type="button" id="mvOn" aria-pressed="false">Agganciate</button>
         </div>
       </div>
     </div>
@@ -877,13 +920,13 @@ select.rf-sel{color:hsl(var(--ink));text-align:left;appearance:none;padding-righ
   "use strict";
 
   /* ---------- chiavi condivise (contratto dati ProVela) ---------- */
-  var K_PROFILE  = "raffyca-profile";   // {boat, model, zone}
+  var K_PROFILE  = "raffyca-profile";   // {boat, model, zone, mmsi, callsign, owner}
   var K_SETTINGS = "raffyca-settings";  // merge-safe (trackInterval, units, ...)
   var K_THEME    = "raffyca-theme";     // 'dark' | 'day' | 'night'
 
   /* chiavi possedute da QUESTO modulo dentro raffyca-settings.
      La scrittura è merge-safe: tocchiamo solo queste, il resto resta intatto. */
-  var OWNED = ["units", "trackInterval", "raceInterval", "voiceInterval", "windSource", "signalkUrl", "raceEndAction", "raceEndUrl", "speedSrc", "sogSmooth", "startDistG", "startDistY"];
+  var OWNED = ["units", "trackInterval", "raceInterval", "voiceInterval", "windSource", "signalkUrl", "raceEndAction", "raceEndUrl", "speedSrc", "sogSmooth", "startDistG", "startDistY", "syncMapView"];
 
   /* prefisso per backup/reset: tutto ciò che appartiene alla suite */
   var RF_PREFIX = "raffyca-";
@@ -965,6 +1008,9 @@ select.rf-sel{color:hsl(var(--ink));text-align:left;appearance:none;padding-righ
     $("boat").value  = p.boat  || "";
     $("model").value = p.model || "";
     $("zone").value  = p.zone  || "";
+    $("mmsi").value     = p.mmsi     || "";
+    $("callsign").value = p.callsign || "";
+    $("owner").value    = p.owner    || "";
     refreshBoatLine(p);
 
     // tema
@@ -975,6 +1021,7 @@ select.rf-sel{color:hsl(var(--ink));text-align:left;appearance:none;padding-righ
     if(units === "kmh") setSeg($("unitKmh"), $("unitKn"));
     else setSeg($("unitKn"), $("unitKmh"));
 
+    setSeg(s.syncMapView ? $("mvOn") : $("mvOff"), s.syncMapView ? $("mvOff") : $("mvOn"));
     var spd = (s.speedSrc === "stw") ? "stw" : "sog";
     if(spd === "stw") setSeg($("spdStw"), $("spdSog"));
     else setSeg($("spdSog"), $("spdStw"));
@@ -1027,6 +1074,27 @@ select.rf-sel{color:hsl(var(--ink));text-align:left;appearance:none;padding-righ
       toast("Profilo salvato");
     });
 
+    /* --- dati radio: non passano da rfBoatSync (non stanno nella tabella boats),
+       vivono solo nel profilo e li legge il Prontuario per il messaggio VHF. --- */
+    $("mmsi").addEventListener("change", function(){
+      var v = this.value.replace(/\D/g, "").slice(0, 9);
+      this.value = v;
+      patchProfile({ mmsi: v });
+      /* Si salva comunque: rifiutare l'input lo farebbe perdere. Ma un MMSI
+         di lunghezza sbagliata in un MAYDAY e' peggio di un MMSI assente. */
+      toast(v && v.length !== 9 ? "MMSI salvato, ma non ha 9 cifre" : "Profilo salvato");
+    });
+    $("callsign").addEventListener("change", function(){
+      var v = this.value.trim().toUpperCase();
+      this.value = v;
+      patchProfile({ callsign: v });
+      toast("Profilo salvato");
+    });
+    $("owner").addEventListener("change", function(){
+      patchProfile({ owner: this.value.trim() });
+      toast("Profilo salvato");
+    });
+
     // --- tema ---
     $("themeDark").addEventListener("click", function(){
       localStorage.setItem(K_THEME, "dark"); applyTheme("dark"); toast("Tema: scuro");
@@ -1045,6 +1113,15 @@ select.rf-sel{color:hsl(var(--ink));text-align:left;appearance:none;padding-righ
     $("unitKmh").addEventListener("click", function(){
       setSeg(this, $("unitKn")); patchSettings({units:"kmh"}); toast("Unità: km/h");
     });
+    /* vista carta condivisa: la leggono Carta Nautica e Traversata, che
+       scrivono/leggono la chiave condivisa raffyca-map-view */
+    $("mvOff").addEventListener("click", function(){
+      setSeg(this, $("mvOn")); patchSettings({syncMapView:""}); toast("Viste separate");
+    });
+    $("mvOn").addEventListener("click", function(){
+      setSeg(this, $("mvOff")); patchSettings({syncMapView:true}); toast("Viste agganciate");
+    });
+
     $("spdSog").addEventListener("click", function(){
       setSeg(this, $("spdStw")); patchSettings({speedSrc:"sog"}); toast("Velocità: SOG (GPS)");
     });

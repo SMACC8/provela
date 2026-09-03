@@ -1327,3 +1327,333 @@ nel file.
   ("An unknown error occurred when fetching the script"): e' l'ambiente, non i
   moduli — `RF_WORKER` parte e le rotte si calcolano. Non verificabile da qui se
   sul telefono va.
+
+---
+
+## 03/09/2026 — Prontuario di bordo: nuovo modulo
+
+Mancava il posto dove stanno le cose che a bordo si cercano su un libretto
+bagnato. Nuovo modulo `prontuario/`, sei voci: simulatore fari, bandiere,
+alfabeto fonetico, messaggio VHF, legenda della carta, bollettini.
+
+### Perche' il simulatore fari e' il pezzo centrale
+Non e' un modulo da alimentare a mano: `carta/fari.geojson` contiene gia' la
+caratteristica in forma canonica per **2.769 luci su 3.110**. Il simulatore la
+legge com'e', quindi il dato nuovo da scaricare e' **zero**. Deep link
+`?v=fari&ch=...&n=...` gia' pronto perche' la Carta possa aggiungere "Come si
+vede" al popup di un faro — l'aggancio non e' ancora fatto, ma l'interfaccia
+c'e' e non tocca `carta/`.
+
+### Difetti trovati misurando, non rileggendo
+Il parser e' stato passato su **tutte e 764 le caratteristiche distinte** del
+file fari, non su un campione scelto da me. Sono usciti due difetti che
+rileggendo il codice non si vedevano:
+
+1. **La cardinale sud spariva.** `Q(6)+LFl` veniva letta come `Q(6)` e il lampo
+   lungo cadeva: la boa piu' importante da riconoscere mostrava il ritmo
+   sbagliato. In piu' il dato OSM la scrive `Q+LFl(6)`, cioe' col numero
+   dall'altra parte rispetto alla notazione di carta. Ora il parser regge
+   entrambe e danno lo stesso disegno (14 fasi, periodo 15 s).
+2. **Una caratteristica incompleta lasciava a schermo la luce precedente.**
+   `renderTimeline` leggeva `L.parsed.color` senza guardia: con `parsed` nullo
+   lanciava, il testo non veniva aggiornato e restava la luce di prima —
+   silenziosamente sbagliata, con l'aria di funzionare. Ora la guardia c'e', il
+   testo si scrive PRIMA del disegno, e la lampada resta spenta.
+
+Diciannove caratteristiche su 764 restano non animabili: sono **incomplete nel
+dato di partenza** (solo colore, o `Al` alternata). Il modulo lo dice invece di
+inventare. Aggiunti `IQ` (scintillante interrotto, presente nel dato) e il
+riconoscimento delle quattro cardinali: N/E/S/W ricavate dal ritmo e annunciate
+con il lato dove sta il pericolo — nel file reale ne riconosce 30.
+
+### Alternative scartate
+- **Durate del lampo dedotte dal dato**: impossibile, la caratteristica dice il
+  ritmo e tace sulla durata. Si usano le convenzioni IALA (lampo 0,5 s, lungo
+  2 s, occultazione 1 s, scintillio 0,3 s) e **lo si scrive in pagina**, invece
+  di lasciar credere che sia misura.
+- **Tabella degli orari Meteomar per stazione costiera**: scartata. Le fonti
+  pubbliche non concordano (01:35/07:35/13:45/19:35 UTC in una, 06:35/12:35/18:35
+  locali in un'altra, "variabili secondo la stazione") e un orario sbagliato e'
+  peggio di nessun orario: resti in ascolto per un bollettino che non arriva.
+  Resta il dato stabile — **ore sinottiche di emissione 00/06/12/18 UTC** — con
+  la conversione in locale calcolata dal telefono, cosi' l'ora legale la gestisce
+  il sistema e non una tabella nostra che invecchia. Piu' il canale 68 continuo.
+
+### VHF
+Tre livelli con tendine contestuali: Routine, PAN-PAN (7 casi di assistenza),
+MAYDAY (7 casi di pericolo di vita). Il testo mostrato e quello **pronunciato**
+sono due stringhe diverse, ed e' voluto: `MAYDAY` si scrive cosi' ma viene dal
+francese *m'aidez*, quindi la voce dice **"mede'"**; MMSI e coordinate si dettano
+cifra per cifra; il nominativo si compita con l'alfabeto fonetico dello stesso
+modulo (`IZ1ABC` -> "India Zulu Unaone Alfa Bravo Charlie"). Coordinate con la
+convenzione gia' fissata per il MOB. Due avvisi in pagina, non trattabili: la
+voce serve a chi parla e **non va avvicinata al microfono** (la stazione fa
+domande e deve sentire una persona), e per l'emergenza vera **il primo gesto e'
+il DSC**.
+
+### Impostazioni
+Tre campi nuovi nel Profilo barca: `mmsi`, `callsign`, `owner`. Contratto:
+`raffyca-profile` passa da `{boat, model, zone}` a
+`{boat, model, zone, mmsi, callsign, owner}` — additivo, nessuna migrazione.
+Non passano da `rfBoatSync` (non stanno nella tabella `boats`). L'MMSI si salva
+anche se non ha 9 cifre, con avviso: rifiutarlo farebbe perdere l'input, ma un
+MMSI di lunghezza sbagliata dentro un MAYDAY e' peggio di un MMSI assente.
+
+### Impianto
+Nessun service worker proprio: servito dall'hub come Carta e Cruscotto.
+`sw.js` hub **v11 -> v12** con `./prontuario/` nel precache. Tessera nuova
+nell'hub dopo Calcoli.
+
+### Verificato
+764/764 caratteristiche parsate senza eccezioni, 745 con diagramma (le 19
+mancanti sono incomplete nel dato); le due notazioni della cardinale sud
+coincidono; le fasi coprono esattamente il periodo in tutti i casi provati;
+navigazione fra le sei viste e ritorno; salto legenda -> simulatore con la
+caratteristica giusta decodificata; deep link `?v=&ch=&n=`; testo VHF nei tre
+livelli e **testo pronunciato** catturato intercettando `SpeechSynthesisUtterance`
+senza far parlare il dispositivo; campi Impostazioni in scrittura e rilettura,
+con normalizzazione (MMSI solo cifre, nominativo maiuscolo); nessun errore in
+console; nessun overflow orizzontale; resa a 375x812.
+
+### Aperto
+- **Le bandiere non sono verificate.** I 27 disegni sono ricostruiti a memoria,
+  non riprodotti da fonte controllata, e in pagina c'e' l'avviso in rosso. Vanno
+  confrontati uno per uno con la tavola ufficiale del Codice Internazionale dei
+  Segnali prima di toglierlo. Le meno sicure: **R**, **W**, **Y**, **Z** e il
+  pennello **AP**; le lettere a fasce e a scacchi sono geometria semplice e
+  rischiano meno.
+- La voce dipende dalle voci italiane installate sul dispositivo: se non ce n'e'
+  una `it-*` il sistema usa quella di default e "mede'" puo' uscire storto. Non
+  provato su iOS in PWA installata, dove `speechSynthesis` ha limiti suoi.
+- L'aggancio "Come si vede" dal popup faro della Carta non e' fatto: il modulo
+  accetta gia' il deep link, manca la riga in `carta/index.html`.
+- Il simulatore usa il `ch` cosi' com'e': se il dato OSM e' sbagliato, il
+  prontuario mostra fedelmente un ritmo sbagliato. Non c'e' verifica incrociata
+  con una fonte nautica.
+
+---
+
+## 03/09/2026 — Bandiere: verificate sulla fonte, e ne mancava mezza sezione
+
+Sergio ha portato il **Regolamento di Regata 2025-2028** (FIV), che contiene sia i
+Segnali di Regata sia la tavola del Codice Internazionale dei Segnali. E' la fonte
+che nella voce precedente mancava.
+
+### Come si e' letto il PDF, visto che non si poteva
+Sulla macchina non c'e' niente per i PDF: nessun `pdftotext`, nessun `pdftoppm`,
+niente PyObjC, niente Homebrew. Installare Homebrew per leggere un file non e'
+una scelta che tocca a me. Vie percorse e scartate:
+- **estrattore di testo in Python puro** (zlib + operatori `Tj`/`TJ`): scritto e
+  buttato. Le pagine dei segnali sono **immagini raster**, non testo: usciva
+  rumore binario. Anche fosse andato, il testo non dice i colori.
+- **PDF aperto nel pannello browser**: il pannello lo scarica invece di renderlo.
+- **PDF.js da cdnjs in una pagina locale**: questa funziona. Decodifica i font
+  (il testo delle altre pagine esce pulito: il regolamento e' di **177 pagine**,
+  non 21) e soprattutto **renderizza su canvas**, da cui si leggono i pixel.
+
+### La verifica vera: misurare i pixel, non guardare la figura
+Sulla tavola resa a scala 3 ho campionato il colore in punti interni ai quattro
+triangoli della Zulu, classificandolo sui colori di riferimento del Codice.
+Risultato: **alto GIALLO, battente BLU, basso ROSSO, inferitura NERO**.
+
+Nel codice la Zulu era **ruotata**: alto nero, inferitura giallo, basso blu,
+battente rosso. Nessuno dei quattro triangoli era al posto giusto. Rileggendo il
+file non si vedeva — quattro triangoli colorati sembrano sempre plausibili — e
+guardando la miniatura della tavola nemmeno, perche' a quella scala i triangoli
+sono di dieci pixel. **Corretta.**
+
+Stesso metodo ha confermato che la **Oscar era gia' giusta** (diagonale con rosso
+in alto a sinistra, giallo in basso a destra), che era l'altra su cui avevo dubbi.
+
+### Secondo difetto: l'Intelligenza era della forma sbagliata
+Era disegnata come una bandiera **rettangolare** a fasce rosso/bianche. Sulla
+tavola e' un **pennello** che si assottiglia. Un rettangolo a fasce rosso-bianche
+non e' l'Intelligenza: e' un'altra cosa. Rifatta con la sagoma giusta.
+
+### Cosa mancava, e ora c'e'
+La sezione aveva solo 27 disegni e nessun numero. Ora 47, in quattro gruppi:
+- **Alfabeto** (26) — ognuna con il significato CIS e, dove esiste, quello
+  **diverso in regata** preso dal regolamento (I -> regola 30.1, Z -> 30.2,
+  U -> 30.3, X richiamo individuale, S percorso ridotto, Y giubbotto, ecc.).
+- **Pennelli numerici** (10, da 1 a 0) — mancavano del tutto.
+- **Ripetitori e Intelligenza** (4) — mancavano del tutto.
+- **Segnali di regata** (7): bandiera Nera (regola 30.4), Arancione (estremita'
+  linea di partenza), Blu (estremita' linea di arrivo), e le quattro del Cambio
+  del Prossimo Lato (triangolo verde a dritta, rettangolo rosso a sinistra,
+  barra nera accorcia, croce nera allunga).
+
+Impianto: tre sagome ritagliate (`SW` coda di rondine, `PEN` pennello tronco,
+`TRI` pennello triangolare) con `clipPath` a id progressivo, cosi' non collidono.
+Le bandiere hanno **altezza fissa** invece di larghezza piena: quadre e pennelli
+hanno viewBox diversi e a larghezza piena si deformavano.
+
+### Verificato
+47 bandiere in 4 gruppi rese senza SVG a larghezza zero e senza id `clipPath`
+duplicati; alfabeto confrontato a video con la tavola; Zulu e Oscar confrontate
+per campionamento di pixel; scheda di dettaglio con significato CIS e di regata;
+**zero errori nuovi** intercettando `window.onerror` mentre si forzano le
+caratteristiche incomplete e si apre/chiude una scheda (gli errori in console
+erano cronologia dei test fatti PRIMA della guardia di ieri, non del codice
+attuale — controllato contando solo gli errori generati sul momento).
+
+### Aperto
+- **Pennelli numerici e ripetitori restano ricostruiti**, non campionati: sulla
+  tavola sono piccoli e la mia individuazione automatica delle macchie li
+  spezzava. Il disegno d'insieme corrisponde, ma proporzioni e dettagli (in
+  particolare il **9** e i tre **ripetitori**) vanno guardati una volta sulla
+  tavola. L'avviso in pagina lo dice, e ora e' ambrato invece che rosso perche'
+  il resto e' verificato.
+- Le composte (Intelligenza su H, su A, su pennello; N su H, su A) sono
+  descritte a parole nella scheda, non disegnate come coppia di bandiere.
+- Il PDF non e' nel repo ed e' giusto cosi': e' il regolamento FIV, si scarica
+  dalla fonte. Serviva per verificare, non per essere ridistribuito.
+
+---
+
+## 03/09/2026 — Rotta salvabile in Carta, viste agganciabili, stato di apertura pulito
+
+Sei interventi decisi con Sergio punto per punto. Toccati `routing/`,
+`carta/`, `impostazioni/`, `prontuario/`. SW bump: `raffyca-rt-v19 -> v20`.
+
+### 1. La rotta di Traversata si salva in Carta Nautica
+Nuovo tasto **⤓ Salva in Carta** accanto a Esporta GPX. Scrive `raffyca-tracks` e
+`raffyca-folders` secondo il contratto condiviso, **da dentro `routing/`**: la
+Carta non e' stata toccata per questa funzione, quindi zero rischio sul modulo
+che custodisce waypoint e tracce dell'utente.
+
+Il motivo non e' l'archivio, e' la **catena**: in Carta la rotta diventa una
+traccia, una traccia si puo' rendere attiva (`raffyca-active-track`) e il
+Cruscotto la segue (voce 26/07). Il GPX resta un file da ritrovare nel telefono.
+
+`R_CACHE` vive in memoria: chiudi il modulo o cambi zona e la rotta non esiste
+piu'. Solo A/B e i parametri stavano in `raffyca-traversata-ui`.
+
+**Contro la deperibilita'**, che e' il vero rischio (in Carta una rotta di
+routing e' indistinguibile da una traccia registrata, e il Cruscotto la
+seguirebbe come un piano valido):
+- nome con **data e ora di partenza**: `Rotta 03/09 06:00 · Alto Adriatico`;
+- `note` con tutte le condizioni del calcolo (zona, campo vento live o
+  sintetico, ETA, buffer costa, perdita manovra, efficienza polare, motore,
+  limite di vento) e la riga "Le condizioni cambiano: ricalcola prima di usarla";
+- `tag` viola fisso `#c792ea`, diverso dal teal delle tracce disegnate.
+
+**NON** viene resa attiva da sola: attivarla e' un gesto deliberato in Carta.
+
+La cartella **"Rotte Traversata"** si crea **pigramente** al primo salvataggio ed
+e' una cartella **normale**. Scartata la proposta iniziale di Sergio di una
+cartella non cancellabile: eliminare una cartella in Carta gia' oggi non cancella
+gli elementi (tornano "senza cartella", voce 26/07), quindi non c'e' niente da
+proteggere, e un'eccezione nel modello delle cartelle si sarebbe pagata in
+`delFolder`, `renameFolder`, select e filtro.
+
+Distanza calcolata con `dist()` del router, non con una formula nuova: il numero
+scritto in Carta e' lo stesso su cui la rotta e' stata calcolata. Nomi duplicati
+(stessa partenza salvata due volte) numerati ` (2)`, ` (3)`.
+
+**Il tasto Naviga NON diventa ridondante** ed e' rimasto: accende il GPS e guida
+su *questa* rotta *adesso*, con "ricalcola da qui" che rifa' il calcolo dalla
+posizione mentre il vento gira. E' l'unica cosa che solo Traversata puo' fare,
+perche' solo li' ci sono campo di vento e polare.
+
+### 2. Vista carta condivisa fra Carta e Traversata
+Nuova chiave **condivisa** `raffyca-map-view {c:[lat,lon], z}` — **solo centro e
+zoom**. Base e overlay restano privati di ogni modulo: le basi non coincidono
+(Carta nautica/sat/osm, Traversata le sue) e un overlay acceso di la' non
+significa niente di qua. Interruttore in **Impostazioni > Aspetto > Vista carta
+condivisa** (`raffyca-settings.syncMapView`), **default spento**.
+
+**La guardia e' la parte che conta.** In Traversata la vista condivisa si applica
+solo se il riquadro risultante **contiene A e B**; altrimenti si torna a
+`fitArea`. Senza, arrivando dalla Carta zoomati su un porto, A e B finiscono
+fuori schermo e a video sembra che la rotta sia sparita. Implementata provando la
+vista e annullandola se i bounds non contengono i due punti.
+
+`raffyca-carta-view` resta e continua a fare il suo lavoro quando l'aggancio e'
+spento. La carta dei temporali del Meteo non e' stata toccata (scelta di Sergio:
+si guarda in generale).
+
+### 3. Stato di apertura: si riapre puliti
+**Traversata** si apre con mare + vento + toponimi accesi, e costa modello,
+isocrone, "solo lungo la rotta" e batimetria **spenti**. **Carta** si apre con
+tutti gli overlay spenti (griglia, zone venti, batimetria, fari).
+
+Questo **supera in parte** la persistenza dei toggle introdotta il 20/07 per
+Traversata e il ripristino overlay della voce 08/08 (l) per la Carta. Il motivo:
+sono strumenti d'**analisi**, si accendono quando servono; ritrovarli accesi il
+giorno dopo vuol dire aprire su una carta illeggibile senza ricordarsi perche'.
+Restano persistiti centro, zoom, base e tutte le **scelte** (A/B, motore, buffer,
+efficienza). In Carta i campi `grid/zones/bathy/fari` continuano a essere
+**scritti** in `raffyca-carta-view`: non costano nulla e servono se un giorno si
+vuole un'opzione "riapri com'era".
+
+### 4. Impostazioni: dati radio
+Aggiunti al profilo **MMSI**, **nominativo internazionale** e **armatore**.
+Contratto: `raffyca-profile {boat, model, zone, mmsi, callsign, owner}`.
+MMSI ripulito delle non-cifre e troncato a 9; nominativo forzato maiuscolo.
+Un MMSI di lunghezza sbagliata **si salva comunque** con avviso ("MMSI salvato,
+ma non ha 9 cifre"): rifiutare l'input lo farebbe perdere, ma un MMSI sbagliato
+dentro un MAYDAY e' peggio di uno assente, quindi va detto. Non passano da
+`rfBoatSync` (non stanno nella tabella `boats`).
+
+### 5. Prontuario — bandiere: due errori e le didascalie
+- **Terzo ripetitore sbagliato**, segnalato da Sergio e confermato leggendo la
+  tavola riga per riga (mappa ASCII dei colori campionata a scala 3): e' bianco
+  con **fascia nera IN MEZZO**, non nera in alto come l'avevo disegnato.
+- **Secondo ripetitore** anche lui sbagliato, trovato con lo stesso metodo:
+  fascia **blu all'inferitura** e bianco fino alla punta, non un triangolo bianco
+  su blu. Il primo era giusto (triangolo giallo all'inferitura su blu).
+- **Filetto nero** attorno a ogni sagoma, dentro l'SVG e fuori dal ritaglio
+  (dentro, il clip ne mangia meta' spessore). Tolti bordo e fondo CSS: adesso un
+  pennello si vede triangolare invece che dentro un rettangolo bianco.
+- **Didascalie**: non erano invisibili, erano **troncate prima
+  dell'informazione**. Arancione e Blu mostravano entrambe "L'asta che espone
+  questa bandiera e' un…", identiche: non si capiva quale fosse partenza e quale
+  arrivo. Stesso per dritta/sinistra. Aggiunto un campo `c` (didascalia corta e
+  distintiva) usato in griglia; il testo ufficiale completo resta nella scheda.
+
+### 6. Prontuario — simulatore fari: il confronto era incomprensibile
+Sergio: "non e' chiarissimo cosa sto vedendo con la seconda luce, come si carica
+e che nome ha". Aveva ragione su tutti e tre i punti: gli esempi caricavano
+**sempre** la prima luce, la seconda si chiamava "Confronto", e la barra dei
+tempi mostrava solo la prima.
+Ora: distintivi **A/B** sotto le lampade per scegliere quale stai modificando,
+etichette che dicono dove va a finire l'esempio che tocchi ("Esempi reali dalla
+carta -> caricano la luce B"), **una barra dei tempi per luce** con il suo nome,
+e la decodifica riferita alla luce selezionata. Le due partono dallo **stesso
+`t`**, quindi lampeggiano in fase come le vedresti dalla barca.
+
+### Verificato
+Con server locale e browser vero, non a lettura:
+- **Salvataggio rotta**: cartella creata al primo salvataggio, **non duplicata**
+  al secondo, **ricreata** dopo averla cancellata a mano; nome/nota/tag/formato
+  punti `[lat,lon,0]` conformi al contratto; 41 punti e 41,66 NM su Trieste-Istria;
+  Carta rilegge le tracce (contatore a 3). Rifiuto corretto con rotta assente
+  ("Nessuna rotta da salvare") e con rotta di area diversa.
+- **Vista condivisa**, quattro casi con mappa dimensionata a 760x560:
+  vista larga che contiene A e B -> **applicata**; vista stretta su porto ->
+  **rifiutata**, torna a `fitArea`; impostazione spenta -> non applica e **non
+  scrive** la chiave.
+- **Stato di apertura**: i sette toggle di Traversata nello stato chiesto;
+  i quattro overlay di Carta spenti.
+- **Impostazioni**: interruttore default "Separate", scrive e cancella
+  `syncMapView`, i tre campi radio presenti; zero errori JS.
+- **Prontuario**: 47 bandiere, **tutte** col filetto (contate via DOM), terzo
+  ripetitore con la fascia a `y=14 h=12`, didascalie di regata distinte;
+  confronto fari: 1 lampada/1 barra da spento, 2 e 2 acceso, esempio caricato
+  su B lascia A invariata, decodifica etichettata; zero errori intercettando
+  `window.onerror`.
+
+### Aperti
+- **Il router non produce rotta nel browser di anteprima** (`path.length` 1,
+  `finished:false`). **Non e' una regressione**: verificato estraendo da git la
+  versione precedente e servendola in parallelo, si comporta identica. E' il
+  worker che non gira in quell'ambiente. Il salvataggio e' stato provato
+  iniettando una rotta della forma vera. **Da riprovare a bordo con una rotta
+  calcolata davvero.**
+- **Bandiera generica (logo/vela)** chiesta da Sergio: rimandata, deve ancora
+  spiegare a cosa serve.
+- Pennelli numerici: restano ricostruiti (vedi voce precedente); i **ripetitori**
+  ora sono campionati e non sono piu' fra i dubbi.
+- Nessuna delle cose di oggi e' stata vista su telefono: **tocca il layout** il
+  filetto delle bandiere, i distintivi A/B e il tasto in piu' nella barra di
+  Traversata (ora sono due bottoni dove ce n'era uno).
