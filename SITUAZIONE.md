@@ -1875,3 +1875,76 @@ SW hub v14 -> v15.
   riquadro sembra vuoto per due secondi e mezzo. Il bordo del cerchio lo rende
   distinguibile; da vedere a bordo se basta.
 - La prova e' su viewport emulato, non su tablet vero.
+
+---
+
+## 03/09/2026 (5) — Bandiere in Partenza: discusso, non deciso
+
+Nessuna riga di codice. La voce esiste perche' qui il valore sta nella strada
+scartata e nella forma raggiunta: fra due settimane, senza questo, resta solo
+"volevamo mettere le bandiere nella Partenza".
+
+### L'idea
+Durante il countdown di `partenza/`, mostrare le bandiere della sequenza — prima
+l'Intelligenza, poi via via quelle previste dalle istruzioni di regata, con
+un'ammainata che ne chiama un'altra. Da qui era nata anche la richiesta della
+**bandiera generica** (il guidone di circolo, che nelle partenze si vede spesso):
+nel Prontuario **non c'e' ancora** — le 47 sono alfabeto, pennelli numerici,
+ripetitori con Intelligenza, segnali di regata.
+
+### Scartata: l'AI che legge le istruzioni di regata in PDF
+Era l'ipotesi di partenza di Sergio, scartata da lui stesso ("le variazioni sul
+tema sono davvero tante") e confermata scartata per un motivo piu' forte: **le
+istruzioni non contengono l'informazione che serve nel momento in cui serve.**
+Dicono l'ora dell'avviso e la bandiera di classe; differimenti, richiami
+generali e cambi d'ordine li decide il Comitato quel giorno. Un PDF interpretato
+bene sarebbe autorevole e sbagliato esattamente a -3:00. In piu' girerebbe
+offline e non e' verificabile: l'estrazione non la controlli mentre sei in mezzo
+alla flotta. Se un giorno torna, il posto e' **a terra**: pre-compilare un
+profilo che l'utente conferma in porto — comodita', non funzione.
+
+### La forma raggiunta (da riprendere quando si riparte)
+Le bandiere sono **due famiglie**, e trattarle allo stesso modo e' l'errore:
+- **programmate** — avviso, preparatoria, le due ammainate. Nessuna variazione:
+  e' la regola 26 (5-4-1-0). Schema **compilato prima** in porto come lista di
+  eventi a tempo (`-5:00 issa classe`, `-4:00 issa preparatoria`, `-1:00 ammaina
+  preparatoria`, `0:00 ammaina classe`), seminata da un preset ed editabile;
+  poi la esegue il countdown da solo. Le "variazioni sul tema" le assorbe la
+  lista, non l'AI.
+- **reattive** — Intelligenza, 1&deg; ripetitore, X, N. Non prevedibili, restano
+  manuali, e non sono disegni da mostrare ma **ri-ancoraggi dell'orologio**
+  (sospendi; torna all'avviso un minuto dopo l'ammainata). E' li' che uno schema
+  automatico puo' andare fuori fase con la realta': e' il pezzo delicato.
+
+Guadagni gratis se lo schema e' ancorato al countdown: `cdSync` e i `+/-1 minuto`
+trascinano l'intera sequenza; e i bip generici di `cdCue` possono diventare i
+**segnali sonori veri** (avviso, preparatorio, suono lungo al minuto, via).
+
+### Vincoli emersi
+- **"Attese", mai "issate".** L'app non vede l'albero del Comitato. Scrivere
+  "issata: P" quando sull'albero c'e' la Nera costa una squalifica (30.4).
+- **Gli SVG non si duplicano.** Stanno in `prontuario/index.html` in una closure
+  con helper locali e `clipPath` a id progressivo. Sono gia' stati corretti due
+  volte (2&deg; e 3&deg; ripetitore, Zulu, Intelligenza): una copia in Partenza
+  tornerebbe a divergere in silenzio. Vanno estratti in un `rf-bandiere.js`
+  condiviso, come `rf-astro.js` e `rf-fari.js` — con il secondo consumatore gia'
+  in mano, che e' la condizione in cui quell'estrazione si e' ripagata.
+- **La perdita dati di Partenza non e' diagnosticata** (quota esclusa il 27/08).
+  Uno schema che sparisce a -6:00 e' peggio di uno schema assente: vive dentro
+  `raffyca-start` (chiave che non risulta fra le perse) e in sua assenza si
+  ricade sul preset 26, non sul vuoto.
+
+### Aperti (decisioni di Sergio, nessuna presa)
+Durata della sequenza (solo 5-4-1-0, o anche 10-5-0 e i 3 minuti di certi
+circoli); partenze in sequenza per classi dentro o fuori dalla prima versione;
+quanto spazio a schermo nell'ultimo minuto, dove servono numeri e distanza dalla
+linea; uno schema solo o schemi salvati con un nome.
+
+**Sospeso per scelta**: Sergio si ferma qui per provare a bordo quello che c'e'
+gia' e per riprendere la rinomina in **Dritta**. Niente e' bloccato da questa
+voce.
+
+### Nota fuori tema, trovata leggendo
+`CLAUDE.md` dice che `partenza/` e' un build React non modificabile da questo
+repository. **Non e' piu' vero dal 30/07** (riscritto vanilla, cartella con il
+solo `index.html`): resta vero per `performance/`. Da correggere in CLAUDE.md.
