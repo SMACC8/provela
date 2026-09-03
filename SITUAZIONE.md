@@ -1726,3 +1726,14 @@ SW hub v12 -> v13, `rf-fari.js` aggiunto al precache.
 - La lampada nel popup parte sempre da t=0 del proprio `rfFari.lampada`, quindi
   la fase non e' sincronizzata con l'orologio: serve a riconoscere il ritmo, non
   a prevedere quando il faro lampeggera' davvero. Vale gia' per il Prontuario.
+
+### Aggiunta 03/09 — etichetta del filtro isocrone
+`solo lungo la rotta` -> **`solo isocrone della rotta`**, piu' il testo di aiuto
+al passaggio del mouse. La vecchia dizione era ambigua nel modo peggiore:
+sembrava dire che il *calcolo* avvenisse solo lungo la rotta, che sarebbe una
+cosa diversa e pericolosa (il router esplora in tutte le direzioni, e deve).
+Il filtro e' e resta di sola VISTA: `isoCorridor()` decide quali isocrone
+disegnare, non come si calcola. SW routing v20 -> v21.
+Verificato: etichetta e suggerimento a video, spunta spenta all'apertura,
+`isoCorridor()` restituisce una funzione con la casella accesa e `null` con la
+casella spenta.
