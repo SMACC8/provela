@@ -104,25 +104,19 @@ select,button,input,textarea{font-family:var(--sans);color:var(--ink);}
 .leaflet-popup.fari-pop .leaflet-popup-content{font:600 12px ui-monospace,monospace;color:#12242e!important;}
 .leaflet-popup.fari-pop .leaflet-popup-content b{color:#0b1d26!important;}
 .fari-pop .frsep{margin-top:7px;border-top:1px solid rgba(0,0,0,.22);padding-top:6px;color:#3d5563!important;}
-/* "Come si vede": riquadro disegnato da rf-fari.js. Il popup e' a fondo chiaro,
-   ma la lampada va vista su scuro come di notte, quindi ha il suo fondo. */
-.fari-pop .rff{display:flex;gap:9px;align-items:flex-start;background:#08131c;
-  border-radius:8px;padding:9px;margin-top:6px;}
-.fari-pop .rff-l{width:44px;height:44px;flex:0 0 44px;border-radius:50%;
+/* "Come si vede": qui SOLO la luce che lampeggia. Nome e caratteristica sono
+   gia' scritti nel popup subito sotto, e in una colonna stretta il testo
+   discorsivo andava a capo ogni parola. In Carta serve vedere il ritmo; per
+   leggerla si apre il Prontuario. Fondo scuro: una luce si guarda di notte. */
+.fari-pop .rff-sola{display:flex;justify-content:center;align-items:center;
+  background:#08131c;border-radius:8px;padding:9px;margin-bottom:7px;}
+.fari-pop .rff-l{width:38px;height:38px;flex:0 0 38px;border-radius:50%;
   background:#0d161f;border:1px solid #1b3040;display:flex;align-items:center;justify-content:center;}
-.fari-pop .rff-l b{display:block;width:26px;height:26px;border-radius:50%;background:#111b25;}
-.fari-pop .rff-l b.on{background:var(--lc);box-shadow:0 0 10px 3px var(--lc),0 0 26px 9px var(--lc);}
-.fari-pop .rff-r{flex:1;min-width:0;}
-.fari-pop .rff-nm{display:none;}
-.fari-pop .rff-ch{font:600 11px ui-monospace,monospace;color:#8fb0c4!important;letter-spacing:.04em;}
-.fari-pop .rff-tl{position:relative;display:flex;height:11px;margin:6px 0 5px;border-radius:3px;
-  overflow:hidden;background:#0b1a26;border:1px solid #1b3040;}
-.fari-pop .rff-tl i{height:100%;background:transparent;}
-.fari-pop .rff-tl u{position:absolute;top:-2px;bottom:-2px;width:2px;background:#dbe9f2;
-  opacity:.8;border-radius:2px;text-decoration:none;}
-.fari-pop .rff-tx{font:400 11.5px/1.45 system-ui,sans-serif;color:#cfe2ee!important;}
-.fari-pop .rff-tx b{color:#2BD9C4!important;font-weight:700;}
-.fari-pop .rff-tx em{display:block;font-style:normal;color:#FFC24B!important;margin-top:3px;font-size:11px;}
+.fari-pop .rff-l b{display:block;width:20px;height:20px;border-radius:50%;background:#111b25;
+  transition:none;}
+/* l'alone e' proporzionato al diametro: rimpicciolendo la lampada senza toccarlo
+   il bagliore sarebbe rimasto grande come prima e avrebbe riempito il riquadro */
+.fari-pop .rff-l b.on{background:var(--lc);box-shadow:0 0 8px 2px var(--lc),0 0 20px 7px var(--lc);}
 .leaflet-popup.fari-pop a.frsib{display:block;color:#0a4a42!important;font-weight:700;text-decoration:none;
   padding:7px 2px;border-bottom:1px solid rgba(0,0,0,.10);}
 .leaflet-popup.fari-pop a.frsib:last-child{border-bottom:none;}
@@ -826,14 +820,21 @@ function fariPick(f){
      la vedi lampeggiare. Il riquadro lo disegna rf-fari.js, lo stesso motore del
      Prontuario: una luce sola, perche' qui stai identificando QUESTO faro.
      Il confronto fra due luci resta nel Prontuario, dove ha senso. */
-  if(p.ch)html='<div id="rffBox"></div>'+html;
-  var pop=L.popup({className:'fari-pop'}).setLatLng([c[1],c[0]]).setContent(html).openOn(map);
+  if(p.ch)html='<div id="rffBox"></div>'+html;   /* la luce in cima, i dati sotto */
+  /* maxHeight: con piu' luci vicine l'elenco "Anche qui" faceva crescere il
+     popup oltre l'altezza della mappa, e su telefono finiva fuori proprio la
+     cima - cioe' la luce che lampeggia. Ora il contenuto scorre dentro il
+     popup. Il tetto e' due terzi della mappa, non un numero fisso: in
+     orizzontale la mappa e' bassa. */
+  var hMap=(map.getSize?map.getSize().y:400);
+  var pop=L.popup({className:'fari-pop',maxHeight:Math.max(180,Math.round(hMap*0.66))})
+    .setLatLng([c[1],c[0]]).setContent(html).openOn(map);
   var el=pop.getElement?pop.getElement():null;
   if(el){var links=el.querySelectorAll('.frsib');for(var k=0;k<links.length;k++){(function(a){a.addEventListener('click',function(e){e.preventDefault();L.DomEvent.stop(e);fariPickById(a.getAttribute('data-id'));});})(links[k]);}}
   if(fariAnim){fariAnim.stop();fariAnim=null;}
   if(el&&p.ch&&typeof rfFari!=='undefined'){
     var box=el.querySelector('#rffBox');
-    if(box)fariAnim=rfFari.lampada(box,p.ch,{nome:p.nm||''});
+    if(box)fariAnim=rfFari.lampada(box,p.ch,{solaLuce:true});
   }
 }
 /* una sola animazione viva per volta: il popup precedente si chiude e la sua

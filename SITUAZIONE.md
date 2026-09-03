@@ -1820,3 +1820,58 @@ SW hub v13 -> v14.
   e' il numero giusto.
 - La lampada parte da t=0 all'apertura: riconosce il **ritmo**, non prevede
   quando il faro lampeggera'. Vale per tutti e tre i posti dove appare.
+
+---
+
+## 03/09/2026 (4) — In Carta solo la luce, e il popup smette di sfondare
+
+Prima prova su schermo stretto (schermata di Sergio), e sono usciti due difetti
+che a schermo largo non si vedevano.
+
+### Il riquadro era spaginato, ma il difetto vero era di contenuto
+Nel popup, largo ~300 px, la colonna di destra con nome, caratteristica, barra e
+descrizione si riduceva a sei caratteri: il testo andava a capo **ogni parola**
+("1 / lampo / giallo, / ogni / 3 s / portata / 4 M"), su dieci righe.
+
+Si poteva aggiustare il CSS, ma la chiamata giusta l'ha fatta Sergio ed e' di
+merito, non di forma: **in Carta quel testo non serve**. Nome e caratteristica
+sono gia' scritti nel popup due centimetri piu' sotto, e la Carta non e' il posto
+dove si impara a interpretare i fari — li' serve solo **vedere** il ritmo. Chi
+vuole leggerla apre il Prontuario.
+
+`rfFari.lampada` ha ora due tagli: `{solaLuce:true}` disegna solo la lampada
+(Carta), l'impostazione completa resta al Prontuario, dove imparare a leggere una
+caratteristica e' esattamente lo scopo.
+
+Diametro ridotto in un secondo giro (58 -> 38 il cerchio esterno, 34 -> 20 la
+lampada): il riquadro passa da 82 a **56 px** e il popup da 131 a **105**. La
+luce si legge lo stesso perche' a renderla visibile e' l'**alone**, non il
+diametro del disco — e infatti l'alone e' stato ridotto in proporzione, altrimenti
+restava grande come prima e riempiva il riquadro rimpicciolito.
+
+### Secondo difetto, trovato dalla prova e non dalla segnalazione
+Con piu' luci vicine, l'elenco "Anche qui" faceva crescere il popup **oltre
+l'altezza della mappa**: su telefono finiva fuori schermo proprio la cima, cioe'
+la luce che lampeggia. Aggiunto `maxHeight` al popup, calcolato come due terzi
+dell'altezza della mappa e non come numero fisso: in orizzontale la mappa e'
+bassa e un valore fisso avrebbe sbagliato di nuovo.
+
+### Verificato
+Con viewport emulato a **375x812** (telefono), che e' la condizione in cui il
+difetto si era manifestato:
+- riquadro alto 56 px, lampada 38x38, **nessun testo dentro** (stringa vuota),
+  popup largo 301 px e alto 105;
+- `rffBox` e' il primo elemento del contenuto: la luce sta in cima;
+- popup contro una mappa di 372 px: **ci sta**, con tetto a 246;
+- zero errori JS.
+A schermo si vede il riquadro scuro con la luce e sotto
+`Palau Meda / Fl Y 3s 3M / E 0990`.
+
+SW hub v14 -> v15.
+
+### Aperti
+- La lampada **spenta** e' un cerchio scuro su fondo scuro: corretto (una luce
+  buia e' buia), ma se apri il popup durante la fase di buio di una Fl 3s il
+  riquadro sembra vuoto per due secondi e mezzo. Il bordo del cerchio lo rende
+  distinguibile; da vedere a bordo se basta.
+- La prova e' su viewport emulato, non su tablet vero.

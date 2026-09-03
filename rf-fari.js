@@ -181,25 +181,37 @@ function lampada(host, ch, opt){
     segs += '<i style="flex:' + f[1] + ' 0 0' + (f[0] ? ";background:" + col : "") + '"></i>';
   });
 
-  host.innerHTML =
-    '<div class="rff">' +
-      '<div class="rff-l"><b></b></div>' +
-      '<div class="rff-r">' +
-        '<div class="rff-nm"></div>' +
-        '<div class="rff-ch"></div>' +
-        '<div class="rff-tl">' + segs + '<u></u></div>' +
-        '<div class="rff-tx"></div>' +
-      '</div>' +
-    '</div>';
+  /* Due tagli, e la differenza e' a cosa serve il riquadro.
+     solaLuce: in Carta Nautica, dove la caratteristica e il nome sono gia'
+     scritti nel popup subito sotto. Ripeterli in forma discorsiva dentro una
+     colonna larga sei caratteri non aiuta nessuno: li' serve solo VEDERE il
+     ritmo. Chi vuole approfondire apre il simulatore.
+     Completo: nel Prontuario, dove il punto e' proprio imparare a leggerla. */
+  if (opt.solaLuce) {
+    host.innerHTML = '<div class="rff rff-sola"><div class="rff-l"><b></b></div></div>';
+  } else {
+    host.innerHTML =
+      '<div class="rff">' +
+        '<div class="rff-l"><b></b></div>' +
+        '<div class="rff-r">' +
+          '<div class="rff-nm"></div>' +
+          '<div class="rff-ch"></div>' +
+          '<div class="rff-tl">' + segs + '<u></u></div>' +
+          '<div class="rff-tx"></div>' +
+        '</div>' +
+      '</div>';
+  }
   var lamp = host.querySelector(".rff-l b"),
       head = host.querySelector(".rff-tl u");
   lamp.style.setProperty("--lc", col);
-  host.querySelector(".rff-nm").textContent = opt.nome || "";
-  host.querySelector(".rff-ch").textContent = (p ? p.src : String(ch || "—"));
-  var card = p ? cardinale(p) : "";
-  host.querySelector(".rff-tx").innerHTML = p
-    ? (describe(p) + (card ? '<em>▲ ' + card + "</em>" : ""))
-    : "Caratteristica non riconoscibile.";
+  if (!opt.solaLuce) {
+    host.querySelector(".rff-nm").textContent = opt.nome || "";
+    host.querySelector(".rff-ch").textContent = (p ? p.src : String(ch || "—"));
+    var card = p ? cardinale(p) : "";
+    host.querySelector(".rff-tx").innerHTML = p
+      ? (describe(p) + (card ? '<em>▲ ' + card + "</em>" : ""))
+      : "Caratteristica non riconoscibile.";
+  }
 
   var vivo = true, t0 = (glob.performance || Date).now();
   function giro(now){
