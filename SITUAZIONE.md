@@ -1948,3 +1948,69 @@ voce.
 `CLAUDE.md` dice che `partenza/` e' un build React non modificabile da questo
 repository. **Non e' piu' vero dal 30/07** (riscritto vanilla, cartella con il
 solo `index.html`): resta vero per `performance/`. Da correggere in CLAUDE.md.
+
+---
+
+## 04/09/2026 — Due backup in Impostazioni, e il vecchio rifiutava i file del nuovo
+
+Sergio ha notato due backup nella stessa pagina. C'erano davvero, entrambi
+funzionanti e con la stessa portata (tutto il prefisso `raffyca-`), ma in
+formati file diversi:
+
+- sezione **Dati** → `btnExport`/`btnImport`, il piu' vecchio. Scriveva
+  `provela-backup-AAAA-MM-GG.json` come `{_raffyca:true,_version:1,_exported,keys}`;
+- sezione **Backup dati** → `rfBackup` (voce del 08/08, difesa dati dopo
+  l'azzeramento su Android PWA). Snapshot automatico in IndexedDB, stato
+  dell'ultimo backup, file `ProVela-backup-AAAAMMGG-HHMM.json` come
+  `{app,ts,keys}`.
+
+### Il difetto silenzioso, che non era la duplicazione
+I due import non erano simmetrici. `rfBackup.importFile` legge `j.keys || j` e
+quindi accetta anche i file vecchi; il vecchio `importBackup` pretendeva il
+flag `data._raffyca`, che l'export nuovo **non scrive**. Esportare da "Backup
+dati" e reimportare da "Dati" dava "Backup non riconosciuto" con in mano un
+file valido — nel momento peggiore, cioe' durante un ripristino dopo una
+perdita. Rileggendo il codice non si vede: i due blocchi sono lontani nel file
+e ciascuno, da solo, e' corretto. E' lo stesso schema dei riferimenti orfani
+del 03/09.
+
+Il vecchio aveva anche due comportamenti inferiori: importava senza chiedere
+conferma e non ricaricava la pagina, lasciando i moduli gia' aperti sui dati
+pre-import.
+
+### Alternative scartate
+- **Tenere i due e allineare i formati** (aggiungere `_raffyca` all'export
+  nuovo, o accettare entrambi nel vecchio): risolve l'incompatibilita' ma
+  lascia due bottoni "Esporta backup" nella stessa pagina, cioe' il difetto
+  che Sergio ha segnalato. Due strade che fanno la stessa cosa divergono di
+  nuovo alla prima modifica.
+- **Tenere il vecchio e buttare `rfBackup`**: perderebbe snapshot automatico,
+  offerta di ripristino all'avvio e stato dell'ultimo backup — cioe' proprio
+  la difesa scritta contro un episodio reale.
+- **Lasciare "Backup dati" dov'era, in fondo**: stava dopo la polare, staccata
+  da "Azzera dati…", il cui avviso dice di esportare prima un backup.
+
+### Correzione
+Rimossi da `impostazioni/index.html` i bottoni `btnExport`/`btnImport`,
+l'input `fileImport` e le funzioni `exportBackup`, `importBackup`,
+`collectRaffycaKeys` (53 righe). `RF_PREFIX` resta: lo usa `resetData`.
+Il contenuto di "Backup dati" e' stato spostato in testa alla sezione **Dati**,
+che ora legge: copia di sicurezza → snapshot automatico → esporta/importa →
+spazio usato → azzera. La sezione standalone (col commento sbagliato
+`<!-- INFO -->`) e' sparita. `rfBackup` non e' stato toccato: identico a quello
+inline nell'Hub.
+
+### Verificato
+Su `localhost:8765`, viewport mobile: nessun errore in console; nessun residuo
+dei simboli rimossi (grep); sintassi dei 5 script inline OK (`jsc`); lo stato
+"Ultimo backup automatico: … · 3 voci" compare popolato, quindi lo snapshot
+IndexedDB gira anche dopo lo spostamento nel DOM; `rfBackup.importFile`
+provato con un file **vecchio formato** e uno **nuovo formato**, entrambi
+accettati e scritti in localStorage — nessun backup gia' sul telefono di
+Sergio diventa illeggibile.
+
+### Non verificato
+Il download vero di `Esporta backup (file)` (il browser di prova non salva
+file); il percorso `checkLoss` con localStorage svuotato; niente prova su
+tablet. Nessun bump di service worker: `impostazioni/index.html` non sta nel
+PRECACHE di `sw.js` e le navigazioni HTML sono network-first.

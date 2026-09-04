@@ -555,14 +555,20 @@ select.rf-sel{color:hsl(var(--ink));text-align:left;appearance:none;padding-righ
 
     <div class="field">
       <div class="lbl">
-        <div class="k">Backup</div>
-        <div class="h">Esporta o ripristina i dati ProVela (JSON)</div>
+        <div class="k">Copia di sicurezza locale</div>
+        <div class="h" id="bkState">Controllo backup…</div>
       </div>
     </div>
-    <div class="actions" style="margin-top:4px">
-      <button class="btn teal" id="btnExport">Esporta backup</button>
-      <button class="btn" id="btnImport">Importa backup</button>
-      <input type="file" id="fileImport" accept="application/json,.json" hidden>
+    <div class="field" style="margin-top:6px">
+      <div class="lbl">
+        <div class="k">Snapshot automatico</div>
+        <div class="h">A ogni apertura dell'app salvo una copia delle tue voci (barca, waypoint, tracce, polare, impostazioni…) in un archivio separato dal browser, che resiste a un azzeramento dei dati. Tengo gli ultimi 5. Se all'avvio i dati risultano spariti, ProVela propone il ripristino. Per una copia fuori dal telefono, esporta il file.</div>
+      </div>
+    </div>
+    <div class="actions" style="margin-top:6px">
+      <button class="btn teal" id="btnBkExport">Esporta backup (file)</button>
+      <button class="btn" id="btnBkImport">Importa da file</button>
+      <input type="file" id="bkFile" accept="application/json,.json" hidden>
     </div>
 
     <div class="field" style="margin-top:6px">
@@ -687,29 +693,6 @@ select.rf-sel{color:hsl(var(--ink));text-align:left;appearance:none;padding-righ
       <button class="btn" id="btnPolFile">Da file .csv</button>
       <button class="btn coral" id="btnPolClear">Rimuovi</button>
       <input type="file" id="polFile" accept=".csv,text/csv" hidden>
-    </div>
-  </section>
-
-  <!-- INFO -->
-  <section class="rf-instr rf-viti" data-accent="green">
-    <span class="rf-viti-b"></span>
-    <div class="rf-title">Backup dati</div>
-    <div class="field">
-      <div class="lbl">
-        <div class="k">Copia di sicurezza locale</div>
-        <div class="h" id="bkState">Controllo backup…</div>
-      </div>
-    </div>
-    <div class="field" style="margin-top:6px">
-      <div class="lbl">
-        <div class="k">Snapshot automatico</div>
-        <div class="h">A ogni apertura dell'app salvo una copia delle tue voci (barca, waypoint, tracce, polare, impostazioni…) in un archivio separato dal browser, che resiste a un azzeramento dei dati. Tengo gli ultimi 5. Se all'avvio i dati risultano spariti, ProVela propone il ripristino. Per una copia fuori dal telefono, esporta il file.</div>
-      </div>
-    </div>
-    <div class="actions" style="margin-top:6px">
-      <button class="btn teal" id="btnBkExport">Esporta backup (file)</button>
-      <button class="btn" id="btnBkImport">Importa da file</button>
-      <input type="file" id="bkFile" accept="application/json,.json" hidden>
     </div>
   </section>
 
@@ -1181,68 +1164,10 @@ select.rf-sel{color:hsl(var(--ink));text-align:left;appearance:none;padding-righ
       patchSettings({raceEndUrl: this.value.trim()}); toast("URL salvato");
     });
 
-    // --- backup export ---
-    $("btnExport").addEventListener("click", exportBackup);
-    // --- backup import ---
-    $("btnImport").addEventListener("click", function(){ $("fileImport").click(); });
-    $("fileImport").addEventListener("change", importBackup);
     // --- spazio usato ---
     $("btnSto").addEventListener("click", mostraStorage);
     // --- reset ---
     $("btnReset").addEventListener("click", resetData);
-  }
-
-  /* ================= BACKUP ================= */
-  function collectRaffycaKeys(){
-    var out = {};
-    for(var i=0; i<localStorage.length; i++){
-      var k = localStorage.key(i);
-      if(k && k.indexOf(RF_PREFIX) === 0){ out[k] = localStorage.getItem(k); }
-    }
-    return out;
-  }
-
-  function exportBackup(){
-    var data = {
-      _raffyca: true,
-      _version: 1,
-      _exported: new Date().toISOString(),
-      keys: collectRaffycaKeys()
-    };
-    var blob = new Blob([JSON.stringify(data, null, 2)], {type:"application/json"});
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
-    var stamp = new Date().toISOString().slice(0,10);
-    a.href = url; a.download = "provela-backup-" + stamp + ".json";
-    document.body.appendChild(a); a.click();
-    document.body.removeChild(a);
-    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
-    toast("Backup esportato");
-  }
-
-  function importBackup(ev){
-    var file = ev.target.files && ev.target.files[0];
-    ev.target.value = ""; // consente reimport dello stesso file
-    if(!file) return;
-    var reader = new FileReader();
-    reader.onload = function(){
-      var data;
-      try{ data = JSON.parse(reader.result); }
-      catch(e){ toast("File non valido", true); return; }
-      if(!data || !data.keys || typeof data.keys !== "object" || !data._raffyca){
-        toast("Backup non riconosciuto", true); return;
-      }
-      var count = 0;
-      Object.keys(data.keys).forEach(function(k){
-        if(k.indexOf(RF_PREFIX) === 0){
-          try{ localStorage.setItem(k, String(data.keys[k])); count++; }catch(e){}
-        }
-      });
-      toast(count + " voci ripristinate");
-      load();
-    };
-    reader.onerror = function(){ toast("Lettura fallita", true); };
-    reader.readAsText(file);
   }
 
   /* ================= SPAZIO USATO =================
