@@ -2014,3 +2014,96 @@ Il download vero di `Esporta backup (file)` (il browser di prova non salva
 file); il percorso `checkLoss` con localStorage svuotato; niente prova su
 tablet. Nessun bump di service worker: `impostazioni/index.html` non sta nel
 PRECACHE di `sw.js` e le navigazioni HTML sono network-first.
+
+---
+
+## 04/09/2026 (2) — Giro di debug su tutti i moduli: niente di rotto, tre residui morti
+
+Sergio ha chiesto un debug generale, senza un sintomo. Non c'era un difetto da
+inseguire, quindi il lavoro e' stato costruire un controllo ripetibile e farlo
+girare su tutto, per distinguere "non si e' visto niente" da "si e' guardato".
+
+### Cosa e' stato controllato, e come
+- **Sintassi**: 58 sorgenti (script inline delle 22 pagine + i `.js` in
+  radice e nei moduli) passati a `jsc` con `checkSyntax`: 0 errori. `node` non
+  c'e' su questa macchina; `jsc` sta in
+  `/System/Library/Frameworks/JavaScriptCore.framework/Versions/Current/Helpers/jsc`
+  e `checkSyntax` vuole un **nome di file**, non una stringa di sorgente.
+- **Caricamento**: le 22 pagine servite da `python3 -m http.server 8765` e
+  aperte in viewport 375x812: nessun errore di pagina in console.
+- **Service worker**: per ciascuno dei 5 le voci del precache esistono su
+  disco, e nessun file precachato e' stato toccato da un commit successivo
+  all'ultimo bump (`git log <ultimo-bump>..HEAD -- <file>` per ogni voce).
+- **Riferimenti al DOM**: ogni `getElementById('x')` / `querySelector('#x')`
+  negli script inline confrontato con gli `id` del markup dello stesso file.
+  Tre orfani, tutti innocui (sotto).
+- **Link e fetch relativi**, icone dei manifest, chiavi `raffyca-*` lette e
+  scritte, membri di `rfFari` / `rfLive` / `rfRec` usati fuori dai file che li
+  definiscono: tutto risolto.
+- **Controlli interattivi** ("smash test"): in ogni pagina uno script clicca
+  ogni bottone/chip/checkbox visibile, cambia ogni select e riempie ogni input,
+  con `window.onerror` e `unhandledrejection` agganciati; `alert/confirm/prompt`
+  neutralizzati (confirm -> false, quindi "Azzera dati" e simili non passano),
+  `input[type=file]` disinnescato, geolocalizzazione finta (42.80N 10.30E).
+  Contati: Carta 39, Traversata 31, Meteo 50, Impostazioni 25, Manutenzione 15,
+  Cruscotto 14, Partenza 12, Sole-Luna 11, Calcoli 11, XTE 8, Posizione 6,
+  Performance 4, Percorso 3, MOB 3, Prontuario 67 (bandiere 48, fari 14,
+  VHF 5; alfabeto, legenda e bollettini non hanno controlli). Zero eccezioni.
+- **Carta, popup faro**: posizione finta all'Elba, zoom 12, `fariPick` su
+  quattro luci (Monte Poro Fl W 5s 16M, E 1441 F R 3M, E 1440 Fl R 5s 3M,
+  Marina di Campo Fl W 3s 10M) in entrambi i modi (Settori / Cosa vedo): il
+  riquadro `#rffBox` c'e', il contenuto cambia con la luce, il popup sta in
+  333 px su 375 senza scorrimento orizzontale, "Anche qui (3)" elencato.
+
+### Falsi allarmi, e perche'
+- **MOB "copia" lancia `Cannot read properties of null (reading 'ts')`**: vero
+  solo nella sequenza sintetica segna -> annulla -> copia, dove il tasto era
+  gia' stato nascosto da `ferma()` insieme a tutto `#attivo`. Il primo script
+  clickava una lista raccolta prima, senza ricontrollare la visibilita'; con il
+  ricontrollo l'errore sparisce. Nessun percorso reale arriva a `copia()` con
+  `MOB` nullo.
+- **"An unknown error occurred when fetching the script"** su ogni pagina: e'
+  il browser d'anteprima che non lascia registrare i service worker (la
+  richiesta a `sw.js` non compare nemmeno nel log di rete). Non e' del codice.
+- **429 da `api.open-meteo.com`**: limite di frequenza dopo una decina di
+  ricaricamenti di Meteo in pochi minuti; al ricaricamento successivo tutte 200.
+
+### Residui morti trovati (non toccati: niente e' rotto)
+- `routing/raffyca-traversata-map.html`: `geocode()` (riga ~1135) e
+  `createCustomArea()` (~1201) leggono `#q`, `#findBtn`, `#qarea`, `#areaBtn`
+  che non esistono piu' nel markup. Nessuno le chiama: se qualcuno le
+  ricollegasse a un bottone, lancerebbero al primo tocco. `loadCoast()` legge
+  `#areaBtn` ma lo protegge con `if(ab)`.
+- `meteo/index.html`: `toggleLight()` cerca `#themeBtn` (assente, protetto da
+  `if(b)`) e scrive `raffyca_light`, con l'underscore, che nessuno legge. E' il
+  tema di prima di `raffyca-theme`.
+- `raffyca-mob-scuro` risulta "solo letta" al grep ma e' scritta tramite la
+  costante `K_SCURO`: non e' un residuo, e' un limite del controllo.
+
+### Lezioni sull'ambiente di prova (valgono per la prossima volta)
+- Le schede aperte in background dal pannello browser hanno **viewport 0x0**
+  finche' non si chiama `resize_window` su quella scheda: la Carta non disegna
+  i fari (nessun layer, `getBounds()` degenere) e i controlli senza larghezza
+  intrinseca risultano invisibili. Controllare `innerWidth` prima di fidarsi
+  di un conteggio.
+- A pannello nascosto Chrome **strozza i timer**: `setTimeout` a 1/s, e dopo
+  qualche minuto a 1/min. Uno script di prova che fa `await sleep(10)` fra un
+  click e l'altro sembra bloccato (tre timeout di fila sul Prontuario, ogni
+  volta su un chip diverso). Rimedio: cedere il controllo con `MessageChannel`,
+  che non e' strozzato. Anche i click via `computer` vanno in timeout a
+  pannello nascosto: si guida la pagina con `javascript_tool`.
+- `preview_start` con `python3 -m http.server` muore con `PermissionError` su
+  `os.getcwd()`: il server va lanciato da Bash in background e il pannello
+  aperto con `preview_start` sull'URL.
+- Leaflet tiene il popup chiuso nel DOM durante la dissolvenza: leggendo subito
+  dopo `closePopup()` si legge quello vecchio. Aspettare `opacity 0` o
+  rimuoverlo.
+- Lo smash test sporca il localStorage del browser di prova (profilo, tema,
+  registrazione traccia avviata dal Cruscotto): pulito a fine giro con
+  `localStorage.clear()` sull'origine 127.0.0.1:8765.
+
+### Non verificato
+Service worker e cache offline (bloccati nel pannello); GPS vero; download dei
+file (GPX, backup, CSV/PDF del diagnostico); voce del VHF; il router con il
+worker (come gia' notato il 03/09, non gira qui); tablet e telefono veri.
+Nessuna riga di codice cambiata, nessun bump di service worker.
