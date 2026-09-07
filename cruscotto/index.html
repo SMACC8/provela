@@ -92,18 +92,18 @@ header{flex:none;display:flex;align-items:center;justify-content:space-between;
 /* ── griglia campi ── */
 main{flex:1;min-height:0;overflow:hidden;padding:10px;}
 .grid{height:100%;display:grid;gap:9px;}
-.grid.n2{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) minmax(0,1fr);}
-.grid.n4{grid-template-columns:1fr 1fr;grid-template-rows:minmax(0,1fr) minmax(0,1fr);}
-.grid.n8{grid-template-columns:1fr 1fr;grid-template-rows:repeat(4,minmax(0,1fr));}
-.grid.n5{grid-template-columns:1fr 1fr;grid-template-rows:minmax(0,1.35fr) minmax(0,1fr) minmax(0,1fr);}
+.grid.n2{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) minmax(0,1fr);}
+.grid.n4{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr) minmax(0,1fr);}
+.grid.n8{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:repeat(4,minmax(0,1fr));}
+.grid.n5{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:minmax(0,1.35fr) minmax(0,1fr) minmax(0,1fr);}
 .grid.n5 .compass{grid-column:1 / span 2;}
-.grid.n3{grid-template-columns:1fr 1fr;grid-template-rows:minmax(0,3fr) minmax(0,1fr);}
+.grid.n3{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:minmax(0,3fr) minmax(0,1fr);}
 .grid.n3 .compass{grid-column:1 / span 2;}
 .slot.compass{cursor:pointer;}
 .slot.compass .cwrap{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:10px;}
 
 /* ── bezel + display ── */
-.instr{position:relative;border-radius:11px;padding:4px;min-height:0;
+.instr{position:relative;border-radius:11px;padding:4px;min-height:0;min-width:0;
   background:linear-gradient(148deg,var(--bezel-hi) 0%,#18303e 42%,var(--bezel-lo) 100%);
   box-shadow:0 8px 22px -12px rgba(0,0,0,.9),inset 0 1px 0 rgba(255,255,255,.14);}
 .dp{height:100%;border-radius:8px;position:relative;overflow:hidden;
@@ -755,23 +755,49 @@ function build(){
   paint();
   requestAnimationFrame(fitAll);
 }
+/* Il numero si adatta alla card; la card NON si adatta al numero. La seconda
+   meta' e' garantita dal CSS (colonne minmax(0,1fr), .instr min-width:0): senza,
+   la larghezza della card dipendeva dal testo e il testo dalla larghezza della
+   card, e il pareggio dei conti lo faceva la griglia allargandosi oltre lo
+   schermo — la colonna di destra finiva fuori. */
 function fit(slot){
   if(slot.dataset.compass)return;
   const dp=slot.querySelector('.dp'), lbl=slot.querySelector('.lbl');
   const num=slot.querySelector('.num'), unit=slot.querySelector('.unit');
-  const tag=slot.querySelector('.side-tag');
-  const availH=Math.max(24, dp.clientHeight - lbl.offsetHeight - 22);
-  const availW=Math.max(24, dp.clientWidth - 26);
-  let chars=Math.max(1,(num.textContent||'').length);
-  if(unit&&unit.textContent) chars+=unit.textContent.length*0.5+0.4;
-  if(tag) chars+=2;
-  let fs=Math.min(availH*0.98, availW/(chars*0.60));
-  fs=Math.max(14,Math.min(fs,220));
-  num.style.fontSize=fs+'px';
-  unit.style.fontSize=Math.max(11,fs*0.26)+'px';
+  const row=slot.querySelector('.numrow');
+  const availH=dp.clientHeight - lbl.offsetHeight - 22;
+  const availW=dp.clientWidth - 26;
+  /* Misura che non vale niente: pagina nascosta, ripresa dallo stop del
+     dispositivo, layout non ancora assestato. Non si tira a indovinare — si
+     lascia il campo com'e' e si azzera _shape, cosi' il prossimo paint (o
+     l'osservatore qui sotto) rimisura per davvero. */
+  if(!(availH>8&&availW>8)){slot._shape='';return;}
+  const set=v=>{num.style.fontSize=v+'px';unit.style.fontSize=Math.max(11,v*0.26)+'px';};
+  let fs=Math.max(14,Math.min(availH*0.98,220));
+  set(fs);
+  /* Larghezza VERA, non stimata. Il conto a carattere (0.60 em l'uno) sbagliava
+     di brutto sul trattino del dato assente, che di em ne occupa uno intero, e
+     non contava ne' l'unita' ne' lo spazio fra le due. */
+  for(let i=0;i<5&&fs>14;i++){
+    const w=row.scrollWidth; if(w<=availW)break;
+    fs=Math.max(14,fs*availW/w*0.995); set(fs);
+  }
 }
-function fitAll(){$('grid').querySelectorAll('.slot').forEach(fit);}
-addEventListener('resize',fitAll);
+let FITTING=false;
+function fitAll(){
+  if(FITTING)return; FITTING=true;
+  try{$('grid').querySelectorAll('.slot').forEach(fit);}finally{FITTING=false;}
+}
+/* Rimisurare al momento giusto. Il solo evento resize non basta: arriva anche
+   mentre il layout si sta ancora assestando, e quello che si misurava li' di
+   li' a poco non c'era piu'. Il font sbagliato restava poi appiccicato, perche'
+   paint() richiama fit() solo se cambia il numero di caratteri. ResizeObserver
+   arriva dopo, a misure vere, e non puo' innescare un ciclo: cambiare il corpo
+   del carattere non cambia piu' la dimensione della card. */
+if(window.ResizeObserver) new ResizeObserver(fitAll).observe($('grid'));
+else addEventListener('resize',fitAll);
+addEventListener('pageshow',fitAll);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)fitAll();});
 function paint(){
   const E=eff(); LAST_E=E;
   $('grid').querySelectorAll('.slot').forEach(slot=>{

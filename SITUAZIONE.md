@@ -2107,3 +2107,159 @@ Service worker e cache offline (bloccati nel pannello); GPS vero; download dei
 file (GPX, backup, CSV/PDF del diagnostico); voce del VHF; il router con il
 worker (come gia' notato il 03/09, non gira qui); tablet e telefono veri.
 Nessuna riga di codice cambiata, nessun bump di service worker.
+
+---
+
+## 07/09/2026 — Il cruscotto che si spagina, la carta che non segue, i conti sulle linguette
+
+Sergio ha usato l'app in mare sabato 05/09, tablet e telefono in parallelo, e ha
+riferito tre cose. Piu' una quarta che non e' dell'app (vedi in fondo).
+
+### 1. Cruscotto spaginato: un vincolo circolare, non un numero sbagliato
+Alla perdita del segnale, o rientrando da uno stop del dispositivo, la colonna
+destra dei campi finiva **fuori schermo** e ci restava. Nello screenshot: SOG
+enorme a sinistra, "DIST. WP" e "ARRIVO WP ETA" tagliati dal bordo.
+
+La causa non e' il font grande: e' che **la larghezza della card dipendeva dal
+numero e il numero dalla larghezza della card**.
+- `fit()` misurava `dp.clientWidth` e ci scriveva dentro il numero piu' grande
+  che ci stesse;
+- le colonne erano `grid-template-columns:1fr 1fr`, cioe' `minmax(auto,1fr)`:
+  il minimo automatico e' il **min-content** della card, quindi la card poteva
+  allargarsi per contenere il numero.
+
+Chi cede per primo? La griglia: si allarga oltre il contenitore e la seconda
+colonna esce dallo schermo. Peggio, e' un **cricchetto**: `fitAll()` scorre gli
+slot uno alla volta e ogni `fit()` rilegge la larghezza *dopo* che il
+precedente l'ha gia' allargata, cosi' il campo dopo si adegua alla colonna
+gonfiata. E non si raddrizza da solo, perche' `paint()` richiama `fit()` **solo
+se cambia il numero di caratteri** (`slot._shape`): un corpo sbagliato resta
+appiccicato finche' il valore non cambia forma.
+
+Le righe usavano gia' `minmax(0,1fr)` — qualcuno aveva incontrato la stessa
+cosa in verticale e l'aveva chiusa li', senza accorgersi dell'orizzontale.
+
+**I due inneschi riferiti sono lo stesso difetto.** `gpsFresh()` scade a 15 s:
+alla perdita del segnale tutti i campi passano al trattino insieme, la forma
+cambia e `fit()` riparte; alla ripresa dallo stop e' l'evento `resize` a
+chiamare `fitAll()` mentre il layout non e' ancora assestato. In tutti e due i
+casi si misura qualcosa che di li' a poco non c'e' piu'.
+
+Difetto secondario nella stima: `chars*0.60` em per carattere sbaglia di
+grosso sul **trattino** del dato assente, che di em ne occupa uno intero, e non
+contava ne' l'unita' ne' lo spazio fra le due.
+
+#### Alternative scartate
+- **Abbassare il tetto dei 220 px.** Cura il sintomo nel caso peggiore e lascia
+  in piedi il vincolo circolare: basta una card un po' piu' alta e ci si torna.
+- **`overflow:hidden` sulla card.** Nasconde il numero tagliato ma non impedisce
+  alla colonna di allargarsi: le card restano fuori schermo, solo mute.
+- **Rifare `fit()` con un canvas `measureText()`.** Misura esatta e nessun
+  reflow, ma va tenuto allineato a font, `letter-spacing` e `tabular-nums` del
+  CSS: due verita' sulla stessa cosa, che divergono alla prima modifica di
+  stile. Si misura il DOM vero.
+- **Ricalcolare tutto a ogni `paint()`** invece che al cambio di forma: due
+  reflow al secondo per campo, su un dispositivo che deve durare una traversata.
+
+#### Correzione
+- CSS: `minmax(0,1fr)` su **tutte** le colonne (n2, n3, n4, n5, n8) e
+  `min-width:0` su `.instr`, gemello del `min-height:0` gia' presente. Rotto il
+  cerchio: la card non si allarga piu' per il numero.
+- `fit()`: parte dall'altezza, poi **misura la larghezza vera** (`row.scrollWidth`)
+  e rimpicciolisce finche' ci sta, al massimo 5 passate. Niente piu' stime.
+- `fit()` con misura impossibile (contenitore a zero: pagina nascosta, ripresa
+  dallo stop, layout non assestato) **non indovina**: lascia il campo com'e' e
+  azzera `_shape`, cosi' la prossima passata rimisura davvero.
+- Rimisura al momento giusto: **`ResizeObserver`** sulla griglia al posto del
+  solo `resize`, piu' `pageshow` e `visibilitychange`. L'osservatore arriva
+  *dopo* che il layout si e' assestato, con le misure buone. Non puo' innescare
+  un ciclo proprio perche' ora il corpo del carattere non cambia piu' la
+  dimensione della card.
+
+### 2. Carta: "segui la barca", come opzione
+La posizione non restava al centro. Era voluto a meta': `onFix()` aggiornava il
+puntino e basta, e il tasto ◎ centrava **una volta sola** (voce del 03/09, "la
+carta ora segue il GPS", che in realta' seguiva solo il puntino).
+
+Sergio ha chiesto esplicitamente che sia **un'opzione**, e cosi' e': ◎ diventa
+un interruttore. Acceso (fondo verde acqua), ogni fix ricentra. Si spegne al
+**primo trascinamento** — se stai guardando un'altra zona la carta non deve
+strapparti indietro — ma **non** allo zoom, che ingrandire mentre segui e'
+normale. Da spento, com'e' all'apertura, si comporta esattamente come prima.
+
+#### Alternative scartate
+- **Centrare sempre, senza interruttore**: rende impossibile guardare la carta
+  avanti a te mentre navighi, che e' meta' del lavoro di una carta nautica.
+- **Riaprirlo acceso il giorno dopo** (salvarlo e ripristinarlo): stessa ragione
+  per cui gli overlay non si riaccendono (voce 08/08) — e' un modo di
+  navigazione, non una preferenza. Il campo `segui` **viene scritto** in
+  `raffyca-carta-view` insieme agli altri, per il giorno che si volesse un
+  "riapri com'era", ma non viene riletto.
+- **Spegnerlo anche allo zoom**: provato a ragionarci e scartato, vedi sopra.
+
+Effetto collaterale visto prima di sbatterci: `saveView` e' agganciato a
+`moveend`, quindi con "segui" acceso ogni fix avrebbe scritto in localStorage —
+una scrittura al secondo — e la **vista condivisa** con la Traversata
+(`raffyca-map-view`, opzionale) avrebbe inseguito il GPS. Ora i movimenti fatti
+dal GPS si salvano al massimo ogni 15 s; quelli fatti a mano subito. Cambi di
+base e overlay restano fuori dalla strozzatura: sono scelte, si ricordano
+all'istante.
+
+### 3. Manutenzione: il numero dei record sulle linguette
+Chiesto da Sergio. "Lavori" e "Da fare" portano il conteggio accanto al nome.
+
+Il punto delicato non e' mostrarlo, e' **da dove si prende**. I due filtri
+vivevano dentro i renderer (`renderLavori`, `renderDaFare`), e un conteggio
+scritto a parte sarebbe la cosa che diverge in silenzio: cambi il filtro fra sei
+mesi, la lista dice una cosa e la linguetta un'altra, e te ne accorgi contando
+le righe a mano. Estratte in `lavoriLista()` e `dafareRighe()`, usate **sia**
+dai renderer **sia** dal conteggio: non possono piu' separarsi.
+
+"Da fare" conta scadenze **e** lavori previsti, come la lista. Lo zero non si
+scrive: la pastiglia sparisce (`.cnt:empty`) e la barra resta pulita.
+Aggiunto `white-space:nowrap` alle linguette perche' col numero accanto
+"Da fare" andava a capo sotto i 340 px e la barra raddoppiava d'altezza.
+
+### Verificato
+Su `localhost:8765`, viewport 375x812 (piu' 320 e 280 per la barra linguette):
+- **Cruscotto**: riprodotto il difetto col codice di prima — a valori realistici
+  la griglia misurava **506 px in uno schermo da 375**, colonna destra fuori.
+  Col codice nuovo: 355 px in tutti e cinque i layout, colonne uguali, nessuna
+  card fuori schermo, e resta cosi' anche dopo i due colpi che spaginavano
+  (contenitore transitoriamente alto 1400 px, e contenitore a zero). Nessun
+  errore in console; il testo sta dentro la card a meno di 1 px di arrotondamento.
+- **Carta**: con fix simulati — da spento la carta non si muove; acceso centra
+  (zoom 14 se eri piu' largo) e segue ogni fix mantenendo lo zoom; `dragstart`
+  lo spegne e il tasto torna scuro; da li' i fix non muovono piu' niente.
+  Strozzatura: 20 fix di fila = 0 scritture, una mossa a mano = scrittura subito.
+- **Manutenzione**: con dati finti in `raffyca-manut-cache`, pastiglia **3** e
+  righe disegnate **3** su Lavori, **4** e **4** su Da fare; toccando la
+  pastiglia la linguetta cambia lo stesso (il gestore usa `closest`); con zero
+  record la pastiglia sparisce; a 320 px una riga sola.
+- Sintassi (`jsc checkSyntax`) dei tre file: pulita. Nessun errore cliccando
+  tutti i controlli visibili delle tre pagine.
+- Bump: `provela-hub-v15` -> **v16**, perche' `./manutenzione/` sta nel PRECACHE
+  dell'hub. `carta/` e `cruscotto/` non stanno in nessun precache e le
+  navigazioni HTML sono network-first: nessun altro bump.
+
+### Non verificato
+Niente e' stato visto su tablet o telefono veri, ne' con GPS vero: i fix sono
+simulati chiamando `onFix`/`paint` come fa il codice. Non provata la ripresa
+vera dallo stop del dispositivo (qui e' simulata muovendo il contenitore e
+nascondendo la pagina). `ResizeObserver` c'e' su tutto quello che ci interessa,
+ma il ripiego su `resize` per i browser vecchi non e' stato esercitato.
+Sotto i 282 px la barra delle linguette sborda dal proprio riquadro (la pagina
+no): nessun telefono in commercio e' cosi' stretto, non ci ho messo mano.
+
+### Fuori tema: il tablet che perde il GPS e il telefono no
+Non e' dell'app — l'app fa la stessa richiesta sui due dispositivi
+(`enableHighAccuracy:true`), e il modulo che perde il segnale e' lo stesso
+codice che sull'altro lo tiene. La spiegazione di gran lunga piu' probabile e'
+che **il tablet non abbia un ricevitore GNSS**: i modelli solo-Wi-Fi quasi mai
+ce l'hanno, e si posizionano triangolando reti Wi-Fi e celle. In porto
+funziona, al largo non c'e' niente da triangolare e il fix scade. Da controllare
+sulla scheda del modello, voce "GPS/GLONASS". Se invece il GNSS c'e', i sospetti
+in ordine sono: risparmio energetico Android che sospende il browser, permesso
+di posizione non su "sempre / precisa", schermo spento.
+Quello che l'app puo' fare, e ora fa, e' **degradare bene**: campi a trattino e
+niente layout che si sfascia. Il resto e' antenna.

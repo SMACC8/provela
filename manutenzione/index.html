@@ -61,8 +61,13 @@ input:focus,textarea:focus,select:focus{border-color:var(--teal);box-shadow:0 0 
 /* ---- tabs ---- */
 .tabs{display:flex;gap:4px;margin:12px 0 14px;background:var(--panel2);
   padding:4px;border-radius:10px;border:1px solid var(--line)}
-.tabs button{flex:1;padding:8px 4px;border-radius:7px;font-size:13px;font-weight:600;color:var(--sub)}
+.tabs button{flex:1;padding:8px 4px;border-radius:7px;font-size:13px;font-weight:600;color:var(--sub);
+  white-space:nowrap}   /* col numero accanto, "Da fare" andava a capo sotto i 340 px */
 .tabs button.on{background:hsl(var(--hteal) / .16);color:var(--teal)}
+.tabs .cnt{margin-left:4px;font-size:11px;font-weight:700;opacity:.7;
+  font-variant-numeric:tabular-nums}
+.tabs button.on .cnt{opacity:1}
+.tabs .cnt:empty{display:none}
 
 /* ---- card generiche ---- */
 .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
@@ -291,8 +296,8 @@ html.day .danger-full{color:#fff}
 
   <div class="tabs" id="tabs">
     <button data-t="albero" class="on">Barca</button>
-    <button data-t="lavori">Lavori</button>
-    <button data-t="dafare">Da fare</button>
+    <button data-t="lavori">Lavori<span class="cnt" id="cnt-lavori"></span></button>
+    <button data-t="dafare">Da fare<span class="cnt" id="cnt-dafare"></span></button>
     <button data-t="doc">Documenti</button>
   </div>
 
@@ -913,7 +918,20 @@ function mostraTab(t){
   for(var i=0;i<bs.length;i++) bs[i].className = (bs[i].getAttribute("data-t")===t)?"on":"";
   render();
 }
+/* Il numero sulla linguetta esce dalle STESSE funzioni che riempiono le liste
+   (lavoriLista, dafareRighe): se un domani cambia il filtro, cambiano insieme.
+   Un conteggio calcolato per conto suo e' esattamente la cosa che diverge in
+   silenzio, e te ne accorgi solo contando le righe a mano.
+   Lo zero non si scrive: la pastiglia sparisce (.cnt:empty) e la barra resta
+   pulita quando non c'e' niente. */
+function aggiornaConteggi(){
+  var n = { lavori: lavoriLista().length, dafare: dafareRighe().length };
+  ["lavori","dafare"].forEach(function(k){
+    var el = $("cnt-"+k); if(el) el.textContent = n[k] ? String(n[k]) : "";
+  });
+}
 function render(){
+  aggiornaConteggi();
   if(TAB==="albero") renderAlbero();
   else if(TAB==="lavori") renderLavori();
   else if(TAB==="dafare") renderDaFare();
@@ -963,10 +981,13 @@ function nodo(box,c,lista,liv){
 }
 
 /* ---------- lavori fatti ---------- */
+function lavoriLista(){
+  return ST.ints.filter(function(i){ return i.stato!=="previsto"; })
+    .sort(function(a,b){ return (a.data<b.data)?1:(a.data>b.data?-1:0); });
+}
 function renderLavori(){
   var box=$("lavoriBox"); box.innerHTML="";
-  var lista = ST.ints.filter(function(i){ return i.stato!=="previsto"; })
-    .sort(function(a,b){ return (a.data<b.data)?1:(a.data>b.data?-1:0); });
+  var lista = lavoriLista();
   if(!lista.length){ box.innerHTML='<p class="vuoto">Nessun intervento registrato.</p>'; return; }
   lista.forEach(function(i){
     var a=document.createElement("article"); a.className="card item";
@@ -992,8 +1013,7 @@ function renderLavori(){
 }
 
 /* ---------- da fare ---------- */
-function renderDaFare(){
-  var box=$("dafareBox"); box.innerHTML="";
+function dafareRighe(){
   var oggi = new Date(oggiISO()+"T00:00:00");
   var righe = [];
   ST.scads.forEach(function(s){
@@ -1006,6 +1026,11 @@ function renderDaFare(){
     righe.push({ genere:"lavoro", ordine:prio(i.priorita).rank, i:i });
   });
   righe.sort(function(a,b){ return a.ordine-b.ordine; });
+  return righe;
+}
+function renderDaFare(){
+  var box=$("dafareBox"); box.innerHTML="";
+  var righe = dafareRighe();
   if(!righe.length){ box.innerHTML='<p class="vuoto">Niente in sospeso.</p>'; return; }
   righe.forEach(function(r){
     var a=document.createElement("article");

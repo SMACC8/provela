@@ -318,7 +318,7 @@ function onFix(p){
   POS=[la,lo];
   try{localStorage.setItem('raffyca-pos',JSON.stringify({lat:la,lon:lo,ts:t,
     sog:SOG==null?undefined:SOG,cog:COG==null?undefined:COG}));}catch(e){}
-  updatePosInfo();drawPosMarker();drawRecTrail();
+  updatePosInfo();drawPosMarker();drawRecTrail();seguiTick();
 }
 if(navigator.geolocation){
   navigator.geolocation.getCurrentPosition(onFix,function(){},{enableHighAccuracy:true,timeout:15000});
@@ -395,8 +395,30 @@ function drawRecTrail(){
      dashArray:null,className:'rf-rec-trail'}).addTo(recLayer);
   recLine.bindTooltip('Registrazione in corso \u00b7 '+pts.length+' punti');
 }
-var LocateCtl=L.Control.extend({options:{position:'topleft'},onAdd:function(){var b=L.DomUtil.create('a','leaflet-bar');b.href='#';b.title='La mia posizione';b.innerHTML='◎';b.style.cssText='width:30px;height:30px;line-height:30px;text-align:center;font-size:17px;background:#0e2036;color:#2BD9C4;text-decoration:none';L.DomEvent.on(b,'click',function(e){L.DomEvent.stop(e);locateMe();});return b;}});
+/* ---- "Segui la barca": e' un'opzione, non un obbligo ----
+   Prima ◎ centrava una volta sola: navigando, la barca usciva dal riquadro e
+   la carta andava ripresa a mano di continuo. Ora ◎ e' un interruttore.
+   Acceso, ogni fix ricentra. Il primo trascinamento lo spegne, perche' se stai
+   guardando un'altra zona la carta non deve strapparti indietro; lo zoom no,
+   che ingrandire mentre segui e' normale.
+   Volutamente NON si riapre acceso il giorno dopo: e' un modo di navigazione,
+   e vale la stessa ragione degli overlay qui sotto (voce 08/08). */
+var SEGUI=false, seguiBtn=null, seguiMove=false, ultimoSalvGps=0;
+function seguiVesti(){if(!seguiBtn)return;
+  seguiBtn.style.background=SEGUI?'#2BD9C4':'#0e2036';
+  seguiBtn.style.color=SEGUI?'#06202a':'#2BD9C4';
+  seguiBtn.title=SEGUI?'Segue la barca \u2014 tocca per sganciare':'Segui la barca';}
+function seguiSet(on){SEGUI=!!on;seguiVesti();try{saveView();}catch(e){}}
+function seguiTick(){if(!SEGUI||!POS||!map)return;seguiMove=true;map.panTo(POS,{animate:false});}
+function seguiToggle(){
+  if(SEGUI){seguiSet(false);return;}
+  seguiSet(true);
+  if(POS){seguiMove=true;map.setView(POS,Math.max(map.getZoom(),14),{animate:false});}
+  else locateMe();                      /* posizione ancora sconosciuta: chiedila */
+}
+var LocateCtl=L.Control.extend({options:{position:'topleft'},onAdd:function(){var b=L.DomUtil.create('a','leaflet-bar');b.href='#';b.innerHTML='\u25ce';b.style.cssText='width:30px;height:30px;line-height:30px;text-align:center;font-size:17px;background:#0e2036;color:#2BD9C4;text-decoration:none';seguiBtn=b;seguiVesti();L.DomEvent.on(b,'click',function(e){L.DomEvent.stop(e);seguiToggle();});return b;}});
 map.addControl(new LocateCtl());
+map.on('dragstart',function(){if(SEGUI)seguiSet(false);});
 function locateMe(){if(!navigator.geolocation){alert('GPS non disponibile.');return;}navigator.geolocation.getCurrentPosition(function(p){POS=[p.coords.latitude,p.coords.longitude];try{localStorage.setItem('raffyca-pos',JSON.stringify({lat:POS[0],lon:POS[1],ts:Date.now()}));}catch(e){}map.setView(POS,14);drawPosMarker();updatePosInfo();renderList();},function(){alert('Posizione non disponibile (permesso negato o segnale assente).');},{enableHighAccuracy:true,timeout:15000});}
 /* Sotto i 0.5 nodi la rotta calcolata e' rumore: resta il punto.
    Sopra, diventa un triangolo orientato sulla rotta al fondo. */
@@ -860,10 +882,20 @@ function saveView(){try{
   var base=map.hasLayer(baseOSM)?'osm':map.hasLayer(baseSat)?'sat':'nautica';
   localStorage.setItem('raffyca-carta-view',JSON.stringify({
     c:[+c.lat.toFixed(5),+c.lng.toFixed(5)],z:map.getZoom(),base:base,sea:map.hasLayer(seamark),
-    grid:gridOn,zones:zonesOn,bathy:isoOn,fari:fariOn,fariMode:fariMode}));
+    grid:gridOn,zones:zonesOn,bathy:isoOn,fari:fariOn,fariMode:fariMode,segui:SEGUI}));
   if(SYNCV)localStorage.setItem(MVKEY,JSON.stringify({c:[+c.lat.toFixed(5),+c.lng.toFixed(5)],z:map.getZoom()}));
 }catch(e){}}
-map.on('moveend zoomend baselayerchange overlayadd overlayremove',saveView);
+/* Con "segui" acceso ogni fix muove la carta, e ogni movimento passerebbe di
+   qui: una scrittura in localStorage al secondo, e la vista condivisa con la
+   Traversata a rimorchio del GPS. I movimenti fatti dal GPS si salvano al
+   massimo ogni 15 s; quelli fatti a mano subito. Cambi di base e di overlay
+   restano fuori dalla strozzatura: sono scelte, e vanno ricordate all'istante. */
+map.on('moveend zoomend',function(){
+  if(seguiMove){seguiMove=false;
+    if(Date.now()-ultimoSalvGps<15000)return;
+    ultimoSalvGps=Date.now();}
+  saveView();});
+map.on('baselayerchange overlayadd overlayremove',saveView);
 ['tGrid','tZone','tBathy','tFari','fariModeSett','fariModeVedo'].forEach(function(id){
   var el=$(id);if(el)el.addEventListener('click',function(){setTimeout(saveView,0);});});
 /* Gli overlay NON si riaccendono all'apertura: la Carta si apre pulita, con la
