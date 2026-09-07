@@ -2263,3 +2263,162 @@ in ordine sono: risparmio energetico Android che sospende il browser, permesso
 di posizione non su "sempre / precisa", schermo spento.
 Quello che l'app puo' fare, e ora fa, e' **degradare bene**: campi a trattino e
 niente layout che si sfascia. Il resto e' antenna.
+
+---
+
+## 07/09/2026 (2) — Il fix vecchio non e' un fix mancante
+
+Seguito della voce di stamattina. Il tablet di Sergio **ha** il chip GNSS e ha
+la sua SIM, e il problema si vede anche con altre app: quindi non e' ProVela,
+ma ProVela ci convive male in due punti. Chiesto da lui, fatte tutte e due.
+
+Il difetto comune: **due stadi dove ne servono tre**. Un fix c'e' o non c'e', e
+in mezzo — il fix che c'era mezzo minuto fa — i due moduli facevano scelte
+opposte, tutte e due sbagliate. Il cruscotto buttava via tutto a 15 s. La
+veglia d'ancora teneva l'ultimo fix per sempre **senza dirlo**.
+
+### 1. Veglia d'ancora: sembrava sveglia ed era cieca
+`onErr()` e' vuoto con il commento "mantiene ultimo fix", e ha ragione: un buco
+di due secondi non deve far perdere il punto d'ancoraggio. Ma da li' in poi
+`cur` non invecchia mai:
+- `evalAlarms()` calcola la distanza dal centro sulla **posizione congelata**:
+  non cambia piu', quindi `over` resta falso e **l'allarme non puo' suonare**;
+- il riquadro in alto a destra scriveva `no fix` **solo se una posizione non era
+  mai arrivata**; dopo la prima mostrava per sempre `±8 m`, la precisione di
+  quel fix li'. A colpo d'occhio: tutto a posto.
+
+Su un dispositivo che perde il segnale, la veglia resta verde e muta mentre la
+barca ara. E' la funzione che si lascia accesa dormendo.
+
+**Correzione.** Tre stadi, con l'eta' del fix in chiaro:
+
+| eta' del fix | stato | suono |
+|---|---|---|
+| < 30 s | `● IN AREA`, riquadro `±8 m` | no |
+| 30 s – 3 min | `◐ GPS VECCHIO` giallo, "ultima posizione N fa · i numeri qui sotto sono fermi a quel momento", riquadro `fermo da N` in rosso | no |
+| > 3 min | `⚠ GPS FERMO ⚠` rosso, "la veglia non puo' accorgersi se ari" | **si'** |
+
+Tre minuti perche' a un nodo di deriva sono novanta metri che nessuno ha
+guardato. Il suono passa dalla macchina d'allarme che c'era gia', quindi
+"Tacita 5 min" funziona anche su questo.
+
+**Grazia di 20 s al ritorno in primo piano.** Con lo schermo spento il browser
+sospende la posizione: al risveglio il fix e' vecchio *per forza*. Senza grazia,
+ogni volta che riprendi in mano il telefono ti parte la sirena per un dato che
+sta arrivando. Il ritorno di `visibilitychange` fa ripartire il conto.
+
+#### Alternative scartate
+- **Solo l'avviso a schermo, senza suono.** Non serve a niente proprio nel caso
+  per cui esiste la veglia: di notte, con gli occhi chiusi.
+- **Suonare gia' a 30 s.** Sul tablet di Sergio suonerebbe tutta la notte: una
+  sirena che urla sempre e' una sirena che si spegne, e allora tanto vale niente.
+- **Azzerare `cur` quando invecchia** (cioe' far tornare "no fix"). Butta via il
+  punto e con lui la distanza dall'ancora, che vecchia vale comunque piu' di un
+  trattino: e' l'errore opposto, lo stesso che faceva il cruscotto.
+
+### 2. Cruscotto: tre stadi anche qui
+`gpsFresh()` scadeva a 15 s e da li' tutti i campi andavano a trattino. Con un
+GPS a singhiozzo il cruscotto e' vuoto quasi sempre, e un trattino dice **meno**
+dell'ultimo valore buono con scritto quanto e' vecchio.
+
+Ora: sotto 15 s come prima (`gpsFresh()` non cambia significato, e chi pretende
+un fix vero continua a chiederlo — salvare un waypoint lo rifiuta ancora). Fra
+15 s e 5 minuti il valore **resta**, con una pastiglia `vecchio 40 s` accanto
+all'etichetta, gialla sotto il minuto e rossa sopra. Oltre 5 minuti si tace
+davvero: quel dato non descrive piu' dove sei.
+
+La pastiglia **copre** quella della sorgente (`stima`, `man`): fra "vento
+stimato" e "questo numero e' fermo da due minuti", la seconda e' quella che
+cambia il significato di cio' che stai leggendo. Fuori dall'elenco `pos` e
+`sun`, che leggono `raffyca-pos` e puo' averla scritta un altro modulo piu' di
+recente; `heel`, che viene dall'accelerometro; `clk`, che e' l'orologio.
+La posizione usata per XTE, distanza e rotta al waypoint e' ora **lo stesso
+fix** dei numeri sopra, vecchio o no: prima i valori sparivano e la posizione
+restava, e non era detto venissero dallo stesso momento.
+
+### Verificato
+Su `localhost:8765`, viewport 375x812, invecchiando il fix a mano:
+- **Cruscotto**: a 3 s valori e nessuna pastiglia; a 40 s `5.4` e `137` ancora
+  li' con pastiglia gialla `vecchio 40 s`; a 2 min gli stessi valori con
+  pastiglia rossa; a 6 min trattino, come prima. Waypoint con fix di 2 minuti:
+  rifiutato, messaggio invariato. Griglia sempre dentro lo schermo, etichette su
+  due righe senza sfondare (la correzione di stamattina regge la pastiglia in
+  piu').
+- **Veglia d'ancora**: calata l'ancora dal tasto vero, poi fix a 2 s -> `IN
+  AREA`; 45 s -> `GPS VECCHIO` giallo, `fermo da 45 s`, nessun suono; 4 min ->
+  `GPS FERMO`, allarme acceso, suono partito una volta; dentro i 20 s di grazia
+  -> torna a `GPS VECCHIO` e tace; al ritorno del fix torna `IN AREA` da solo.
+  L'allarme vero non e' stato toccato: spostato a 442 m dal centro con fix
+  fresco, `⚠ ARANDO ⚠ · fuori area: 442 m > 40 m`.
+- Sintassi `jsc` pulita su tutti e due. Bump: **`anchor-v13` -> `v14`**
+  (`anchor/index.html` sta nel suo precache). `cruscotto/` non sta in nessun
+  precache: nessun bump.
+
+### Non verificato
+Niente su tablet o telefono veri, e nessun GPS vero: i fix sono simulati
+scrivendo `GPS.ts` e `cur.t`. La grazia al ritorno in primo piano e' provata
+impostando `graziaFino` a mano, perche' nel pannello di prova `document.hidden`
+resta vero e il gestore esce subito: **la strada dell'evento non e' stata
+percorsa davvero**. Il suono non e' stato ascoltato (l'AudioContext non e'
+armato nel pannello): verificato che la chiamata parta, non che esca rumore.
+Le soglie (30 s, 3 min, 5 min) sono scelte a tavolino e vanno riviste dopo una
+notte vera all'ancora col tablet.
+
+### Nota sull'ambiente di prova
+Il pannello browser **serve dalla cache** l'HTML gia' visto: dopo aver
+modificato un file, la prima prova girava ancora sul codice vecchio e sembrava
+che la modifica non avesse effetto. Si carica con `?nocache=1` in coda.
+
+---
+
+## 07/09/2026 (3) — Due correzioni alle voci di oggi
+
+Nessuna riga di codice. Servono perche' correggono cose che ho scritto io poche
+ore fa in questo stesso file, e chi rilegge deve trovare la smentita accanto
+all'affermazione.
+
+### L'allarme suona davvero, e segue lo stato
+Nella voce (2) avevo messo fra i "non verificato" che il suono non era stato
+ascoltato — verificata la chiamata, non il rumore. **Sergio l'ha sentito**: il
+browser di prova gira sul suo Mac e l'AudioContext era stato armato dalla
+calata dell'ancora simulata, quindi i beep sono usciti dalle casse per davvero.
+E "cambiava", cioe' partiva e si fermava seguendo lo stato: silenzio in area,
+silenzio a `GPS VECCHIO`, beep a `GPS FERMO`, silenzio nei 20 s di grazia, beep
+di nuovo su `ARANDO`.
+
+Il tono in se' **non** varia ed e' giusto cosi': `beep()` e' un'onda quadra a
+880 Hz di 0.36 s ripetuta ogni 900 ms, uguale per qualunque allarme. Quello che
+cambia e' se suona o no. La catena `evalAlarms` -> `updateUI` ->
+`startAlarmSound`/`stopAlarmSound` e' quindi verificata da un capo all'altro,
+compreso il ramo nuovo della cecita'. Resta non ascoltato solo il ritorno del
+suono **su telefono**, dove entra in ballo la politica audio del browser mobile.
+
+### Il tablet: quello che ho scritto stamattina non regge piu'
+Nella voce (1), sotto "Fuori tema", avevo dato come spiegazione piu' probabile
+l'assenza del ricevitore GNSS su un tablet solo-Wi-Fi. **Falso**: il tablet ha
+il chip **e** ha la sua SIM. Cade con quella anche la seconda ipotesi, quella
+dell'assistenza dalla rete che non arriva, salvo che al largo la SIM resti
+davvero senza dati.
+
+Il fatto nuovo e' un altro: **riavviando il tablet il GPS torna a posto per un
+po'**, poi degrada di nuovo. Un'antenna schermata non guarisce al riavvio, e
+un'impostazione di sistema non si rimette da sola: quindi il difetto e' **stato
+software che si deteriora col tempo di accensione**, non hardware e non
+configurazione. I sospetti, in ordine:
+1. **risparmio energetico** che declassa il browser man mano che resta in
+   secondo piano (i "bucket" di Android, le "app in sospensione profonda" di
+   Samsung); il riavvio azzera i contatori;
+2. **servizio di posizione impiantato** dopo ore di accensione — regge bene il
+   fatto che il problema si veda con tutte le app;
+3. **dati di assistenza A-GPS vecchi o corrotti** in cache, che il riavvio
+   rinfresca.
+
+Prova che li separa, da fare quando degrada: **chiudere forzatamente il browser
+e riaprirlo, senza riavviare**. Se basta, e' l'ipotesi 1. Se serve il riavvio
+pieno, e' la 2 o la 3, e a quel punto un'app di stato GNSS che azzera i dati di
+assistenza distingue le ultime due.
+
+Non e' un difetto di ProVela e non c'e' niente da correggere qui: sta scritto
+perche' e' il genere di cosa che fra sei mesi si ricomincia a indagare da capo.
+Quello che l'app poteva fare — non far finta di avere una posizione che non ha —
+e' la voce (2).

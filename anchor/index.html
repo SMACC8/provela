@@ -71,9 +71,11 @@ input.mono,select{font-family:var(--mono);font-size:14px;padding:9px 10px;border
   background:rgba(70,214,138,.08);}
 #status.idle{border-color:var(--line);background:var(--panel2);}
 #status.alarm{border-color:var(--coral);background:rgba(255,107,107,.12);animation:flash .7s steps(2,start) infinite;}
+#status.stale{border-color:var(--amber);background:rgba(255,194,75,.10);}
 @keyframes flash{50%{background:rgba(255,107,107,.30);}}
 #status .big{font-size:22px;font-weight:800;letter-spacing:.04em;}
 #status.ok .big{color:var(--green);} #status.alarm .big{color:var(--coral);} #status.idle .big{color:var(--sub);}
+#status.stale .big{color:var(--amber);}
 #status .sub{font-size:12px;color:var(--sub);margin-top:3px;}
 
 .grid4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;}
@@ -396,6 +398,19 @@ function centerDrift(){
 }
 
 /* ---- allarmi ---- */
+/* Un fix vecchio non e' un fix mancante, e all'ancora la differenza e' tutta.
+   onErr() tiene apposta l'ultimo fix, cosi' un buco di due secondi non fa
+   perdere il punto: giusto. Ma con la posizione congelata la distanza dal
+   centro non cambia piu', quindi l'allarme NON PUO' suonare — la veglia sembra
+   sveglia ed e' cieca — e il riquadro in alto continuava a scrivere la
+   precisione dell'ultimo fix, che a colpo d'occhio rassicura.
+   Trenta secondi: si vede, non suona (i buchi capitano). Tre minuti: suona,
+   perche' a un nodo di deriva sono novanta metri che nessuno ha guardato. */
+var FIX_VECCHIO=30000, FIX_CIECO=180000, graziaFino=0;
+function fixEta(){return cur?(Date.now()-cur.t):null;}
+function etaTxt(ms){var s=Math.round(ms/1000);
+  if(s<60)return s+" s";
+  var m=Math.round(s/60); return m<60?(m+" min"):(Math.floor(m/60)+" h "+(m%60)+" min");}
 var alarmOn=false;
 function evalAlarms(){
   if(!S.active||!cur){alarmOn=false;return{on:false};}
@@ -404,9 +419,12 @@ function evalAlarms(){
   var dCenter=dist2(pxy.x,pxy.y,cxy.x,cxy.y);
   var over=dCenter>S.rAlarm;
   var drift=centerDrift(); var dragging=(drift!=null&&drift>6);
-  var on=over||dragging;
+  var eta=fixEta(), vecchio=eta>=FIX_VECCHIO;
+  var cieco=(eta>=FIX_CIECO)&&Date.now()>graziaFino;
+  var on=over||dragging||cieco;
   alarmOn=on;
-  return{on:on,over:over,dragging:dragging,dCenter:dCenter,drift:drift};
+  return{on:on,over:over,dragging:dragging,dCenter:dCenter,drift:drift,
+         eta:eta,vecchio:vecchio,cieco:cieco};
 }
 
 /* ============================ AUDIO + WAKE LOCK ============================ */
@@ -423,7 +441,12 @@ function stopAlarmSound(){if(beepTimer){clearInterval(beepTimer);beepTimer=null;
 var wakeLock=null;
 async function acquireWake(){try{if("wakeLock" in navigator){wakeLock=await navigator.wakeLock.request("screen");}}catch(e){}}
 function releaseWake(){try{if(wakeLock){wakeLock.release();wakeLock=null;}}catch(e){}}
-document.addEventListener("visibilitychange",function(){if(!document.hidden&&S.active)acquireWake();});
+document.addEventListener("visibilitychange",function(){
+  if(document.hidden)return;
+  /* Con lo schermo spento il browser sospende la posizione: al ritorno il fix
+     e' vecchio per forza. Venti secondi per riagganciare prima di gridare. */
+  graziaFino=Date.now()+20000;
+  if(S.active)acquireWake();});
 
 /* ============================ CANVAS ============================ */
 var cv=document.getElementById("cv"),ctx=cv.getContext("2d"),DPR=Math.min(window.devicePixelRatio||1,2.5);
@@ -572,8 +595,12 @@ function updateUI(){
   // status
   var st=$("status"),big=$("stBig"),sub=$("stSub");
   if(!S.active){st.className="idle";big.textContent="ANCORA NON CALATA";sub.textContent="Premi «Cala ancora» quando l'ancora tocca il fondo.";}
+  else if(A.on&&A.cieco){st.className="alarm";big.textContent="⚠ GPS FERMO ⚠";
+    sub.textContent="nessuna posizione da "+etaTxt(A.eta)+": la veglia non pu\u00f2 accorgersi se ari";}
   else if(A.on){st.className="alarm";big.textContent="⚠ ARANDO ⚠";
     sub.textContent=A.dragging?("l'ancora deriva "+Math.round(A.drift)+" m in ~10 min"):("fuori area: "+Math.round(A.dCenter)+" m > "+S.rAlarm+" m");}
+  else if(A.vecchio){st.className="stale";big.textContent="◐ GPS VECCHIO";
+    sub.textContent="ultima posizione "+etaTxt(A.eta)+" fa \u00b7 i numeri qui sotto sono fermi a quel momento";}
   else{st.className="ok";big.textContent="● IN AREA";
     var extra=S.fitValid?("tenuta ok · deriva "+ (centerDrift()!=null?Math.round(centerDrift())+" m/10min":"—")):"fit non ancora valido (poco swing)";
     sub.textContent=extra;}
@@ -593,8 +620,12 @@ function updateUI(){
   else $("rSuggest").textContent="consiglio: inserisci catena filata";
   // ovl
   $("ovlClock").textContent=new Date().toLocaleTimeString("it",{hour:"2-digit",minute:"2-digit"});
-  $("ovlFix").textContent=cur?("±"+Math.round(cur.acc||0)+" m"):"no fix";
-  $("ovlFix").style.color=cur?"#FFC24B":"#FF6B6B";
+  /* Prima scriveva sempre la precisione dell'ULTIMO fix: con la posizione
+     ferma da un quarto d'ora si leggeva "±8 m" e sembrava tutto a posto. */
+  var _eta=fixEta();
+  $("ovlFix").textContent = !cur ? "no fix"
+    : (_eta>=FIX_VECCHIO ? ("fermo da "+etaTxt(_eta)) : ("±"+Math.round(cur.acc||0)+" m"));
+  $("ovlFix").style.color = (!cur||_eta>=FIX_VECCHIO) ? "#FF6B6B" : "#FFC24B";
   // topbar status
   if(window.rfSetStatus)window.rfSetStatus(S.active?(A.on?"ARANDO":"ancora "+Math.round(A.dCenter)+" m"):"", A.on);
   // pulsanti
