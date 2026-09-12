@@ -1,6 +1,6 @@
 {
-  "name": "ProVela — Traversata",
-  "short_name": "ProVela",
+  "name": "Dritta — Traversata",
+  "short_name": "Dritta",
   "description": "Weather routing a vela per il Mediterraneo",
   "start_url": "./raffyca-traversata-map.html",
   "scope": "./",

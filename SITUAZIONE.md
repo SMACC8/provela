@@ -2422,3 +2422,219 @@ Non e' un difetto di ProVela e non c'e' niente da correggere qui: sta scritto
 perche' e' il genere di cosa che fra sei mesi si ricomincia a indagare da capo.
 Quello che l'app poteva fare — non far finta di avere una posizione che non ha —
 e' la voce (2).
+
+---
+
+## 12/09/2026 — ProVela diventa Dritta
+
+Il nome era in discussione dal 02/09: **ProVela** e' gia' usato nel settore
+(Pro-Vela, scuola di foil sul Mar Menor, `pro-vela.com`, `@ProVela`), e in
+minuscolo si legge "prove la". Sergio ha deciso: **Dritta**, per assonanza con
+**Vetta**, nata nel frattempo per il trekking. Il nome ha due sensi che remano
+insieme — il lato di dritta, e "una dritta" nel senso di un consiglio.
+
+### Cosa e' stato toccato
+
+Sostituzione `ProVela` -> `Dritta`, `PROVELA` -> `DRITTA`, `provela` ->
+`dritta` su **37 file**: titoli, `aria-label` della barra, manifest PWA,
+intestazioni dei moduli, testi visibili, commenti, e i nomi dei file scaricati
+(`Dritta-backup-…json`, `Dritta-diario-…pdf`, `Dritta-partenza-…json`,
+`dritta-traccia-…gpx`, `dritta-percorso-…gpx`, `dritta-<zona>.gpx`).
+
+Bump dei cinque service worker, tutti con file rinominati dentro il precache:
+`dritta-hub-v17` (era `provela-hub-v16`), `raffyca-rt-v22`,
+`raffyca-meteo-v17`, `anchor-v15`, `xte-v9`.
+
+### Alternative scartate
+
+**Rinominare anche il prefisso `raffyca-` delle chiavi localStorage.** No: i
+dati stanno sui dispositivi degli utenti, non su un server, e una rinomina
+senza migrazione li perde. Il prefisso e' gia' il residuo di un nome
+precedente (Raffyca / SailingHub) e resta tale: e' un identificatore, non un
+marchio, e nessuno lo vede.
+
+**Lasciare il prefisso `provela-hub-` alle cache del service worker dell'hub**,
+per non orfanare quelle gia' installate. Scartata perche' il problema si
+risolve meglio nell'altro verso: il `VERSION` e' diventato `dritta-hub-v17`, e
+il filtro di `activate` ora cancella **entrambi** i prefissi
+(`k.indexOf('dritta-hub-')===0||k.indexOf('provela-hub-')===0`). Cosi' la
+vecchia `provela-hub-v16` viene rimossa alla prima attivazione invece di
+restare per sempre sul dispositivo. Il filtro col vecchio prefisso va tenuto
+finche' c'e' il sospetto che qualche dispositivo non si sia ancora aggiornato.
+
+**Riscrivere `SITUAZIONE.md`.** No, e' un registro storico: le voci fino a ieri
+parlano di ProVela ed e' giusto che continuino a farlo.
+
+**Rinominare il repository `SMACC8/provela`.** Non fatto, e' una decisione
+separata di Sergio. Conseguenze se si procede: il localStorage **sopravvive**
+(l'origine resta `smacc8.github.io`), ma cambia il sottopercorso di GitHub
+Pages, quindi **le PWA installate e i segnalibri si rompono** e vanno
+reinstallate. Per questo restano due `provela` volutamente: `ROOT =
+"/home/claude/work/provela"` in `build_perf.py` (un percorso su una macchina
+che non e' questa, si aggiorna insieme al repo) e il filtro di cancellazione
+cache sopra.
+
+### Il difetto che la rinomina ha introdotto, e come e' stato chiuso
+
+**"dritta" e' gia' una parola dell'interfaccia.** Ricorre ovunque nei testi
+nautici dei moduli — "mura a dritta", "accosta a dritta", "boa spostata a
+DRITTA", "Scarroccio ° a dritta+" — e da oggi e' anche il marchio. Nei titoli e
+nelle intestazioni non c'e' ambiguita' (maiuscola, posizione, spesso in `<b>`).
+
+C'e' invece in **un punto solo**, ed e' in `routing/`: il bottone della polare
+integrata diceva `Ripristina ProVela`, che rinominato secco sarebbe diventato
+**`Ripristina Dritta`** — su una pagina che poche righe sotto scrive "mura a
+dritta". Si legge come un comando di virata. Tolti i tre riferimenti al
+marchio, che li' non servivano: il riepilogo dice `integrata`, il bottone
+`Ripristina la polare integrata`, il toast `Polare integrata ripristinata`.
+E' l'unica modifica di questo intervento che non sia una sostituzione
+meccanica, ed e' banale da annullare se Sergio la preferisce com'era.
+
+Corretto anche un accordo di genere: ProVela era trattato al maschile in
+`anchor/` ("Tieni ProVela **aperto** in pozzetto") — ora "aperta". Gli altri
+usi erano gia' femminili ("ProVela aggiornata", "Polare ProVela ripristinata").
+
+`percorso/` esporta estensioni GPX in un namespace proprio: prefisso `pv` e URI
+`http://provela.app/gpx/1`, diventati `dr` e `http://dritta.app/gpx/1`. Si puo'
+cambiare senza rischio perche' il lettore GPX dello stesso modulo legge solo
+`lat`/`lon`/`name` e **non** guarda le estensioni: un file esportato ieri si
+rilegge oggi.
+
+### Un link di ritorno di troppo, che la rinomina ha fatto notare
+
+Sergio ha guardato Traversata e ha visto tre volte la stessa cosa in tre righe:
+la vela della `rf-topbar`, poi un link `‹ Dritta` in verde, poi l'occhiello
+`DRITTA · TRAVERSATA` in grigio. Il link inline c'era da sempre (diceva
+`‹ ProVela`), ma con un nome lungo e inconfondibile la ripetizione passava
+inosservata; con una parola corta salta all'occhio.
+
+**Rimosso.** La vela della topbar e' gia' l'uscita dal modulo — `href="../"`,
+`aria-label="Menu Dritta"` — ed e' inline in ogni pagina proprio perche' non
+deve dipendere da nulla; l'occhiello dice gia' dove sei. Al suo posto un
+commento che spiega perche' li' non c'e' niente, altrimenti fra sei mesi
+qualcuno lo rimette.
+
+Controllato che fosse un caso isolato prima di toccarlo: gli altri `‹` della
+suite (`‹ Aree` in `meteo/`, `‹ Hub` in `index.html`, `‹ archivio` in
+`partenza/`) tornano a una **vista precedente dentro lo stesso modulo**, non
+alla home, e restano dove sono. Traversata era l'unica pagina con un secondo
+link verso `../` oltre alla vela.
+
+Nessun bump aggiuntivo: `raffyca-rt-v22` non era ancora stato pushato, quindi la
+modifica viaggia con quello.
+
+### Le pagine info, controllate una per una
+
+Sergio ha chiesto di guardare le pagine "info", **meteo in particolare**: sono
+il posto dove il nome dell'app e' piu' concentrato, e dove una rinomina
+meccanica lascia i residui piu' facilmente.
+
+Sono due sole in tutta la suite. **`meteo/presentazione.html`** (il bottone
+`ⓘ Info` di `meteo/`): tre occorrenze, tutte corrette — `Dritta Meteo` nel
+titolo grande, e due nel corpo ("Dritta non nasconde quel disaccordo",
+"Dritta te lo dice invece di scegliere per te"). Riaperta e riletta a 375px:
+`Dritta Meteo` sta su una riga, niente va a capo male. **`impostazioni/`**,
+sezioni Guida e Info: la Guida non nomina mai l'app, la descrive e basta
+("Una cassetta degli attrezzi per navigare a vela", "Suite modulare pensata per
+il telefono"), quindi non aveva niente da rinominare; l'unico nome e' `Suite:
+Dritta` nella scheda Info. **Zero residui.**
+
+Due cose trovate mentre guardavo, **nessuna delle due causata dalla rinomina**:
+
+1. **`meteo/manifest.json` dichiarava una copertura sbagliata**: "Meteo tattico
+   per la vela in **Alto Adriatico**", mentre `SPOTS_BY_ZONE` nello stesso
+   modulo ha **9 zone** (Alto/Medio/Basso Adriatico, Ionio, Basso/Alto
+   Tirreno, Ligure, Sardegna, Sicilia) e il `<meta name="description">` di
+   `meteo/index.html` diceva gia' "in **Italia**". E' il testo che si vede
+   installando la PWA. Allineato alla `<meta>`: e' una parola, si annulla in un
+   attimo se Sergio la rivuole com'era. Nessun bump in piu': `manifest.json`
+   sta nel precache di `raffyca-meteo-v17`, non ancora pushato.
+
+2. **`SviluPPAta da Sergio Moro`**, nel piede della pagina info del meteo. Le
+   maiuscole in mezzo alla parola sono li' dal commit di import del 31/08
+   (`Import ProVela dallo snapshot ProVela-20260828-1140`), immutate: non e'
+   un effetto della rinomina. L'avevo lasciata com'e' non sapendo se fosse
+   voluta; **lo e'**. Sergio: e' il suo slogan, **`PPA` al contrario si legge
+   `APP`**. Non si tocca, e soprattutto non si "corregge" in `sviluppata` al
+   prossimo passaggio: da fuori sembra un tasto maiuscolo rimasto premuto.
+   Sopravvive alla rinomina senza modifiche perche' non contiene il nome
+   dell'app.
+
+   Cercandolo per bene, pero', **stava in tre posti scritto in due modi
+   diversi**, ed e' il motivo per cui l'avevo preso per un refuso: l'ho
+   incontrato prima nella versione muta. Nell'hub (`index.html`, piede) era
+   gia' `Svilup<b>PPA</b>ta`, e `footer b{color:var(--teal)}` dipinge il PPA
+   con l'accento: il gioco si vede. Nei due di `meteo/` era testo nudo dentro
+   uno stile `.credit` monospaziato, spaziato e smorzato — le condizioni
+   esatte in cui tre maiuscole in mezzo a una parola si leggono come un tasto
+   rimasto premuto. Il quarto credito, in `partenza/`, non era nemmeno lo
+   slogan: diceva "sviluppo **Sergio Moro**", col grassetto sul nome.
+
+   **Allineati tutti e quattro** su richiesta di Sergio, compreso `partenza/`
+   (il `<b>` li' si sposta da "Sergio Moro" a "PPA"): stessa frase, stesso
+   markup, accento sul PPA. Il colore non e' stato messo a mano dappertutto —
+   `partenza/` ridefinisce gia' `--teal` nei tre temi e ha `.foot b`, quindi
+   bastava spostare il grassetto; `meteo/presentazione.html` e' sempre scura e
+   ha il token, una regola sola. **`meteo/index.html` e' il caso scomodo**:
+   quel file **non ridefinisce i token** (lo dice un suo commento) e tinge a
+   mano tema per tema, quindi ci sono voluti tre colori letterali presi dal
+   file stesso — `#2BD9C4` scuro, `#067d70` giorno (lo stesso di
+   `html.day .rf-topbar .rf-status.wp b`), `#ff6b6b` notte (quello di
+   `html.night .eyebrow`).
+
+   Difetto scoperto **facendo** questa modifica: in tema notte `.credit` non
+   aveva override, quindi restava grigio-azzurro mentre tutto il resto va sul
+   rosso. Prima non si notava; con un PPA rosso acceso dentro una riga
+   grigio-azzurra si notava eccome. Aggiunta `html.night .credit{color:#a85050;}`,
+   il grigio della famiglia notte gia' usato per il testo smorzato.
+
+   Nessun bump in piu': `meteo/index.html` sta nel precache di
+   `raffyca-meteo-v17`, non ancora pushato; `partenza/` non e' precacheata da
+   nessun service worker e `presentazione.html` nemmeno.
+
+### Verificato
+
+- **Sintassi**: `checkSyntax` su tutti gli 8 `.js` toccati e sui **46 blocchi
+  `<script>` inline** dei 22 `.html` modificati — zero errori. I quattro
+  manifest riparsati come JSON.
+- **Caricamento**: tutti i **18 moduli** aperti in iframe dal server locale,
+  nessun errore non catturato, titolo corretto ovunque. (`xte/` resta
+  "XTE Guide": e' upstream non reskinnato, non aveva "ProVela" nel titolo.)
+- **Backup, che era il punto piu' a rischio** perche' scrive `app:'ProVela'`
+  nel file: un backup **vecchio**, marcato `ProVela`, viene ancora importato
+  (2 chiavi su 2). Regge perche' `importFile` non guarda `app`, filtra le
+  chiavi `raffyca-`. Export: `Dritta-backup-20260912-0336.json`. Rifiuto di un
+  file senza chiavi: "nessuna chiave Dritta nel file".
+- **GPX di `percorso/`**: generato e riparsato; `getElementsByTagNameNS`
+  sull'URI nuovo trova `dr:sog` col valore giusto, quindi il prefisso e'
+  dichiarato bene.
+- **GPX e diario di `routing/`**: `buildGPX()` parsa, `creator="Dritta"`,
+  `<metadata><name>Dritta — traversata Alto Adriatico`; `diarioName()` da
+  `Dritta-diario-20260912-0337.csv|.pdf`.
+- **Il bottone della polare** premuto davvero: riepilogo, etichetta e toast
+  cambiano come previsto.
+- **Traversata dopo la rimozione del link**: la pagina riapre, il primo
+  elemento di `.wrap` e' l'occhiello, e resta **un solo** link verso `../` in
+  tutto il documento, quello della vela. Nessuna regola CSS e nessun
+  `querySelector` dipendeva da quell'`<a>` (cercati `.wrap a`, `first-child` e
+  simili: zero occorrenze).
+- **Lo slogan nei quattro piedi**, riletto dal DOM invece che dal sorgente:
+  markup identico ovunque (`Svilup<b>PPA</b>ta da Sergio Moro`), e il PPA
+  prende l'accento giusto **nei tre temi** — meteo `#2BD9C4` / `#067d70` /
+  `#ff6b6b`, partenza `#2BD9C4` / `#067d70` / `#ff4d4d` via `--teal`,
+  presentazione `#2BD9C4`. Controllato con `getComputedStyle` commutando
+  `html.day` / `html.night`, non a occhio.
+
+### Non verificato
+
+- **La cache offline**, come sempre da qui: il pannello browser rifiuta di
+  registrare i service worker. Che `dritta-hub-v17` si installi e che cancelli
+  davvero la vecchia `provela-hub-v16` si vede solo su un dispositivo vero,
+  aprendo l'hub due volte.
+- **Il nome della PWA gia' installata**: cambia il `manifest`, ma quando il
+  sistema aggiorni l'icona e l'etichetta sulla schermata iniziale lo decide il
+  sistema operativo, non noi.
+- **`performance/` e `partenza/`** sono build React: il titolo e la barra sono
+  rinominati nel wrapper, il bundle dentro non e' stato letto. `build_perf.py`
+  e' allineato (il titolo li', la topbar la ritaglia da `cruscotto/`), ma non
+  e' stato rieseguito.

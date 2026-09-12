@@ -558,7 +558,7 @@ HTML = (
 "<!doctype html>\n<html lang=\"it\">\n<head>\n"
 "<meta charset=\"utf-8\">\n"
 "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1,user-scalable=no\">\n"
-"<title>Performance \u00b7 ProVela</title>\n"
+"<title>Performance \u00b7 Dritta</title>\n"
 + BOOT + "\n<style>\n" + TOKENS + "\n" + MODCSS + "</style>\n</head>\n<body>\n"
 + TOPBAR + "\n" + MIGR + "\n"
 + BODY + "\n"

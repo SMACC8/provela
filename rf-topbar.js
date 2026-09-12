@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════
-   ProVela · rf-topbar.js — barra trasversale condivisa
+   Dritta · rf-topbar.js — barra trasversale condivisa
    ───────────────────────────────────────────────────────────────────────
    Caricato da OGNI modulo con una riga sola, subito dopo il markup della
    barra: un tag script con src "../rf-topbar.js" (moduli) oppure

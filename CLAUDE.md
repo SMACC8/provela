@@ -1,8 +1,16 @@
-# ProVela
+# Dritta
 
 Suite PWA di navigazione a vela: hub più moduli standalone, mobile-first e
 offline-first. Nasce come Raffyca / SailingHub, da cui il prefisso `raffyca-`
-ancora usato ovunque nei nomi delle chiavi e dei file condivisi.
+ancora usato ovunque nei nomi delle chiavi e dei file condivisi. Dal 12/09/2026
+si chiama **Dritta**; prima si chiamava **ProVela**, nome che compare ancora
+nelle voci vecchie di `SITUAZIONE.md` (registro storico, non si riscrive) e nel
+nome del repository.
+
+**Il nome è anche una parola dell'interfaccia**: «dritta» è il lato destro della
+barca e ricorre ovunque nei testi («mura a dritta», «accosta a dritta»). Quando
+si scrive testo nuovo, il marchio va reso distinguibile dal termine nautico —
+maiuscola, e meglio se in `<b>` o in una posizione che non lasci dubbi.
 
 ## Come girano le cose
 
@@ -51,7 +59,7 @@ Ognuno è una cartella autonoma in radice, con il proprio service worker:
 **Bump del service worker.** Ogni modifica a un file che sta nel precache
 richiede di alzare la versione del service worker del modulo toccato, altrimenti
 i dispositivi continuano a servire la copia vecchia dalla cache. I service worker
-sono namespacati per modulo (`provela-hub-v10`, `raffyca-meteo`, `xte`, …): si
+sono namespacati per modulo (`dritta-hub-v17`, `raffyca-meteo`, `xte`, …): si
 alza solo quello del modulo modificato.
 
 **Contratto localStorage.** Tutte le chiavi hanno prefisso `raffyca-` e sono

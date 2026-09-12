@@ -2,7 +2,7 @@
 <html lang="it"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>ProVela · routing su vento reale</title>
+<title>Dritta · routing su vento reale</title>
 <style>
   :root{--bg:#0A1628;--bg2:#0E1F33;--ink:#E8EEF2;--sub:#7B93AC;--line:#1C3349;
     --teal:#2BD9C4;--amber:#FFC24B;--coral:#FF6B6B;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;}
@@ -47,9 +47,9 @@
 </style></head>
 <body>
 <div class="wrap">
-  <div class="eyebrow">ProVela · routing su vento reale</div>
+  <div class="eyebrow">Dritta · routing su vento reale</div>
   <h1>Vento vero, che cambia mentre navighi</h1>
-  <p class="lede">Il motore a isocrone gira sulla polare di <b class="boat">ProVela</b> e su un <b>campo di vento geo-ancorato</b> che <b>evolve nel tempo</b>: ogni tratto della rotta legge la scadenza giusta, interpolata tra le ore. Sposta l'<b style="color:var(--amber)">ora di partenza</b> e guarda la rotta ridisegnarsi — perché il vento di stamattina non è quello del pomeriggio.</p>
+  <p class="lede">Il motore a isocrone gira sulla polare di <b class="boat">Dritta</b> e su un <b>campo di vento geo-ancorato</b> che <b>evolve nel tempo</b>: ogni tratto della rotta legge la scadenza giusta, interpolata tra le ore. Sposta l'<b style="color:var(--amber)">ora di partenza</b> e guarda la rotta ridisegnarsi — perché il vento di stamattina non è quello del pomeriggio.</p>
 
   <div class="bar">
     <button data-area="adriatico" class="on">Alto Adriatico</button>
@@ -91,7 +91,7 @@ var MED_MASKS={"adriatico":{"w":157,"h":204,"latN":45.85,"latS":44.75,"lonW":12.
 function isLand(lat,lon){var m=MED_MASKS[FIELD.area];if(!m)return false;if(lat>m.latN||lat<m.latS||lon<m.lonW||lon>m.lonE)return false;
   var col=Math.floor((lon-m.lonW)/(m.lonE-m.lonW)*m.w),row=Math.floor((m.latN-lat)/(m.latN-m.latS)*m.h);
   if(col<0||col>=m.w||row<0||row>=m.h)return false;var idx=row*m.w+col;return (m._bits[idx>>3]>>(idx&7))&1;}
-// ---------- ProVela polar ----------
+// ---------- Dritta polar ----------
 var TWS=[0,4,6,8,10,12,14,16,20,24];
 var TWA=[0,38,40,42,52,60,75,90,110,120,135,141,147,150,180];
 var PV=[[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,5.1,5.4,5.6,5.6,5.7,5.5],[0,0,0,4.7,5.3,5.55,5.8,5.75,5.8,5.7],[0,2.9,4,4.9,5.4,5.65,5.9,5.85,5.9,5.9],[0,3.37,4.53,5.33,5.8,6.06,6.3,6.26,6.35,6.7],[0,3.57,4.75,5.53,5.96,6.26,6.6,6.56,6.69,7.3],[0,3.76,5,5.8,6.25,6.6,7,7.07,7.32,8.1],[0,3.89,5.14,5.96,6.43,6.88,7.4,7.6,7.99,9.1],[0,3.86,5.07,5.96,6.5,7.1,7.73,8.19,9.2,10.5],[0,3.68,4.88,5.81,6.43,7.07,7.75,8.3,9.6,11.1],[0,3.3,4.38,5.38,6.05,6.63,7.25,7.96,9.5,12],[0,3.05,4.2,5.2,5.8,6.4,7,7.7,9.1,12],[0,2.75,3.9,4.8,5.5,6,6.6,7,8.4,11.5],[0,2.55,3.72,4.6,5.3,5.8,6.39,6.7,8,11],[0,0,0,0,0,0,0,0,0,0]];

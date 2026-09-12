@@ -1,9 +1,9 @@
 /* ═══════════════════════════════════════════════════════════════════════
-   ProVela · rf-live.js — trasmettitore della Posizione Live, condiviso
+   Dritta · rf-live.js — trasmettitore della Posizione Live, condiviso
    ───────────────────────────────────────────────────────────────────────
    Caricato da OGNI modulo con una riga sola, come rf-topbar.js.
 
-   PERCHE' ESISTE. ProVela e' multipagina: ogni modulo e' un documento a
+   PERCHE' ESISTE. Dritta e' multipagina: ogni modulo e' un documento a
    se'. Finche' la trasmissione viveva dentro posizione/index.html, andare
    in Meteo scaricava la pagina e con essa watchPosition, il timer e la
    variabile txOn — la trasmissione si fermava senza che nulla lo dicesse,
@@ -141,7 +141,7 @@
   }
   function nomeBarca() {
     var p = leggi("raffyca-profile", {}) || {};
-    return p.boat || p.model || "ProVela";
+    return p.boat || p.model || "Dritta";
   }
   function payload() {
     if (!cur) return null;

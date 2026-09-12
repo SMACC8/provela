@@ -8,12 +8,12 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="MOB">
-<title>MOB · ProVela</title>
+<title>MOB · Dritta</title>
 <script>(function(){try{var t=localStorage.getItem('raffyca-theme');if(t==='sun')t='day';if(t==='day'||t==='night')document.documentElement.classList.add(t);
 /* L'inversione della schermata MOB e' indipendente dai tre temi dell'app:
    qui si applica subito per non far lampeggiare il bianco di notte. */
 if(localStorage.getItem('raffyca-mob-scuro')==='1')document.documentElement.classList.add('mobdark');}catch(e){}})();</script>
-<!-- manifest rimosso: il modulo vive dentro la PWA ProVela, non è un'app a sé -->
+<!-- manifest rimosso: il modulo vive dentro la PWA Dritta, non è un'app a sé -->
 <style>
 /* ═══════════════════════════════════════════════════════════════════════
    MOB · palette INVARIANTE rispetto ai tre temi dell'app.
@@ -154,7 +154,7 @@ html.mobdark #btnSegna{box-shadow:0 0 0 10px rgba(255,59,36,.13),0 0 0 20px rgba
 <body>
 
 <div class="rf-topbar">
-  <a class="rf-home" href="../" aria-label="Home ProVela">
+  <a class="rf-home" href="../" aria-label="Home Dritta">
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2BD9C4"
          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
@@ -237,7 +237,7 @@ html.mobdark #btnSegna{box-shadow:0 0 0 10px rgba(255,59,36,.13),0 0 0 20px rgba
      raffyca-waypoints  il punto vi finisce SUBITO   (contratto esistente)
      raffyca-pos        ultima posizione nota        (contratto esistente)
 
-   Lo stato vive in localStorage e non in memoria di pagina: ProVela e'
+   Lo stato vive in localStorage e non in memoria di pagina: Dritta e'
    multipagina e in PWA basta cambiare modulo per perdere le variabili.
    Cosi' l'emergenza sopravvive a navigazione, chiusura e riavvio.
 
@@ -395,7 +395,7 @@ html.mobdark #btnSegna{box-shadow:0 0 0 10px rgba(255,59,36,.13),0 0 0 20px rgba
     if (tick) { clearInterval(tick); tick = null; }
     $("attivo").hidden = true;
     $("riposo").hidden = false;
-    document.title = "MOB \u00b7 ProVela";
+    document.title = "MOB \u00b7 Dritta";
     toast("Emergenza chiusa \u00b7 il punto resta fra i waypoint", 3600);
   }
 
@@ -413,7 +413,7 @@ html.mobdark #btnSegna{box-shadow:0 0 0 10px rgba(255,59,36,.13),0 0 0 20px rgba
     var ora = Date.now();
     var trascorso = (ora - MOB.ts) / 1000;
     $("crono").textContent = mmss(trascorso);
-    document.title = "MOB " + mmss(trascorso) + " \u00b7 ProVela";
+    document.title = "MOB " + mmss(trascorso) + " \u00b7 Dritta";
 
     /* finestra di annullamento */
     var resta = Math.ceil((MOB.ts + GRAZIA - ora) / 1000);

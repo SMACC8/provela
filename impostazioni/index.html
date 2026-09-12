@@ -8,7 +8,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Impostazioni · ProVela</title>
+<title>Impostazioni · Dritta</title>
 <!--
   NB (produzione): questo file è un mockup autonomo. In produzione i token e le
   primitive .rf-* vanno serviti da raffyca.css condiviso:
@@ -62,7 +62,7 @@ html.night{
 }
 
 /* ============ SUN MODE (alta leggibilità esterna) ============ */
-/* accenti scuriti + contrasto alzato, come da convenzione ProVela */
+/* accenti scuriti + contrasto alzato, come da convenzione Dritta */
 body.sun{
   --teal: 176 84% 30%;
   --amber: 36 96% 44%;
@@ -282,7 +282,7 @@ select.rf-sel{color:hsl(var(--ink));text-align:left;appearance:none;padding-righ
      (un solo file per tutta la suite). Il link alla home resta QUI, inline:
      e' l'unico modo per uscire da un modulo e non deve dipendere da nulla. ===== -->
 <div class="rf-topbar" role="banner">
-  <a class="rf-home" href="../" aria-label="Menu ProVela" title="Menu ProVela">
+  <a class="rf-home" href="../" aria-label="Menu Dritta" title="Menu Dritta">
     <svg viewBox="0 0 64 64" width="19" height="19" aria-hidden="true"><path d="M32 8 L32 56 L10 56 Z" fill="#2BD9C4" opacity=".95"/><path d="M32 26 L54 56 L32 56 Z" fill="#2BD9C4" opacity=".45"/><line x1="32" y1="6" x2="32" y2="58" stroke="#1a4a42" stroke-width="3"/></svg>
   </a>
   <span class="rf-boat" id="rfBoat"></span>
@@ -299,7 +299,7 @@ select.rf-sel{color:hsl(var(--ink));text-align:left;appearance:none;padding-righ
 
   <div class="top">
     <div class="top-txt">
-      <div class="eyebrow">ProVela</div>
+      <div class="eyebrow">Dritta</div>
       <h1>Impostazioni</h1>
       <div class="boat" id="boatLine">—</div>
     </div>
@@ -562,7 +562,7 @@ select.rf-sel{color:hsl(var(--ink));text-align:left;appearance:none;padding-righ
     <div class="field" style="margin-top:6px">
       <div class="lbl">
         <div class="k">Snapshot automatico</div>
-        <div class="h">A ogni apertura dell'app salvo una copia delle tue voci (barca, waypoint, tracce, polare, impostazioni…) in un archivio separato dal browser, che resiste a un azzeramento dei dati. Tengo gli ultimi 5. Se all'avvio i dati risultano spariti, ProVela propone il ripristino. Per una copia fuori dal telefono, esporta il file.</div>
+        <div class="h">A ogni apertura dell'app salvo una copia delle tue voci (barca, waypoint, tracce, polare, impostazioni…) in un archivio separato dal browser, che resiste a un azzeramento dei dati. Tengo gli ultimi 5. Se all'avvio i dati risultano spariti, Dritta propone il ripristino. Per una copia fuori dal telefono, esporta il file.</div>
       </div>
     </div>
     <div class="actions" style="margin-top:6px">
@@ -889,11 +889,11 @@ select.rf-sel{color:hsl(var(--ink));text-align:left;appearance:none;padding-righ
     <dl class="info-grid">
       <dt>Modulo</dt><dd>Impostazioni</dd>
       <dt>Versione</dt><dd>v1.0</dd>
-      <dt>Suite</dt><dd>ProVela</dd>
+      <dt>Suite</dt><dd>Dritta</dd>
     </dl>
   </section>
 
-  <div class="foot">PROVELA · NAVIGAZIONE</div>
+  <div class="foot">DRITTA · NAVIGAZIONE</div>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -902,7 +902,7 @@ select.rf-sel{color:hsl(var(--ink));text-align:left;appearance:none;padding-righ
 (function(){
   "use strict";
 
-  /* ---------- chiavi condivise (contratto dati ProVela) ---------- */
+  /* ---------- chiavi condivise (contratto dati Dritta) ---------- */
   var K_PROFILE  = "raffyca-profile";   // {boat, model, zone, mmsi, callsign, owner}
   var K_SETTINGS = "raffyca-settings";  // merge-safe (trackInterval, units, ...)
   var K_THEME    = "raffyca-theme";     // 'dark' | 'day' | 'night'
@@ -1219,7 +1219,7 @@ select.rf-sel{color:hsl(var(--ink));text-align:left;appearance:none;padding-righ
   /* ================= RESET ================= */
   function resetData(){
     var ok = window.confirm(
-      "Azzerare tutti i dati ProVela su questo dispositivo?\n\n" +
+      "Azzerare tutti i dati Dritta su questo dispositivo?\n\n" +
       "Profilo, waypoint, tracce e impostazioni verranno eliminati. " +
       "L'operazione non è reversibile. Ti consigliamo di esportare prima un backup."
     );
@@ -1444,7 +1444,7 @@ select.rf-sel{color:hsl(var(--ink));text-align:left;appearance:none;padding-righ
 })();
 </script>
 <script>
-/* ProVela — difesa dati: snapshot automatico delle chiavi raffyca-* in IndexedDB (ultimi 5),
+/* Dritta — difesa dati: snapshot automatico delle chiavi raffyca-* in IndexedDB (ultimi 5),
    separato dal localStorage (sopravvive a un suo azzeramento) + export/import file JSON. */
 window.rfBackup=(function(){
   var DB='raffyca-backup',STORE='snaps',KEEP=5;
@@ -1467,15 +1467,15 @@ window.rfBackup=(function(){
   }catch(e){cb(null);}});}
   function two(n){return(n<10?'0':'')+n;}
   function exportNow(){var data=collect();
-    var blob=new Blob([JSON.stringify({app:'ProVela',ts:Date.now(),keys:data},null,1)],{type:'application/json'});
-    var d=new Date(),nm='ProVela-backup-'+d.getFullYear()+two(d.getMonth()+1)+two(d.getDate())+'-'+two(d.getHours())+two(d.getMinutes())+'.json';
+    var blob=new Blob([JSON.stringify({app:'Dritta',ts:Date.now(),keys:data},null,1)],{type:'application/json'});
+    var d=new Date(),nm='Dritta-backup-'+d.getFullYear()+two(d.getMonth()+1)+two(d.getDate())+'-'+two(d.getHours())+two(d.getMinutes())+'.json';
     var url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=nm;
     document.body.appendChild(a);a.click();setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},1500);
     return Object.keys(data).length;}
   function importFile(file,cb){var rd=new FileReader();
     rd.onload=function(){try{var j=JSON.parse(rd.result),data=(j&&j.keys)||j;
       var keys=Object.keys(data).filter(function(k){return k.indexOf('raffyca-')===0;});
-      if(!keys.length){cb(false,'nessuna chiave ProVela nel file');return;}
+      if(!keys.length){cb(false,'nessuna chiave Dritta nel file');return;}
       keys.forEach(function(k){localStorage.setItem(k,typeof data[k]==='string'?data[k]:JSON.stringify(data[k]));});
       cb(true,keys.length);}catch(e){cb(false,'file non valido');}};
     rd.onerror=function(){cb(false,'lettura fallita');};rd.readAsText(file);}
@@ -1483,7 +1483,7 @@ window.rfBackup=(function(){
   function checkLoss(){if(Object.keys(collect()).length>0)return;
     latest(function(s){if(!s||!s.data||!Object.keys(s.data).length)return;
       var when=new Date(s.ts).toLocaleString();
-      if(confirm('Nessun dato ProVela presente su questo dispositivo, ma esiste un backup automatico del '+when+' ('+s.n+' voci).\n\nRipristinarlo ora?')){
+      if(confirm('Nessun dato Dritta presente su questo dispositivo, ma esiste un backup automatico del '+when+' ('+s.n+' voci).\n\nRipristinarlo ora?')){
         if(restore(s.data))location.reload();else alert('Ripristino non riuscito.');}});}
   return {snapshot:snapshot,latest:latest,exportNow:exportNow,importFile:importFile,checkLoss:checkLoss};
 })();

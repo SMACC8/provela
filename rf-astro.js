@@ -1,5 +1,5 @@
 /* ============================================================
-   rf-astro.js — motore astronomico condiviso della suite ProVela.
+   rf-astro.js — motore astronomico condiviso della suite Dritta.
    Stessa idea di rf-topbar.js: un file solo, caricato dove serve
    con <script src="../rf-astro.js">.
 

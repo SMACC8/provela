@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Percorso regata · ProVela</title>
+<title>Percorso regata · Dritta</title>
 <script>(function(){try{var t=localStorage.getItem('raffyca-theme');if(t==='sun')t='day';if(t==='day'||t==='night')document.documentElement.classList.add(t);}catch(e){}})();</script>
 <link rel="stylesheet" href="../raffyca.css">
 <style id="pv-theme">
@@ -168,7 +168,7 @@ svg text{font-family:var(--mono);}
      (un solo file per tutta la suite). Il link alla home resta QUI, inline:
      e' l'unico modo per uscire da un modulo e non deve dipendere da nulla. ===== -->
 <div class="rf-topbar" role="banner">
-  <a class="rf-home" href="../" aria-label="Menu ProVela" title="Menu ProVela">
+  <a class="rf-home" href="../" aria-label="Menu Dritta" title="Menu Dritta">
     <svg viewBox="0 0 64 64" width="19" height="19" aria-hidden="true"><path d="M32 8 L32 56 L10 56 Z" fill="#2BD9C4" opacity=".95"/><path d="M32 26 L54 56 L32 56 Z" fill="#2BD9C4" opacity=".45"/><line x1="32" y1="6" x2="32" y2="58" stroke="#1a4a42" stroke-width="3"/></svg>
   </a>
   <span class="rf-boat" id="rfBoat"></span>
@@ -456,13 +456,13 @@ svg text{font-family:var(--mono);}
   </section>
 </main>
 
-<footer class="rf-footer"><b>ProVela</b> · Percorso di regata</footer>
+<footer class="rf-footer"><b>Dritta</b> · Percorso di regata</footer>
 <div class="rf-toast" id="toast"></div>
 
 <script>
 "use strict";
 /* =========================================================
-   Percorso · ProVela — fase 1
+   Percorso · Dritta — fase 1
    Chiave: raffyca-race-course  {course:{...}, nav:{...}}
    ========================================================= */
 var $=function(id){return document.getElementById(id);};
@@ -1369,7 +1369,7 @@ function downloadText(name,txt,mime){try{
 /* ---------- GPX import/export ---------- */
 function gpxEsc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c];});}
 function gpxHead(){return '<?xml version="1.0" encoding="UTF-8"?>\n'+
-  '<gpx version="1.1" creator="ProVela \u00b7 Percorso" xmlns="http://www.topografix.com/GPX/1/1" xmlns:pv="http://provela.app/gpx/1">\n';}
+  '<gpx version="1.1" creator="Dritta \u00b7 Percorso" xmlns="http://www.topografix.com/GPX/1/1" xmlns:dr="http://dritta.app/gpx/1">\n';}
 function gpxWpt(p,name,sym){if(!p||!isFinite(p.lat)||!isFinite(p.lon))return "";
   return '  <wpt lat="'+p.lat.toFixed(6)+'" lon="'+p.lon.toFixed(6)+'"><name>'+gpxEsc(name)+'</name>'+(sym?'<sym>'+gpxEsc(sym)+'</sym>':'')+'</wpt>\n';}
 function courseToGPX(){
@@ -1391,12 +1391,12 @@ function courseToGPX(){
 }
 function trackToGPX(s){
   var g=gpxHead(), tk=(s&&s.track)||[];
-  g+='  <trk><name>'+gpxEsc("ProVela regata "+fmtDate(s.startT))+'</name><trkseg>\n';
+  g+='  <trk><name>'+gpxEsc("Dritta regata "+fmtDate(s.startT))+'</name><trkseg>\n';
   tk.forEach(function(p){
     g+='    <trkpt lat="'+(+p.lat).toFixed(6)+'" lon="'+(+p.lon).toFixed(6)+'">'+
        '<time>'+new Date(p.t).toISOString()+'</time>'+
-       '<extensions><pv:sog>'+(p.sog==null?"":p.sog)+'</pv:sog><pv:cog>'+(p.cog==null?"":p.cog)+'</pv:cog>'+
-       '<pv:twd>'+(p.twd==null?"":p.twd)+'</pv:twd><pv:tws>'+(p.tws==null?"":p.tws)+'</pv:tws></extensions></trkpt>\n';
+       '<extensions><dr:sog>'+(p.sog==null?"":p.sog)+'</dr:sog><dr:cog>'+(p.cog==null?"":p.cog)+'</dr:cog>'+
+       '<dr:twd>'+(p.twd==null?"":p.twd)+'</dr:twd><dr:tws>'+(p.tws==null?"":p.tws)+'</dr:tws></extensions></trkpt>\n';
   });
   return g+'  </trkseg></trk>\n</gpx>\n';
 }
@@ -1447,14 +1447,14 @@ $("anPlay").addEventListener("click",function(){
     if(AN.idx>=AN.sess.track.length-1){AN.idx=AN.sess.track.length-1;$("anScrub").value=String(AN.idx);drawReplay();updateReplayReadouts();stopPlay();return;}
     $("anScrub").value=String(AN.idx);drawReplay();updateReplayReadouts();},250);});
 $("anCsv").addEventListener("click",function(){if(!AN.sess)return;
-  downloadText("provela-"+fmtDate(AN.sess.startT).replace(/[/: ]/g,"")+".csv",sessionCSV(AN.sess));});
+  downloadText("dritta-"+fmtDate(AN.sess.startT).replace(/[/: ]/g,"")+".csv",sessionCSV(AN.sess));});
 $("anGpx").addEventListener("click",function(){if(!AN.sess)return;
   if(!AN.sess.track||!AN.sess.track.length){toast("Traccia vuota");return;}
-  downloadText("provela-traccia-"+fmtDate(AN.sess.startT).replace(/[/: ]/g,"")+".gpx",trackToGPX(AN.sess),"application/gpx+xml");});
+  downloadText("dritta-traccia-"+fmtDate(AN.sess.startT).replace(/[/: ]/g,"")+".gpx",trackToGPX(AN.sess),"application/gpx+xml");});
 $("courseGpxExp").addEventListener("click",function(){
   if(!COURSE.marks.length&&!COURSE.start.cb&&!COURSE.start.pin){toast("Percorso vuoto");return;}
   var tag=(COURSE.title||"").replace(/[^\w-]+/g,"_").replace(/^_+|_+$/g,"");
-  downloadText("provela-percorso-"+(tag?tag+"-":"")+fmtDate(Date.now()).replace(/[/: ]/g,"")+".gpx",courseToGPX(),"application/gpx+xml");});
+  downloadText("dritta-percorso-"+(tag?tag+"-":"")+fmtDate(Date.now()).replace(/[/: ]/g,"")+".gpx",courseToGPX(),"application/gpx+xml");});
 $("courseGpxImp").addEventListener("click",function(){$("gpxFile").value="";$("gpxFile").click();});
 $("gpxFile").addEventListener("change",function(){var f=this.files&&this.files[0];if(!f)return;
   var rd=new FileReader();rd.onload=function(){importCourseGPX(String(rd.result||""));};rd.readAsText(f);});

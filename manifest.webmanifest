@@ -1,6 +1,6 @@
 {
-  "name": "ProVela",
-  "short_name": "ProVela",
+  "name": "Dritta",
+  "short_name": "Dritta",
   "description": "Suite di navigazione a vela: cruscotto, meteo, routing, carta nautica, batimetria e strumenti.",
   "start_url": "./",
   "scope": "./",

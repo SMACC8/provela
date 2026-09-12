@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Posizione Live · ProVela</title>
+<title>Posizione Live · Dritta</title>
 <script>(function(){try{var t=localStorage.getItem('raffyca-theme');if(t==='sun')t='day';if(t==='day'||t==='night')document.documentElement.classList.add(t);}catch(e){}})();</script>
 <style>
 :root{--bg:#060e18;--panel:#0e2036;--panel2:#0b1a2c;--dp:#040c14;--line:#1a3248;--dim:#122030;
@@ -71,7 +71,7 @@ a.link{color:var(--teal);word-break:break-all;font-size:12px;font-family:var(--m
      (un solo file per tutta la suite). Il link alla home resta QUI, inline:
      e' l'unico modo per uscire da un modulo e non deve dipendere da nulla. ===== -->
 <div class="rf-topbar" role="banner">
-  <a class="rf-home" href="../" aria-label="Menu ProVela" title="Menu ProVela">
+  <a class="rf-home" href="../" aria-label="Menu Dritta" title="Menu Dritta">
     <svg viewBox="0 0 64 64" width="19" height="19" aria-hidden="true"><path d="M32 8 L32 56 L10 56 Z" fill="#2BD9C4" opacity=".95"/><path d="M32 26 L54 56 L32 56 Z" fill="#2BD9C4" opacity=".45"/><line x1="32" y1="6" x2="32" y2="58" stroke="#1a4a42" stroke-width="3"/></svg>
   </a>
   <span class="rf-boat" id="rfBoat"></span>
@@ -94,7 +94,7 @@ a.link{color:var(--teal);word-break:break-all;font-size:12px;font-family:var(--m
     <div style="height:10px"></div>
     <button class="primary" id="btnTx">▶ Avvia trasmissione</button>
     <div class="muted" id="txMsg" style="margin-top:9px">GPS non ancora attivo.</div>
-    <div class="muted" style="margin-top:7px">Una volta avviata, la trasmissione prosegue anche negli altri moduli di ProVela. Si ferma chiudendo l'app o premendo il tasto qui sopra.</div>
+    <div class="muted" style="margin-top:7px">Una volta avviata, la trasmissione prosegue anche negli altri moduli di Dritta. Si ferma chiudendo l'app o premendo il tasto qui sopra.</div>
   </div>
 
   <div class="card">
@@ -156,7 +156,7 @@ a.link{color:var(--teal);word-break:break-all;font-size:12px;font-family:var(--m
 
   <div class="card">
     <h3>Chiave di scrittura</h3>
-    <div class="muted" style="margin-bottom:8px">Il token di scrittura del database delle posizioni. Si inserisce una volta e resta salvato su questo dispositivo, quindi non va più reinserito a ogni aggiornamento di ProVela. Non condividerlo: chi ce l'ha può scrivere la tua posizione.</div>
+    <div class="muted" style="margin-bottom:8px">Il token di scrittura del database delle posizioni. Si inserisce una volta e resta salvato su questo dispositivo, quindi non va più reinserito a ogni aggiornamento di Dritta. Non condividerlo: chi ce l'ha può scrivere la tua posizione.</div>
     <input id="tokIn" type="password" autocomplete="off" placeholder="token di scrittura Upstash"
       style="width:100%;padding:11px;border-radius:9px;border:1px solid var(--dim,#24405a);background:var(--panel2,#0b1a2c);color:inherit;font-family:var(--mono);font-size:12px">
     <div class="row" style="margin-top:9px;gap:9px">
@@ -225,7 +225,7 @@ function wpCalc(){
 }
 
 /* ---------- payload ---------- */
-function boatName(){try{var p=JSON.parse(localStorage.getItem("raffyca-profile")||"{}");return p.boat||p.model||"Raffyca";}catch(e){return "ProVela";}}
+function boatName(){try{var p=JSON.parse(localStorage.getItem("raffyca-profile")||"{}");return p.boat||p.model||"Raffyca";}catch(e){return "Dritta";}}
 function buildPayload(){
   if(!cur)return null;
   var c=wpCalc();

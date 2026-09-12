@@ -1,2 +1,2 @@
-ProVela build 2026-07-27T05:01Z
+Dritta build 2026-07-27T05:01Z
 force Pages rebuild + CDN purge

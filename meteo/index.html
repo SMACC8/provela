@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="it"><head>
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>ProVela · Il Nastro del Vento</title>
+<title>Dritta · Il Nastro del Vento</title>
 <script>(function(){try{var t=localStorage.getItem('raffyca-theme');if(t==='sun')t='day';if(t==='day'||t==='night')document.documentElement.classList.add(t);}catch(e){}})();</script>
 <meta name="description" content="Meteo tattico per la vela in Italia — aggregatore multi-modello."/>
 <meta name="theme-color" content="#0A1628"/>
@@ -9,7 +9,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<meta name="apple-mobile-web-app-title" content="ProVela"/>
+<meta name="apple-mobile-web-app-title" content="Dritta"/>
 <link rel="apple-touch-icon" href="apple-touch-icon.png"/>
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png"/>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%230A1628'/><path d='M6 36 Q20 20 32 36 T58 36' stroke='%232BD9C4' stroke-width='6' fill='none' stroke-linecap='round'/><path d='M6 44 Q20 28 32 44 T58 44' stroke='%23FFC24B' stroke-width='5' fill='none' stroke-linecap='round' opacity='.85'/></svg>">
@@ -85,6 +85,7 @@
   .play{width:42px;height:42px;border-radius:50%;border:none;background:rgba(157,78,221,.2);color:#E8EEF2;font-size:16px;cursor:pointer;flex:0 0 auto;}
   .tlab{font-family:var(--mono);font-size:12px;color:#9FA6C0;min-width:64px;text-align:center;}
   .credit{font-family:var(--mono);font-size:11px;letter-spacing:.5px;color:#4A6079;text-align:center;margin:22px 0 6px;}
+  .credit b{color:#2BD9C4;}   /* slogan: PPA al contrario e' APP */
   .dateBar{font-family:var(--mono);font-size:12px;color:#8FA6BE;margin:2px 0 10px;}
   .dateBar b{color:#C3D4E6;font-weight:600;text-transform:capitalize;}
   .gpsBtn{display:inline-flex;align-items:center;gap:6px;background:rgba(43,217,196,.12);color:#2BD9C4;border:1px solid rgba(43,217,196,.3);border-radius:20px;padding:8px 14px;font-family:var(--mono);font-size:12.5px;font-weight:600;cursor:pointer;margin:2px 0 6px;}
@@ -176,6 +177,7 @@ html.day .pResItem{border-color:#E4EBF3;}
 html.day .pResItem:hover{background:#EEF4FA;}
 html.day .mline{background:rgba(40,70,100,.4);}
 html.day .credit{color:#7488A0;}
+html.day .credit b{color:#067d70;}
 html.day input[type=range]{background:linear-gradient(90deg,#C2D2E4,#8AA8C6);}
 /* topbar: in giorno il testo usa var(--ink)/--sub chiari (Meteo non ridefinisce i token) → forzo colori leggibili */
 html.day .rf-topbar .rf-boat,html.day .rf-topbar .rf-pol .mod{color:#0C1A28;}
@@ -187,6 +189,8 @@ html.night body{background:radial-gradient(120% 90% at 70% -10%,#1a0505 0%,#0e03
 html.night .spot,html.night .card,html.night .snap,html.night .pForm,html.night .pSum,html.night .alertPanel,html.night .pRes{background:#160404;border-color:#3a1010;}
 html.night h1,html.night .nm,html.night .v,html.night .segW,html.night .pSumMain,html.night .pResItem{color:#ff8a8a;}
 html.night .eyebrow{color:#ff6b6b;}
+html.night .credit{color:#a85050;}
+html.night .credit b{color:#ff6b6b;}
 html.night .src,html.night .legend,html.night .dateBar,html.night .pSumMeta,html.night .gpsMsg,html.night .mtag{color:#c06060;}
 html.night .l,html.night .s,html.night .cl,html.night .ar,html.night .segLab,html.night .segD,html.night .sub{color:#a85050;}
 html.night .dateBar b{color:#ff8a8a;}
@@ -241,7 +245,7 @@ html.day .demoNote{color:#7A3FB0;}
      (un solo file per tutta la suite). Il link alla home resta QUI, inline:
      e' l'unico modo per uscire da un modulo e non deve dipendere da nulla. ===== -->
 <div class="rf-topbar" role="banner">
-  <a class="rf-home" href="../" aria-label="Menu ProVela" title="Menu ProVela">
+  <a class="rf-home" href="../" aria-label="Menu Dritta" title="Menu Dritta">
     <svg viewBox="0 0 64 64" width="19" height="19" aria-hidden="true"><path d="M32 8 L32 56 L10 56 Z" fill="#2BD9C4" opacity=".95"/><path d="M32 26 L54 56 L32 56 Z" fill="#2BD9C4" opacity=".45"/><line x1="32" y1="6" x2="32" y2="58" stroke="#1a4a42" stroke-width="3"/></svg>
   </a>
   <span class="rf-boat" id="rfBoat"></span>
@@ -268,7 +272,7 @@ html.day .demoNote{color:#7A3FB0;}
     <div id="gpsMsg" class="gpsMsg"></div>
     <div id="alertPanel" class="alertPanel"></div>
     <div id="spotList"></div>
-    <div class="credit">SviluPPAta da Sergio Moro</div>
+    <div class="credit">Svilup<b>PPA</b>ta da Sergio Moro</div>
   </div>
   <!-- CARTE DWD -->
   <div id="chartsView" class="hidden">

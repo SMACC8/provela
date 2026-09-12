@@ -2,7 +2,7 @@
 <html lang="it"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>ProVela · laboratorio routing</title>
+<title>Dritta · laboratorio routing</title>
 <style>
   :root{
     --bg:#0A1628;--bg2:#0E1F33;--ink:#E8EEF2;--sub:#7B93AC;--line:#1C3349;
@@ -52,9 +52,9 @@
 </style></head>
 <body>
 <div class="wrap">
-  <div class="eyebrow">ProVela · laboratorio routing</div>
+  <div class="eyebrow">Dritta · laboratorio routing</div>
   <h1>Isocrone, polare vera, motore</h1>
-  <p class="lede">Il motore a isocrone trova la rotta più veloce da <b>A</b> a <b>B</b> sulla polare reale di <b class="boat">ProVela</b>, ora dentro un <b>campo di vento</b> che cambia nello spazio (le frecce variano, la velatura mostra la pressione). Scegli un campo e guarda la rotta piegarsi per inseguire pressione e rotazioni. Accendi il <b style="color:var(--amber)">motore</b> per i tratti senza vento.</p>
+  <p class="lede">Il motore a isocrone trova la rotta più veloce da <b>A</b> a <b>B</b> sulla polare reale di <b class="boat">Dritta</b>, ora dentro un <b>campo di vento</b> che cambia nello spazio (le frecce variano, la velatura mostra la pressione). Scegli un campo e guarda la rotta piegarsi per inseguire pressione e rotazioni. Accendi il <b style="color:var(--amber)">motore</b> per i tratti senza vento.</p>
 
   <div class="scn" id="fld">
     <button data-f="uniforme">Vento uniforme</button>
@@ -101,7 +101,7 @@
 </div>
 
 <script>
-// ---- ProVela polar (from raffyca_rev_190426.csv) ----
+// ---- Dritta polar (from raffyca_rev_190426.csv) ----
 var TWS=[0.0,4.0,6.0,8.0,10.0,12.0,14.0,16.0,20.0,24.0];
 var TWA=[0.0,38.0,40.0,42.0,52.0,60.0,75.0,90.0,110.0,120.0,135.0,141.0,147.0,150.0,180.0];
 var PV=[[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,5.1,5.4,5.6,5.6,5.7,5.5],[0,0,0,4.7,5.3,5.55,5.8,5.75,5.8,5.7],[0,2.9,4,4.9,5.4,5.65,5.9,5.85,5.9,5.9],[0,3.37,4.53,5.33,5.8,6.06,6.3,6.26,6.35,6.7],[0,3.57,4.75,5.53,5.96,6.26,6.6,6.56,6.69,7.3],[0,3.76,5,5.8,6.25,6.6,7,7.07,7.32,8.1],[0,3.89,5.14,5.96,6.43,6.88,7.4,7.6,7.99,9.1],[0,3.86,5.07,5.96,6.5,7.1,7.73,8.19,9.2,10.5],[0,3.68,4.88,5.81,6.43,7.07,7.75,8.3,9.6,11.1],[0,3.3,4.38,5.38,6.05,6.63,7.25,7.96,9.5,12],[0,3.05,4.2,5.2,5.8,6.4,7,7.7,9.1,12],[0,2.75,3.9,4.8,5.5,6,6.6,7,8.4,11.5],[0,2.55,3.72,4.6,5.3,5.8,6.39,6.7,8,11],[0,0,0,0,0,0,0,0,0,0]];
