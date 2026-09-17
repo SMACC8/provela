@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Bolina di prova · Dritta</title>
+<script>(function(){try{var t=localStorage.getItem('raffyca-theme');if(t==='sun')t='day';if(t==='day'||t==='night')document.documentElement.classList.add(t);}catch(e){}})();</script>
+<link rel="stylesheet" href="./raffyca.css">
+<style>
+main{max-width:640px;margin:0 auto;padding:16px;display:flex;flex-direction:column;gap:13px;}
+h1{font-size:19px;margin:0;}
+.hint{font-size:12px;color:var(--sub);line-height:1.55;}
+.row{display:flex;gap:9px;flex-wrap:wrap;}
+.row .btn{flex:1;min-width:150px;justify-content:center;}
+.btn{font-size:14px;padding:11px 14px;border-radius:10px;border:1px solid var(--line);
+  background:var(--panel2);color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;
+  justify-content:center;gap:6px;text-decoration:none;}
+.btn.go{border-color:var(--teal);color:var(--teal);}
+.btn.del{border-color:rgba(255,107,107,.4);color:var(--coral);}
+.btn:active{transform:scale(.98);}
+table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px;margin-top:8px;}
+th{text-align:left;font-size:10.5px;color:var(--sub);font-weight:600;padding:0 5px 6px;}
+th:nth-child(n+3),td:nth-child(n+3){text-align:right;}
+td{padding:6px 5px;border-top:1px solid var(--line);}
+code{font-family:var(--mono);font-size:11.5px;color:var(--teal);}
+.ok{color:var(--green);}
+</style>
+</head>
+<body class="rf-app">
+<main>
+  <h1>Bolina di prova</h1>
+  <div class="hint">
+    Scrive una regata finta in <code>raffyca-race-log</code> su <b>questa</b> origine, per
+    vedere come si comporta lo Studio virate senza uscire in mare. Non tocca i dati del
+    sito vero: quelli stanno su un'altra origine e hanno una memoria separata.
+  </div>
+
+  <div class="rf-card">
+    <h3>Cosa contiene</h3>
+    <div class="hint">Campionata a 5 s come <code>recSample()</code>, vento da 200° a 12 kn.
+      Le manovre sono <b>fatte male apposta, e in modi diversi</b>: cosi' la tabella ha
+      qualcosa da dire invece di ripetere lo stesso numero.</div>
+    <table id="tab"></table>
+  </div>
+
+  <div class="row">
+    <button class="btn go" id="crea">Semina la bolina</button>
+    <a class="btn" href="./percorso/">Apri Percorso → Analisi</a>
+  </div>
+  <div class="row">
+    <button class="btn del" id="pulisci">Togli la regata di prova</button>
+  </div>
+  <div class="hint" id="esito"></div>
+
+  <div class="hint">
+    Poi: <b>Percorso → Analisi → «Regata di prova» → Studio virate</b>. Prova a spostare la
+    soglia fra 10% e 40% e guarda quante manovre spariscono — a 40% restano solo le peggiori.
+  </div>
+</main>
+
+<script>
+"use strict";
+var R=6371000,d2r=Math.PI/180,r2d=180/Math.PI,KN=0.514444;
+function dest(a,brgDeg,distM){
+  var la1=a.lat*d2r,lo1=a.lon*d2r,th=brgDeg*d2r,dr=distM/R;
+  var la2=Math.asin(Math.sin(la1)*Math.cos(dr)+Math.cos(la1)*Math.sin(dr)*Math.cos(th));
+  var lo2=lo1+Math.atan2(Math.sin(th)*Math.sin(dr)*Math.cos(la1),Math.cos(dr)-Math.sin(la1)*Math.sin(la2));
+  return {lat:la2*r2d,lon:((lo2*r2d+540)%360)-180};
+}
+
+/* Vento da 200: in bolina a TWA +-45 le rotte sono 155 e 245; in poppa a TWA
+   +-150 sono 350 e 50. Ogni manovra ha un calo e una costante di recupero
+   diversi, perche' e' proprio quello che lo Studio virate deve far vedere. */
+var TWD=200, TWS=12, DT=5, V_BOL=6.0, V_POP=7.4;
+var MAN=[
+  {t:120, rotta:245, calo:0.30, tau:7,  eti:"virata pulita"},
+  {t:300, rotta:155, calo:0.52, tau:15, eti:"virata sbagliata: troppo lenta"},
+  {t:480, rotta:245, calo:0.34, tau:8,  eti:"virata discreta"},
+  {t:660, rotta:155, calo:0.45, tau:12, eti:"virata larga"},
+  {t:840, rotta:245, calo:0.28, tau:6,  eti:"la migliore"},
+  {t:1020,rotta:155, calo:0.41, tau:11, eti:"virata impastata"},
+  {t:1200,rotta:null,calo:0.33, tau:9,  eti:"onda in prua, nessun cambio di mura"},
+  {t:1380,rotta:350, calo:0.22, tau:5,  eti:"abbattuta alla boa", poppa:true},
+  {t:1560,rotta:50,  calo:0.38, tau:10, eti:"strambata sporca", poppa:true},
+  {t:1740,rotta:350, calo:0.26, tau:6,  eti:"strambata buona", poppa:true}
+];
+var FINE=1900;
+
+function genera(){
+  var T0=Date.now()-Math.round(FINE/60)*60*1000;
+  var p={lat:45.3550,lon:12.5050},rotta=155,poppa=false;
+  var track=[],eventi=[{t:T0,type:"start"}],boaAbb=null,i,t;
+  for(t=0;t<=FINE;t++){
+    var att=null;
+    for(i=0;i<MAN.length;i++)if(MAN[i].t<=t)att=MAN[i];
+    var f=1;
+    if(att){var s=t-att.t;
+      if(s<6)f=1-att.calo*s/6; else f=1-att.calo*Math.exp(-(s-6)/att.tau);
+      if(s===3&&att.rotta!=null&&rotta!==att.rotta){
+        rotta=att.rotta;
+        if(att.poppa&&!poppa){poppa=true;boaAbb={lat:p.lat,lon:p.lon};}
+        eventi.push({t:T0+t*1000,type:att.poppa?"gybe":"tack"});
+      }
+    }
+    var v=(poppa?V_POP:V_BOL)*f;
+    if(t%DT===0){
+      var twd=TWD+5*Math.sin(t/180);            /* oscillazione lenta, come il vento vero */
+      track.push({t:T0+t*1000,lat:+p.lat.toFixed(6),lon:+p.lon.toFixed(6),
+        cog:Math.round(rotta),sog:+v.toFixed(2),twd:+twd.toFixed(1),tws:TWS,tIdx:0});
+    }
+    p=dest(p,rotta,v*KN);
+  }
+  var part={lat:45.3550,lon:12.5050};
+  var sess={id:"rPROVA"+Date.now(),title:"Regata di prova",startT:T0,endT:T0+FINE*1000,open:false,
+    course:{start:{cb:dest(part,270,140),pin:dest(part,90,140)},
+            marks:[{lat:(boaAbb||p).lat,lon:(boaAbb||p).lon,name:"Bolina"}],
+            laps:1,finish:{mode:"start"}},
+    track:track,events:eventi};
+  return sess;
+}
+
+function tabella(){
+  var h='<tr><th>#</th><th>Manovra</th><th>Calo vero</th><th>Recupero</th></tr>';
+  MAN.forEach(function(m,k){
+    h+='<tr><td>'+(k+1)+'</td><td>'+m.eti+'</td><td>'+Math.round(m.calo*100)+'%</td>'+
+       '<td>&tau; '+m.tau+' s</td></tr>';});
+  document.getElementById('tab').innerHTML=h;
+}
+tabella();
+
+document.getElementById('crea').addEventListener('click',function(){
+  try{
+    var s=genera();
+    var log={sessions:[s]};
+    try{var v=JSON.parse(localStorage.getItem('raffyca-race-log')||'null');
+      if(v&&Array.isArray(v.sessions)){log.sessions=v.sessions.filter(function(x){
+        return String(x.title||'').indexOf('Regata di prova')<0;}).concat([s]);
+        while(log.sessions.length>6)log.sessions.shift();}
+    }catch(e){}
+    localStorage.setItem('raffyca-race-log',JSON.stringify(log));
+    document.getElementById('esito').innerHTML='<span class="ok">Fatta.</span> '+
+      s.track.length+' punti a '+DT+' s, '+MAN.length+' manovre ('+
+      MAN.filter(function(m){return !m.poppa&&m.rotta!=null;}).length+' virate, '+
+      MAN.filter(function(m){return m.poppa;}).length+' strambate, 1 rallentamento). '+
+      'Ora apri Percorso → Analisi.';
+  }catch(e){
+    document.getElementById('esito').textContent='Non riuscita: '+e.message;
+  }
+});
+/* Toglie SOLO le sessioni intitolate "Regata di prova". Niente
+   localStorage.clear(): se un giorno questa pagina finisse online, un tocco
+   distratto porterebbe via waypoint, tracce e polare veri. Una pagina di
+   prova non deve poter fare danni veri. */
+document.getElementById('pulisci').addEventListener('click',function(){
+  try{
+    var v=JSON.parse(localStorage.getItem('raffyca-race-log')||'null');
+    if(!v||!Array.isArray(v.sessions)){
+      document.getElementById('esito').textContent='Non c’era niente da togliere.';return;}
+    var prima=v.sessions.length;
+    v.sessions=v.sessions.filter(function(x){return String(x.title||'').indexOf('Regata di prova')<0;});
+    localStorage.setItem('raffyca-race-log',JSON.stringify(v));
+    document.getElementById('esito').textContent='Tolte '+(prima-v.sessions.length)+
+      ' regate di prova. Waypoint, tracce e polare non sono stati toccati.';
+  }catch(e){document.getElementById('esito').textContent='Non riuscita: '+e.message;}
+});
+</script>
+</body>
+</html>

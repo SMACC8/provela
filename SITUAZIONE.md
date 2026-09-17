@@ -2730,32 +2730,67 @@ ogni volta che il GPS non lo dava. Si misura dalle posizioni, come fa Vetta.
 
 ### Validazione
 
-**Virate — dieci test in JS, eseguiti con `jsc` sul codice estratto dal file
+**Virate — dodici test in JS, eseguiti con `jsc` sul codice estratto dal file
 vero, non da una bozza.** I quattro casi di `SpeedEventsTest.kt` di Vetta
 portati (una virata misurata, cinque di fila senza sovrapposizioni, velocita'
-costante senza eventi, soglia al 60% che non passa) piu' sei nuovi. Tutti
-verdi.
+costante senza eventi, soglia al 60% che non passa) piu' otto nuovi, fra cui i
+due di regressione sul difetto qui sotto. Tutti verdi.
 
-Il degrado col campionamento **misurato** su bolina sintetica con 6 virate
-vere, invece di supposto:
+### Il difetto che i test non vedevano, e come e' saltato fuori
 
-| dt | trovate | calo letto | recupero | rotta |
-|---|---|---|---|---|
-| 1 s | 6/6 | 37% | 17 s | 100° |
-| 5 s | 6/6 | 37% | 20 s | 100° |
-| 10 s | 6/6 | 32% | 20 s | 100° |
-| 15 s | 6/6 | 24% | 30 s | 100° |
-| 20 s | **0/6** | — | — | — |
+Serviva una regata finta per far provare la scheda a Sergio, e l'ho fatta con
+**manovre di qualita' diversa** invece che tutte uguali — dieci manovre con
+cali dal 22% al 52%, sei virate, due strambate, un'abbattuta alla boa e
+un'onda senza cambio di mura. Su quella, la scheda ne trovava **otto su
+dieci**. I dodici test erano tutti verdi lo stesso.
 
-Il calo *vero* e' 40%. Quindi: si rifiuta sopra i 15 s (soglia che avevo messo
-a intuito e che la misura conferma); il calo **letto** si restringe col
-campionamento e la scheda lo dice; cambio rotta e classificazione invece
-reggono esatti a ogni intervallo.
+Causa: **la finestra d'ingresso finiva dentro il calo**. Il punto che
+l'algoritmo esamina e' il minimo di velocita', cioe' 6-10 s dopo l'inizio
+della manovra; con il bordo vicino a −5 s, la finestra da cui si ricava la
+velocita' "di prima" era gia' in decelerazione. Misurato sul caso perso: il
+riferimento scendeva da 3,09 a 2,83 m/s, il calo letto si restringeva sotto il
+20% e la manovra spariva. **A 1 Hz non si vede**, perche' la finestra ha
+tredici campioni e uno sporco si diluisce; a 5 s i campioni sono tre e uno
+sporco vale un terzo.
 
-Prova nel browser con una sessione sintetica di 12 virate a 5 s: **trovate
-12 su 12**, agli istanti esatti, tutte classificate "virata", CSV con TWA
-45 -> -45 e cambio rotta 90° come da verita' sintetica. Nessun errore in
-console.
+Correzione: il bordo vicino arretra col campionamento, `entryFrom =
+max(15 s, 6·dt)` e `entryTo = max(3 s, 3·dt)`. A 1 Hz da' −15..−3, cioe'
+esattamente i valori di Vetta; a 5 s da' −30..−15. Dopo: **dieci su dieci**.
+
+**E la mia tabella di degrado era fuorviante.** L'avevo costruita con sei
+virate tutte da 40% e concludeva "regge fino a 15 s, muore a 20 s". Vero per un
+calo del 40%; falso in generale. Rimisurato con cali diversi:
+
+| dt | prima | dopo la correzione |
+|---|---|---|
+| 5 s | 8/10 | **10/10** |
+| 10 s | 6/10 | **8/10** |
+| 15 s | 3/10 | 4/10 |
+| 25 s | 1/10 | 3/10 |
+
+Quindi il rifiuto e' sceso da 15 s a **10 s**: a 15 s ne troverebbe meno della
+meta' *senza dirlo*, e la riga delle medie diventerebbe falsa sembrando
+completa. Dato mancante che sembra completo e' il tipo peggiore.
+
+Quel che regge a ogni campionamento: **l'ordine**. Sui dieci cali veri
+30/52/34/45/28/41... l'ordinamento misurato coincide con quello vero
+(scarto 0 posizioni nel test di regressione). La manovra che la scheda indica
+come peggiore e' davvero la peggiore, ed e' quello che serve a bordo. Il
+valore assoluto del calo e' sempre un po' sottostimato, e la scheda lo dice.
+
+Lezione generale, e vale oltre questo modulo: **i casi di prova tutti uguali
+non provano niente**. Dodici test verdi e un difetto che si vedeva al primo
+dato realistico.
+
+Prova nel browser: `prova-bolina.html` in radice semina una regata finta
+nell'origine di prova (pagina di servizio, non collegata da nessuna parte; il
+suo bottone di pulizia tocca **solo** le sessioni "Regata di prova", niente
+`localStorage.clear()`, cosi' non puo' fare danni se un giorno finisse
+online). Su quella: **dieci manovre su dieci**, agli istanti esatti, e tutte e
+tre le etichette giuste — sei "virata", due "strambata", l'onda senza cambio
+di mura "rallentamento", e l'abbattuta alla boa "manovra", che e' la risposta
+esatta perche' TWA +45 -> −150 non e' ne' una virata ne' una strambata.
+Nessun errore in console.
 
 **Raster — contro una verita' nota per costruzione.** Generato un reticolato in
 Mercatore 1600x1518 px su un riquadro noto, calibrato con **due soli punti**, e
