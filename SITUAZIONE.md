@@ -2840,3 +2840,93 @@ ed esclude in partenza la causa piu' stupida.
   non c'e' cache runtime. Quindi `carta/fari.geojson` non finisce mai in cache
   dall'hub, nonostante il commento in `carta/index.html` dica il contrario. Il
   commento e' falso e chi legge il codice non se ne accorge.
+
+---
+
+## 17/09/2026 (2) — Il mirino al centro non arrivava agli angoli
+
+`carta/index.html`, `percorso/index.html`. Nessun bump di service worker (vedi
+la voce precedente per il perche'). Tre difetti segnalati da Sergio alla prima
+prova vera, e il secondo e' di progetto, non di rifinitura.
+
+### Il mirino fisso al centro escludeva il caso d'uso
+
+La calibrazione teneva il mirino **fisso al centro** del riquadro e lo si
+portava sul punto **scorrendo l'immagine**. Sembrava preciso. E' inservibile,
+per un motivo che si vede solo provando: scorrendo, il bordo dell'immagine
+arriva al massimo al bordo del contenitore e **mai al centro**, quindi tutti i
+punti vicini agli angoli erano **irraggiungibili**. Sergio calibra mettendo
+quattro WP **ai quattro angoli** — cioe' esattamente i punti che il mio
+meccanismo non sapeva puntare. E piu' i punti sono distanti fra loro, meglio e'
+condizionata la taratura: gli angoli non sono una scelta qualsiasi, sono la
+scelta giusta.
+
+Va detto come me ne sono accorto, perche' e' la parte istruttiva: **non me ne
+sono accorto**. Avevo verificato la matematica misurando un punto al centro
+dell'immagine (0,000 m su 35 incroci, 0,12 px su sei livelli di zoom) e mi ero
+fermato li'. La matematica era giusta e l'interazione era rotta: due cose
+diverse, e la prima non dice niente sulla seconda.
+
+Ora il mirino **si posa dove si tocca**, scorre con l'immagine, e quattro
+frecce lo spostano di un pixel immagine alla volta per l'ultimo aggiustamento.
+I punti gia' messi si vedono come pallini numerati sulla carta. Verificato
+cliccando i quattro incroci piu' esterni: tutti raggiunti.
+
+E si e' potuto misurare **quanto serve lo zoom**, che finora era un argomento e
+non un numero: gli stessi cinque punti, messi a carta intera, danno RMS 22 m;
+rimessi a 2:1, RMS 0 m. A carta intera un pixel di schermo vale 4,7 pixel di
+carta, e non c'e' modo di fare meglio di cosi'.
+
+### Il riquadro si lasciava schiacciare
+
+`.rwrap` e' un figlio flex di `.sheet`, che e' `display:flex; flex-direction:
+column`. Senza `flex:0 0 auto` si restringe man mano che la lista dei punti
+cresce: con cinque punti il riquadro dell'immagine era una striscia di **40 px**
+invece di 374. Non si vedeva con due punti, cioe' non si vedeva finche' non si
+usava sul serio.
+
+Sintomo riferito da Sergio come «mi e' scomparso il cursore orizzontale»: non
+era la barra di scorrimento, era il riquadro collassato. La diagnosi dal
+sintomo era sbagliata, quella dalla misura no.
+
+### Il grafico delle virate cresceva da solo
+
+`#svPlot` aveva `viewBox="0 0 400 250"` con `width:100%`: su schermo largo lo
+SVG si ingrandiva **tutto insieme**, testo e spessori compresi, mentre
+l'interfaccia intorno restava ferma. A 640 px erano 1,6x: un carattere da 9
+diventava 14,4 accanto a `.hint` da 11.
+
+Ora il `viewBox` si misura dai pixel veri del riquadro a ogni disegno, con
+altezza fissa a 190 px, e si ridisegna su `resize`. Verificato a 375 e a 900
+px di larghezza: testo reso a **10 px** in entrambi i casi, contro gli 11 px
+del testo intorno.
+
+### Alternative scartate
+
+**Tenere il mirino al centro e aggiungere un margine attorno all'immagine**
+grande quanto meta' riquadro, cosi' che scorrendo si possa portare al centro
+anche un angolo. Funzionerebbe, ma resta il lavoro da orologiaio di centrare a
+mano due barre di scorrimento per ogni punto, che era l'altra meta' della
+critica di Sergio.
+
+**Pinch per lo zoom** invece dello slider: il `meta viewport` non ha
+`user-scalable=no`, quindi il pinch lo intercetta il browser e ingrandisce la
+pagina intera. Servirebbe disabilitarlo per tutto il modulo, che e' un prezzo
+alto per un pannello solo.
+
+**Rendere modificabile un punto gia' messo.** Oggi si cancella col × e si
+rifa'. Con i residui per punto in elenco si sa quale rifare, quindi il giro e'
+breve. Resta un'asperita', non un difetto.
+
+**Etichetta della scala come rapporto** (`2x`, `1:0.5`): ambigua, perche' `2x`
+li' voleva dire *ridotto* di due volte. Ora si mostra solo **metri per pixel di
+schermo**, che e' il numero che dice quanto puoi sbagliare puntando, e non ha
+bisogno di spiegazioni.
+
+### Non verificato
+
+- Sempre niente su un raster vero e niente su un telefono vero. Il tocco e'
+  stato simulato con eventi `click` sintetici: un dito ha un'area, un mouse no,
+  e le quattro frecce esistono proprio per quello.
+- Lo scorrimento dentro il riquadro non e' stato provato con un dito: sul
+  desktop le barre ci sono, su iOS sono a scomparsa.

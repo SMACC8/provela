@@ -134,7 +134,7 @@ html.day #svPlot, html.night #svPlot{background:#040c14;}
 #anSummary{line-height:1.6;color:var(--ink);}
 
 /* studio virate */
-#svPlot{width:100%;aspect-ratio:8/5;display:block;background:var(--dp);border-radius:8px;}
+#svPlot{width:100%;height:190px;display:block;background:var(--dp);border-radius:8px;}
 .sv-tab{font-family:var(--mono);font-size:11.5px;width:100%;border-collapse:collapse;margin-top:10px;}
 .sv-tab th{font-size:10px;letter-spacing:.04em;color:var(--sub);
   font-weight:600;text-align:right;padding:0 3px 5px;}
@@ -1534,7 +1534,13 @@ function svRender(){
 }
 
 function svDisegna(){
-  var svg=$("svPlot"),L=36,DX=390,T=12,B=228;
+  /* viewBox uguale ai pixel veri del riquadro: altrimenti su schermo largo lo
+     SVG si ingrandisce tutto insieme \u2014 testo e tratti compresi \u2014 e il
+     grafico stona con l'interfaccia intorno, che non scala. Con il viewBox
+     misurato, 10 px di testo sono 10 px ovunque. */
+  var svg=$("svPlot"),W=svg.clientWidth||360,H=svg.clientHeight||190;
+  svg.setAttribute("viewBox","0 0 "+W+" "+H);
+  var L=32,DX=W-8,T=10,B=H-19;
   var pts=AN.sess.track,curve=SV.ev.map(function(e){return svCurva(pts,SV.sp,e);});
   function X(k){return L+k/50*(DX-L);}
   function Y(p){return B-((Math.max(30,Math.min(115,p))-30)/85)*(B-T);}
@@ -1543,9 +1549,9 @@ function svDisegna(){
   [50,70,90,100].forEach(function(p){var y=Y(p);
     o+='<line x1="'+L+'" y1="'+y.toFixed(1)+'" x2="'+DX+'" y2="'+y.toFixed(1)+'" stroke="'+(p>=90?"#3a5a74":"#1a3248")+
        '" stroke-width="1"'+(p>=90?' stroke-dasharray="3 3"':'')+'/>';
-    o+='<text x="'+(L-5)+'" y="'+(y+3.5).toFixed(1)+'" text-anchor="end" fill="#5a7a94" font-size="9">'+p+'%</text>';});
+    o+='<text x="'+(L-5)+'" y="'+(y+3.5).toFixed(1)+'" text-anchor="end" fill="#5a7a94" font-size="10">'+p+'%</text>';});
   [0,10,20,30,40,50].forEach(function(k){
-    o+='<text x="'+X(k).toFixed(1)+'" y="'+(B+14)+'" text-anchor="middle" fill="#5a7a94" font-size="9">'+
+    o+='<text x="'+X(k).toFixed(1)+'" y="'+(B+13)+'" text-anchor="middle" fill="#5a7a94" font-size="10">'+
        ((k>10?"+":"")+(k-10))+'s</text>';});
   o+='<line x1="'+X(10).toFixed(1)+'" y1="'+T+'" x2="'+X(10).toFixed(1)+'" y2="'+B+'" stroke="#3a5a74" stroke-width="1"/>';
   curve.forEach(function(c,k){if(k!==SV.sel)
@@ -1788,6 +1794,7 @@ $("svSoglia").addEventListener("click",function(ev){
   SV.drop=parseInt(b.getAttribute("data-d"),10)||20;svScriviSoglia(SV.drop);
   Array.prototype.forEach.call(this.querySelectorAll("button"),function(x){x.classList.toggle("on",x===b);});
   SV.sel=0;svRender();drawReplay();});
+window.addEventListener("resize",function(){if(SV.ev.length)svDisegna();});
 $("svCsv").addEventListener("click",function(){
   if(!AN.sess||!SV.ev.length)return;
   downloadText("dritta-manovre-"+new Date(AN.sess.startT).toISOString().slice(0,10)+".csv",svCsv(),"text/csv");});

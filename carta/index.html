@@ -94,15 +94,31 @@ select,button,input,textarea{font-family:var(--sans);color:var(--ink);}
 .tool.on{border-color:var(--teal);color:var(--teal);background:rgba(43,217,196,.08);}
 
 /* carta raster: finestra di calibrazione */
-.rwrap{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--dp);}
-.rview{width:100%;height:46vh;overflow:auto;-webkit-overflow-scrolling:touch;}
-.rview img{display:block;max-width:none;image-rendering:auto;}
-.rcross{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;pointer-events:none;}
-.rcross::before,.rcross::after{content:"";position:absolute;background:#FF6B6B;box-shadow:0 0 0 1px rgba(0,0,0,.55);}
-.rcross::before{left:50%;top:0;width:1px;height:100%;margin-left:-.5px;}
-.rcross::after{top:50%;left:0;height:1px;width:100%;margin-top:-.5px;}
-.rcross i{position:absolute;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;
-  border:1px solid #FF6B6B;border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,.55);}
+/* flex:0 0 auto obbligatorio: .sheet e' un flex column, e senza questo il
+   riquadro si lascia schiacciare mano a mano che la lista dei punti cresce.
+   Con cinque punti si riduceva a una striscia di 40 px. */
+.rwrap{position:relative;flex:0 0 auto;border:1px solid var(--line);border-radius:10px;
+  overflow:hidden;background:var(--dp);}
+#rPos{overflow:hidden;text-overflow:ellipsis;}
+.rview{width:100%;height:46vh;overflow:scroll;-webkit-overflow-scrolling:touch;}
+.rstage{position:relative;}
+.rstage img{display:block;max-width:none;image-rendering:auto;}
+/* Il mirino si POSA dove tocchi e scorre con l'immagine. Prima stava fisso al
+   centro e si centrava scorrendo: impossibile arrivare agli angoli, perche'
+   scorrendo il bordo dell'immagine arriva al bordo del contenitore, mai al
+   centro. E i punti agli angoli sono proprio quelli che si usano. */
+.rmark{position:absolute;width:0;height:0;pointer-events:none;z-index:3;}
+.rmark::before,.rmark::after{content:"";position:absolute;background:#FF6B6B;
+  box-shadow:0 0 0 1px rgba(0,0,0,.6);}
+.rmark::before{left:-26px;top:-.5px;width:52px;height:1px;}
+.rmark::after{top:-26px;left:-.5px;height:52px;width:1px;}
+.rmark i{position:absolute;left:-7px;top:-7px;width:14px;height:14px;border:1px solid #FF6B6B;
+  border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,.6);}
+.rdot{position:absolute;width:0;height:0;pointer-events:none;z-index:2;}
+.rdot b{position:absolute;left:-9px;top:-9px;width:18px;height:18px;border-radius:50%;
+  background:rgba(43,217,196,.9);color:#04121c;font:700 10px var(--mono);display:flex;
+  align-items:center;justify-content:center;box-shadow:0 0 0 1px rgba(0,0,0,.55);}
+#rNudge .btn{flex:0 0 auto;min-width:40px;justify-content:center;}
 .rpt{display:flex;align-items:center;gap:9px;background:var(--panel2);border:1px solid var(--line);
   border-radius:9px;padding:7px 10px;font-size:12px;}
 .rpt .n{width:22px;height:22px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;
@@ -251,15 +267,22 @@ select,button,input,textarea{font-family:var(--sans);color:var(--ink);}
   <div class="sheet">
     <h3 id="rovTitle">Calibra carta</h3>
     <div class="rwrap">
-      <div class="rview" id="rView"><img id="rImg" alt=""></div>
-      <div class="rcross"><i></i></div>
+      <div class="rview" id="rView"><div class="rstage" id="rStage"><img id="rImg" alt=""></div></div>
     </div>
     <div class="row" style="align-items:center">
       <span class="hint" style="flex:0 0 auto">Zoom</span>
       <input type="range" id="rZoom" min="0" max="100" value="0" style="flex:1">
       <span class="hint" id="rScale" style="flex:0 0 auto;font-family:var(--mono)">—</span>
     </div>
-    <div class="hint">Porta il <b style="color:#FF6B6B">mirino</b> sul punto di coordinate note, poi scrivile qui sotto.</div>
+    <div class="bar" id="rNudge">
+      <span class="hint" id="rPos" style="flex:1;min-width:0;font-family:var(--mono)">—</span>
+      <button class="btn sm" type="button" data-dx="-1" title="un pixel a sinistra">◀</button>
+      <button class="btn sm" type="button" data-dy="-1" title="un pixel in su">▲</button>
+      <button class="btn sm" type="button" data-dy="1" title="un pixel in giu'">▼</button>
+      <button class="btn sm" type="button" data-dx="1" title="un pixel a destra">▶</button>
+    </div>
+    <div class="hint"><b>Tocca la carta</b> per posare il <b style="color:#FF6B6B">mirino</b>, poi le frecce
+      per l'ultimo pixel. Le coordinate del punto vanno qui sotto.</div>
     <div class="row">
       <input id="rLat" placeholder="Lat (45 28.570 N)" style="width:100%;font-size:14px;padding:9px 11px;border-radius:9px;border:1px solid var(--line);background:var(--dp);color:var(--ink)">
       <input id="rLon" placeholder="Lon (12 13.879 E)" style="width:100%;font-size:14px;padding:9px 11px;border-radius:9px;border:1px solid var(--line);background:var(--dp);color:var(--ink)">
@@ -1226,40 +1249,74 @@ function rsRidimensiona(file,cb){
   img.src=url;
 }
 
-/* --- finestra di calibrazione --- */
+/* --- finestra di calibrazione ---
+   Il mirino si POSA dove si tocca. La prima versione lo teneva fisso al
+   centro e lo si centrava scorrendo l'immagine: sembrava preciso, ed era
+   inservibile proprio per il caso d'uso vero. Scorrendo, il bordo
+   dell'immagine arriva al bordo del contenitore e mai al centro, quindi i
+   punti vicini agli angoli erano IRRAGGIUNGIBILI \u2014 e i punti agli angoli
+   sono quelli che si usano, perche' piu' sono distanti fra loro meglio e'
+   condizionata la taratura. In piu' centrare a mano due barre di scorrimento
+   e' un lavoro da orologiaio. Ora: si tocca, e le quattro frecce spostano di
+   un pixel immagine per l'ultimo aggiustamento. */
 function rvApri(){
   var cal=RS.act;if(!cal)return;
+  if(!RS.url){alert('Immagine non disponibile su questo dispositivo.');return;}
   $('rovTitle').textContent='Calibra \u00b7 '+(cal.name||'carta');
   $('rModel').value=cal.model||'sim';
-  var img=$('rImg');
-  if(RS.url){img.src=RS.url;}else{alert('Immagine non disponibile su questo dispositivo.');return;}
+  $('rImg').src=RS.url;
+  RS.mark={u:cal.w/2,v:cal.h/2};
   $('rov').classList.add('on');
   setTimeout(function(){rvFit();rvPunti();},60);
 }
 function rvFit(){
   var cal=RS.act,v=$('rView');
   RS.fit=Math.min(v.clientWidth/cal.w,v.clientHeight/cal.h)||0.1;
-  $('rZoom').value='0';rvZoom(0,true);
+  $('rZoom').value='0';rvZoom(0);
 }
 /* zoom 0..100 = da "tutta la carta" a 2:1 (due pixel di schermo per pixel
-   immagine): sotto 1:1 il puntamento diventa il primo errore. */
-function rvZoom(t,centra){
-  var cal=RS.act,v=$('rView'),img=$('rImg');
-  var u=0,vv=0;
-  if(!centra){u=(v.scrollLeft+v.clientWidth/2)/RS.scale;vv=(v.scrollTop+v.clientHeight/2)/RS.scale;}
+   immagine): sotto 1:1 il puntamento diventa il primo errore. Il mirino resta
+   al centro della vista mentre si ingrandisce, cosi' si raffina senza
+   perderlo. */
+function rvZoom(t){
+  var cal=RS.act,v=$('rView'),st=$('rStage'),img=$('rImg');
   RS.scale=RS.fit*Math.pow(2/RS.fit,t/100);
-  img.style.width=Math.round(cal.w*RS.scale)+'px';
-  img.style.height=Math.round(cal.h*RS.scale)+'px';
-  if(centra){v.scrollLeft=(cal.w*RS.scale-v.clientWidth)/2;v.scrollTop=(cal.h*RS.scale-v.clientHeight)/2;}
-  else{v.scrollLeft=u*RS.scale-v.clientWidth/2;v.scrollTop=vv*RS.scale-v.clientHeight/2;}
-  var mpp=rsScala(cal);
-  $('rScale').textContent=(RS.scale>=1?('1:'+(1/RS.scale).toFixed(1)).replace('1:1.0','1:1'):Math.round(1/RS.scale)+'x')+
-    (mpp?(' \u00b7 '+(mpp/RS.scale<1?(mpp/RS.scale).toFixed(1):Math.round(mpp/RS.scale))+' m/px schermo'):'');
+  var W=Math.round(cal.w*RS.scale),H=Math.round(cal.h*RS.scale);
+  img.style.width=W+'px';img.style.height=H+'px';
+  st.style.width=W+'px';st.style.height=H+'px';
+  v.scrollLeft=RS.mark.u*RS.scale-v.clientWidth/2;
+  v.scrollTop =RS.mark.v*RS.scale-v.clientHeight/2;
+  /* Si mostra solo i metri per pixel di SCHERMO: e' il numero che dice quanto
+     puoi sbagliare puntando, ed e' l'unico che serve. Un rapporto tipo "2x"
+     era ambiguo (li' voleva dire ridotto di due volte, non ingrandito). */
+  var mpp=rsScala(cal),ms=mpp?mpp/RS.scale:null;
+  $('rScale').textContent=ms==null?'\u2014'
+    :((ms<10?ms.toFixed(1):Math.round(ms))+' m per pixel');
+  rvMarks();
 }
-function rvMirino(){
-  var v=$('rView');
-  return {u:(v.scrollLeft+v.clientWidth/2)/RS.scale,v:(v.scrollTop+v.clientHeight/2)/RS.scale};
+/* posa il mirino su un pixel immagine, dentro i bordi */
+function rvPosa(u,v){
+  var cal=RS.act;if(!cal)return;
+  RS.mark={u:Math.max(0,Math.min(cal.w,u)),v:Math.max(0,Math.min(cal.h,v))};
+  rvMarks();
 }
+function rvMarks(){
+  var st=$('rStage'),cal=RS.act;if(!st||!cal)return;
+  Array.prototype.slice.call(st.querySelectorAll('.rmark,.rdot')).forEach(function(el){
+    el.parentNode.removeChild(el);});
+  cal.pts.forEach(function(q,i){
+    var d=document.createElement('div');d.className='rdot';
+    d.style.left=(q.u*RS.scale)+'px';d.style.top=(q.v*RS.scale)+'px';
+    d.innerHTML='<b>'+(i+1)+'</b>';st.appendChild(d);});
+  var m=document.createElement('div');m.className='rmark';m.innerHTML='<i></i>';
+  m.style.left=(RS.mark.u*RS.scale)+'px';m.style.top=(RS.mark.v*RS.scale)+'px';
+  st.appendChild(m);
+  var t='px '+Math.round(RS.mark.u)+', '+Math.round(RS.mark.v);
+  if(cal.H){var ll=rsToLatLng(cal.H,RS.mark.u,RS.mark.v);
+    if(ll)t+='  \u00b7  '+fmtCoord(ll.lat,ll.lng);}
+  $('rPos').textContent=t;
+}
+function rvMirino(){return {u:RS.mark.u,v:RS.mark.v};}
 function rvPunti(){
   var cal=RS.act,r=rsRicalcola(cal),host=$('rPts'),o='';
   cal.pts.forEach(function(q,i){
@@ -1271,6 +1328,7 @@ function rvPunti(){
        '<span class="x" data-i="'+i+'">\u00d7</span></div>';
   });
   host.innerHTML=o;
+  rvMarks();
   Array.prototype.forEach.call(host.querySelectorAll('.x'),function(el){
     el.addEventListener('click',function(){
       cal.pts.splice(parseInt(this.getAttribute('data-i'),10),1);
@@ -1337,7 +1395,16 @@ $('rOp').addEventListener('input',function(){
   if(RS.act){RS.act.opacity=o;rsStore();}
   if(RS.layer)RS.layer.setOpacity(o);
 });
-$('rZoom').addEventListener('input',function(){rvZoom(parseInt(this.value,10)||0,false);});
+$('rZoom').addEventListener('input',function(){rvZoom(parseInt(this.value,10)||0);});
+$('rStage').addEventListener('click',function(e){
+  if(!RS.act)return;
+  var r=this.getBoundingClientRect();
+  rvPosa((e.clientX-r.left)/RS.scale,(e.clientY-r.top)/RS.scale);
+});
+$('rNudge').addEventListener('click',function(e){
+  var b=e.target.closest('button[data-dx],button[data-dy]');if(!b||!RS.act)return;
+  rvPosa(RS.mark.u+(+b.getAttribute('data-dx')||0),RS.mark.v+(+b.getAttribute('data-dy')||0));
+});
 $('rModel').addEventListener('change',function(){
   if(!RS.act)return;RS.act.model=this.value;rsStore();rvPunti();rsAggiornaLayer();});
 $('rAdd').addEventListener('click',function(){
