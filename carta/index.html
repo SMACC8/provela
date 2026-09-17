@@ -1166,8 +1166,68 @@ var RasterLayer=L.Layer.extend({
     if(this._map)this._apply(e.zoom,this._map._getNewPixelOrigin(e.center,e.zoom));}
 });
 
+/* --- le carte su Supabase: stesso progetto, stesso bucket di Manutenzione ---
+   Non serve un progetto nuovo ne' un bucket nuovo. La policy di 'boat-docs'
+   pretende l'id della barca come PRIMO segmento del percorso, e qui lo
+   rispettiamo: <boat_id>/carte/<id>.jpg. Quindi nessuna policy da aggiungere,
+   nessuno SQL da lanciare.
+
+   Supabase DISTRIBUISCE, non sostituisce: l'immagine scaricata finisce
+   comunque in IndexedDB, perche' in cala senza campo la carta deve esserci
+   lo stesso. E la configurazione (raffyca-supabase) e' una chiave raffyca-*,
+   quindi viaggia gia' nel backup: su un dispositivo nuovo si importa il
+   backup e arrivano configurazione e calibrazione, l'immagine si scarica da
+   sola. */
+var SB=(function(){
+  function cfg(){try{return JSON.parse(localStorage.getItem('raffyca-supabase')||'null')||{};}catch(e){return {};}}
+  function sess(){try{return JSON.parse(localStorage.getItem('raffyca-supabase-sess')||'null');}catch(e){return null;}}
+  function token(){var c=cfg(),t=sess();return (t&&t.access_token)?t.access_token:(c.key||'');}
+  function boat(){try{return localStorage.getItem('raffyca-boat-id')||'';}catch(e){return '';}}
+  function hdr(extra){var c=cfg();
+    var h={apikey:c.key||'',Authorization:'Bearer '+token()};
+    if(extra)for(var k in extra)h[k]=extra[k];return h;}
+  function base(){var c=cfg();return (c.url||'').replace(/\/+$/,'');}
+  function bucket(){return cfg().bucket||'boat-docs';}
+  function url(id){return base()+'/storage/v1/object/'+encodeURIComponent(bucket())+
+                   '/'+encodeURIComponent(boat())+'/carte/'+encodeURIComponent(id)+'.jpg';}
+  /* Perche' non si puo': serve per dirlo all'utente invece di fallire zitti. */
+  function perche(){
+    var c=cfg();
+    if(!c.url||!c.key)return 'Supabase non e\u2019 configurato: lo si imposta in Impostazioni.';
+    if(!boat())return 'Manca l\u2019id della barca: apri una volta Manutenzione e scegli la barca, '+
+      'poi le carte si sincronizzano da sole.';
+    return null;
+  }
+  return {
+    pronto:function(){return perche()===null;},
+    perche:perche,
+    /* 10 MB e' il limite del bucket, lo stesso che usa Manutenzione. */
+    su:function(id,blob,cb){
+      var m=perche();if(m){cb(false,m);return;}
+      if(blob.size>10*1024*1024){cb(false,'l\u2019immagine pesa '+(blob.size/1048576).toFixed(1)+
+        ' MB e il bucket ne accetta 10');return;}
+      fetch(url(id),{method:'POST',headers:hdr({'Content-Type':blob.type||'image/jpeg','x-upsert':'true'}),body:blob})
+        .then(function(r){if(r.ok){cb(true,null);return;}
+          return r.text().then(function(t){cb(false,t.slice(0,120));});})
+        .catch(function(e){cb(false,e.message||'rete assente');});
+    },
+    giu:function(id,cb){
+      var m=perche();if(m){cb(null,m);return;}
+      fetch(url(id),{headers:hdr()})
+        .then(function(r){if(!r.ok)return r.text().then(function(t){cb(null,'non trovata sul server');});
+          return r.blob().then(function(b){cb(b,null);});})
+        .catch(function(e){cb(null,e.message||'rete assente');});
+    },
+    via:function(id,cb){
+      if(perche()){if(cb)cb();return;}
+      fetch(url(id),{method:'DELETE',headers:hdr()}).then(function(){if(cb)cb();})
+        .catch(function(){if(cb)cb();});
+    }
+  };
+})();
+
 /* --- stato e persistenza --- */
-var RS={list:[],act:null,layer:null,url:null,scale:1,fit:1,nome:''};
+var RS={list:[],act:null,layer:null,url:null,scale:1,fit:1,nome:'',sync:null};
 function rsLoad(){RS.list=lsGet('raffyca-rasters');if(!Array.isArray(RS.list))RS.list=[];}
 function rsStore(){try{lsSet('raffyca-rasters',RS.list);}catch(e){alert('Spazio esaurito: la calibrazione non e\u2019 stata salvata.');}}
 function rsById(id){for(var i=0;i<RS.list.length;i++)if(RS.list[i].id===id)return RS.list[i];return null;}
@@ -1185,16 +1245,35 @@ function rsAttiva(id,poi){
   var cal=rsById(id);
   if(!cal){RS.act=null;rsBarra();if(poi)poi();return;}
   RS.act=cal;rsRicalcola(cal);
-  RDB.get(id,function(blob){
-    if(!blob){RS.url=null;rsBarra();
-      alert('L\u2019immagine di questa carta non e\u2019 su questo dispositivo.\n\n'+
-            'La calibrazione c\u2019e\u2019 (i punti sono nel backup), il file no: '+
-            'ricaricalo con \u201c\uff0b Carta\u201d e i punti restano.');
-      if(poi)poi();return;}
+  function usa(blob){
     RS.url=URL.createObjectURL(blob);
     if(cal.H){RS.layer=new RasterLayer(RS.url,cal);RS.layer.addTo(map);
       layersCtl.addOverlay(RS.layer,'Raster: '+(cal.name||'carta'));}
     rsBarra();if(poi)poi();
+  }
+  function senza(extra){
+    RS.url=null;RS.sync=null;rsBarra();
+    alert('L’immagine di “'+(cal.name||'carta')+'” non e’ su questo dispositivo.\n\n'+
+      'La calibrazione c’e’ — i punti viaggiano nel backup — manca il file: '+
+      'ricaricalo con “＋ Carta” e scegli di riagganciarlo a questa carta, '+
+      'cosi’ i punti restano dove sono.'+(extra?('\n\n'+extra):''));
+    if(poi)poi();
+  }
+  RDB.get(id,function(blob){
+    if(blob){usa(blob);return;}
+    /* Non c'e' in locale. Se la calibrazione dice che sta sul server la si
+       scarica e la si MEMORIZZA in IndexedDB: senza copia locale, alla prima
+       cala senza campo la carta sparirebbe. Supabase distribuisce, non
+       sostituisce. */
+    if(cal.sb&&SB.pronto()){
+      RS.url=null;RS.sync='scarico';rsBarra();
+      SB.giu(id,function(b,err){
+        RS.sync=null;
+        if(!b){senza('Dal server non si e’ potuta scaricare: '+err+'.');return;}
+        RDB.put(id,b,function(){usa(b);});
+      });
+      return;}
+    senza(SB.perche()?('Per averle su tutti i dispositivi: '+SB.perche()):null);
   });
 }
 function rsStacca(){
@@ -1219,6 +1298,9 @@ function rsBarra(){
     if(np<min)t=np+'/'+min+' punti';
     else if(np<=min)t='non misurato';
     else t='RMS '+(RS.act.rms==null?'?':RS.act.rms)+' m';
+    if(RS.sync==='scarico')t='scarico…';
+    else if(RS.sync==='carico')t=t+' · invio…';
+    else if(RS.act.sb)t=t+' · ☁';
   }
   $('rInfo').textContent=t;
   $('rOp').value=String(Math.round(((RS.act&&RS.act.opacity!=null)?RS.act.opacity:1)*100));
@@ -1368,18 +1450,66 @@ $('tRaster').addEventListener('click',function(){
 });
 $('rSel').addEventListener('change',function(){if(this.value)rsAttiva(this.value);});
 $('rNew').addEventListener('click',function(){$('fileRaster').click();});
+/* Salva l'immagine in locale e, se Supabase e' configurato, la manda anche
+   sul bucket. L'esito dell'invio NON blocca niente: la carta funziona comunque
+   su questo dispositivo, il cloud serve solo per gli altri. */
+function rsSalva(cal,blob,apri){
+  RDB.put(cal.id,blob,function(ok){
+    if(!ok){alert('Non sono riuscito a salvare l’immagine sul dispositivo.');return;}
+    rsStore();
+    rsAttiva(cal.id,function(){ if(apri)rvApri(); });
+    if(!SB.pronto())return;
+    RS.sync='carico';rsBarra();
+    SB.su(cal.id,blob,function(ok2,err){
+      RS.sync=null;
+      if(ok2){cal.sb=true;rsStore();}
+      else{cal.sb=false;rsStore();
+        toastRaster('Salvata qui, ma non sul cloud: '+err);}
+      rsBarra();
+    });
+  });
+}
+/* carta/ non ha toast: l'avviso di sincronia non merita un alert che ferma
+   tutto, quindi finisce nella riga di stato accanto alla trasparenza. */
+function toastRaster(msg){
+  var el=$('rInfo');if(!el)return;
+  el.textContent=msg;
+  setTimeout(function(){rsBarra();},6000);
+}
+
 $('fileRaster').addEventListener('change',function(e){
   var f=e.target.files[0];e.target.value='';if(!f)return;
   rsRidimensiona(f,function(blob,w,h){
     if(!w||!h){alert('Immagine non leggibile da questo browser.');return;}
+    /* Se la carta scelta ha i punti ma non l'immagine, questo file va
+       RIAGGANCIATO a lei, non messo in una carta nuova: altrimenti la
+       calibrazione arrivata col backup resta inutilizzabile per sempre.
+       Era il difetto: il messaggio prometteva che i punti restavano, e il
+       codice creava una carta vuota con un id nuovo. */
+    var cal=RS.act;
+    if(cal&&!RS.url&&cal.pts.length){
+      var q=confirm('Uso questa immagine per “'+(cal.name||'carta')+'”, '+
+        'tenendo i suoi '+cal.pts.length+' punti?\n\n'+
+        'Annulla = crea invece una carta nuova, senza punti.');
+      if(q){
+        if(w!==cal.w||h!==cal.h){
+          var k=w/cal.w;
+          if(!confirm('Attenzione: l’immagine e’ '+w+'×'+h+' invece di '+cal.w+'×'+cal.h+'.\n\n'+
+                      'Se e’ lo stesso ritaglio a risoluzione diversa i punti si riscalano e vanno bene. '+
+                      'Se e’ un’inquadratura diversa sono da rifare.\n\nRiscalo e continuo?'))return;
+          cal.pts=cal.pts.map(function(o){return {u:+(o.u*k).toFixed(2),v:+(o.v*(h/cal.h)).toFixed(2),
+            lat:o.lat,lon:o.lon};});
+          cal.w=w;cal.h=h;
+        }
+        rsSalva(cal,blob,true);return;
+      }
+    }
     var nome=(prompt('Nome della carta:',(f.name||'carta').replace(/\.[^.]+$/,''))||'').trim();
     if(!nome)return;
-    var id='r'+Date.now();
-    RDB.put(id,blob,function(ok){
-      if(!ok){alert('Non sono riuscito a salvare l\u2019immagine sul dispositivo.');return;}
-      RS.list.push({id:id,name:nome,w:w,h:h,pts:[],model:'sim',opacity:1,rms:null,ts:Date.now()});
-      rsStore();rsAttiva(id,function(){rvApri();});
-    });
+    var nuova={id:'r'+Date.now(),name:nome,w:w,h:h,pts:[],model:'sim',
+               opacity:1,rms:null,sb:false,ts:Date.now()};
+    RS.list.push(nuova);
+    rsSalva(nuova,blob,true);
   });
 });
 $('rCal').addEventListener('click',function(){if(RS.act)rvApri();else alert('Prima scegli o carica una carta.');});
@@ -1388,7 +1518,7 @@ $('rDel').addEventListener('click',function(){
   if(!confirm('Elimino \u201c'+(RS.act.name||'carta')+'\u201d? Sparisce l\u2019immagine e con lei i punti.'))return;
   var id=RS.act.id;rsStacca();
   RS.list=RS.list.filter(function(c){return c.id!==id;});rsStore();
-  RDB.del(id,function(){RS.act=null;if(RS.list.length)rsAttiva(RS.list[0].id);else rsBarra();});
+  SB.via(id);RDB.del(id,function(){RS.act=null;if(RS.list.length)rsAttiva(RS.list[0].id);else rsBarra();});
 });
 $('rOp').addEventListener('input',function(){
   var o=(parseInt(this.value,10)||100)/100;

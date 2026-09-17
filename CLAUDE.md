@@ -44,12 +44,12 @@ Ognuno è una cartella autonoma in radice, con il proprio service worker:
 | `meteo/` | previsioni multi-modello ("Il Nastro del Vento") |
 | `cruscotto/` | strumenti di bordo, registrazione traccia, regata |
 | `routing/` | traversata con polari ORC e maschere costa |
-| `carta/` | carta nautica OpenSeaMap, waypoint, tracce, batimetrie |
+| `carta/` | carta nautica OpenSeaMap, waypoint, tracce, batimetrie, raster propri |
 | `anchor/` | veglia d'ancora, canvas autonomo, zero tile |
 | `xte/` | cross-track error (upstream, non reskinnato) |
 | `mob/` | uomo a mare |
 | `posizione/` | posizione live: `index.html` trasmette, `segui.html` legge |
-| `manutenzione/` | registro di bordo — unico modulo su Supabase |
+| `manutenzione/` | registro di bordo — su Supabase (tabelle + bucket `boat-docs`) |
 | `impostazioni/` | profilo, tema, caricatore polare CSV, guida |
 | `performance/`, `partenza/` | build React precompilati |
 | `sole-luna/`, `percorso/`, `calcoli/` | strumenti minori |
@@ -102,6 +102,18 @@ script usano di proposito il più largo, così un pacchetto serve entrambi.)
 vivono in localStorage, scritti dall'utente da `impostazioni/`. Nel repo restano
 solo i segnaposto. Il repository è pubblico: qualunque chiave committata è da
 considerare compromessa.
+
+**Su Supabase ci sono due moduli, non uno.** `manutenzione/` (tabelle e
+allegati) e `carta/`, che dal 17/09/2026 manda le immagini delle carte raster
+nello **stesso bucket** `boat-docs`, sotto `<boat_id>/carte/`. Non serve un
+progetto né un bucket in più: la policy del bucket pretende l'id della barca
+come primo segmento del percorso, e quel percorso la rispetta — chi aggiunge un
+terzo consumatore rispetti la stessa forma, altrimenti la policy lo rifiuta.
+Per `carta/` il cloud è solo **distribuzione**: l'immagine scaricata viene
+sempre copiata in IndexedDB, perché in cala senza campo la carta deve esserci.
+La configurazione (`raffyca-supabase`) è una chiave `raffyca-*`, quindi viaggia
+nel backup: chi importa un backup si porta dietro anche la chiave, e il file
+non va mandato in giro.
 
 ## La memoria del progetto
 

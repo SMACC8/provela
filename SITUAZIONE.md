@@ -2930,3 +2930,108 @@ bisogno di spiegazioni.
   e le quattro frecce esistono proprio per quello.
 - Lo scorrimento dentro il riquadro non e' stato provato con un dito: sul
   desktop le barre ci sono, su iOS sono a scomparsa.
+
+---
+
+## 17/09/2026 (3) — Le carte raster sugli altri dispositivi, e un messaggio che mentiva
+
+`carta/index.html`, `CLAUDE.md`. Nessun bump di service worker.
+
+Sergio, prima di fare la prova sul raster vero: «l'allineamento devo ripeterlo
+per tutti i device? Supabase non puo' aiutare?». Domanda giusta al momento
+giusto, e ha scoperchiato un difetto mio.
+
+### Il messaggio prometteva una cosa che il codice non faceva
+
+Quando l'immagine di una carta non c'era sul dispositivo, l'avviso diceva:
+«ricaricalo con ＋ Carta e **i punti restano**». Falso. Il gestore di
+`fileRaster` creava **sempre** una carta nuova, con `id:'r'+Date.now()` e
+`pts:[]`. I punti non restavano: la calibrazione arrivata col backup era
+inutilizzabile per sempre, e l'utente avrebbe riallineato tutto da zero
+credendo di aver sbagliato qualcosa.
+
+Difetto silenzioso del tipo peggiore: non si vede rileggendo il codice, perche'
+il codice fa una cosa coerente — e' il **testo** che dice un'altra. Si vede
+solo provando il giro completo su due dispositivi, che non avevo fatto.
+
+Corretto: se la carta scelta ha punti ma non l'immagine, `＋ Carta` **chiede**
+se riagganciare il file a quella carta tenendo i suoi punti. Se le dimensioni
+dell'immagine sono diverse da quelle registrate, avverte e riscala i punti in
+proporzione — con il distinguo esplicito che se e' un'inquadratura diversa
+sono da rifare, non da riscalare.
+
+### Supabase: stesso progetto, stesso bucket
+
+Sergio ne ha uno solo e non puo' aprirne altri. Non serve: le carte vanno in
+`boat-docs/<boat_id>/carte/<id>.jpg`, cioe' **il bucket che manutenzione usa
+gia'**. La policy pretende l'id della barca come primo segmento del percorso, e
+quel percorso la rispetta, quindi **nessuno SQL da lanciare, nessuna policy da
+aggiungere, niente da toccare nella console**. Stesse intestazioni di
+`manutenzione/` (`apikey` + `Bearer`, sessione se c'e' altrimenti chiave anon),
+stesso limite di 10 MB per file.
+
+Il giro completo: al caricamento l'immagine va in IndexedDB **e** sul bucket,
+e la calibrazione segna `sb:true`; su un dispositivo che ha la calibrazione ma
+non il file, `rsAttiva` la scarica e la **copia in IndexedDB**. Il cloud
+distribuisce, non sostituisce: senza copia locale, alla prima cala senza campo
+la carta sparirebbe.
+
+E si incastra col backup meglio del previsto: `raffyca-supabase` e'
+una chiave `raffyca-*`, quindi la configurazione viaggia gia' nel backup. Su un
+dispositivo nuovo si importa il backup e arrivano configurazione e
+calibrazione; l'immagine si scarica da sola. Zero passaggi manuali.
+
+### Alternative scartate
+
+**Mettere le immagini dentro il file di backup**, in base64. Funzionerebbe
+senza account ne' chiavi ne' rete, che e' molto in linea con questo progetto.
+Scartata perche' il backup diventa ingestibile: una carta da 3 MB fa ~4 MB di
+JSON, tre carte fanno un backup da 12 MB da passare a mano fra dispositivi. E
+`rfBackup` ne tiene **cinque** snapshot in IndexedDB.
+
+**Un progetto o un bucket Supabase dedicato.** Inutile: la policy esistente
+accetta gia' il percorso, e un bucket in piu' vuol dire una policy in piu' da
+scrivere e tenere allineata.
+
+**Solo correggere il riaggancio, senza cloud.** Era la strada minima e onesta,
+ma lascia addosso il lavoro di ritrovare e ricaricare il file su ogni
+dispositivo. Scartata perche' Sergio ha chiesto esplicitamente la sincronia.
+
+**Far fallire il caricamento se il cloud non risponde.** No: la carta deve
+funzionare su questo dispositivo comunque. L'invio e' un'aggiunta, e se non va
+lo dice nella riga di stato senza fermare niente (`sb:false`, e si ritenta al
+prossimo caricamento).
+
+### Validazione
+
+**Riaggancio, provato per davvero.** Simulato un dispositivo nuovo: carta con
+3 punti in `raffyca-rasters`, immagine cancellata da IndexedDB. Ricaricato lo
+stesso file: **stesso id, 3 punti conservati, una sola carta in elenco** (non
+due), immagine e layer sulla mappa. Prima della correzione lo stesso giro
+produceva una carta nuova vuota.
+
+**Supabase, provato con `fetch` finto** — non con il progetto vero di Sergio,
+che non va toccato senza che guardi. Verificato: la POST va a
+`/storage/v1/object/boat-docs/barca-7/carte/rX.jpg` con `apikey`,
+`Authorization: Bearer` e `x-upsert:true`; la calibrazione segna `sb:true` e la
+barra mostra la nuvoletta; cancellata l'immagine locale, la GET riporta il
+blob, che finisce **in IndexedDB** e sulla mappa.
+
+Nota metodologica: al primo giro lo scarico sembrava fallito. Non era il
+codice, era il mio codice di prova che leggeva `RS.url` prima che la catena
+`fetch -> blob -> IndexedDB -> layer` finisse. Rifatto con un registro degli
+eventi invece di un `setTimeout`, ed era a posto. Vale la pena scriverlo: una
+corsa nel banco di prova sembra identica a un difetto nel codice.
+
+### Non verificato
+
+- **Niente e' stato provato contro il Supabase vero.** Le chiamate sono
+  simulate: la forma dell'URL e delle intestazioni e' copiata da
+  `manutenzione/`, ma che la policy accetti davvero quel percorso lo dira' solo
+  il primo caricamento vero.
+- **Il giro su due dispositivi non e' stato fatto.** Il "dispositivo nuovo" e'
+  stato simulato cancellando IndexedDB nella stessa scheda.
+- Il limite di 10 MB non e' stato toccato: non e' stata provata una carta che
+  lo supera, quindi il messaggio d'errore relativo non e' mai apparso.
+- Se la stessa carta viene ricalibrata su due dispositivi, vince l'ultimo che
+  esporta il backup. Non c'e' fusione e non e' stata cercata.
