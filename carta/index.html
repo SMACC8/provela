@@ -1213,6 +1213,16 @@ var SB=(function(){
           return r.text().then(function(t){cb(false,t.slice(0,120));});})
         .catch(function(e){cb(false,e.message||'rete assente');});
     },
+    /* Chiede al SERVER se l'oggetto c'e'. Serve perche' la bandiera locale
+       sb puo' dire "sul cloud" mentre sul cloud non c'e' niente: e' capitato,
+       e i log del progetto lo hanno mostrato senza possibilita' di dubbio
+       (nessun POST dell'immagine, mai, e dodici GET con 400). Uno stato
+       replicato non decide: decide la realta'. */
+    esiste:function(id,cb){
+      if(perche()){cb(false);return;}
+      fetch(url(id),{method:'HEAD',headers:hdr()})
+        .then(function(r){cb(r.ok);}).catch(function(){cb(false);});
+    },
     giu:function(id,cb){
       var m=perche();if(m){cb(null,m);return;}
       fetch(url(id),{headers:hdr()})
@@ -1335,22 +1345,36 @@ function rsSyncIndice(cb){
 /* Anche le immagini: una carta calibrata prima di questa sincronia ha
    sb!==true e l'immagine solo in locale. Si mandano su una per volta, e alla
    fine si RIMANDA l'indice, perche' ora le bandiere sb sono vere. */
+/* Riconcilia le immagini con il bucket. NON si filtra su sb: si guarda cosa
+   c'e' davvero in locale e cosa c'e' davvero sul server, e si colma la
+   differenza. Costa un HEAD per carta ogni volta che si apre lo strumento, ed
+   e' il prezzo per non restare mai in uno stato sbagliato che si autoconferma. */
 function rsSyncImmagini(){
   if(!SB.pronto())return;
-  var da=RS.list.filter(function(c){return !c.sb;});
-  if(!da.length)return;
+  var lista=RS.list.slice();
+  if(!lista.length)return;
   (function prossima(i,cambiato){
-    if(i>=da.length){
-      if(cambiato&&SB.pronto())
-        SB.indiceSu(RS.list.map(rsPulita),function(){rsBarra();});
+    if(i>=lista.length){
+      if(cambiato)SB.indiceSu(RS.list.map(rsPulita),function(){rsBarra();});
       return;
     }
-    var c=da[i];
+    var c=lista[i];
     RDB.get(c.id,function(blob){
-      if(!blob){prossima(i+1,cambiato);return;}
-      SB.su(c.id,blob,function(ok){
-        if(ok){c.sb=true;rsStoreLocale();rsBarra();}
-        prossima(i+1,cambiato||ok);
+      if(!blob){                                   /* qui non c'e': non tocca a noi */
+        prossima(i+1,cambiato);return;}
+      SB.esiste(c.id,function(ci){
+        if(ci){                                    /* c'e' su entrambi: allinea la bandiera */
+          var era=c.sb;c.sb=true;
+          if(!era){rsStoreLocale();rsBarra();}
+          prossima(i+1,cambiato||!era);return;}
+        RS.sync='invio';rsBarra();
+        SB.su(c.id,blob,function(ok,err){
+          RS.sync=null;
+          c.sb=!!ok;rsStoreLocale();
+          if(!ok)rsErrore('Immagine non salita sul cloud: '+err);
+          else rsBarra();
+          prossima(i+1,true);
+        });
       });
     });
   })(0,false);
@@ -1436,6 +1460,7 @@ function rsBarra(){
     else if(RS.act.sb)t=t+' · ☁';
     else if(!SB.pronto())t=t+' · solo qui';
   }
+  if(RS_ERR)t=RS_ERR;
   $('rInfo').textContent=t;
   $('rOp').value=String(Math.round(((RS.act&&RS.act.opacity!=null)?RS.act.opacity:1)*100));
   $('rasterOp').style.display=RS.act?'flex':'none';
@@ -1608,6 +1633,12 @@ function rsSalva(cal,blob,apri){
 }
 /* carta/ non ha toast: l'avviso di sincronia non merita un alert che ferma
    tutto, quindi finisce nella riga di stato accanto alla trasparenza. */
+/* carta/ non ha toast. Un avviso passeggero non basta: quello di ieri e'
+   svanito in sei secondi e ha lasciato Sergio senza niente da riferire.
+   Gli errori del cloud restano quindi appiccicati alla riga di stato finche'
+   non vanno a posto. */
+var RS_ERR=null;
+function rsErrore(msg){RS_ERR=msg;rsBarra();}
 function toastRaster(msg){
   var el=$('rInfo');if(!el)return;
   el.textContent=msg;

@@ -3214,3 +3214,109 @@ Poi telefono azzerato (0 carte, `raffyca-rasters` assente, IndexedDB vuoto):
   non la storia dell'utente.
 - Due dispositivi che aprono Carta nello stesso istante: l'ultimo `POST`
   vince, e non c'e' controllo di versione sull'oggetto.
+
+---
+
+## 18/09/2026 — L'immagine non era mai partita, e l'hanno detto i log del progetto
+
+`carta/index.html`. Nessun bump di service worker.
+
+Terzo giro sulla stessa funzione, e stavolta la diagnosi non viene dal
+ragionamento ma dai **log di Supabase**. Sergio ha dato il riferimento del
+progetto e in una query e' finita ogni ipotesi.
+
+### Il dato
+
+Richieste verso `boat-docs/<boat_id>/carte/` nelle 24 ore:
+
+| chi | metodo | oggetto | stato | quante |
+|---|---|---|---|---|
+| Mac | POST | `index.json` | 200 | 6 |
+| Android | POST | `index.json` | 200 | 1 |
+| Mac / Android | GET | `index.json` | 200/304 | 19 |
+| Android | GET | **immagine** | **400** | **12** |
+| Android | OPTIONS | immagine | 200 | 4 |
+
+E nella stessa finestra, cercando **tutti** i POST verso `/storage/`: sette, e
+tutti e sette `index.json`. **Dell'immagine non esiste un solo tentativo di
+caricamento, mai, verso nessun percorso.**
+
+Quindi: la calibrazione saliva e scendeva perfettamente (CORS a posto,
+preflight 200), e il 400 sull'immagine non era un rifiuto di policy — era
+Supabase che diceva «oggetto non trovato», perche' l'oggetto non c'era. Il
+dispositivo che doveva caricarlo aveva deciso di non farlo.
+
+### La causa, e la sua classe
+
+`rsSyncImmagini` filtrava su `!c.sb`: caricava solo le carte che la bandiera
+locale diceva **non** essere sul cloud. Sul Mac quella bandiera era `true`
+mentre sul bucket non c'era niente. Non ho ricostruito con certezza come ci
+sia arrivata, e ho smesso di cercarlo: **non e' la domanda giusta.**
+
+La domanda giusta e' perche' una bandiera di stato replicato stesse decidendo.
+E' la **terza volta in due giorni**:
+
+1. voce (2): residuo zero *per costruzione* preso per una misura;
+2. voce (5): `cal.sb` come cancello del download, falso perche' l'indice si
+   pubblica prima delle immagini;
+3. questa: `c.sb` come cancello dell'upload, falso per ragioni ignote.
+
+Il filo comune non e' la distrazione, e' un errore di impostazione: **usare un
+dato replicato come ingresso di una decisione, invece di chiedere alla
+realta'**. Uno stato sbagliato che si autoconferma non si ripara mai da solo,
+e non produce nemmeno un errore da leggere: produce silenzio.
+
+### La correzione
+
+`SB.esiste(id)` fa un **HEAD** sull'oggetto. `rsSyncImmagini` non filtra piu'
+su niente: per ogni carta guarda cosa c'e' **davvero** in locale
+(`RDB.get`) e cosa c'e' **davvero** sul server (`HEAD`), e colma la
+differenza. `sb` resta solo per disegnare la nuvoletta, e viene riallineato da
+cio' che risponde il server. Costo: un HEAD per carta a ogni apertura dello
+strumento. E' il prezzo per non restare mai in uno stato sbagliato.
+
+### E un difetto di diagnosi, non di codice
+
+L'avviso «Immagine non salita sul cloud: …» era un messaggio passeggero da sei
+secondi. Ieri e' svanito prima che Sergio potesse leggerlo, e alla mia domanda
+«cosa dice il messaggio?» non aveva niente da riferire — un giro perso a
+ipotizzare. Ora gli errori del cloud **restano appiccicati** alla riga di
+stato finche' non si risolvono (`RS_ERR`). Un errore che scompare da solo e'
+un errore che non esiste, dal punto di vista di chi deve riferirlo.
+
+### Alternative scartate
+
+**Ricostruire come `sb` sia diventata `true`.** Interessante e inutile: la
+correzione non deve dipendere dal sapere la storia, altrimenti ci sara' una
+quarta storia.
+
+**Elencare il bucket** (`/storage/v1/object/list/...`) invece di un HEAD per
+carta: una chiamata sola invece di N. Scartata perche' l'endpoint di elenco ha
+una forma e una policy diverse da quella dell'oggetto, e verificarla vorrebbe
+dire aprire un fronte nuovo per risparmiare qualche richiesta su una lista che
+avra' tre voci.
+
+**Fidarsi di `sb` ma ritentare a tempo** (per esempio ogni sette giorni). Fa
+la cosa giusta per caso e dopo, che e' il modo di lasciare la carta mancante a
+bordo nel giorno in cui serve.
+
+### Validazione
+
+Riprodotta la situazione **esatta** letta nei log: `sb:true` in locale,
+indice presente sul bucket, immagine assente. Aprendo lo strumento senza
+toccare nulla: `GET index.json` -> `HEAD rDelta.jpg` (assente) ->
+`POST rDelta.jpg` -> `POST index.json`. Immagine sul bucket.
+
+Poi dispositivo azzerato: `GET index.json`, `GET rDelta.jpg`, carta «Delta» in
+tendina con i suoi 2 punti, immagine in IndexedDB, layer sulla mappa, zero
+avvisi.
+
+### Non verificato
+
+- Il bucket delle prove e' ancora simulato. **Ma per la prima volta la
+  diagnosi e' venuta dal progetto vero**, e quella e' la differenza che conta:
+  i tre difetti di ieri li ho trovati indovinando, questo l'ho letto.
+- Non e' stato provato il caso di un HEAD che risponde 200 su un oggetto
+  troncato o corrotto: si darebbe per presente un file illeggibile.
+- Due dispositivi che aprono nello stesso istante: l'ultimo `POST` dell'indice
+  vince, senza controllo di versione.
