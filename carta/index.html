@@ -92,6 +92,29 @@ select,button,input,textarea{font-family:var(--sans);color:var(--ink);}
 .hint{font-size:11px;color:var(--sub);}
 .tool{font-size:12px;padding:7px 10px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);color:var(--sub);cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
 .tool.on{border-color:var(--teal);color:var(--teal);background:rgba(43,217,196,.08);}
+
+/* carta raster: finestra di calibrazione */
+.rwrap{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--dp);}
+.rview{width:100%;height:46vh;overflow:auto;-webkit-overflow-scrolling:touch;}
+.rview img{display:block;max-width:none;image-rendering:auto;}
+.rcross{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;pointer-events:none;}
+.rcross::before,.rcross::after{content:"";position:absolute;background:#FF6B6B;box-shadow:0 0 0 1px rgba(0,0,0,.55);}
+.rcross::before{left:50%;top:0;width:1px;height:100%;margin-left:-.5px;}
+.rcross::after{top:50%;left:0;height:1px;width:100%;margin-top:-.5px;}
+.rcross i{position:absolute;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;
+  border:1px solid #FF6B6B;border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,.55);}
+.rpt{display:flex;align-items:center;gap:9px;background:var(--panel2);border:1px solid var(--line);
+  border-radius:9px;padding:7px 10px;font-size:12px;}
+.rpt .n{width:22px;height:22px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;
+  justify-content:center;font-family:var(--mono);font-size:11px;font-weight:700;
+  background:rgba(43,217,196,.15);color:var(--teal);}
+.rpt .co{flex:1;min-width:0;font-family:var(--mono);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.rpt .re{flex:0 0 auto;font-family:var(--mono);font-size:11px;color:var(--sub);}
+.rpt .re.bad{color:var(--coral);}
+.rpt .x{flex:0 0 auto;color:var(--coral);cursor:pointer;padding:0 3px;}
+.rverd{font-family:var(--mono);font-size:11.5px;line-height:1.55;}
+.rverd b{color:var(--teal);}
+.rverd .warn{color:var(--amber);}
 .readout{font-family:var(--mono);font-size:12px;color:var(--teal);margin-right:auto;}
 .readout b{color:var(--amber);}
 .grid-lbl{font-family:var(--mono);font-size:10px;color:#7fd9cf;background:rgba(6,14,24,.6);padding:0 3px;border-radius:3px;white-space:nowrap;}
@@ -164,6 +187,7 @@ select,button,input,textarea{font-family:var(--sans);color:var(--ink);}
     <button class="tool" id="tFari" title="Fari: spicchi di settore e 'cosa vedo da qui'">✦ Fari</button>
     <button class="tool" id="tDraw" title="Disegna una traccia sulla carta">✎ Traccia</button>
     <button class="tool" id="tMeas" title="Misura distanza e rotta tra due punti">📐 Misura</button>
+    <button class="tool" id="tRaster" title="Carta raster propria, georeferenziata su punti noti">🗺 Raster</button>
   </div>
   <div class="bar" id="drawCtl" style="display:none">
     <span class="readout" id="drawInfo">Tocca la carta per aggiungere punti.</span>
@@ -175,6 +199,17 @@ select,button,input,textarea{font-family:var(--sans);color:var(--ink);}
     <span class="readout" id="measInfo">Tocca due punti sulla carta.</span>
     <button class="btn sm" id="measCancel">Chiudi</button>
   </div>
+  <div class="bar" id="rasterCtl" style="display:none">
+    <select class="sel" id="rSel" style="flex:1;min-width:120px"></select>
+    <button class="btn sm go" id="rNew">＋ Carta</button>
+    <button class="btn sm" id="rCal">Calibra</button>
+    <button class="btn sm" id="rDel">Elimina</button>
+  </div>
+  <div class="bar" id="rasterOp" style="display:none">
+    <span class="hint" style="flex:0 0 auto">Trasparenza</span>
+    <input type="range" id="rOp" min="20" max="100" step="5" value="100" style="flex:1">
+    <span class="hint" id="rInfo" style="flex:0 0 auto">—</span>
+  </div>
   <div class="bar" id="fariCtl" style="display:none">
     <span class="readout" id="fariInfo">Fari: —</span>
     <button class="tool" id="fariModeSett">◑ Settori</button>
@@ -182,6 +217,7 @@ select,button,input,textarea{font-family:var(--sans);color:var(--ink);}
   </div>
   <div class="hint" id="posInfo">posizione: —</div>
   <input type="file" id="fileGpx" accept=".gpx" hidden>
+  <input type="file" id="fileRaster" accept="image/*" hidden>
 
   <div class="tabs">
     <button data-t="wpt" class="on" id="tabWpt">Waypoint <span id="nW">0</span></button>
@@ -208,6 +244,37 @@ select,button,input,textarea{font-family:var(--sans);color:var(--ink);}
       <div class="row"><select id="ovFolder" class="sel" style="flex:1"></select><button class="btn sm" id="ovFolderNew" type="button" title="Crea una nuova cartella">＋ Nuova</button></div>
     </div>
     <div class="row"><button class="btn" id="ovCancel">Annulla</button><button class="btn go" id="ovSave">Salva</button></div>
+  </div>
+</div>
+
+<div class="ov" id="rov">
+  <div class="sheet">
+    <h3 id="rovTitle">Calibra carta</h3>
+    <div class="rwrap">
+      <div class="rview" id="rView"><img id="rImg" alt=""></div>
+      <div class="rcross"><i></i></div>
+    </div>
+    <div class="row" style="align-items:center">
+      <span class="hint" style="flex:0 0 auto">Zoom</span>
+      <input type="range" id="rZoom" min="0" max="100" value="0" style="flex:1">
+      <span class="hint" id="rScale" style="flex:0 0 auto;font-family:var(--mono)">—</span>
+    </div>
+    <div class="hint">Porta il <b style="color:#FF6B6B">mirino</b> sul punto di coordinate note, poi scrivile qui sotto.</div>
+    <div class="row">
+      <input id="rLat" placeholder="Lat (45 28.570 N)" style="width:100%;font-size:14px;padding:9px 11px;border-radius:9px;border:1px solid var(--line);background:var(--dp);color:var(--ink)">
+      <input id="rLon" placeholder="Lon (12 13.879 E)" style="width:100%;font-size:14px;padding:9px 11px;border-radius:9px;border:1px solid var(--line);background:var(--dp);color:var(--ink)">
+    </div>
+    <div class="row"><button class="btn go" id="rAdd">＋ Aggiungi punto sul mirino</button></div>
+    <div class="field"><label>Modello</label>
+      <select class="sel" id="rModel" style="width:100%">
+        <option value="sim">Similitudine — screenshot di plotter, ritaglio dritto</option>
+        <option value="aff">Affine — scansione con scale diverse</option>
+        <option value="proj">Proiettiva — foto con prospettiva</option>
+      </select>
+    </div>
+    <div class="list" id="rPts"></div>
+    <div class="rverd" id="rVerd"></div>
+    <div class="row"><button class="btn" id="rClose">Fine</button></div>
   </div>
 </div>
 
@@ -377,7 +444,11 @@ var VIEW0=SV||(CV&&CV.c?{c:CV.c,z:CV.z}:null);
 var map=L.map('map',{zoomControl:true}).setView(VIEW0?VIEW0.c:(POS||[ZV[0],ZV[1]]),VIEW0?VIEW0.z:(POS?12:ZV[2]));
 map.createPane('basePane');map.getPane('basePane').style.zIndex=150;   /* prima di aggiungere le basi */
 ((CV&&CV.base==='osm')?baseOSM:(CV&&CV.base==='sat')?baseSat:baseNautica).addTo(map);if(!CV||CV.sea!==false)seamark.addTo(map);
-L.control.layers({'Nautica (chiara)':baseNautica,'OpenStreetMap':baseOSM,'Satellite':baseSat},{'Simboli nautici (OpenSeaMap)':seamark},{collapsed:true}).addTo(map);
+var layersCtl=L.control.layers({'Nautica (chiara)':baseNautica,'OpenStreetMap':baseOSM,'Satellite':baseSat},{'Simboli nautici (OpenSeaMap)':seamark},{collapsed:true}).addTo(map);
+/* Il raster utente sta fra le basi (150) e i simboli OpenSeaMap (tilePane, 200):
+   copre la base ma i simboli nautici gli restano sopra. */
+map.createPane('rasterPane');map.getPane('rasterPane').style.zIndex=160;
+map.getPane('rasterPane').style.pointerEvents='none';
 var layer=L.layerGroup().addTo(map), posMarker=null;
 /* scia della registrazione in corso: magenta, convenzione dei plotter.
    Il nero sparirebbe sul fondo scuro in tema Notte e si confonderebbe
@@ -905,6 +976,382 @@ map.on('baselayerchange overlayadd overlayremove',saveView);
    persistiti base, centro e zoom (la parte utile della voce 08/08).
    I campi grid/zones/bathy/fari continuano a essere SCRITTI in raffyca-carta-view:
    non costano nulla e servono se un giorno si vuole un'opzione "riapri com'era". */
+
+/* ══════════════════ Carta raster georeferenziata ══════════════════
+   Un'immagine propria (scansione, ritaglio di portolano, screenshot di
+   plotter) messa sulla carta a partire da punti di coordinate note.
+
+   IL MODELLO SI SCEGLIE, NON SI DEDUCE DAL NUMERO DI PUNTI. Su uno
+   screenshot di plotter non c'e' prospettiva: e' una proiezione cilindrica
+   nord-in-alto, e il modello giusto e' la SIMILITUDINE (scala, rotazione,
+   traslazione: 4 parametri). Quattro punti su un'omografia sarebbero otto
+   equazioni per otto incognite, cioe' residuo ZERO per costruzione piu' due
+   parametri di prospettiva che assorbono l'errore di puntamento in una
+   deformazione finta. Gli stessi quattro punti su una similitudine sono otto
+   equazioni per quattro incognite: sovradeterminate, minimi quadrati, e un
+   RMS che e' un numero vero.
+
+   LA PROIEZIONE DELLA SORGENTE NON CONTA a queste scale. Misurato su un
+   riquadro reale di 16,0 x 21,3 NM (laguna veneta): fra Mercatore ed
+   equirettangolare, tarando sui quattro angoli, lo scarto al centro e' 16 m.
+   Sotto il rumore di puntamento, quindi si lavora in Mercatore e basta.
+
+   L'ERRORE DOMINANTE E' IL PUNTAMENTO. Su quel raster la scala e' ~20 m per
+   pixel: un telefono da 380 px che mostra 2000 px sta a 1:5, cioe' ~110 m per
+   pixel di schermo. Di qui il mirino fisso con lo zoom fino a 2:1 — il dito
+   sul punto coprirebbe proprio quello che si sta mirando.
+
+   DOVE STANNO LE COSE. L'immagine in IndexedDB (dritta-raster): in
+   localStorage non ci sta, e finirebbe moltiplicata per cinque dentro gli
+   snapshot di rfBackup, che copia tutte le chiavi raffyca-*. La calibrazione
+   invece e' qualche centinaio di byte e sta in raffyca-rasters, quindi
+   ENTRA nel backup. Conseguenza dichiarata all'utente: ripristinando su un
+   altro dispositivo le carte ci sono ma le immagini vanno ricaricate — senza
+   ripiazzare i punti.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* --- minimi quadrati: risolve (A^T A)x = A^T b, eliminazione di Gauss --- */
+function rsSolve(A,b,n){
+  var M=[],i,j,k;
+  for(i=0;i<n;i++)M.push(new Float64Array(n+1));
+  for(k=0;k<A.length;k++){var r=A[k],y=b[k];
+    for(i=0;i<n;i++){for(j=0;j<n;j++)M[i][j]+=r[i]*r[j];M[i][n]+=r[i]*y;}}
+  for(i=0;i<n;i++){
+    var piv=i;for(k=i+1;k<n;k++)if(Math.abs(M[k][i])>Math.abs(M[piv][i]))piv=k;
+    if(Math.abs(M[piv][i])<1e-12)return null;   /* punti allineati o coincidenti */
+    var t=M[i];M[i]=M[piv];M[piv]=t;
+    for(k=i+1;k<n;k++){var f=M[k][i]/M[i][i];for(j=i;j<=n;j++)M[k][j]-=f*M[i][j];}
+  }
+  var x=new Float64Array(n);
+  for(i=n-1;i>=0;i--){var sm=M[i][n];for(j=i+1;j<n;j++)sm-=M[i][j]*x[j];x[i]=sm/M[i][i];}
+  return x;
+}
+var RS_MIN={sim:2,aff:3,proj:4};
+
+/* pixel immagine -> mondo Mercatore a zoom 0. Costante: indipendente da zoom e pan. */
+function rsFit(pts,model){
+  var n=pts.length,P=[],i,A=[],b=[],q;
+  if(n<(RS_MIN[model]||2))return null;
+  for(i=0;i<n;i++){var w=map.project(L.latLng(pts[i].lat,pts[i].lon),0);
+    P.push({u:pts[i].u,v:pts[i].v,X:w.x,Y:w.y});}
+  if(model==='sim'){
+    for(i=0;i<n;i++){q=P[i];
+      A.push([q.u,-q.v,1,0]);b.push(q.X);
+      A.push([q.v, q.u,0,1]);b.push(q.Y);}
+    var x=rsSolve(A,b,4);if(!x)return null;
+    return [x[0],-x[1],x[2], x[1],x[0],x[3], 0,0,1];
+  }
+  if(model==='aff'){
+    for(i=0;i<n;i++){q=P[i];
+      A.push([q.u,q.v,1,0,0,0]);b.push(q.X);
+      A.push([0,0,0,q.u,q.v,1]);b.push(q.Y);}
+    var y=rsSolve(A,b,6);if(!y)return null;
+    return [y[0],y[1],y[2], y[3],y[4],y[5], 0,0,1];
+  }
+  for(i=0;i<n;i++){q=P[i];
+    A.push([q.u,q.v,1,0,0,0,-q.u*q.X,-q.v*q.X]);b.push(q.X);
+    A.push([0,0,0,q.u,q.v,1,-q.u*q.Y,-q.v*q.Y]);b.push(q.Y);}
+  var z=rsSolve(A,b,8);if(!z)return null;
+  return [z[0],z[1],z[2], z[3],z[4],z[5], z[6],z[7],1];
+}
+function rsToLatLng(H,u,v){
+  var w=H[6]*u+H[7]*v+H[8];if(!w)return null;
+  return map.unproject(L.point((H[0]*u+H[1]*v+H[2])/w,(H[3]*u+H[4]*v+H[5])/w),0);
+}
+/* metri per pixel immagine, misurati al centro dell'immagine */
+function rsScala(cal){
+  if(!cal.H)return null;
+  var a=rsToLatLng(cal.H,cal.w/2,cal.h/2),b=rsToLatLng(cal.H,cal.w/2+1,cal.h/2);
+  return (a&&b)?map.distance(a,b):null;
+}
+/* Residui in metri. Col numero MINIMO di punti sono zero per costruzione:
+   non vuol dire che la calibrazione sia buona, vuol dire che non e' stata
+   misurata, e la scheda lo dice con queste parole. */
+function rsResidui(cal){
+  if(!cal.H||!cal.pts.length)return null;
+  var each=[],i,sum=0,peggio=0,n=0;
+  for(i=0;i<cal.pts.length;i++){
+    var q=cal.pts[i],ll=rsToLatLng(cal.H,q.u,q.v);
+    var d=ll?map.distance(ll,L.latLng(q.lat,q.lon)):NaN;
+    each.push(d);
+    if(isFinite(d)){sum+=d*d;n++;if(d>peggio)peggio=d;}
+  }
+  return {each:each,rms:n?Math.sqrt(sum/n):NaN,peggio:peggio,
+          esatto:cal.pts.length<=(RS_MIN[cal.model]||2)};
+}
+
+/* --- immagine in IndexedDB: stesso idioma di rfBackup --- */
+var RDB=(function(){
+  var DB='dritta-raster',ST='carte';
+  function open(cb){try{var r=indexedDB.open(DB,1);
+    r.onupgradeneeded=function(){try{r.result.createObjectStore(ST,{keyPath:'id'});}catch(e){}};
+    r.onsuccess=function(){cb(r.result);};r.onerror=function(){cb(null);};
+  }catch(e){cb(null);}}
+  return {
+    put:function(id,blob,cb){open(function(db){if(!db){cb(false);return;}
+      try{var tx=db.transaction(ST,'readwrite');tx.objectStore(ST).put({id:id,blob:blob});
+        tx.oncomplete=function(){cb(true);};tx.onerror=function(){cb(false);};}catch(e){cb(false);}});},
+    get:function(id,cb){open(function(db){if(!db){cb(null);return;}
+      try{var q=db.transaction(ST,'readonly').objectStore(ST).get(id);
+        q.onsuccess=function(){cb(q.result?q.result.blob:null);};q.onerror=function(){cb(null);};
+      }catch(e){cb(null);}});},
+    del:function(id,cb){open(function(db){if(!db){if(cb)cb();return;}
+      try{var tx=db.transaction(ST,'readwrite');tx.objectStore(ST)['delete'](id);
+        tx.oncomplete=function(){if(cb)cb();};tx.onerror=function(){if(cb)cb();};}catch(e){if(cb)cb();}});}
+  };
+})();
+
+/* --- lo strato: warp proiettivo con matrix3d, zero dipendenze ---
+   La trasformazione mondo->schermo a un dato zoom e' scala 2^z piu'
+   traslazione dell'origine: composta con l'omografia resta un'omografia, che
+   e' esattamente quello che matrix3d sa fare in GPU. */
+var RasterLayer=L.Layer.extend({
+  initialize:function(url,cal){this._url=url;this._cal=cal;},
+  onAdd:function(){
+    if(!this._img){
+      var img=this._img=L.DomUtil.create('img');
+      img.style.transformOrigin='0 0';img.style.position='absolute';
+      img.style.left='0';img.style.top='0';img.style.pointerEvents='none';
+      img.style.opacity=(this._cal.opacity==null?1:this._cal.opacity);
+      img.alt='';img.src=this._url;
+      L.DomEvent.on(img,'load',this._reset,this);
+    }
+    this.getPane('rasterPane').appendChild(this._img);
+    this._reset();
+  },
+  onRemove:function(){if(this._img)L.DomUtil.remove(this._img);},
+  getEvents:function(){
+    var ev={zoom:this._reset,viewreset:this._reset};
+    if(this._map.options.zoomAnimation&&L.Browser.any3d)ev.zoomanim=this._animateZoom;
+    return ev;
+  },
+  setOpacity:function(o){this._cal.opacity=o;if(this._img)this._img.style.opacity=o;},
+  ricalcola:function(){this._reset();},
+  _apply:function(zoom,origin){
+    var H=this._cal.H;if(!H||!this._img)return;
+    var k=Math.pow(2,zoom),ox=origin.x,oy=origin.y;
+    var m=[k*H[0]-ox*H[6], k*H[1]-ox*H[7], k*H[2]-ox*H[8],
+           k*H[3]-oy*H[6], k*H[4]-oy*H[7], k*H[5]-oy*H[8],
+           H[6],H[7],H[8]];
+    this._img.style.transform='matrix3d('+
+      m[0]+','+m[3]+',0,'+m[6]+','+
+      m[1]+','+m[4]+',0,'+m[7]+',0,0,1,0,'+
+      m[2]+','+m[5]+',0,'+m[8]+')';
+  },
+  _reset:function(){if(this._map)this._apply(this._map.getZoom(),this._map.getPixelOrigin());},
+  _animateZoom:function(e){
+    if(this._map)this._apply(e.zoom,this._map._getNewPixelOrigin(e.center,e.zoom));}
+});
+
+/* --- stato e persistenza --- */
+var RS={list:[],act:null,layer:null,url:null,scale:1,fit:1,nome:''};
+function rsLoad(){RS.list=lsGet('raffyca-rasters');if(!Array.isArray(RS.list))RS.list=[];}
+function rsStore(){try{lsSet('raffyca-rasters',RS.list);}catch(e){alert('Spazio esaurito: la calibrazione non e\u2019 stata salvata.');}}
+function rsById(id){for(var i=0;i<RS.list.length;i++)if(RS.list[i].id===id)return RS.list[i];return null;}
+
+function rsRicalcola(cal){
+  cal.H=rsFit(cal.pts,cal.model);
+  var r=cal.H?rsResidui(cal):null;
+  cal.rms=(r&&isFinite(r.rms))?Math.round(r.rms):null;
+  return r;
+}
+
+/* --- carica/mostra --- */
+function rsAttiva(id,poi){
+  rsStacca();
+  var cal=rsById(id);
+  if(!cal){RS.act=null;rsBarra();if(poi)poi();return;}
+  RS.act=cal;rsRicalcola(cal);
+  RDB.get(id,function(blob){
+    if(!blob){RS.url=null;rsBarra();
+      alert('L\u2019immagine di questa carta non e\u2019 su questo dispositivo.\n\n'+
+            'La calibrazione c\u2019e\u2019 (i punti sono nel backup), il file no: '+
+            'ricaricalo con \u201c\uff0b Carta\u201d e i punti restano.');
+      if(poi)poi();return;}
+    RS.url=URL.createObjectURL(blob);
+    if(cal.H){RS.layer=new RasterLayer(RS.url,cal);RS.layer.addTo(map);
+      layersCtl.addOverlay(RS.layer,'Raster: '+(cal.name||'carta'));}
+    rsBarra();if(poi)poi();
+  });
+}
+function rsStacca(){
+  if(RS.layer){try{layersCtl.removeLayer(RS.layer);}catch(e){}map.removeLayer(RS.layer);RS.layer=null;}
+  if(RS.url){try{URL.revokeObjectURL(RS.url);}catch(e){}RS.url=null;}
+}
+function rsAggiornaLayer(){
+  if(!RS.act)return;
+  if(RS.layer){map.removeLayer(RS.layer);try{layersCtl.removeLayer(RS.layer);}catch(e){}RS.layer=null;}
+  if(RS.url&&RS.act.H){RS.layer=new RasterLayer(RS.url,RS.act);RS.layer.addTo(map);
+    layersCtl.addOverlay(RS.layer,'Raster: '+(RS.act.name||'carta'));}
+  rsBarra();
+}
+function rsBarra(){
+  var sel=$('rSel'),o='';
+  RS.list.forEach(function(c){o+='<option value="'+c.id+'"'+(RS.act&&RS.act.id===c.id?' selected':'')+'>'+
+    esc(c.name||'carta')+'</option>';});
+  sel.innerHTML=o||'<option value="">nessuna carta</option>';
+  var t='—';
+  if(RS.act){
+    var np=RS.act.pts.length,min=RS_MIN[RS.act.model]||2;
+    if(np<min)t=np+'/'+min+' punti';
+    else if(np<=min)t='non misurato';
+    else t='RMS '+(RS.act.rms==null?'?':RS.act.rms)+' m';
+  }
+  $('rInfo').textContent=t;
+  $('rOp').value=String(Math.round(((RS.act&&RS.act.opacity!=null)?RS.act.opacity:1)*100));
+  $('rasterOp').style.display=RS.act?'flex':'none';
+}
+
+/* --- import immagine: ridimensiona come comprimiFoto() di manutenzione, ma
+   una carta nautica vuole dettaglio: lato massimo 4096 e q 0.85, non 1600/0.75 --- */
+var RS_LATO=4096,RS_Q=0.85;
+function rsRidimensiona(file,cb){
+  if(!/^image\//.test(file.type||'')||!window.URL||!URL.createObjectURL){cb(file,0,0);return;}
+  var url=URL.createObjectURL(file),img=new Image();
+  function fine(out,w,h){try{URL.revokeObjectURL(url);}catch(e){}cb(out||file,w||0,h||0);}
+  img.onerror=function(){fine(null,0,0);};          /* formato non decodificabile */
+  img.onload=function(){
+    var w=img.naturalWidth,h=img.naturalHeight;
+    if(!w||!h)return fine(null,0,0);
+    var k=Math.min(1,RS_LATO/Math.max(w,h));
+    if(k>=1)return fine(file,w,h);                  /* gia' abbastanza piccola */
+    try{
+      var cv=document.createElement('canvas');
+      cv.width=Math.round(w*k);cv.height=Math.round(h*k);
+      cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+      if(!cv.toBlob)return fine(null,w,h);
+      cv.toBlob(function(b){b?fine(b,cv.width,cv.height):fine(null,w,h);},'image/jpeg',RS_Q);
+    }catch(e){fine(null,w,h);}
+  };
+  img.src=url;
+}
+
+/* --- finestra di calibrazione --- */
+function rvApri(){
+  var cal=RS.act;if(!cal)return;
+  $('rovTitle').textContent='Calibra \u00b7 '+(cal.name||'carta');
+  $('rModel').value=cal.model||'sim';
+  var img=$('rImg');
+  if(RS.url){img.src=RS.url;}else{alert('Immagine non disponibile su questo dispositivo.');return;}
+  $('rov').classList.add('on');
+  setTimeout(function(){rvFit();rvPunti();},60);
+}
+function rvFit(){
+  var cal=RS.act,v=$('rView');
+  RS.fit=Math.min(v.clientWidth/cal.w,v.clientHeight/cal.h)||0.1;
+  $('rZoom').value='0';rvZoom(0,true);
+}
+/* zoom 0..100 = da "tutta la carta" a 2:1 (due pixel di schermo per pixel
+   immagine): sotto 1:1 il puntamento diventa il primo errore. */
+function rvZoom(t,centra){
+  var cal=RS.act,v=$('rView'),img=$('rImg');
+  var u=0,vv=0;
+  if(!centra){u=(v.scrollLeft+v.clientWidth/2)/RS.scale;vv=(v.scrollTop+v.clientHeight/2)/RS.scale;}
+  RS.scale=RS.fit*Math.pow(2/RS.fit,t/100);
+  img.style.width=Math.round(cal.w*RS.scale)+'px';
+  img.style.height=Math.round(cal.h*RS.scale)+'px';
+  if(centra){v.scrollLeft=(cal.w*RS.scale-v.clientWidth)/2;v.scrollTop=(cal.h*RS.scale-v.clientHeight)/2;}
+  else{v.scrollLeft=u*RS.scale-v.clientWidth/2;v.scrollTop=vv*RS.scale-v.clientHeight/2;}
+  var mpp=rsScala(cal);
+  $('rScale').textContent=(RS.scale>=1?('1:'+(1/RS.scale).toFixed(1)).replace('1:1.0','1:1'):Math.round(1/RS.scale)+'x')+
+    (mpp?(' \u00b7 '+(mpp/RS.scale<1?(mpp/RS.scale).toFixed(1):Math.round(mpp/RS.scale))+' m/px schermo'):'');
+}
+function rvMirino(){
+  var v=$('rView');
+  return {u:(v.scrollLeft+v.clientWidth/2)/RS.scale,v:(v.scrollTop+v.clientHeight/2)/RS.scale};
+}
+function rvPunti(){
+  var cal=RS.act,r=rsRicalcola(cal),host=$('rPts'),o='';
+  cal.pts.forEach(function(q,i){
+    var d=r?r.each[i]:NaN;
+    var txt=(r&&r.esatto)?'esatto':(isFinite(d)?Math.round(d)+' m':'—');
+    o+='<div class="rpt"><span class="n">'+(i+1)+'</span>'+
+       '<span class="co">'+fmtCoord(q.lat,q.lon)+'</span>'+
+       '<span class="re'+((isFinite(d)&&d>200)?' bad':'')+'">'+txt+'</span>'+
+       '<span class="x" data-i="'+i+'">\u00d7</span></div>';
+  });
+  host.innerHTML=o;
+  Array.prototype.forEach.call(host.querySelectorAll('.x'),function(el){
+    el.addEventListener('click',function(){
+      cal.pts.splice(parseInt(this.getAttribute('data-i'),10),1);
+      rsStore();rvPunti();rsAggiornaLayer();});});
+  rvVerdetto(r);
+}
+function rvVerdetto(r){
+  var cal=RS.act,min=RS_MIN[cal.model]||2,np=cal.pts.length,t='';
+  if(np<min)t='<span class="warn">'+np+' punti su '+min+'</span>: con questo modello ne servono almeno '+min+'.';
+  else if(r&&r.esatto)
+    t='<b>'+np+' punti</b>, il minimo per questo modello: il residuo e\u2019 zero <i>per costruzione</i>, '+
+      'quindi l\u2019errore <span class="warn">non e\u2019 stato misurato</span>. Aggiungi un punto — '+
+      'meglio <b>al centro</b>, quelli sul bordo non vedono un errore all\u2019interno — e diventa un numero vero.';
+  else if(r&&isFinite(r.rms)){
+    var mpp=rsScala(cal),px=(mpp&&mpp>0)?(r.rms/mpp):null;
+    t='<b>RMS '+Math.round(r.rms)+' m</b> su '+np+' punti, peggiore '+Math.round(r.peggio)+' m.';
+    if(px!=null)t+=' La carta ha '+(mpp<1?mpp.toFixed(1):Math.round(mpp))+' m per pixel, quindi sono '+
+      px.toFixed(1)+' pixel'+(px<1.6?': e\u2019 il meglio ottenibile puntando a mano.':
+      '. Sopra un paio di pixel conviene ricontrollare il punto peggiore con lo zoom.');
+  }
+  $('rVerd').innerHTML=t;
+}
+function fmtCoord(la,lo){
+  function f(v,lat){var h=lat?(v>=0?'N':'S'):(v>=0?'E':'W');v=Math.abs(v);
+    var d=Math.floor(v);return d+'\u00b0'+((v-d)*60).toFixed(3)+'\u2019'+h;}
+  return f(la,true)+' '+f(lo,false);
+}
+
+/* --- aggancio dei controlli --- */
+rsLoad();
+$('tRaster').addEventListener('click',function(){
+  var on=$('rasterCtl').style.display==='none';
+  $('rasterCtl').style.display=on?'flex':'none';
+  this.classList.toggle('on',on);
+  if(on){rsBarra();if(!RS.act&&RS.list.length)rsAttiva(RS.list[0].id);}
+  else{rsStacca();RS.act=null;$('rasterOp').style.display='none';}
+});
+$('rSel').addEventListener('change',function(){if(this.value)rsAttiva(this.value);});
+$('rNew').addEventListener('click',function(){$('fileRaster').click();});
+$('fileRaster').addEventListener('change',function(e){
+  var f=e.target.files[0];e.target.value='';if(!f)return;
+  rsRidimensiona(f,function(blob,w,h){
+    if(!w||!h){alert('Immagine non leggibile da questo browser.');return;}
+    var nome=(prompt('Nome della carta:',(f.name||'carta').replace(/\.[^.]+$/,''))||'').trim();
+    if(!nome)return;
+    var id='r'+Date.now();
+    RDB.put(id,blob,function(ok){
+      if(!ok){alert('Non sono riuscito a salvare l\u2019immagine sul dispositivo.');return;}
+      RS.list.push({id:id,name:nome,w:w,h:h,pts:[],model:'sim',opacity:1,rms:null,ts:Date.now()});
+      rsStore();rsAttiva(id,function(){rvApri();});
+    });
+  });
+});
+$('rCal').addEventListener('click',function(){if(RS.act)rvApri();else alert('Prima scegli o carica una carta.');});
+$('rDel').addEventListener('click',function(){
+  if(!RS.act)return;
+  if(!confirm('Elimino \u201c'+(RS.act.name||'carta')+'\u201d? Sparisce l\u2019immagine e con lei i punti.'))return;
+  var id=RS.act.id;rsStacca();
+  RS.list=RS.list.filter(function(c){return c.id!==id;});rsStore();
+  RDB.del(id,function(){RS.act=null;if(RS.list.length)rsAttiva(RS.list[0].id);else rsBarra();});
+});
+$('rOp').addEventListener('input',function(){
+  var o=(parseInt(this.value,10)||100)/100;
+  if(RS.act){RS.act.opacity=o;rsStore();}
+  if(RS.layer)RS.layer.setOpacity(o);
+});
+$('rZoom').addEventListener('input',function(){rvZoom(parseInt(this.value,10)||0,false);});
+$('rModel').addEventListener('change',function(){
+  if(!RS.act)return;RS.act.model=this.value;rsStore();rvPunti();rsAggiornaLayer();});
+$('rAdd').addEventListener('click',function(){
+  var cal=RS.act;if(!cal)return;
+  var la=parseCoord($('rLat').value),lo=parseCoord($('rLon').value);
+  if(!isFinite(la)||!isFinite(lo)||Math.abs(la)>90||Math.abs(lo)>180){
+    alert('Coordinate non valide. Vanno bene 45.4762 oppure 45 28.570 N.');return;}
+  var m=rvMirino();
+  cal.pts.push({u:+m.u.toFixed(2),v:+m.v.toFixed(2),lat:la,lon:lo});
+  $('rLat').value='';$('rLon').value='';
+  rsStore();rvPunti();rsAggiornaLayer();
+});
+$('rClose').addEventListener('click',function(){$('rov').classList.remove('on');});
+$('rov').addEventListener('click',function(e){if(e.target===this)this.classList.remove('on');});
 
 render();
 setTimeout(function(){map.invalidateSize();if(POS&&!VIEW0)map.setView(POS,12);},300);

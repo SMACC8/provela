@@ -26,7 +26,8 @@ html.night{
 /* Schematiche SVG (#plan/#anPlan): disegno a colori letterali su fondo scuro ->
    fondo tenuto SCURO in tutti i temi (come il canvas dell'Ancora). Il tema-awareness
    del disegno resta una passata dedicata. */
-html.day #plan, html.night #plan, html.day #anPlan, html.night #anPlan{background:#040c14;}
+html.day #plan, html.night #plan, html.day #anPlan, html.night #anPlan,
+html.day #svPlot, html.night #svPlot{background:#040c14;}
 </style>
 <style>
 /* ---- specifico del modulo ---- */
@@ -131,6 +132,22 @@ html.day #plan, html.night #plan, html.day #anPlan, html.night #anPlan{backgroun
 .an-item .ai-s{font-size:11px;color:var(--sub);font-family:var(--mono);margin-top:3px;}
 .an-item .ai-go{color:var(--teal);font-size:18px;flex:0 0 auto;}
 #anSummary{line-height:1.6;color:var(--ink);}
+
+/* studio virate */
+#svPlot{width:100%;aspect-ratio:8/5;display:block;background:var(--dp);border-radius:8px;}
+.sv-tab{font-family:var(--mono);font-size:11.5px;width:100%;border-collapse:collapse;margin-top:10px;}
+.sv-tab th{font-size:10px;letter-spacing:.04em;color:var(--sub);
+  font-weight:600;text-align:right;padding:0 3px 5px;}
+.sv-tab th:nth-child(-n+3),.sv-tab td:nth-child(-n+3){text-align:left;}
+.sv-tab td{padding:6px 3px;text-align:right;color:var(--ink);border-top:1px solid var(--dim);
+  font-variant-numeric:tabular-nums;}
+.sv-tab tbody tr{cursor:pointer;}
+.sv-tab tbody tr.on td{background:rgba(43,217,196,.13);color:var(--teal);}
+.sv-tab tfoot td{border-top:1px solid var(--line);font-weight:700;color:var(--sub);}
+.sv-k{display:inline-block;padding:1px 5px;border-radius:5px;font-size:9.5px;white-space:nowrap;}
+.sv-k.virata{background:rgba(43,217,196,.15);color:var(--teal);}
+.sv-k.strambata{background:rgba(255,194,75,.15);color:var(--amber);}
+.sv-k.rallentamento,.sv-k.manovra,.sv-k.calo{background:var(--panel2);color:var(--sub);}
 
 /* carta schematica */
 #plan,#anPlan{width:100%;aspect-ratio:1/1;max-height:52vh;display:block;background:var(--dp);border-radius:8px;}
@@ -451,6 +468,23 @@ svg text{font-family:var(--mono);}
       <div class="rf-card" style="margin-top:11px"><h3>Riepilogo</h3>
         <div class="hint" id="anSummary">—</div>
       </div>
+      <div class="rf-card" id="svCard" style="margin-top:11px">
+        <h3>Studio virate</h3>
+        <div class="hint" id="svWhy" hidden></div>
+        <div id="svBody" hidden>
+          <div class="hint" style="margin-bottom:7px">Evento = calo di velocita' oltre</div>
+          <div class="tabs" id="svSoglia">
+            <button type="button" data-d="10">10%</button><button type="button" data-d="20" class="on">20%</button>
+            <button type="button" data-d="30">30%</button><button type="button" data-d="40">40%</button>
+          </div>
+          <svg id="svPlot" viewBox="0 0 400 250" xmlns="http://www.w3.org/2000/svg" style="margin-top:11px"></svg>
+          <div class="hint" id="svLeg" style="margin-top:6px"></div>
+          <table class="sv-tab" id="svTab"></table>
+          <div class="hint" id="svNota" style="margin-top:9px"></div>
+          <button class="rf-btn go" id="svCsv" style="margin-top:10px;width:100%">Esporta manovre CSV</button>
+        </div>
+      </div>
+
       <button class="rf-btn ghost" id="anDelete" style="margin-top:8px">Elimina questa registrazione</button>
     </div>
   </section>
@@ -1279,6 +1313,296 @@ $("twdIn").addEventListener("change",function(){setTwd(+this.value);});
 $("twsIn").addEventListener("change",function(){setTws(+this.value);});
 $("estUse").addEventListener("click",function(){var v=+this.getAttribute("data-twd");if(isFinite(v))setTwd(v);updateEstimate();});
 
+/* ══════════════════ Studio virate ══════════════════
+   Porting di SpeedEvents.kt di Vetta ("Studio velocita'"). Trova i cali di
+   velocita' e ne misura il costo: metri persi e secondi di recupero.
+
+   Due differenze rispetto all'originale, entrambe obbligate:
+
+   1) LE FINESTRE SI DERIVANO DAL CAMPIONAMENTO. Vetta gira sul GPS Android a
+      un punto al secondo; qui recSample() campiona a raceInterval, minimo e
+      predefinito 5 s. Una finestra di smoothing fissa a 3 s starebbe SOTTO
+      l'intervallo fra due punti e non farebbe nulla. Tutte le finestre sono
+      quindi max(costante di Vetta, multiplo del dt mediano misurato).
+      Misurato su bolina sintetica con 6 virate vere: le trova tutte e sei da
+      1 s fino a 15 s di campionamento, e nessuna a 20 s. Il calo LETTO pero'
+      si restringe (40% vero -> 37% a 5 s, 24% a 15 s) mentre cambio rotta e
+      classificazione restano esatti a ogni intervallo. Di qui il rifiuto
+      sopra i 15 s e l'avvertenza in fondo alla scheda.
+
+   2) SI CLASSIFICA LA MANOVRA. Vetta non conosce il vento e lascia a
+      courseChange il compito di far capire all'occhio cosa fosse ("virate,
+      strambate, soste" dice il suo commento). Qui twd c'e' per ogni punto,
+      quindi virata, strambata e rallentamento si distinguono, e si misura
+      anche la VMG prima e dopo. Senza vento registrato si degrada a
+      "manovra"/"calo" invece di etichettare a caso.
+
+   Quello che NON cambia, perche' e' il valore del modulo originale:
+   - la velocita' si RICALCOLA da posizioni e tempi, non si legge il sog del
+     GPS (media mobile centrata, due puntatori);
+   - l'evento comincia dove la velocita' ha iniziato a scendere, non dove ha
+     passato la soglia;
+   - la rotta non si misura se la barca si e' mossa meno di 3 m: a barca ferma
+     il rilevamento e' rumore puro.
+   ═══════════════════════════════════════════════════ */
+
+/* Intervallo mediano fra un punto e il successivo, in ms. */
+function svDt(pts){
+  if(!pts||pts.length<2)return 0;
+  var d=[],i;for(i=1;i<pts.length;i++)d.push(pts[i].t-pts[i-1].t);
+  d.sort(function(a,b){return a-b;});
+  return d[d.length>>1]||0;
+}
+
+/* Finestre adattate al campionamento reale. drop = frazione di calo (0.1-0.4). */
+function svConfig(pts,drop){
+  var dt=svDt(pts);
+  return {dt:dt,
+    dropFraction:(drop>0&&drop<1)?drop:0.2,
+    recoveryFraction:0.9,
+    smoothingMs:Math.max(3000,2.5*dt),
+    entryFromMs:Math.max(15000,3*dt),
+    entryToMs:Math.max(3000,dt),
+    courseWinMs:Math.max(5000,dt),
+    maxRecoveryMs:90000,
+    minEntrySpeedMps:0.8};
+}
+
+/* Velocita' per punto (m/s), media su una finestra breve centrata.
+   Due puntatori: la finestra e' in ms, il campionamento puo' essere irregolare. */
+function svSpeeds(pts,windowMs){
+  var n=pts.length,dist=new Float64Array(n),out=new Float64Array(n),i;
+  for(i=1;i<n;i++)dist[i]=dist[i-1]+hav(pts[i-1],pts[i]);
+  var low=0,high=0;
+  for(i=0;i<n;i++){
+    var t=pts[i].t;
+    while(low<i&&pts[low].t<t-windowMs/2)low++;
+    if(high<i)high=i;
+    while(high<n-1&&pts[high+1].t<=t+windowMs/2)high++;
+    var from=low,to=high;
+    if(from===to){if(from>0)from--;else if(to<n-1)to++;}
+    var dd=pts[to].t-pts[from].t;
+    out[i]=dd>0?(dist[to]-dist[from])/(dd/1000):0;
+  }
+  return out;
+}
+
+/* Media delle velocita' nella finestra [da,a] in ms assoluti, null se vuota. */
+function svMean(pts,sp,da,a){
+  var sum=0,n=0;
+  for(var k=0;k<pts.length;k++){
+    var t=pts[k].t;
+    if(t>=da&&t<=a){sum+=sp[k];n++;}
+    else if(t>a)break;
+  }
+  return n?sum/n:null;
+}
+
+/* Rotta media nella finestra prima dell'inizio e dopo la fine, dalle POSIZIONI
+   (il cog del GPS puo' mancare). null se il tratto e' troppo corto per contare. */
+function svCourses(pts,start,end,win){
+  var b=null,a=null,k;
+  for(k=start;k>=0;k--)if(pts[start].t-pts[k].t>=win){b=k;break;}
+  for(k=end;k<pts.length;k++)if(pts[k].t-pts[end].t>=win){a=k;break;}
+  if(b===null||a===null)return null;
+  if(hav(pts[b],pts[start])<3||hav(pts[end],pts[a])<3)return null;
+  return {before:brg(pts[b],pts[start]),after:brg(pts[end],pts[a])};
+}
+
+/* Direzione del vento rappresentativa dell'evento: mediana circolare dei twd
+   sulla finestra. Circolare e non aritmetica: fra 350 e 10 la media e' 0, non 180. */
+function svTwd(pts,from,to){
+  var s=0,c=0,n=0;
+  for(var k=from;k<=to&&k<pts.length;k++){
+    var w=pts[k]&&pts[k].twd;
+    if(w==null||!isFinite(w))continue;
+    s+=Math.sin(w*d2r);c+=Math.cos(w*d2r);n++;
+  }
+  return n?(Math.atan2(s,c)*r2d+360)%360:null;
+}
+
+/* Virata: bolina da una parte e dall'altra. Strambata: lasco da una parte e
+   dall'altra. Senza cambio di mura non e' una manovra, e' un rallentamento. */
+function svKind(a,b){
+  if((a>=0)===(b>=0))return "rallentamento";
+  if(Math.abs(a)<90&&Math.abs(b)<90)return "virata";
+  if(Math.abs(a)>90&&Math.abs(b)>90)return "strambata";
+  return "manovra";
+}
+
+/* Trova gli eventi. pts = [{t,lat,lon,cog?,sog?,twd?,tws?}] ordinati per t. */
+function svDetect(pts,drop){
+  if(!pts||pts.length<3)return {events:[],cfg:null,speeds:null};
+  var C=svConfig(pts,drop),sp=svSpeeds(pts,C.smoothingMs),ev=[],i=0;
+  while(i<pts.length){
+    var entry=svMean(pts,sp,pts[i].t-C.entryFromMs,pts[i].t-C.entryToMs);
+    if(entry===null||entry<C.minEntrySpeedMps||sp[i]>=entry*(1-C.dropFraction)){i++;continue;}
+    /* l'evento comincia dove la velocita' ha iniziato a scendere */
+    var start=i;
+    while(start>0&&pts[i].t-pts[start-1].t<=C.entryToMs&&sp[start-1]<entry*0.97)start--;
+    var limit=pts[start].t+C.maxRecoveryMs,min=start,end=start,rec=false,j=start;
+    while(j<pts.length&&pts[j].t<=limit){
+      if(sp[j]<sp[min])min=j;
+      end=j;
+      if(j>min&&sp[j]>=entry*C.recoveryFraction){rec=true;break;}
+      j++;
+    }
+    /* metri persi rispetto a proseguire alla velocita' d'ingresso */
+    var lost=0;
+    for(var k=start+1;k<=end;k++){
+      var dtk=(pts[k].t-pts[k-1].t)/1000;
+      lost+=Math.max(0,entry-(sp[k]+sp[k-1])/2)*dtk;
+    }
+    var co=svCourses(pts,start,end,C.courseWinMs);
+    var e={startIndex:start,minIndex:min,endIndex:end,recovered:rec,
+      entrySpeed:entry,minSpeed:sp[min],
+      recoveryMs:pts[end].t-pts[start].t,lostM:lost,
+      drop:entry>0?1-sp[min]/entry:0,
+      courseChange:null,twaBefore:null,twaAfter:null,
+      vmgBefore:null,vmgAfter:null,kind:"calo"};
+    if(co){
+      e.courseChange=Math.abs(((co.after-co.before+540)%360)-180);
+      var twd=svTwd(pts,start,end);
+      if(twd!=null){
+        e.twaBefore=((twd-co.before+540)%360)-180;
+        e.twaAfter=((twd-co.after+540)%360)-180;
+        var dopo=svMean(pts,sp,pts[end].t,pts[end].t+C.courseWinMs);
+        e.vmgBefore=entry*Math.cos(Math.abs(e.twaBefore)*d2r);
+        if(dopo!=null)e.vmgAfter=dopo*Math.cos(Math.abs(e.twaAfter)*d2r);
+        e.kind=svKind(e.twaBefore,e.twaAfter);
+      }else if(e.courseChange>=60)e.kind="manovra";
+    }
+    ev.push(e);
+    i=end+1;
+  }
+  return {events:ev,cfg:C,speeds:sp};
+}
+
+/* ---------- Studio virate: scheda ---------- */
+var SV={ev:[],cfg:null,sp:null,sel:0,drop:20};
+
+function svLeggiSoglia(){
+  try{var o=JSON.parse(localStorage.getItem("raffyca-settings")||"{}");
+    var v=parseInt(o.svDrop,10);
+    if(v===10||v===20||v===30||v===40)return v;}catch(e){}
+  return 20;
+}
+function svScriviSoglia(v){
+  try{var o=JSON.parse(localStorage.getItem("raffyca-settings")||"{}");
+    o.svDrop=v;localStorage.setItem("raffyca-settings",JSON.stringify(o));}catch(e){avvisoStorage();}
+}
+
+/* velocita' in % di quella d'ingresso, da -10 s a +40 s dall'inizio dell'evento */
+function svCurva(pts,sp,e){
+  var t0=pts[e.startIndex].t,out=[],k,j=0;
+  for(k=0;k<51;k++){
+    var target=t0+(k-10)*1000;
+    while(j<pts.length-1&&pts[j].t<target)j++;
+    out.push(e.entrySpeed>0?sp[j]/e.entrySpeed*100:0);
+  }
+  return out;
+}
+
+function svRender(){
+  var why=$("svWhy"),body=$("svBody");
+  SV.ev=[];SV.cfg=null;SV.sp=null;
+  var s=AN.sess,pts=(s&&s.track)||[];
+  function nope(msg){why.hidden=false;why.innerHTML=msg;body.hidden=true;}
+  if(pts.length<3){nope("Traccia troppo corta: servono almeno tre punti.");return;}
+  var dt=svDt(pts);
+  if(dt>15000){nope("Campionamento a "+Math.round(dt/1000)+" s: troppo rado per misurare una manovra. "+
+    "Provato su traccia sintetica, fino a 15 s le virate si riconoscono ancora, a 20 s spariscono tutte. "+
+    "Da <b>Impostazioni \u2192 Intervallo regata</b> si scende fino a 5 s.");return;}
+  var r=svDetect(pts,SV.drop/100);
+  SV.ev=r.events;SV.cfg=r.cfg;SV.sp=r.speeds;
+  if(!SV.ev.length){nope("Nessun calo di velocita' oltre il "+SV.drop+"%. Prova una soglia piu' bassa.");return;}
+  why.hidden=true;body.hidden=false;
+  if(SV.sel>=SV.ev.length)SV.sel=0;
+  svDisegna();svTabella();svScriviNota();
+}
+
+function svDisegna(){
+  var svg=$("svPlot"),L=36,DX=390,T=12,B=228;
+  var pts=AN.sess.track,curve=SV.ev.map(function(e){return svCurva(pts,SV.sp,e);});
+  function X(k){return L+k/50*(DX-L);}
+  function Y(p){return B-((Math.max(30,Math.min(115,p))-30)/85)*(B-T);}
+  function path(c){var d="",k;for(k=0;k<c.length;k++)d+=(k?"L":"M")+X(k).toFixed(1)+" "+Y(c[k]).toFixed(1);return d;}
+  var o="";
+  [50,70,90,100].forEach(function(p){var y=Y(p);
+    o+='<line x1="'+L+'" y1="'+y.toFixed(1)+'" x2="'+DX+'" y2="'+y.toFixed(1)+'" stroke="'+(p>=90?"#3a5a74":"#1a3248")+
+       '" stroke-width="1"'+(p>=90?' stroke-dasharray="3 3"':'')+'/>';
+    o+='<text x="'+(L-5)+'" y="'+(y+3.5).toFixed(1)+'" text-anchor="end" fill="#5a7a94" font-size="9">'+p+'%</text>';});
+  [0,10,20,30,40,50].forEach(function(k){
+    o+='<text x="'+X(k).toFixed(1)+'" y="'+(B+14)+'" text-anchor="middle" fill="#5a7a94" font-size="9">'+
+       ((k>10?"+":"")+(k-10))+'s</text>';});
+  o+='<line x1="'+X(10).toFixed(1)+'" y1="'+T+'" x2="'+X(10).toFixed(1)+'" y2="'+B+'" stroke="#3a5a74" stroke-width="1"/>';
+  curve.forEach(function(c,k){if(k!==SV.sel)
+    o+='<path d="'+path(c)+'" fill="none" stroke="#4e6377" stroke-width="1"/>';});
+  if(curve.length>1){var m=[],k;
+    for(k=0;k<51;k++){var sum=0;curve.forEach(function(c){sum+=c[k];});m.push(sum/curve.length);}
+    o+='<path d="'+path(m)+'" fill="none" stroke="#deedf5" stroke-width="1.3" stroke-dasharray="5 3"/>';}
+  if(curve[SV.sel])
+    o+='<path d="'+path(curve[SV.sel])+'" fill="none" stroke="#2BD9C4" stroke-width="2.2" stroke-linejoin="round"/>';
+  var e=SV.ev[SV.sel];
+  if(e&&e.recovered){var kk=Math.max(0,Math.min(50,Math.round(10+e.recoveryMs/1000)));
+    o+='<line x1="'+X(kk).toFixed(1)+'" y1="'+(Y(90)-8).toFixed(1)+'" x2="'+X(kk).toFixed(1)+'" y2="'+B+
+       '" stroke="#2BD9C4" stroke-width="1"/>';}
+  svg.innerHTML=o;
+  $("svLeg").innerHTML='<b style="color:#2BD9C4">\u2014</b> manovra '+(SV.sel+1)+
+    (SV.ev.length>1?' \u00b7 <b style="color:#deedf5">- -</b> media \u00b7 <b style="color:#4e6377">\u2014</b> le altre '+(SV.ev.length-1):'')+
+    ' \u00b7 velocita\u2019 in % di quella d\u2019ingresso';
+}
+
+function svTabella(){
+  var s=AN.sess;
+  var h='<thead><tr><th>#</th><th>Tempo</th><th>Tipo</th><th>Calo</th><th>Rec.</th><th>m persi</th></tr></thead><tbody>';
+  SV.ev.forEach(function(e,k){
+    h+='<tr data-k="'+k+'"'+(k===SV.sel?' class="on"':'')+'>'+
+       '<td>'+(k+1)+'</td>'+
+       '<td>'+fmtClock(s.track[e.startIndex].t-s.startT)+'</td>'+
+       '<td><span class="sv-k '+e.kind+'">'+e.kind+'</span></td>'+
+       '<td>\u2212'+Math.round(e.drop*100)+'%</td>'+
+       '<td>'+(e.recovered?"":"&gt;")+Math.round(e.recoveryMs/1000)+' s</td>'+
+       '<td>'+Math.round(e.lostM)+'</td></tr>';});
+  h+='</tbody>';
+  if(SV.ev.length>1){
+    var md=0,mr=0,ml=0,n=SV.ev.length;
+    SV.ev.forEach(function(e){md+=e.drop;mr+=e.recoveryMs;ml+=e.lostM;});
+    h+='<tfoot><tr><td></td><td>Media</td><td></td><td>\u2212'+Math.round(md/n*100)+'%</td>'+
+       '<td>'+Math.round(mr/n/1000)+' s</td><td>'+Math.round(ml/n)+'</td></tr></tfoot>';}
+  var t=$("svTab");t.innerHTML=h;
+  Array.prototype.forEach.call(t.querySelectorAll("tbody tr"),function(tr){
+    tr.addEventListener("click",function(){
+      SV.sel=parseInt(this.getAttribute("data-k"),10)||0;
+      AN.idx=SV.ev[SV.sel].minIndex;$("anScrub").value=String(AN.idx);
+      svDisegna();svTabella();drawReplay();updateReplayReadouts();});});
+}
+
+function svScriviNota(){
+  var dt=Math.round(SV.cfg.dt/1000),senzaVento=true,i;
+  for(i=0;i<SV.ev.length;i++)if(SV.ev[i].twaBefore!=null){senzaVento=false;break;}
+  var t="Campionamento "+dt+" s, quindi recupero e calo sono indicativi (\u00b1"+dt+" s). "+
+    "Il calo <i>letto</i> si restringe col campionamento: su traccia sintetica un calo vero del 40% "+
+    "si legge 37% a 5 s e 24% a 15 s. Cambio rotta e tipo di manovra invece reggono. "+
+    "Un <b>&gt;</b> sul recupero vuol dire che entro 90 s la velocita\u2019 d\u2019ingresso non e\u2019 tornata.";
+  if(senzaVento)t+="<br><b>Senza vento registrato</b> virata e strambata non si distinguono: "+
+    "le manovre restano misurate, ma non etichettate.";
+  $("svNota").innerHTML=t;
+}
+
+function svCsv(){
+  var s=AN.sess,K=1.94384;
+  var rows=["evento;tempo;tipo;prima_kn;minima_kn;calo_pct;recupero_s;recuperata;persi_m;cambio_rotta;twa_prima;twa_dopo;vmg_prima_kn;vmg_dopo_kn"];
+  function f(v,d){return (v==null||!isFinite(v))?"":v.toFixed(d);}
+  SV.ev.forEach(function(e,k){
+    rows.push([k+1,fmtClock(s.track[e.startIndex].t-s.startT),e.kind,
+      (e.entrySpeed*K).toFixed(2),(e.minSpeed*K).toFixed(2),Math.round(e.drop*100),
+      Math.round(e.recoveryMs/1000),e.recovered?"si":"no",Math.round(e.lostM),
+      f(e.courseChange,0),f(e.twaBefore,0),f(e.twaAfter,0),
+      f(e.vmgBefore==null?null:e.vmgBefore*K,2),f(e.vmgAfter==null?null:e.vmgAfter*K,2)].join(";"));});
+  return rows.join("\n");
+}
+
 /* ---------- analisi / replay ---------- */
 var AN={sess:null,idx:0,playing:false,timer:null};
 function fmtDur(ms){var s=Math.floor(ms/1000),m=Math.floor(s/60);return m+"′ "+String(s%60).padStart(2,"0")+"″";}
@@ -1303,6 +1627,7 @@ function openReplay(s){
   var st=sessionStats(s);
   $("anSummary").innerHTML="Durata "+fmtDur(st.dur)+" · percorsi "+(st.dist/NM).toFixed(2)+" NM<br>"+
     "Virate "+st.tacks+" · strambate "+st.gybes+(st.vmgBeat!=null?(" · VMG bolina media "+st.vmgBeat.toFixed(2)+" kn"):"");
+  SV.sel=0;svRender();
   drawReplay();updateReplayReadouts();
 }
 function drawReplay(){
@@ -1340,6 +1665,10 @@ function drawReplay(){
     o+='<circle cx="'+Q.x+'" cy="'+Q.y+'" r="7" fill="#0e2036" stroke="#FFC24B" stroke-width="2"/>';
     o+='<text x="'+Q.x+'" y="'+(Q.y+3.5)+'" text-anchor="middle" fill="#FFC24B" font-size="9" font-weight="700">'+(idx+1)+'</text>';});
   /* barca al punto scrubbato */
+  /* manovra scelta nello Studio virate: anello attorno al punto piu' lento */
+  if(SV.ev.length&&SV.ev[SV.sel]){var mv=tk[SV.ev[SV.sel].minIndex];
+    if(mv){var MP=T(mv);
+      o+='<circle cx="'+MP.x.toFixed(1)+'" cy="'+MP.y.toFixed(1)+'" r="9" fill="none" stroke="#FFC24B" stroke-width="2"/>';}}
   var b=tk[Math.min(AN.idx,tk.length-1)],B=T(b),rot=b.cog!=null?b.cog:0;
   o+='<g transform="translate('+B.x.toFixed(1)+','+B.y.toFixed(1)+') rotate('+rot+')">'+
      '<polygon points="0,-9 6,7 0,4 -6,7" fill="#deedf5" stroke="#060e18" stroke-width="1"/></g>';
@@ -1438,6 +1767,17 @@ function importCourseGPX(xml){
 $("tabAn").addEventListener("click",function(){show("an");});
 $("anScrub").addEventListener("input",function(){AN.idx=parseInt(this.value,10)||0;drawReplay();updateReplayReadouts();});
 $("anBack").addEventListener("click",function(){stopPlay();renderAnList();});
+SV.drop=svLeggiSoglia();
+Array.prototype.forEach.call($("svSoglia").querySelectorAll("button"),function(b){
+  b.classList.toggle("on",parseInt(b.getAttribute("data-d"),10)===SV.drop);});
+$("svSoglia").addEventListener("click",function(ev){
+  var b=ev.target.closest("button[data-d]");if(!b)return;
+  SV.drop=parseInt(b.getAttribute("data-d"),10)||20;svScriviSoglia(SV.drop);
+  Array.prototype.forEach.call(this.querySelectorAll("button"),function(x){x.classList.toggle("on",x===b);});
+  SV.sel=0;svRender();drawReplay();});
+$("svCsv").addEventListener("click",function(){
+  if(!AN.sess||!SV.ev.length)return;
+  downloadText("dritta-manovre-"+new Date(AN.sess.startT).toISOString().slice(0,10)+".csv",svCsv(),"text/csv");});
 $("anPlay").addEventListener("click",function(){
   if(AN.playing){stopPlay();return;}
   if(!AN.sess||!AN.sess.track.length)return;

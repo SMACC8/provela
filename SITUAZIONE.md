@@ -2638,3 +2638,170 @@ Due cose trovate mentre guardavo, **nessuna delle due causata dalla rinomina**:
   rinominati nel wrapper, il bundle dentro non e' stato letto. `build_perf.py`
   e' allineato (il titolo li', la topbar la ritaglia da `cruscotto/`), ma non
   e' stato rieseguito.
+
+---
+
+## 17/09/2026 — Una carta propria sulla mappa, e lo Studio virate arriva da Vetta
+
+`carta/index.html`, `percorso/index.html`. **Nessun bump di service worker**, e
+il motivo va scritto perche' contraddice la lettura ingenua della regola:
+`carta/` e `percorso/` **non hanno un `sw.js` proprio** (gli unici cinque sono
+`sw.js`, `anchor/`, `meteo/`, `routing/`, `xte/`), e non compaiono in nessun
+precache — quello dell'hub elenca `manutenzione/`, `calcoli/`, `sole-luna/`,
+`mob/`, `prontuario/`; quello di `routing/` solo i tre `rf-*.js`, la sua mappa,
+il suo geojson e Leaflet da cdnjs. Le navigazioni sono network-first con
+`cache:'reload'`, quindi la pagina nuova arriva fresca.
+
+Lavorato su un worktree separato (`../ProVela-raster-virate`, branch
+`raster-e-virate`) per non toccare `main` mentre era aperto GitHub Desktop.
+
+### 1. Carta raster georeferenziata (`carta/`)
+
+Nuovo strumento in toolbar accanto ai sei esistenti. Si carica un'immagine
+propria (scansione, ritaglio di portolano, screenshot di plotter), si piazzano
+punti di coordinate note col mirino, e l'immagine finisce sulla mappa
+deformata al punto giusto. Primo overlay non-tile del repo: `ImageOverlay` non
+compariva da nessuna parte.
+
+Warp proiettivo con **`transform: matrix3d`** su un `<img>` in un pane proprio
+a z-index 160, fra le basi (150) e il `tilePane` (200) dove stanno i simboli
+OpenSeaMap — cosi' il raster copre la base ma i simboli nautici gli restano
+sopra. La trasformazione si calcola **una volta sola in spazio Mercatore a
+zoom 0**: e' costante, e il passaggio al pixel corrente e' scala piu'
+traslazione, che composta con l'omografia resta un'omografia. Zero librerie.
+
+Immagine in **IndexedDB** (`dritta-raster`), calibrazione in **localStorage**
+(`raffyca-rasters`, 227 byte per carta). Separate di proposito: `rfBackup`
+copia tutte le chiavi `raffyca-*` e ne tiene cinque snapshot, quindi un raster
+in localStorage ci finirebbe moltiplicato per cinque. Conseguenza dichiarata
+nella UI: **il backup salva i punti, non il file**. Su un altro dispositivo le
+carte ci sono, le immagini vanno ricaricate — ma senza ripiazzare i punti.
+
+### 2. Studio virate (`percorso/`, scheda Analisi)
+
+Porting di `SpeedEvents.kt` di **Vetta desktop** ("Studio velocita'"). Non era
+iniettabile: e' Kotlin/Compose, 145 righe di logica piu' 362 di UI. La logica
+si e' tradotta quasi 1:1 — dipendeva solo da `distanceM`/`bearingDeg`, che qui
+sono `hav`/`brg`. Porta due misure che Dritta non aveva da nessuna parte:
+**metri persi per manovra** e **secondi di recupero**.
+
+Gira solo sulle **sessioni regata** (`raffyca-race-log`), che hanno
+`{t,lat,lon,cog,sog,twd,tws}` per punto. Le tracce normali restano fuori:
+`rfRec.ferma()` fa `pts.map(p => [p[0], p[1]])` e **butta il timestamp**, e non
+e' migrabile perche' il dato non esiste piu'.
+
+### Alternative scartate
+
+**Il modello dedotto dal numero di punti** (2 = similitudine, 3 = affine, 4 =
+proiettiva). Era la prima idea ed era sbagliata proprio sul caso piu' comune.
+Sergio ha portato un raster vero: screenshot di **qtVlm** della laguna veneta,
+16,0 x 21,3 NM, con cinque WP di coordinate note ai quattro angoli e al
+centro. Quattro punti su un'omografia sono otto equazioni per otto incognite:
+residuo **zero per costruzione**. Misurato con errore di puntamento di +/-2 px
+su 400 giri: la proiettiva dichiara **RMS 0,0 m** e sbaglia davvero **23,3 m**
+al centro; la similitudine dichiara 22,6 m e sbaglia **16,0 m**. Il modello
+piu' ricco mente sulla propria accuratezza ed e' peggiore del 46%. Ora il
+modello **si sceglie** (similitudine predefinita) e i punti in piu' vanno ai
+minimi quadrati.
+
+**Distinguere Mercatore da equirettangolare.** Preoccupazione stimata a occhio
+in ~40 m, **misurata in 16 m** sulle coordinate reali: sotto il rumore di
+puntamento. Nessuna macchina, si lavora in Mercatore. Vale come promemoria che
+a occhio si sbaglia di piu' del doppio.
+
+**GeoTIFF e KAP/BSB.** geotiff.js sono ~200 KB da CDN contro l'offline-first, e
+il KAP ha il payload RLE compresso ed e' diffuso solo in OpenCPN.
+
+**I soli due angoli NO/SE** (`L.imageOverlay` nativo, ~30 righe): una scansione
+storta di due gradi resterebbe storta senza modo di correggerla.
+
+**Le costanti di Vetta copiate tali e quali.** Presuppongono il GPS Android a
+1 Hz; `recSample()` campiona a `raceInterval`, minimo e predefinito **5 s**.
+Una finestra di smoothing fissa a 3 s starebbe sotto l'intervallo fra due
+punti e non farebbe nulla. Le finestre si derivano dal `dt` mediano misurato.
+
+**Scendere sotto i 5 s di campionamento** per avere misure piu' fini. No, coi
+numeri: a 1 s una regata di 2 h fa ~7200 punti, ~570 KB, e per sei sessioni
+tenute sono 3,4 MB su una quota localStorage di ~5 MB. A 5 s sono ~115 KB a
+sessione.
+
+**Il `cog` del GPS per le rotte prima/dopo.** In `raffyca-race-log` e' `null`
+ogni volta che il GPS non lo dava. Si misura dalle posizioni, come fa Vetta.
+
+### Validazione
+
+**Virate — dieci test in JS, eseguiti con `jsc` sul codice estratto dal file
+vero, non da una bozza.** I quattro casi di `SpeedEventsTest.kt` di Vetta
+portati (una virata misurata, cinque di fila senza sovrapposizioni, velocita'
+costante senza eventi, soglia al 60% che non passa) piu' sei nuovi. Tutti
+verdi.
+
+Il degrado col campionamento **misurato** su bolina sintetica con 6 virate
+vere, invece di supposto:
+
+| dt | trovate | calo letto | recupero | rotta |
+|---|---|---|---|---|
+| 1 s | 6/6 | 37% | 17 s | 100° |
+| 5 s | 6/6 | 37% | 20 s | 100° |
+| 10 s | 6/6 | 32% | 20 s | 100° |
+| 15 s | 6/6 | 24% | 30 s | 100° |
+| 20 s | **0/6** | — | — | — |
+
+Il calo *vero* e' 40%. Quindi: si rifiuta sopra i 15 s (soglia che avevo messo
+a intuito e che la misura conferma); il calo **letto** si restringe col
+campionamento e la scheda lo dice; cambio rotta e classificazione invece
+reggono esatti a ogni intervallo.
+
+Prova nel browser con una sessione sintetica di 12 virate a 5 s: **trovate
+12 su 12**, agli istanti esatti, tutte classificate "virata", CSV con TWA
+45 -> -45 e cambio rotta 90° come da verita' sintetica. Nessun errore in
+console.
+
+**Raster — contro una verita' nota per costruzione.** Generato un reticolato in
+Mercatore 1600x1518 px su un riquadro noto, calibrato con **due soli punti**, e
+misurati **tutti e 35 gli incroci**: errore **0,000 m**. Poi, sulla mappa, la
+trasformazione confrontata con `latLngToLayerPoint` di Leaflet su un incrocio
+non usato per tarare, da zoom 8 a 16: scarto **sotto 0,12 px** di schermo
+(l'arrotondamento intero di `getPixelOrigin`). Mirino della calibrazione
+verificato a **6 m** dall'incrocio, cioe' 0,17 px di schermo. Ricaricata la
+pagina: la carta torna da IndexedDB, e in localStorage ci sono 227 byte di
+calibrazione e nessuna immagine — il limite dichiarato e' davvero quello.
+
+Le coordinate d'ingresso sono state validate prima di scrivere codice: qtVlm
+dava anche rotta e distanza dei cinque WP da un punto comune, informazione
+**ridondante** rispetto alle coordinate. Risolvendo per quel punto, tutti e
+cinque i rilevamenti tornano a **0,01°** e le distanze a 0,05 NM. Costa nulla
+ed esclude in partenza la causa piu' stupida.
+
+### Non verificato
+
+- **Niente e' stato provato su un raster vero**: il file qtVlm originale non e'
+  recuperabile, e le prove sono su immagine sintetica. Restano da fare le due
+  prove sul campo: il punto centrale tenuto fuori dalla taratura, e i fari di
+  `carta/fari.geojson` — fonte indipendente sia dall'immagine sia dai WP — che
+  devono cadere sui fari disegnati nelle tre bocche di porto.
+- **Niente e' stato provato su un telefono**, e lo zoom della calibrazione e'
+  proprio la parte che si giudica col dito. Sul raster di Sergio la scala e'
+  ~21 m/px (misurata, non stimata): senza zoom un telefono da 380 px mostra
+  ~110 m per pixel di schermo, quindi lo zoom fino a 2:1 e il mirino fisso non
+  sono comodita', sono il 90% dell'accuratezza.
+- **L'offline non e' stato provato**: il pannello browser blocca la
+  registrazione dei service worker (nota del 04/09). Il raster pero' vive in
+  IndexedDB e non passa dal SW, quindi in teoria e' il pezzo piu' offline di
+  tutta la suite.
+- Lo Studio virate non e' mai girato su una regata vera, solo su sessioni
+  sintetiche.
+
+### Aperti
+
+- Le tracce normali (`raffyca-tracks`) restano fuori dallo Studio virate finche'
+  `rfRec.ferma()` butta i timestamp. Sbloccarle e' una riga piu' il bump di
+  `raffyca-rt-v22` (`rf-topbar.js` e' precacheato da `routing/sw.js`), ma le
+  tracce gia' salvate restano mute per sempre: il dato non c'e' piu'.
+- L'import GPX di `carta/` fa `pts.push([lat,lon,0])` e butta il `<time>`:
+  tracce da altri plotter, o da Vetta stessa, oggi non sono analizzabili.
+- **Difetto trovato di passaggio e NON corretto qui**: il `fetch` dell'hub per
+  le non-navigazioni fa `caches.match(req) || fetch(req)` **senza `put`** —
+  non c'e' cache runtime. Quindi `carta/fari.geojson` non finisce mai in cache
+  dall'hub, nonostante il commento in `carta/index.html` dica il contrario. Il
+  commento e' falso e chi legge il codice non se ne accorge.
