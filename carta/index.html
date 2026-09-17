@@ -1190,6 +1190,8 @@ var SB=(function(){
   function bucket(){return cfg().bucket||'boat-docs';}
   function url(id){return base()+'/storage/v1/object/'+encodeURIComponent(bucket())+
                    '/'+encodeURIComponent(boat())+'/carte/'+encodeURIComponent(id)+'.jpg';}
+  function urlIndice(){return base()+'/storage/v1/object/'+encodeURIComponent(bucket())+
+                     '/'+encodeURIComponent(boat())+'/carte/index.json';}
   /* Perche' non si puo': serve per dirlo all'utente invece di fallire zitti. */
   function perche(){
     var c=cfg();
@@ -1218,6 +1220,28 @@ var SB=(function(){
           return r.blob().then(function(b){cb(b,null);});})
         .catch(function(e){cb(null,e.message||'rete assente');});
     },
+    /* L'INDICE: la calibrazione di tutte le carte in un oggetto JSON accanto
+       alle immagini. Poche centinaia di byte per carta, e soprattutto NESSUNA
+       tabella e nessuna policy nuova: lo stesso prefisso <boat_id>/carte/ che
+       la policy del bucket gia' accetta. Senza questo su Supabase viaggiava
+       solo l'immagine, e sull'altro dispositivo la carta non compariva nemmeno
+       in elenco: restava il backup come unica strada, cioe' mezzo problema
+       risolto. */
+    indiceSu:function(lista,cb){
+      var m=perche();if(m){cb(false,m);return;}
+      var corpo=new Blob([JSON.stringify({v:1,ts:Date.now(),carte:lista})],{type:'application/json'});
+      fetch(urlIndice(),{method:'POST',headers:hdr({'Content-Type':'application/json','x-upsert':'true'}),body:corpo})
+        .then(function(r){if(r.ok){cb(true,null);return;}
+          return r.text().then(function(t){cb(false,t.slice(0,120));});})
+        .catch(function(e){cb(false,e.message||'rete assente');});
+    },
+    indiceGiu:function(cb){
+      var m=perche();if(m){cb(null,m);return;}
+      fetch(urlIndice(),{headers:hdr()})
+        .then(function(r){if(!r.ok){cb(null,'nessun indice sul server');return;}
+          return r.json().then(function(j){cb((j&&j.carte)||[],null);});})
+        .catch(function(e){cb(null,e.message||'rete assente');});
+    },
     via:function(id,cb){
       if(perche()){if(cb)cb();return;}
       fetch(url(id),{method:'DELETE',headers:hdr()}).then(function(){if(cb)cb();})
@@ -1229,7 +1253,54 @@ var SB=(function(){
 /* --- stato e persistenza --- */
 var RS={list:[],act:null,layer:null,url:null,scale:1,fit:1,nome:'',sync:null};
 function rsLoad(){RS.list=lsGet('raffyca-rasters');if(!Array.isArray(RS.list))RS.list=[];}
-function rsStore(){try{lsSet('raffyca-rasters',RS.list);}catch(e){alert('Spazio esaurito: la calibrazione non e\u2019 stata salvata.');}}
+/* Solo su questo dispositivo. */
+function rsStoreLocale(){try{lsSet('raffyca-rasters',RS.list);}catch(e){
+  alert('Spazio esaurito: la calibrazione non e\u2019 stata salvata.');}}
+/* Locale + indice sul cloud. L'invio e' ritardato di 2 s e accorpato: la
+   trasparenza si muove a slider e manderebbe una richiesta per pixel. */
+var RS_IDX=null;
+function rsStore(){
+  if(RS.act)RS.act.mts=Date.now();
+  rsStoreLocale();
+  if(!SB.pronto())return;
+  if(RS_IDX)clearTimeout(RS_IDX);
+  RS_IDX=setTimeout(function(){RS_IDX=null;
+    SB.indiceSu(RS.list.map(rsPulita),function(ok,err){
+      if(!ok)toastRaster('Calibrazione non salvata sul cloud: '+err);});},2000);
+}
+/* Sul cloud non si manda H: si ricalcola, e mandarla vuol dire poterla avere
+   vecchia. */
+function rsPulita(c){return {id:c.id,name:c.name,w:c.w,h:c.h,pts:c.pts,model:c.model,
+  opacity:c.opacity,rms:c.rms,sb:c.sb,ts:c.ts,mts:c.mts||c.ts};}
+/* Fusione carta per carta: vince quella modificata piu' di recente. Non e' una
+   fusione dei punti, e non serve: due dispositivi che ricalibrano la stessa
+   carta nello stesso momento non e' un caso reale. */
+function rsFondi(remoti){
+  var per={},out=[];
+  RS.list.forEach(function(c){per[c.id]=c;});
+  (remoti||[]).forEach(function(r){
+    if(!r||!r.id)return;
+    var l=per[r.id];
+    if(!l||(r.mts||r.ts||0)>(l.mts||l.ts||0))per[r.id]=r;
+  });
+  Object.keys(per).forEach(function(k){out.push(per[k]);});
+  out.sort(function(a,b){return (a.ts||0)-(b.ts||0);});
+  return out;
+}
+function rsSyncIndice(cb){
+  if(!SB.pronto()){if(cb)cb();return;}
+  RS.sync='indice';rsBarra();
+  SB.indiceGiu(function(rem,err){
+    RS.sync=null;
+    if(rem&&rem.length){
+      var prima=RS.list.length;
+      RS.list=rsFondi(rem);rsStoreLocale();
+      var nuove=RS.list.length-prima;
+      if(nuove>0)toastRaster('Dal cloud: '+nuove+(nuove===1?' carta':' carte')+' in piu\u2019');
+    }
+    rsBarra();if(cb)cb();
+  });
+}
 function rsById(id){for(var i=0;i<RS.list.length;i++)if(RS.list[i].id===id)return RS.list[i];return null;}
 
 function rsRicalcola(cal){
@@ -1298,7 +1369,8 @@ function rsBarra(){
     if(np<min)t=np+'/'+min+' punti';
     else if(np<=min)t='non misurato';
     else t='RMS '+(RS.act.rms==null?'?':RS.act.rms)+' m';
-    if(RS.sync==='scarico')t='scarico…';
+    if(RS.sync==='indice')t='cerco sul cloud…';
+    else if(RS.sync==='scarico')t='scarico…';
     else if(RS.sync==='carico')t=t+' · invio…';
     else if(RS.act.sb)t=t+' · ☁';
   }
@@ -1445,7 +1517,10 @@ $('tRaster').addEventListener('click',function(){
   var on=$('rasterCtl').style.display==='none';
   $('rasterCtl').style.display=on?'flex':'none';
   this.classList.toggle('on',on);
-  if(on){rsBarra();if(!RS.act&&RS.list.length)rsAttiva(RS.list[0].id);}
+  if(on){rsBarra();
+    /* Prima si cerca sul cloud: se un altro dispositivo ha calibrato, la carta
+       deve comparire qui senza passarsi file a mano. */
+    rsSyncIndice(function(){if(!RS.act&&RS.list.length)rsAttiva(RS.list[0].id);});}
   else{rsStacca();RS.act=null;$('rasterOp').style.display='none';}
 });
 $('rSel').addEventListener('change',function(){if(this.value)rsAttiva(this.value);});

@@ -3035,3 +3035,96 @@ corsa nel banco di prova sembra identica a un difetto nel codice.
   lo supera, quindi il messaggio d'errore relativo non e' mai apparso.
 - Se la stessa carta viene ricalibrata su due dispositivi, vince l'ultimo che
   esporta il backup. Non c'e' fusione e non e' stata cercata.
+
+---
+
+## 17/09/2026 (4) — «Nessuna carta»: su Supabase viaggiava solo mezza cosa
+
+`carta/index.html`. Nessun bump di service worker.
+
+Sergio ha georeferenziato la carta sul Mac ed e' andato a vedere sul telefono:
+tendina vuota, «Nessuna carta». Non era un difetto di trasporto: era che ne
+avevo sincronizzato **meta'**.
+
+### Il buco
+
+Su Supabase andava solo l'**immagine**. La **calibrazione** — i punti, il
+modello, le dimensioni — restava in `raffyca-rasters`, cioe' viaggiava solo
+dentro il file di backup. Quindi sull'altro dispositivo non c'era niente da
+scaricare: senza la calibrazione la carta non compare nemmeno in elenco, e
+l'immagine sul bucket non serve a nessuno perche' non si sa che esiste.
+
+Il giro che avevo verificato era «immagine su, immagine giu'». Il giro che fa
+l'utente e' «calibro qui, apro la' e la trovo». Sono due cose diverse, e la
+prima non dice niente sulla seconda. **Secondo caso in giornata dello stesso
+errore**: il primo era la matematica giusta con l'interazione rotta (mirino al
+centro, voce (2)), questo e' il trasporto giusto con il percorso dell'utente
+interrotto. La lezione da tenere: verificare il **viaggio dell'utente**, non il
+pezzo che ho appena scritto.
+
+### La correzione
+
+Un `index.json` nello **stesso bucket, stesso prefisso**:
+`<boat_id>/carte/index.json`, con dentro la calibrazione di tutte le carte.
+Poche centinaia di byte per carta. Ancora nessuna tabella, nessuno SQL,
+nessuna policy nuova — il prefisso e' quello che la policy accetta gia'.
+
+All'apertura dello strumento Raster si scarica l'indice, si **fonde** con
+quello locale carta per carta (vince il `mts` piu' recente) e poi si carica la
+carta scelta, che a sua volta si scarica l'immagine se manca. Quindi due sole
+richieste per arrivare da zero a carta sulla mappa.
+
+L'invio dell'indice e' **ritardato di 2 s e accorpato**: la trasparenza si
+muove a slider e senza il ritardo manderebbe una richiesta per pixel di
+trascinamento.
+
+Sul cloud non si manda `H` (la matrice): si ricalcola in un istante, e
+mandarla vuol dire poterla avere vecchia.
+
+### Alternative scartate
+
+**Una tabella Supabase per le calibrazioni**, con le righe per carta. Piu'
+ordinata sulla carta, ma vuole uno schema, una policy RLS e una migrazione, e
+in cambio non da' niente: le calibrazioni si leggono e si scrivono tutte
+insieme, mai per campo. Un oggetto JSON e' la forma giusta del dato.
+
+**Un file per carta** (`<id>.json`) invece di un indice unico: costringe a
+elencare il bucket per sapere cosa c'e', e l'elenco e' un'altra chiamata con
+un'altra policy da verificare. Con l'indice unico basta una GET.
+
+**Fusione vera dei punti** fra due dispositivi che hanno ricalibrato la stessa
+carta. Scartata: non e' un caso reale, e una fusione sbagliata di punti di
+controllo produce una calibrazione plausibile e falsa, che e' il difetto
+peggiore possibile qui. Vince l'ultimo che ha modificato, e si vede dal
+residuo se qualcosa non torna.
+
+**Sincronizzare anche senza `boat_id`**, mettendo le carte in un percorso
+neutro. No: la policy pretende l'id della barca come primo segmento, e
+aggirarla vorrebbe dire scrivere una policy nuova per un secondo percorso.
+Meglio dire all'utente di aprire Manutenzione una volta.
+
+### Validazione
+
+**Giro completo A -> B, con un bucket finto in memoria.** Dispositivo A:
+calibra, e finiscono sul bucket `barca-7/carte/rMAC.jpg` **e**
+`barca-7/carte/index.json`. Dispositivo B azzerato (0 carte, `raffyca-rasters`
+assente, IndexedDB vuoto): apre lo strumento e si ritrova la carta «Laguna» in
+tendina con i suoi **2 punti e il modello giusto**, immagine scaricata,
+**copiata in IndexedDB** e disegnata sulla mappa. Due richieste in tutto
+(`GET index.json`, `GET rMAC.jpg`), zero avvisi.
+
+**Senza rete**, con `fetch` che rifiuta sempre: un solo tentativo verso
+l'indice, nessun avviso, e la carta c'e' comunque — elenco da localStorage,
+immagine da IndexedDB, layer sulla mappa. E' la promessa del progetto («il
+cloud distribuisce, non sostituisce») e ora e' misurata, non dichiarata.
+
+### Non verificato
+
+- **Ancora niente contro il Supabase vero.** Il bucket e' simulato in memoria.
+  Che la policy accetti `<boat_id>/carte/index.json` lo dira' il primo
+  caricamento vero, esattamente come per le immagini.
+- Il giro non e' stato fatto su due dispositivi fisici: il "telefono" e' stato
+  simulato azzerando localStorage e IndexedDB nella stessa scheda.
+- Non e' stato provato cosa succede se due dispositivi salvano l'indice
+  **nello stesso momento**: l'ultimo sovrascrive, e non c'e' controllo di
+  versione sull'oggetto.
