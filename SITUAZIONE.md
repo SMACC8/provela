@@ -3128,3 +3128,89 @@ cloud distribuisce, non sostituisce») e ora e' misurata, non dichiarata.
 - Non e' stato provato cosa succede se due dispositivi salvano l'indice
   **nello stesso momento**: l'ultimo sovrascrive, e non c'e' controllo di
   versione sull'oggetto.
+
+---
+
+## 17/09/2026 (5) — La sincronia andava in un verso solo, e una bandiera vecchia bloccava il recupero
+
+`carta/index.html`. Nessun bump di service worker.
+
+Sergio dopo la correzione precedente: «ancora niente ne' sul telefono ne' sul
+tablet». Il codice era online (verificato: `origin/main` a `fe645c6`, pagina
+live identica byte a byte alla locale), quindi il difetto era nel mio disegno.
+Due difetti, in fila.
+
+### 1. La sincronia partiva solo sui cambiamenti
+
+L'invio dell'indice era agganciato a `rsStore()`, cioe' a una **modifica**.
+Sergio aveva calibrato **prima** che questo codice esistesse: aprendo Carta col
+codice nuovo non cambiava niente, quindi non partiva niente, e sul cloud non
+c'era mai stato nulla da scaricare. Vale anche per chi calibra senza campo e
+poi torna in rete.
+
+Una sincronia che parte solo sui cambiamenti **non sincronizza quello che
+c'era gia'**, che e' proprio il caso di chi accende la funzione per la prima
+volta — cioe' di tutti, una volta.
+
+Ora `rsSyncIndice` va nei due versi: scarica, fonde, e se in locale c'e'
+qualcosa che sul server manca o e' piu' vecchio lo **rimanda su**. In piu'
+`rsSyncImmagini` manda le immagini delle carte che hanno `sb!==true`, una per
+volta. Aprendo lo strumento e non toccando nulla, un dispositivo che aveva
+calibrato "prima" pubblica tutto da solo.
+
+### 2. Una bandiera di stato usata come cancello
+
+Trovato dal test, non ragionandoci: dopo la correzione 1 la carta compariva
+sul telefono con i suoi punti, ma **l'immagine no**.
+
+Causa: `rsAttiva` scaricava l'immagine solo `if(cal.sb&&SB.pronto())`. Ma
+l'indice viene pubblicato **prima** delle immagini, quindi l'indice sul server
+porta `sb:false`; il dispositivo che lo legge vede `sb:false` e non prova
+nemmeno. La bandiera era vera in locale sul Mac e falsa sul server: lo stesso
+dato in due posti, e quello sbagliato comandava.
+
+Correzione, e vale come regola: **un percorso di recupero non si mette dietro
+una bandiera di stato replicata.** Se l'immagine manca e il cloud c'e', si
+prova; se non c'e' arriva un 404 e si dice all'utente. `sb` resta, ma solo
+per disegnare la nuvoletta. In piu' `rsSyncImmagini` **rimanda l'indice** quando
+ha finito, cosi' anche la nuvoletta e' giusta sugli altri dispositivi.
+
+### Alternative scartate
+
+**Mandare l'indice dopo le immagini** invece di prima, per avere `sb` giusto al
+primo colpo. Non basta: se l'invio di un'immagine fallisce per rete, l'indice
+non partirebbe affatto e si tornerebbe al punto di partenza. Meglio pubblicare
+subito quello che conta (la calibrazione: senza quella la carta non esiste) e
+correggere dopo.
+
+**Togliere `sb`.** Serve: senza, non si puo' mostrare quali carte sono al
+sicuro sul cloud e quali stanno solo su questo dispositivo — che e'
+un'informazione che l'utente vuole prima di cancellare qualcosa.
+
+**Un avviso quando il cloud non e' configurato.** Scartato l'alert, che
+fermerebbe la calibrazione per una cosa non urgente. Aggiunto invece
+**«· solo qui»** nella riga di stato accanto all'RMS: informa senza
+interrompere. Prima, se Supabase non era pronto, non compariva proprio niente
+e l'utente non aveva modo di sapere che non stava sincronizzando.
+
+### Validazione
+
+Bucket finto in memoria, e la situazione **esatta** di Sergio: carta con
+`sb:false`, immagine solo in IndexedDB, cloud vuoto, e nessuna modifica fatta
+a mano. Aprendo lo strumento: `GET index.json` (404), `POST index.json`,
+`POST rV.jpg`, e **un secondo `POST index.json`**. Verificato che nell'indice
+sul server `sb` sia ora `true`.
+
+Poi telefono azzerato (0 carte, `raffyca-rasters` assente, IndexedDB vuoto):
+`GET index.json`, `GET rV.jpg`, e sullo schermo la carta «Laguna» con i suoi
+2 punti, l'immagine in IndexedDB e il layer sulla mappa. **Zero avvisi.**
+
+### Non verificato
+
+- **Ancora niente contro il Supabase vero.** E questa e' la terza voce di fila
+  in cui lo scrivo: il bucket e' simulato, e tutti e tre i difetti di oggi
+  sarebbero usciti in dieci minuti con un caricamento vero. La simulazione ha
+  preso il difetto 2 ma non i difetti 1 e 3, perche' riproduceva il pezzo e
+  non la storia dell'utente.
+- Due dispositivi che aprono Carta nello stesso istante: l'ultimo `POST`
+  vince, e non c'e' controllo di versione sull'oggetto.

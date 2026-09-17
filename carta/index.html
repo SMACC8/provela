@@ -1287,19 +1287,73 @@ function rsFondi(remoti){
   out.sort(function(a,b){return (a.ts||0)-(b.ts||0);});
   return out;
 }
+/* Sincronia nei DUE versi, e il secondo verso e' quello che mancava.
+   L'invio dell'indice partiva solo da rsStore(), cioe' solo quando qualcosa
+   cambiava: chi aveva calibrato PRIMA di avere questo codice non mandava
+   niente, e sull'altro dispositivo non compariva nulla. Succede anche a chi
+   calibra senza campo e poi torna in rete. Quindi: si scarica, si fonde, e se
+   in locale c'e' qualcosa che sul server manca o e' piu' vecchio, si rimanda
+   su. */
+function rsIndiceDaMandare(remoti){
+  var per={},manca=false;
+  (remoti||[]).forEach(function(r){if(r&&r.id)per[r.id]=r;});
+  RS.list.forEach(function(l){
+    var r=per[l.id];
+    if(!r||(l.mts||l.ts||0)>(r.mts||r.ts||0))manca=true;
+  });
+  return manca;
+}
 function rsSyncIndice(cb){
-  if(!SB.pronto()){if(cb)cb();return;}
+  if(!SB.pronto()){rsBarra();if(cb)cb();return;}
   RS.sync='indice';rsBarra();
   SB.indiceGiu(function(rem,err){
     RS.sync=null;
+    var prima=RS.list.length;
     if(rem&&rem.length){
-      var prima=RS.list.length;
       RS.list=rsFondi(rem);rsStoreLocale();
       var nuove=RS.list.length-prima;
       if(nuove>0)toastRaster('Dal cloud: '+nuove+(nuove===1?' carta':' carte')+' in piu\u2019');
     }
-    rsBarra();if(cb)cb();
+    /* Anche se il server non aveva indice (err) va mandato: e' il caso di chi
+       ha calibrato prima che questa sincronia esistesse. */
+    if(RS.list.length&&rsIndiceDaMandare(rem)){
+      RS.sync='invio';rsBarra();
+      SB.indiceSu(RS.list.map(rsPulita),function(ok,e2){
+        RS.sync=null;
+        if(!ok)toastRaster('Calibrazione non mandata sul cloud: '+e2);
+        else rsBarra();
+        rsSyncImmagini();
+        if(cb)cb();
+      });
+      return;
+    }
+    rsBarra();rsSyncImmagini();if(cb)cb();
   });
+}
+/* Anche le immagini: una carta calibrata prima di questa sincronia ha sb!==true
+   e l'immagine solo in locale. Si manda su, una per volta, senza fretta. */
+/* Anche le immagini: una carta calibrata prima di questa sincronia ha
+   sb!==true e l'immagine solo in locale. Si mandano su una per volta, e alla
+   fine si RIMANDA l'indice, perche' ora le bandiere sb sono vere. */
+function rsSyncImmagini(){
+  if(!SB.pronto())return;
+  var da=RS.list.filter(function(c){return !c.sb;});
+  if(!da.length)return;
+  (function prossima(i,cambiato){
+    if(i>=da.length){
+      if(cambiato&&SB.pronto())
+        SB.indiceSu(RS.list.map(rsPulita),function(){rsBarra();});
+      return;
+    }
+    var c=da[i];
+    RDB.get(c.id,function(blob){
+      if(!blob){prossima(i+1,cambiato);return;}
+      SB.su(c.id,blob,function(ok){
+        if(ok){c.sb=true;rsStoreLocale();rsBarra();}
+        prossima(i+1,cambiato||ok);
+      });
+    });
+  })(0,false);
 }
 function rsById(id){for(var i=0;i<RS.list.length;i++)if(RS.list[i].id===id)return RS.list[i];return null;}
 
@@ -1336,7 +1390,13 @@ function rsAttiva(id,poi){
        scarica e la si MEMORIZZA in IndexedDB: senza copia locale, alla prima
        cala senza campo la carta sparirebbe. Supabase distribuisce, non
        sostituisce. */
-    if(cal.sb&&SB.pronto()){
+    /* NON si guarda cal.sb: e' una bandiera di stato, e una bandiera puo'
+       essere vecchia. Succedeva: chi manda l'indice prima delle immagini
+       pubblica sb:false, e l'altro dispositivo non provava nemmeno a
+       scaricare. Se l'immagine manca e il cloud c'e', si prova; se non c'e'
+       torna un 404 e si dice all'utente. Un cancello basato su uno stato
+       replicato e' il modo di non ripararsi mai. */
+    if(SB.pronto()){
       RS.url=null;RS.sync='scarico';rsBarra();
       SB.giu(id,function(b,err){
         RS.sync=null;
@@ -1372,7 +1432,9 @@ function rsBarra(){
     if(RS.sync==='indice')t='cerco sul cloud…';
     else if(RS.sync==='scarico')t='scarico…';
     else if(RS.sync==='carico')t=t+' · invio…';
+    else if(RS.sync==='invio')t=t+' · invio…';
     else if(RS.act.sb)t=t+' · ☁';
+    else if(!SB.pronto())t=t+' · solo qui';
   }
   $('rInfo').textContent=t;
   $('rOp').value=String(Math.round(((RS.act&&RS.act.opacity!=null)?RS.act.opacity:1)*100));
