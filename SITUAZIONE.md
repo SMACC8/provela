@@ -3320,3 +3320,96 @@ avvisi.
   troncato o corrotto: si darebbe per presente un file illeggibile.
 - Due dispositivi che aprono nello stesso istante: l'ultimo `POST` dell'indice
   vince, senza controllo di versione.
+
+---
+
+## 19/09/2026 — Il token scadeva, e `carta/` non lo rinnovava
+
+`carta/index.html`. Nessun bump di service worker.
+
+L'errore finalmente leggibile, dalla riga di stato appiccicata aggiunta ieri:
+
+    403 Unauthorized · "exp" claim timestamp check failed · AccessDenied
+
+E l'osservazione di Sergio che vale piu' dell'errore: **«l'errore va via se si
+apre Manutenzione»**. Cioe': non era una policy, non era un percorso, non era
+una bandiera. Era il **token di sessione scaduto**, e Manutenzione lo rinnova
+mentre `carta/` no.
+
+### La causa
+
+`SB.token()` prendeva `access_token` da `raffyca-supabase-sess` e lo usava
+com'era. La sessione dura un'ora. Passata quella, ogni chiamata allo storage
+tornava 403 e la sincronia si fermava. Aprire Manutenzione rimetteva a posto
+tutto perche' `manutenzione/` ha `rinfresca()` e riscrive la sessione: `carta/`
+si ritrovava il token buono **per effetto collaterale di un altro modulo**.
+
+Difetto mio di lettura: avevo copiato da `manutenzione/` `hdr()`, `token()` e
+la forma degli URL — cioe' le tre righe che si vedono — e **non** `scriviSess`,
+`rinfresca` e il ritentativo, che sono la parte che tiene in piedi le altre.
+Copiare la superficie di un livello di accesso e lasciarne fuori la gestione
+del ciclo di vita e' un modo affidabile di scrivere qualcosa che funziona per
+un'ora.
+
+### La correzione
+
+Dentro `SB`, la stessa procedura di `manutenzione/`: `exp` salvato nella
+sessione (`expires_in` meno un minuto), rinnovo su
+`/auth/v1/token?grant_type=refresh_token`, e una sola richiesta di rinnovo in
+volo per volta (`RINF`).
+
+Tutte le chiamate allo storage passano ora da `chiama()`, che:
+
+1. rinnova **prima** se `exp` e' passato;
+2. se il server risponde 401/403 lo stesso, rinnova e **ritenta una volta** —
+   perche' l'orologio del dispositivo puo' essere sfasato e `exp` puo' mentire;
+3. se il rinnovo non riesce, dice all'utente cosa fare: «apri una volta
+   Manutenzione per rientrare», invece di un codice di errore.
+
+La sessione si rilegge da localStorage **a ogni chiamata**, non una volta al
+caricamento: un altro modulo o un'altra scheda puo' averla rinnovata nel
+frattempo.
+
+### Alternative scartate
+
+**Dire all'utente di aprire Manutenzione e basta**, visto che funziona. No:
+e' un rito senza motivo apparente, e a bordo ci si dimentica. Una funzione che
+dipende dall'aver aperto un altro modulo nell'ultima ora non e' una funzione.
+
+**Fare login da `carta/`.** Vorrebbe dire una seconda schermata di accesso e
+la gestione delle credenziali in un modulo che non ne ha bisogno: il rinnovo
+basta, e l'accesso resta una cosa sola, in Manutenzione.
+
+**Rinnovare a orologeria** (un timer che tiene viva la sessione finche' la
+pagina e' aperta). Spreca richieste quando non si usa il cloud, e non risolve
+il caso della pagina appena aperta con sessione gia' vecchia.
+
+**Fidarsi solo di `exp`** senza ritentare sul 403. Scartata dopo tre giorni di
+lezioni sullo stesso tema: `exp` e' un dato locale, e un dato locale non e' la
+verita'. Il server e' la verita', e se dice 403 si rinnova e si riprova.
+
+### Validazione
+
+Tre casi, con `fetch` finto che distingue token buono e token vecchio:
+
+| caso | sequenza osservata | esito |
+|---|---|---|
+| sessione scaduta (`exp` passato) | rinnovo, poi POST | riuscito, token nuovo salvato |
+| `exp` valido ma 403 dal server | POST, rinnovo, POST | riuscito |
+| rinnovo impossibile | rinnovo fallito, ripiego su chiave anon, 403 | messaggio «apri Manutenzione» |
+
+### Non verificato
+
+- Non provato contro il progetto vero: il rinnovo e' simulato. Ma l'errore da
+  cui si parte e' reale, letto sul dispositivo di Sergio.
+- **Rotazione del refresh token fra moduli, punto aperto.** Supabase emette un
+  refresh token nuovo a ogni rinnovo. Se `manutenzione/` e' aperta in un'altra
+  scheda, tiene in memoria quello vecchio (lo legge una volta sola al
+  caricamento): quando prova a rinnovare a sua volta fallisce, e chiede di
+  rientrare. Non e' un danno — si rientra — ma e' un fastidio che nascera'
+  dall'avere due moduli che rinnovano la stessa sessione. La strada, se
+  diventa noioso, e' far rileggere anche a `manutenzione/` la sessione da
+  localStorage prima di rinnovare.
+- Non provato cosa succede se il rinnovo riesce mentre un upload da 3 MB e' a
+  meta': il corpo e' un Blob e si rilegge, quindi in teoria il ritentativo
+  funziona, ma con un file vero non e' stato visto.

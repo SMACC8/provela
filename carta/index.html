@@ -1192,7 +1192,64 @@ var SB=(function(){
                    '/'+encodeURIComponent(boat())+'/carte/'+encodeURIComponent(id)+'.jpg';}
   function urlIndice(){return base()+'/storage/v1/object/'+encodeURIComponent(bucket())+
                      '/'+encodeURIComponent(boat())+'/carte/index.json';}
-  /* Perche' non si puo': serve per dirlo all'utente invece di fallire zitti. */
+
+  /* ── sessione: il token scade, e va rinnovato ──────────────────────
+     Prendevo `access_token` dalla sessione e lo usavo com'era. Dopo un'ora
+     Supabase rispondeva 403 «"exp" claim timestamp check failed», e la
+     sincronia si fermava in silenzio. Sintomo che lo ha svelato: l'errore
+     spariva aprendo Manutenzione, perche' e' Manutenzione che rinnova la
+     sessione. Stessa procedura di manutenzione/: `exp` salvato nella
+     sessione, rinnovo con grant_type=refresh_token, e una sola richiesta di
+     rinnovo in volo per volta. In piu', qui, un tentativo di rinnovo anche
+     sul 401/403 gia' arrivato: l'orologio del dispositivo puo' essere
+     sfasato e `exp` puo' mentire. */
+  function scriviSess(j){
+    if(!j||!j.access_token){try{localStorage.removeItem('raffyca-supabase-sess');}catch(e){}return null;}
+    var vecchia=sess()||{};
+    var s={access_token:j.access_token,refresh_token:j.refresh_token||vecchia.refresh_token,
+           exp:Date.now()+((j.expires_in||3600)-60)*1000,
+           email:(j.user&&j.user.email)||vecchia.email||''};
+    try{localStorage.setItem('raffyca-supabase-sess',JSON.stringify(s));}catch(e){}
+    return s;
+  }
+  function scaduta(){var t=sess();return !!(t&&t.exp&&Date.now()>=t.exp);}
+  var RINF=null;
+  function rinfresca(){
+    var t=sess(),c=cfg();
+    if(!t||!t.refresh_token||!c.url)return Promise.reject(new Error('nessuna sessione da rinnovare'));
+    if(RINF)return RINF;
+    RINF=fetch(base()+'/auth/v1/token?grant_type=refresh_token',{
+        method:'POST',headers:{apikey:c.key||'','Content-Type':'application/json'},
+        body:JSON.stringify({refresh_token:t.refresh_token})})
+      .then(function(r){return r.ok?r.json():null;})
+      .then(function(j){RINF=null;
+        if(!j||!j.access_token){scriviSess(null);throw new Error('sessione scaduta');}
+        scriviSess(j);return true;},
+        function(e){RINF=null;throw e;});
+    return RINF;
+  }
+  var SCADUTO='Sessione Supabase scaduta e non rinnovabile: apri una volta Manutenzione per rientrare.';
+
+  /* Una chiamata allo storage: rinnova prima se il token e' scaduto, e
+     ritenta una volta sola se il server risponde 401/403. */
+  function chiama(metodo,u,corpo,tipo,cb,riprovato){
+    var pre=scaduta()?rinfresca().then(null,function(){return null;}):Promise.resolve(null);
+    pre.then(function(){
+      var extra=tipo?{'Content-Type':tipo,'x-upsert':'true'}:null;
+      return fetch(u,{method:metodo,headers:hdr(extra),body:corpo||undefined});
+    }).then(function(r){
+      if((r.status===401||r.status===403)&&!riprovato){
+        rinfresca().then(function(){chiama(metodo,u,corpo,tipo,cb,true);},
+                         function(){cb(null,SCADUTO);});
+        return;
+      }
+      cb(r,null);
+    },function(e){cb(null,e.message||'rete assente');});
+  }
+  function errore(r){
+    return r.text().then(function(t){return t.slice(0,140);},function(){return 'errore '+r.status;});
+  }
+
   function perche(){
     var c=cfg();
     if(!c.url||!c.key)return 'Supabase non e\u2019 configurato: lo si imposta in Impostazioni.';
@@ -1208,54 +1265,44 @@ var SB=(function(){
       var m=perche();if(m){cb(false,m);return;}
       if(blob.size>10*1024*1024){cb(false,'l\u2019immagine pesa '+(blob.size/1048576).toFixed(1)+
         ' MB e il bucket ne accetta 10');return;}
-      fetch(url(id),{method:'POST',headers:hdr({'Content-Type':blob.type||'image/jpeg','x-upsert':'true'}),body:blob})
-        .then(function(r){if(r.ok){cb(true,null);return;}
-          return r.text().then(function(t){cb(false,t.slice(0,120));});})
-        .catch(function(e){cb(false,e.message||'rete assente');});
+      chiama('POST',url(id),blob,blob.type||'image/jpeg',function(r,err){
+        if(!r){cb(false,err);return;}
+        if(r.ok){cb(true,null);return;}
+        errore(r).then(function(t){cb(false,t);});
+      });
     },
-    /* Chiede al SERVER se l'oggetto c'e'. Serve perche' la bandiera locale
-       sb puo' dire "sul cloud" mentre sul cloud non c'e' niente: e' capitato,
-       e i log del progetto lo hanno mostrato senza possibilita' di dubbio
-       (nessun POST dell'immagine, mai, e dodici GET con 400). Uno stato
-       replicato non decide: decide la realta'. */
     esiste:function(id,cb){
       if(perche()){cb(false);return;}
-      fetch(url(id),{method:'HEAD',headers:hdr()})
-        .then(function(r){cb(r.ok);}).catch(function(){cb(false);});
+      chiama('HEAD',url(id),null,null,function(r){cb(!!(r&&r.ok));});
     },
     giu:function(id,cb){
       var m=perche();if(m){cb(null,m);return;}
-      fetch(url(id),{headers:hdr()})
-        .then(function(r){if(!r.ok)return r.text().then(function(t){cb(null,'non trovata sul server');});
-          return r.blob().then(function(b){cb(b,null);});})
-        .catch(function(e){cb(null,e.message||'rete assente');});
+      chiama('GET',url(id),null,null,function(r,err){
+        if(!r){cb(null,err);return;}
+        if(!r.ok){errore(r).then(function(t){cb(null,t);});return;}
+        r.blob().then(function(b){cb(b,null);},function(){cb(null,'immagine illeggibile');});
+      });
     },
-    /* L'INDICE: la calibrazione di tutte le carte in un oggetto JSON accanto
-       alle immagini. Poche centinaia di byte per carta, e soprattutto NESSUNA
-       tabella e nessuna policy nuova: lo stesso prefisso <boat_id>/carte/ che
-       la policy del bucket gia' accetta. Senza questo su Supabase viaggiava
-       solo l'immagine, e sull'altro dispositivo la carta non compariva nemmeno
-       in elenco: restava il backup come unica strada, cioe' mezzo problema
-       risolto. */
     indiceSu:function(lista,cb){
       var m=perche();if(m){cb(false,m);return;}
       var corpo=new Blob([JSON.stringify({v:1,ts:Date.now(),carte:lista})],{type:'application/json'});
-      fetch(urlIndice(),{method:'POST',headers:hdr({'Content-Type':'application/json','x-upsert':'true'}),body:corpo})
-        .then(function(r){if(r.ok){cb(true,null);return;}
-          return r.text().then(function(t){cb(false,t.slice(0,120));});})
-        .catch(function(e){cb(false,e.message||'rete assente');});
+      chiama('POST',urlIndice(),corpo,'application/json',function(r,err){
+        if(!r){cb(false,err);return;}
+        if(r.ok){cb(true,null);return;}
+        errore(r).then(function(t){cb(false,t);});
+      });
     },
     indiceGiu:function(cb){
       var m=perche();if(m){cb(null,m);return;}
-      fetch(urlIndice(),{headers:hdr()})
-        .then(function(r){if(!r.ok){cb(null,'nessun indice sul server');return;}
-          return r.json().then(function(j){cb((j&&j.carte)||[],null);});})
-        .catch(function(e){cb(null,e.message||'rete assente');});
+      chiama('GET',urlIndice(),null,null,function(r,err){
+        if(!r){cb(null,err);return;}
+        if(!r.ok){cb(null,'nessun indice sul server');return;}
+        r.json().then(function(j){cb((j&&j.carte)||[],null);},function(){cb(null,'indice illeggibile');});
+      });
     },
     via:function(id,cb){
       if(perche()){if(cb)cb();return;}
-      fetch(url(id),{method:'DELETE',headers:hdr()}).then(function(){if(cb)cb();})
-        .catch(function(){if(cb)cb();});
+      chiama('DELETE',url(id),null,null,function(){if(cb)cb();});
     }
   };
 })();
