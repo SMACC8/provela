@@ -155,15 +155,10 @@ a.link{color:var(--teal);word-break:break-all;font-size:12px;font-family:var(--m
   </div>
 
   <div class="card">
-    <h3>Chiave di scrittura</h3>
-    <div class="muted" style="margin-bottom:8px">Il token di scrittura del database delle posizioni. Si inserisce una volta e resta salvato su questo dispositivo, quindi non va più reinserito a ogni aggiornamento di Dritta. Non condividerlo: chi ce l'ha può scrivere la tua posizione.</div>
-    <input id="tokIn" type="password" autocomplete="off" placeholder="token di scrittura Upstash"
-      style="width:100%;padding:11px;border-radius:9px;border:1px solid var(--dim,#24405a);background:var(--panel2,#0b1a2c);color:inherit;font-family:var(--mono);font-size:12px">
-    <div class="row" style="margin-top:9px;gap:9px">
-      <button class="ghost" id="tokSave" style="flex:1">Salva chiave</button>
-      <button class="ghost" id="tokClear">Rimuovi</button>
-    </div>
-    <div class="muted" id="tokMsg" style="margin-top:8px"></div>
+    <h3>Dove finisce la posizione</h3>
+    <div class="muted" style="margin-bottom:8px">Sul tuo progetto Supabase, lo stesso di Manutenzione e Carta. Si configura una volta sola da Impostazioni; qui si vede soltanto se c'è. Non c'è più nessuna chiave da incollare: il codice di scrittura se lo genera Dritta, resta su questo dispositivo e non viaggia nel link.</div>
+    <div class="muted" id="dbMsg" style="margin-bottom:9px"></div>
+    <a class="link" href="../impostazioni/">Apri Impostazioni →</a>
   </div>
 
 
@@ -278,7 +273,7 @@ function syncTx(){
   $("lastSent").textContent=st.ultimoInvio?new Date(st.ultimoInvio)
     .toLocaleTimeString("it",{hour:"2-digit",minute:"2-digit",second:"2-digit"}):"mai";
   var m;
-  if(!st.haToken) m='<span class="err">Chiave di scrittura non inserita: la trasmissione non parte.</span>';
+  if(!st.haConfig) m='<span class="err">Database non configurato: apri Impostazioni e inserisci indirizzo e chiave del progetto Supabase. La trasmissione non parte.</span>';
   else if(!st.on) m='<span class="muted">Trasmissione ferma.</span>';
   else if(st.esito==="ok") m='<span class="muted">Trasmissione attiva.</span>';
   else if(st.esito) m='<span class="err">'+st.esito+'</span>';
@@ -315,25 +310,14 @@ $("freq").addEventListener("change",()=>{if(window.rfLive){rfLive.frequenza(+$("
 $("btnCopy").addEventListener("click",async()=>{try{await navigator.clipboard.writeText(shareUrl());$("btnCopy").textContent="✓ Copiato";setTimeout(()=>$("btnCopy").textContent="⧉ Copia link",1500);}catch(e){}});
 $("btnNew").addEventListener("click",()=>{if(confirm("Generare un nuovo codice? Il link precedente smetterà di funzionare."))
   {localStorage.removeItem("raffyca-live-session");refreshShare();}});
-/* ---------- chiave di scrittura ---------- */
-function tokSync(){
-  /* Un solo avviso, qui sotto il campo. Prima ce n'era un secondo (#cfgWarn)
-     che ripeteva la stessa frase due righe piu' in basso (segnalato 22/08).
-     Lo stato in cima alla pagina, in #txMsg, dice un'altra cosa: riguarda la
-     trasmissione, non la chiave. */
-  var ha=window.rfLive&&rfLive.haToken();
-  $("tokMsg").innerHTML=ha?'<span class="muted">Chiave salvata su questo dispositivo.</span>'
-                          :'<span class="err">Nessuna chiave salvata: la trasmissione non parte.</span>';
+/* ---------- stato del database ----------
+   Un solo avviso, qui sotto. Lo stato in cima alla pagina, in #txMsg, dice
+   un'altra cosa: riguarda la trasmissione, non la configurazione. */
+function dbSync(){
+  var ha=window.rfLive&&rfLive.haConfig();
+  $("dbMsg").innerHTML=ha?'<span class="muted">Progetto configurato su questo dispositivo.</span>'
+                         :'<span class="err">Nessun progetto configurato: la trasmissione non parte.</span>';
 }
-$("tokSave").addEventListener("click",function(){
-  var v=$("tokIn").value.trim();
-  if(!v)return;
-  rfLive.impostaToken(v);$("tokIn").value="";tokSync();syncTx();
-});
-$("tokClear").addEventListener("click",function(){
-  if(!confirm("Rimuovere la chiave di scrittura da questo dispositivo?"))return;
-  rfLive.impostaToken("");$("tokIn").value="";tokSync();syncTx();
-});
 
 /* ---------- avvio ---------- */
 if(window.rfLive){
@@ -342,7 +326,7 @@ if(window.rfLive){
   rfLive.onChange(syncTx);
   syncTx();
 }
-tokSync();
+dbSync();
 refreshShare();
 setInterval(tickUi,1000);
 </script>

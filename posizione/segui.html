@@ -100,26 +100,27 @@ a.map{display:block;text-align:center;color:var(--teal);text-decoration:none;fon
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
-/* CONFIG — token di SOLA LETTURA. È pubblico per natura: chiunque apra il link
-   può leggerlo dal sorgente della pagina, e non c'è modo di evitarlo (chi ti
-   segue da terra non può inserire una chiave, quindi il trucco del localStorage
-   usato in posizione/index.html qui non si applica).
+/* CONFIG — indirizzo del progetto Supabase e anon key.
+   Stanno nel sorgente, e non e' una svista: chi ti segue da terra non ha mai
+   aperto Impostazioni, quindi in quel browser la configurazione condivisa
+   (raffyca-supabase) non esiste e non c'e' modo di fargliela inserire.
 
-   PROPRIO PER QUESTO il token NON dev'essere quello di sola lettura generale
-   del database: quello permette di leggere qualunque chiave, quindi il codice
-   sessione non sarebbe più l'unica barriera. Va usato un token ristretto,
-   creato una volta sola così (redis-cli connesso come default):
+   La anon key di Supabase e' PUBBLICA per costruzione — sta nel sorgente di
+   qualunque pagina web che parli con Supabase — e qui non apre nulla:
+   - la tabella live_pos ha RLS attiva e nessuna policy, quindi nessun ruolo
+     la legge direttamente;
+   - si passa solo per get_pos e put_pos, le uniche due funzioni concesse ad
+     anon, che chiedono una sessione per nome e non sanno elencarle;
+   - scrivere richiede in piu' il codice di scrittura, che sta solo sul
+     dispositivo della barca e non viaggia in questo link.
+   Il codice sessione, casuale, resta quindi l'unica cosa da non diffondere.
 
-     ACL SETUSER raffyca_segui on >UNA_PASSWORD_LUNGA ~raffyca:pos:* +get -@dangerous
-     ACL RESTTOKEN raffyca_segui UNA_PASSWORD_LUNGA
-
-   Il secondo comando restituisce il token REST da incollare qui sotto: potrà
-   fare solo GET, solo sulle chiavi raffyca:pos:*, e non potrà elencarle
-   (-@dangerous toglie KEYS e SCAN). Senza il codice sessione, che è casuale,
-   non c'è nulla da leggere. */
+   DA FARE UNA VOLTA SOLA: incollare qui i due valori, che si trovano nella
+   dashboard Supabase sotto Project Settings → API (Project URL e anon
+   public). Sono gli stessi due valori inseriti in Impostazioni. */
 const CFG = {
-  UPSTASH_URL: "https://united-dingo-121489.upstash.io",
-  READ_TOKEN: "ggAAAAAAAdqRAAIgcDGKa_KVk4QumGKW0M88rmc7B19037Zjgwo1B5vccV2ujw"
+  SUPABASE_URL: "INCOLLA_QUI_L_INDIRIZZO_DEL_PROGETTO",   // https://xxxxxxxx.supabase.co
+  ANON_KEY:     "INCOLLA_QUI_LA_ANON_KEY"
 };
 const POLL_MS = 60000;   // lettura ogni minuto (come la trasmissione)
 
@@ -197,14 +198,26 @@ function paint(d){
 
 async function poll(){
   if(!session){$("msg").innerHTML='<span style="color:var(--coral)">Link senza codice sessione. Usa il link completo condiviso dalla barca.</span>';return;}
-  if(CFG.READ_TOKEN.indexOf("INCOLLA")===0){$("msg").innerHTML='<span style="color:var(--coral)">Read token non inserito in segui.html.</span>';return;}
+  if(CFG.ANON_KEY.indexOf("INCOLLA")===0||CFG.SUPABASE_URL.indexOf("INCOLLA")===0){
+    $("msg").innerHTML='<span style="color:var(--coral)">Indirizzo o chiave del progetto non inseriti in segui.html.</span>';return;}
   try{
-    var r=await fetch(CFG.UPSTASH_URL+"/get/"+encodeURIComponent("raffyca:pos:"+session),
-      {headers:{Authorization:"Bearer "+CFG.READ_TOKEN}});
-    var j=await r.json();
-    if(!j.result){$("msg").textContent="La barca non ha ancora trasmesso (o il codice è scaduto). Rimango in ascolto.";connState();return;}
+    var r=await fetch(CFG.SUPABASE_URL.replace(/\/+$/,"")+"/rest/v1/rpc/get_pos",{
+      method:"POST",
+      headers:{apikey:CFG.ANON_KEY,Authorization:"Bearer "+CFG.ANON_KEY,"Content-Type":"application/json"},
+      body:JSON.stringify({p_session:session})});
+    if(!r.ok)throw new Error("il server ha risposto "+r.status);
+    /* get_pos restituisce gia' un oggetto JSON, oppure null se la sessione
+       e' scaduta o non e' mai esistita. Niente JSON.parse sul risultato:
+       con Upstash serviva perche' Redis restituiva una stringa dentro
+       {result:"..."}, qui darebbe a paint() una stringa al posto di un
+       oggetto — e paint() non solleva, legge d.lat su una stringa e trova
+       undefined. L'interfaccia resterebbe vuota senza un errore in
+       console: e' il modo in cui questa migrazione poteva rompersi in
+       silenzio. */
+    var d=await r.json();
+    if(!d){$("msg").textContent="La barca non ha ancora trasmesso (o il codice è scaduto). Rimango in ascolto.";connState();return;}
     $("msg").textContent="";
-    paint(JSON.parse(j.result));
+    paint(d);
   }catch(e){$("msg").innerHTML='<span style="color:var(--coral)">Lettura fallita: '+e.message+'</span>';}
 }
 

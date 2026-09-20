@@ -98,13 +98,24 @@ successo, ed è invisibile rileggendo il codice perché il codice resta giusto.
 (Nota: su Alto Tirreno `lonW` differisce fra routing 7.50 e carta 9.00; i due
 script usano di proposito il più largo, così un pacchetto serve entrambi.)
 
-**Niente credenziali nel codice.** Token Upstash e configurazione Supabase
-vivono in localStorage, scritti dall'utente da `impostazioni/`. Nel repo restano
-solo i segnaposto. Il repository è pubblico: qualunque chiave committata è da
-considerare compromessa.
+**Niente credenziali nel codice.** La configurazione Supabase vive in
+localStorage (`raffyca-supabase`), scritta dall'utente da `impostazioni/`. Nel
+repo restano solo i segnaposto. Il repository è pubblico: qualunque chiave
+committata è da considerare compromessa — è già successo con il token di lettura
+Upstash, committato il 20/09/2026 e da revocare, non solo da cancellare.
 
-**Su Supabase ci sono due moduli, non uno.** `manutenzione/` (tabelle e
-allegati) e `carta/`, che dal 17/09/2026 manda le immagini delle carte raster
+**L'unica eccezione è `posizione/segui.html`**, che porta nel sorgente
+l'indirizzo del progetto e la anon key. Non è una svista e non va "sistemata":
+chi segue da terra non ha mai aperto `impostazioni/`, quindi in quel browser
+`raffyca-supabase` non esiste. La anon key è pubblica per costruzione e lì non
+apre nulla — `live_pos` ha RLS senza policy, si passa solo per `get_pos` e
+`put_pos`, e scrivere richiede in più il codice di `raffyca-live-secret`, che
+non viaggia nel link.
+
+**Su Supabase ci sono tre moduli.** `manutenzione/` (tabelle e
+allegati); `posizione/`, che dal 21/09/2026 pubblica la posizione live nella
+tabella `live_pos` passando per due funzioni `security definer` (schema in
+`supabase/migrations/`, trasmettitore in `rf-live.js`); e `carta/`, che dal 17/09/2026 manda le immagini delle carte raster
 nello **stesso bucket** `boat-docs`, sotto `<boat_id>/carte/`. Non serve un
 progetto né un bucket in più: la policy del bucket pretende l'id della barca
 come primo segmento del percorso, e quel percorso la rispetta — chi aggiunge un

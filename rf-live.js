@@ -15,11 +15,23 @@
    Il Service Worker NON era un'alternativa: l'API di geolocalizzazione
    non e' esposta ai worker, quindi un SW non puo' leggere il GPS.
 
-   IL TOKEN non sta piu' nel sorgente. Vive in "raffyca-live-token", si
-   inserisce una volta da Posizione e sopravvive agli aggiornamenti; prima
-   era una costante da riscrivere a mano a ogni consegna. Resta comunque
-   un segreto in chiaro sul dispositivo: da' accesso in scrittura al solo
-   database delle posizioni, non e' una credenziale di sistema.
+   DOVE FINISCE LA POSIZIONE. Su Supabase, nello stesso progetto di
+   Manutenzione e Carta, dal 21/09/2026 (prima era Upstash Redis). La
+   configurazione non e' duplicata qui: si legge da "raffyca-supabase",
+   la chiave che scrive Impostazioni e che leggono gia' gli altri due
+   moduli. Se manca, la trasmissione lo dice invece di fallire in
+   silenzio.
+
+   IL CODICE DI SCRITTURA ("raffyca-live-secret") lo genera questo file,
+   da solo, alla prima trasmissione: non c'e' piu' niente da incollare a
+   mano. Non viaggia nel link e non esce dal dispositivo. Serve perche' la
+   anon key di Supabase e' pubblica per costruzione — sta nel sorgente di
+   segui.html — e senza un codice a parte chiunque abbia il link potrebbe
+   scrivere una posizione falsa nella sessione altrui. Vale la regola del
+   primo arrivato: la prima scrittura registra il codice, le successive
+   devono combaciare. Se il codice va perso (localStorage svuotato) la
+   sessione resta chiusa finche' non scade: si riapre subito generando un
+   nuovo codice sessione da Posizione.
 
    Espone window.rfLive. Non tocca il DOM: chi vuole mostrare qualcosa si
    iscrive con rfLive.onChange().
@@ -27,10 +39,11 @@
 (function () {
   "use strict";
 
-  var K_STATO = "raffyca-live";          /* {on, freq} */
-  var K_TOKEN = "raffyca-live-token";
-  var K_SESS  = "raffyca-live-session";
-  var URL_BASE = "https://united-dingo-121489.upstash.io";
+  var K_STATO   = "raffyca-live";          /* {on, freq} */
+  var K_SESS    = "raffyca-live-session";
+  var K_SEGRETO = "raffyca-live-secret";   /* codice di scrittura, generato qui */
+  var K_SB      = "raffyca-supabase";      /* {url, key, bucket} — la scrive Impostazioni */
+  var K_VECCHIO = "raffyca-live-token";    /* il token Upstash di prima: si cancella */
 
   var R = 6371000;
   function rad(d) { return d * Math.PI / 180; }
@@ -48,7 +61,40 @@
     if (!isFinite(s.freq) || s.freq < 5) s.freq = 60;
     return { on: !!s.on, freq: s.freq };
   }
-  function token() { try { return localStorage.getItem(K_TOKEN) || ""; } catch (e) { return ""; } }
+  /* Configurazione Supabase: la stessa di manutenzione/ e carta/, letta e
+     non copiata. Si rilegge a ogni invio perche' l'utente puo' cambiarla
+     in Impostazioni mentre questa pagina e' aperta. */
+  function sbCfg() {
+    try {
+      var c = JSON.parse(localStorage.getItem(K_SB) || "null") || {};
+      return { url: String(c.url || "").replace(/\/+$/, ""), key: c.key || "" };
+    } catch (e) { return { url: "", key: "" }; }
+  }
+  function haConfig() { var c = sbCfg(); return !!(c.url && c.key); }
+
+  function casuale(n) {
+    var abc = "abcdefghijklmnopqrstuvwxyz0123456789", out = "", i;
+    if (window.crypto && window.crypto.getRandomValues) {
+      var b = new Uint8Array(n);
+      window.crypto.getRandomValues(b);
+      for (i = 0; i < n; i++) out += abc.charAt(b[i] % abc.length);
+      return out;
+    }
+    for (i = 0; i < n; i++) out += abc.charAt(Math.floor(Math.random() * abc.length));
+    return out;
+  }
+
+  /* Codice di scrittura: si crea da solo la prima volta e poi resta. Qui
+     dentro si fa anche pulizia del token Upstash, che dal 21/09 non serve
+     piu' a nessuno e non ha motivo di restare in chiaro sul telefono. */
+  function segreto() {
+    try {
+      try { if (localStorage.getItem(K_VECCHIO) != null) localStorage.removeItem(K_VECCHIO); } catch (e0) {}
+      var s = localStorage.getItem(K_SEGRETO);
+      if (!s) { s = casuale(24); localStorage.setItem(K_SEGRETO, s); }
+      return s;
+    } catch (e) { return ""; }
+  }
   function sessione() {
     try {
       var s = localStorage.getItem(K_SESS);
@@ -74,7 +120,7 @@
   function istantanea() {
     var s = stato();
     return {
-      on: s.on, freq: s.freq, haToken: !!token(), sessione: sessione(),
+      on: s.on, freq: s.freq, haConfig: haConfig(), sessione: sessione(),
       pos: cur ? { lat: cur.ll[0], lon: cur.ll[1], t: cur.t } : null,
       sog: sog, cog: cog, ultimoInvio: ultimoInvio, esito: ultimoEsito
     };
@@ -163,17 +209,39 @@
   function invia() {
     var pl = payload();
     if (!pl) { ultimoEsito = "in attesa del primo fix GPS"; avvisa(); return; }
-    var tk = token();
-    if (!tk) { ultimoEsito = "token non inserito"; avvisa(); return; }
+    var c = sbCfg();
+    if (!c.url || !c.key) {
+      ultimoEsito = "database non configurato: apri Impostazioni";
+      avvisa(); return;
+    }
     var s = stato();
-    var key = "raffyca:pos:" + sessione();
+    /* ttl invariato rispetto a Upstash: tre intervalli, mai meno di un'ora.
+       Lo interpreta put_pos, che lo somma a now() e scrive expires_at —
+       Postgres il TTL non ce l'ha. */
     var ttl = Math.max(3 * s.freq, 3600);
-    fetch(URL_BASE + "/set/" + encodeURIComponent(key) + "?EX=" + ttl, {
-      method: "POST", headers: { Authorization: "Bearer " + tk }, body: JSON.stringify(pl)
-    }).then(function (r) { return r.json(); }).then(function (j) {
-      if (j && j.result === "OK") { ultimoInvio = Date.now(); ultimoEsito = "ok"; }
-      else { ultimoEsito = "risposta inattesa"; }
-      avvisa();
+    fetch(c.url + "/rest/v1/rpc/put_pos", {
+      method: "POST",
+      headers: {
+        apikey: c.key,
+        Authorization: "Bearer " + c.key,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        p_session: sessione(), p_payload: pl, p_ttl: ttl, p_secret: segreto()
+      })
+    }).then(function (r) {
+      /* put_pos non restituisce nulla: la risposta e' 204 con corpo vuoto.
+         Qui NON si chiama r.json(), che su un corpo vuoto solleva — ed e'
+         il modo in cui una migrazione come questa fallisce in silenzio,
+         perche' l'eccezione finisce nel .catch e sembra un problema di
+         rete. Si guarda r.ok e basta. */
+      if (r.ok) { ultimoInvio = Date.now(); ultimoEsito = "ok"; avvisa(); return; }
+      return r.text().then(function (t) {
+        var m = "";
+        try { var j = JSON.parse(t); m = j.message || j.hint || j.error || ""; } catch (e) {}
+        ultimoEsito = "invio rifiutato (" + r.status + ")" + (m ? ": " + m : "");
+        avvisa();
+      });
     }).catch(function (e) {
       ultimoEsito = "invio fallito: " + (e && e.message ? e.message : "rete");
       avvisa();
@@ -216,19 +284,11 @@
     if (s.on) { fermaMotore(); avviaMotore(); }
     else avvisa();
   }
-  function impostaToken(t) {
-    try {
-      if (t) localStorage.setItem(K_TOKEN, String(t).trim());
-      else localStorage.removeItem(K_TOKEN);
-    } catch (e) {}
-    avvisa();
-  }
-
   window.rfLive = {
     stato: istantanea,
     avvia: avvia, ferma: ferma, frequenza: frequenza,
-    impostaToken: impostaToken, haToken: function () { return !!token(); },
-    sessione: sessione, urlBase: URL_BASE,
+    haConfig: haConfig,
+    sessione: sessione,
     onChange: function (fn) { if (typeof fn === "function") ascoltatori.push(fn); }
   };
 

@@ -3568,3 +3568,121 @@ S2, N2, O1 (Trieste, M2: 26,7 contro 26,8 cm, 0,6 gradi = un minuto e mezzo).
   nella riga delle fonti di `impostazioni/` (la licenza CC BY la pretende).
   Non e' un punto aperto, e' fatto: resta da guardare che su schermo stretto
   quella riga, ora lunga, non diventi illeggibile.
+
+---
+
+## 21/09/2026 — La Posizione Live passa da Upstash a Supabase
+
+Upstash era il solo servizio esterno rimasto oltre a Supabase, per una
+funzione sola. Ora la posizione viaggia nello stesso progetto di Manutenzione
+e Carta: un servizio in meno da tenere vivo, una configurazione sola da
+inserire, e la chiave condivisa `raffyca-supabase` gia' scritta da
+`impostazioni/` che si riusa invece di duplicare indirizzo e token.
+
+**Dove stava davvero il trasmettitore.** Non in `posizione/index.html`: la
+funzione che invia e' `invia()` in `rf-live.js`, in radice, caricato da dieci
+moduli (spostato li' il 22/08 perche' cambiare pagina fermava la
+trasmissione). Conseguenza pratica, facile da dimenticare: `rf-live.js` sta
+nel precache di **cinque** service worker, non uno. Alzati tutti e cinque —
+hub v18→v19, meteo v17→v18, anchor v15→v16, routing v22→v23, xte v9→v10 —
+altrimenti meta' suite avrebbe continuato a parlare con Upstash dalla cache,
+e sarebbe stato invisibile dal codice.
+
+**Lo schema.** `supabase/migrations/20260921_live_pos.sql`: tabella
+`live_pos`, RLS attiva e **nessuna policy**, piu' due funzioni
+`security definer` — `put_pos` e `get_pos` — concesse ad `anon`. Postgres non
+ha il TTL di Redis: la scadenza e' la colonna `expires_at`, la rispetta chi
+legge, e le righe morte da piu' di un giorno le raccoglie la scrittura
+successiva. Il `ttl` resta quello di prima, `max(3 * intervallo, 3600)`.
+
+### Alternative scartate
+
+**Client JS di Supabase e Realtime.** Avrebbero portato una dipendenza in un
+progetto che non ne ha, e Realtime avrebbe riscritto una funzione che
+funziona: il polling a un minuto resta com'e'.
+
+**Anon key nel link di condivisione**, per non committarla. E' un JWT da
+duecento caratteri: il link passa da sessanta a trecento e il QR — che a
+bordo si inquadra al volo — diventa molto piu' denso. Scartata: la anon key
+sta nel sorgente di `segui.html`, che e' il posto dove sta in qualunque
+applicazione web che parli con Supabase.
+
+**`put_pos` concessa solo ad `authenticated`.** Sarebbe la chiusura piu'
+stretta, ma obbligherebbe `rf-live.js` a rinnovare il token come ha dovuto
+fare `carta/` il 19/09, e in mare il fallimento diventerebbe «apri
+Manutenzione per rientrare» su una funzione che deve funzionare sempre.
+
+**Lo schema esattamente come proposto**, con `put_pos` aperta ad `anon` senza
+altro. Con la anon key pubblica, chiunque avesse il link — e quindi il codice
+sessione — avrebbe potuto scrivere una posizione falsa nella sessione altrui:
+oggi non puo', perche' scrivere richiede il write token che sta solo sulla
+barca, e la migrazione avrebbe tolto quella barriera senza che si vedesse.
+Aggiunta invece una colonna `secret` e un quarto parametro: il codice di
+scrittura lo genera `rf-live.js` da solo alla prima trasmissione (chiave
+nuova `raffyca-live-secret`, 24 caratteri da `crypto.getRandomValues`), non
+viaggia nel link, e vale la regola del primo arrivato — la prima scrittura
+di una sessione lo registra, le successive devono combaciare. Una sessione
+scaduta si puo' riprendere, altrimenti chi svuota il localStorage resta
+chiuso fuori dalla propria sessione.
+
+**Tenere `raffyca-live-token` per il codice nuovo.** Il nome sarebbe andato
+bene, ma dentro c'e' il token Upstash: riusare la chiave avrebbe lasciato un
+segreto morto in chiaro sul telefono, con l'aria di servire ancora.
+`rf-live.js` ora lo **cancella** alla prima trasmissione.
+
+### Due trappole della migrazione, entrambe silenziose
+
+1. **`put_pos` non restituisce niente**: 204 con corpo vuoto. Il vecchio
+   codice faceva `r.json()` e confrontava `j.result === "OK"`. Su un corpo
+   vuoto `r.json()` solleva, l'eccezione finisce nel `.catch` e l'utente
+   legge «invio fallito: rete» mentre la scrittura e' andata a buon fine.
+   Ora si guarda `r.ok`, e il corpo non si tocca.
+2. **`get_pos` restituisce gia' un oggetto.** Upstash tornava una stringa
+   dentro `{result:"..."}`, quindi `segui.html` faceva `JSON.parse`. Tenuto,
+   avrebbe passato a `paint()` una stringa: `paint()` non solleva, legge
+   `d.lat` su una stringa, trova `undefined` e lascia l'interfaccia vuota
+   **senza un errore in console**.
+
+### Validazione
+
+Il progetto vero non e' raggiungibile da qui (le credenziali stanno sul
+dispositivo di Sergio, non nel repo), quindi la prova e' stata fatta contro
+un finto Supabase locale che risponde come quello vero: 204 a corpo vuoto
+sulla scrittura, oggetto o `null` in lettura, 400 con `{"message":...}` sugli
+errori, e la stessa regola del primo arrivato.
+
+| prova | esito |
+|---|---|
+| nessuna configurazione | «Database non configurato: apri Impostazioni», trasmissione ferma |
+| trasmissione con GPS finto | due scritture, `ttl 3600` con intervallo 30 s (invariato), «Trasmissione attiva» |
+| token Upstash sul dispositivo | cancellato alla prima trasmissione; codice nuovo di 24 caratteri generato |
+| lettura sessione viva | barca, 047°, 6,0 kn, posizione, mappa OpenSeaMap, «In diretta» |
+| lettura sessione inesistente | «La barca non ha ancora trasmesso», banner in attesa |
+| link senza codice sessione | «Link senza codice sessione» |
+| `segui.html` con i segnaposto | «Indirizzo o chiave del progetto non inseriti» |
+| scrittura con codice altrui | 400 «codice di scrittura non valido», la posizione vera resta |
+| `ttl` fuori intervallo | 400 «ttl fuori intervallo» |
+| scadenza reale (ttl 60 s) | dopo 65 s la lettura torna `null` e l'interfaccia dice che e' scaduto |
+
+### Aperti
+
+- **Lo schema SQL non e' mai girato su Postgres.** La logica e' stata provata
+  contro una sua riscrittura in Python, che puo' concordare con me e non con
+  Postgres. Da eseguire nel SQL Editor e riprovare i quattro casi della
+  tabella qui sopra. In particolare `on conflict ... do update ... where`
+  con `not found`: e' il modo corretto per evitare la corsa fra due primi
+  invii, ma va visto funzionare.
+- **`segui.html` ha i segnaposto.** Finche' Sergio non incolla indirizzo e
+  anon key, chi segue vede il messaggio e non la posizione.
+- **Il token di lettura Upstash e' nei commit** — `8f4a227` del 20/09, su
+  `origin/main` di un repository pubblico. Toglierlo dal file non lo toglie
+  dalla storia: **va revocato dalla console Upstash**. Il write token invece
+  non e' mai finito in un commit.
+- **Non provato su Safari iOS.** Il pannello di prova e' Chromium. Nel codice
+  nuovo non c'e' niente che iOS non digerisca (nessuna sintassi oltre l'ES5,
+  `fetch` e `crypto.getRandomValues` da anni), ma la prova vera e' il primo
+  giro col telefono.
+- **`keepalive.yml`** non e' ancora mai scattato, e vuole i due segreti
+  `SUPABASE_URL` e `SUPABASE_ANON_KEY` nelle impostazioni del repository.
+  GitHub disattiva i workflow schedulati dopo 60 giorni senza commit: se
+  Dritta resta ferma a lungo, si addormenta anche il guardiano.
