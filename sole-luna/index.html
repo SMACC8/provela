@@ -7,8 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Sole e Luna">
-<title>Sole e Luna · Dritta</title>
+<meta name="apple-mobile-web-app-title" content="Sole, Luna e maree">
+<title>Sole, Luna e maree · Dritta</title>
 <script>(function(){try{var t=localStorage.getItem('raffyca-theme');if(t==='sun')t='day';if(t==='day'||t==='night')document.documentElement.classList.add(t);}catch(e){}})();</script>
 <!-- manifest rimosso: il modulo vive dentro la PWA Dritta, non è un'app a sé -->
 <style>
@@ -187,6 +187,20 @@ button:active{filter:brightness(1.35)}
 .sl-row:last-child{border-bottom:none}
 .sl-row b{color:var(--ink);font-size:14.5px;font-weight:600}
 .sl-row.tr{color:var(--ink)}
+
+/* ---- marea ---- */
+.sl-tide-main{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:2px 0 10px}
+.sl-tide-trend{font-size:22px;font-weight:600;letter-spacing:-.015em}
+.sl-tide-rate{font-size:13px;color:var(--sub)}
+.sl-tide-conf{font-size:10.5px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.sl-tide-wrap{margin:2px 0 8px}
+.sl-tide-wrap canvas{width:100%;aspect-ratio:21/9;display:block}
+.sl-tide-basin{display:flex;align-items:center;gap:9px;min-height:40px;font-size:12.5px;color:var(--sub)}
+.sl-tide-basin input{width:18px;height:18px;accent-color:var(--teal)}
+.sl-tide-note{font-size:11.5px;color:var(--muted);line-height:1.45;margin-top:4px}
+.sl-tide-warn{font-size:12px;color:var(--amber);line-height:1.45;margin-top:8px;
+  border-left:3px solid var(--amber);padding-left:9px}
+.sl-tide-err{font-size:12.5px;color:var(--coral);line-height:1.45}
 .off{display:none!important}
 </style>
 </head>
@@ -208,6 +222,7 @@ button:active{filter:brightness(1.35)}
 <script src="../rf-live.js"></script>
 <!-- ===== /rf-topbar ===== -->
 <script src="../rf-astro.js"></script>
+<script src="../rf-maree.js"></script>
 
 <div class="sl-tabs">
   <button id="tabGiorno" class="on">Giorno</button>
@@ -293,6 +308,34 @@ button:active{filter:brightness(1.35)}
       </div>
     </section>
   </div>
+
+  <!-- ═══ MAREA ═══
+       Struttura fissa, come la card d'arrivo: qui sotto si aggiornano solo i
+       valori. Il numero che conta non e' il livello ma la tendenza. -->
+  <section class="sl-card" id="tideCard">
+    <div class="sl-card-head">
+      <span class="sl-eyebrow strong">Marea</span>
+      <span class="sl-tide-conf" id="tideConf"></span>
+    </div>
+    <div id="tideBody">
+      <div class="sl-tide-main">
+        <b class="sl-tide-trend" id="tideTrend">—</b>
+        <span class="sl-tide-rate mono" id="tideRate"></span>
+      </div>
+      <div class="sl-tide-wrap"><canvas id="tideCv"></canvas></div>
+      <div class="sl-rows">
+        <div class="sl-row"><label>Prossima stanca</label><b class="mono" id="tideSlack">—</b></div>
+        <div class="sl-row" id="tideFlowRow"><label>Corrente in bocca</label><b id="tideFlow">—</b></div>
+        <div class="sl-row"><label>Livello sul medio mare</label><b class="mono" id="tideH">—</b></div>
+      </div>
+      <label class="sl-tide-basin">
+        <input type="checkbox" id="tideBasin"> bacino chiuso con bocche (laguna, darsena, valle)
+      </label>
+      <div class="sl-tide-note" id="tideNote"></div>
+      <div class="sl-tide-warn off" id="tideWarn">Calcolo puramente astronomico: con scirocco o bora sostenuti il sovralzo da vento può invertire la tendenza reale.</div>
+    </div>
+    <div class="sl-tide-err off" id="tideErr"></div>
+  </section>
 
   <section class="sl-card">
     <div class="sl-chart-head">
@@ -489,6 +532,7 @@ var ST = {
   minute: (function () { var n = new Date(); return n.getHours() * 60 + n.getMinutes(); })(),
   yaw: 0, pitch: 32 * RFA.RAD,
   showGrid: true, showYear: true,
+  bacino: false,
   etaMode: 'auto', manualEta: null,
   speed: 5.5, speedAuto: true
 };
@@ -988,12 +1032,169 @@ function drawChart() {
   ctx.restore();
 }
 
+/* ================= marea =================
+   Il motore sta in ../rf-maree.js (ES5, nessuna dipendenza) e legge il
+   pacchetto EOT20 ritagliato sui mari italiani, 388 kB in ../maree/.
+   Qui dentro c'e' solo interfaccia: nessun calcolo di marea.
+
+   Cosa mostra e cosa no. Mostra la TENDENZA (montante, calante, stanca) e
+   l'istante della prossima stanca, perche' e' quello che serve per entrare
+   o uscire da una bocca di porto. Il livello c'e' ma e' informativo: e'
+   riferito al medio mare, non allo zero delle carte nautiche, e non
+   contiene il sovralzo da vento. -------------------------------------- */
+var MAREE = { stato: 'attesa', errore: null, cache: null };
+
+function mareeAvvia() {
+  if (!window.rfMaree) { MAREE.stato = 'assente'; return; }
+  window.rfMaree.carica('../maree/', function (e) {
+    MAREE.stato = e ? 'errore' : 'pronto';
+    MAREE.errore = e ? e.message : null;
+    renderTide();
+  });
+}
+
+/* Serie del giorno, ricalcolata solo quando cambia il giorno o il punto:
+   trascinando il cursore si ridisegna e basta. */
+function mareeSerie() {
+  var b = CUR.data.bounds, k = CUR.site.lat + '|' + CUR.site.lon + '|' + b.t0;
+  if (MAREE.cache && MAREE.cache.k === k) return MAREE.cache.s;
+  var ore = (b.t1 - b.t0) / 3600000;
+  var s = window.rfMaree.serie(CUR.site.lat, CUR.site.lon, new Date(b.t0), ore, 10);
+  MAREE.cache = { k: k, s: s };
+  return s;
+}
+
+function fDur(min) {
+  min = Math.max(0, Math.round(min));
+  var h = Math.floor(min / 60), m = min % 60;
+  return h ? (h + 'h ' + (m < 10 ? '0' : '') + m + 'm') : (m + ' min');
+}
+
+function renderTide() {
+  var err = document.getElementById('tideErr'), body = document.getElementById('tideBody');
+  function guasto(msg) {
+    err.textContent = msg; err.classList.remove('off'); body.classList.add('off');
+  }
+  if (MAREE.stato === 'assente') return guasto('Motore di marea non caricato.');
+  if (MAREE.stato === 'attesa') return guasto('Carico il pacchetto delle maree…');
+  if (MAREE.stato === 'errore')
+    return guasto('Pacchetto delle maree non disponibile (' + MAREE.errore + ').');
+
+  var m;
+  try {
+    m = window.rfMaree.tide(CUR.site.lat, CUR.site.lon, CUR.cursorDate, { basin: ST.bacino });
+  } catch (e) {
+    /* punto a terra, o fuori dal riquadro: e' un'informazione, non un guasto */
+    return guasto(e.message);
+  }
+  err.classList.add('off'); body.classList.remove('off');
+
+  var col = { montante: 'var(--teal)', calante: 'var(--amber)', stanca: 'var(--moon)' }[m.trend];
+  var tr = document.getElementById('tideTrend');
+  tr.textContent = m.trend.charAt(0).toUpperCase() + m.trend.slice(1);
+  tr.style.color = col;
+  document.getElementById('tideRate').textContent =
+    (m.rate_cm_h > 0 ? '+' : '') + m.rate_cm_h.toFixed(1) + ' cm/h';
+
+  var sl = document.getElementById('tideSlack');
+  if (m.next_slack) {
+    sl.textContent = (m.next_slack.type === 'AM' ? 'alta' : 'bassa') + ' ' +
+      fT(m.next_slack.timeUTC) + ' · fra ' + fDur(m.minutes_to_slack);
+  } else sl.textContent = '—';
+
+  document.getElementById('tideH').textContent =
+    (m.height_m > 0 ? '+' : '') + m.height_m.toFixed(2) + ' m';
+
+  showIf('tideFlowRow', !!m.flow);
+  if (m.flow) {
+    var f = document.getElementById('tideFlow');
+    f.textContent = m.flow === 'entrante' ? 'entrante (il bacino si riempie)'
+                  : m.flow === 'uscente' ? 'uscente (il bacino si svuota)'
+                  : 'ferma';
+    f.style.color = col;
+  }
+
+  var c = document.getElementById('tideConf');
+  c.textContent = 'attendibilità ' + m.confidence;
+  c.style.color = m.confidence === 'alta' ? 'var(--sub)'
+                : m.confidence === 'media' ? 'var(--moon)' : 'var(--amber)';
+  c.style.borderColor = m.confidence === 'alta' ? 'var(--line)'
+                : m.confidence === 'media' ? 'var(--moon)' : 'var(--amber)';
+
+  var perche = m.confidence_perche ? '<br>Attendibilità ' + m.confidence + ': ' +
+        m.confidence_perche + '.' : '';
+  document.getElementById('tideNote').innerHTML = (ST.bacino
+    ? 'In un bacino con bocche la corrente segue la portata, non il livello: è <b>massima a metà marea</b> e <b>nulla in alta e in bassa</b>. Non vale per un canale fra due mari — nello Stretto di Messina conta il dislivello fra i due capi, non la marea locale.'
+    : 'Calcolo astronomico: non contiene il sovralzo da vento. Per la corrente in una bocca di laguna o di darsena, segna il bacino qui sopra.') + perche;
+
+  document.getElementById('tideWarn').classList.toggle('off', !m.meteo_warning);
+  drawTide();
+}
+
+function drawTide() {
+  var cv = document.getElementById('tideCv'); if (!cv) return;
+  if (MAREE.stato !== 'pronto') return;
+  var dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+  if (!w || !h) return;
+  if (cv.width !== Math.round(w * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+  var ctx = cv.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
+  var pal = THEMES[curTheme()].cv;
+
+  var serie;
+  try { serie = mareeSerie(); } catch (e) { return; }
+  var b = CUR.data.bounds, T = 8, B = 16, PW = w - PAD_L - PAD_R, PH = h - T - B;
+  var lo = serie[0].h, hi = serie[0].h, i;
+  for (i = 1; i < serie.length; i++) { if (serie[i].h < lo) lo = serie[i].h; if (serie[i].h > hi) hi = serie[i].h; }
+  var meta = (hi - lo) < 0.05 ? 0.025 : (hi - lo) * 0.15;   /* marea piatta: scala minima */
+  lo -= meta; hi += meta;
+  var X = function (t) { return PAD_L + PW * ((t - b.t0) / (b.t1 - b.t0)); };
+  var Y = function (v) { return T + PH * (1 - (v - lo) / (hi - lo)); };
+
+  /* griglia oraria, come il grafico delle altezze */
+  ctx.strokeStyle = pal.chartGrid; ctx.lineWidth = 1;
+  ctx.font = '10px ui-monospace, Menlo, monospace'; ctx.fillStyle = pal.muted; ctx.textAlign = 'center';
+  for (var hh = 0; hh <= 24; hh += 6) {
+    var d0 = new Date(b.t0); d0.setHours(hh, 0, 0, 0);
+    var tt = hh === 24 ? b.t1 : d0.getTime();
+    if (tt < b.t0 || tt > b.t1) continue;
+    ctx.beginPath(); ctx.moveTo(X(tt), T); ctx.lineTo(X(tt), h - B); ctx.stroke();
+    if (hh < 24) ctx.fillText((hh < 10 ? '0' : '') + hh, X(tt), h - 4);
+  }
+  /* livello medio */
+  ctx.strokeStyle = pal.axis; ctx.globalAlpha = .45; ctx.setLineDash([2, 4]);
+  ctx.beginPath(); ctx.moveTo(PAD_L, Y(0)); ctx.lineTo(w - PAD_R, Y(0)); ctx.stroke();
+  ctx.setLineDash([]); ctx.globalAlpha = 1;
+  ctx.textAlign = 'right'; ctx.fillStyle = pal.muted;
+  ctx.fillText('0', PAD_L - 5, Y(0) + 3);
+
+  /* la curva, colorata per tendenza: sale in teal, scende in ambra. Il colore
+     e' la derivata, che e' il punto di tutto il modulo. */
+  for (i = 0; i < serie.length - 1; i++) {
+    ctx.strokeStyle = serie[i].rate >= 0 ? pal.grid : pal.sun;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(X(serie[i].ms), Y(serie[i].h));
+    ctx.lineTo(X(serie[i + 1].ms), Y(serie[i + 1].h)); ctx.stroke();
+  }
+  /* stanche: dove la derivata cambia segno */
+  for (i = 0; i < serie.length - 1; i++) {
+    if ((serie[i].rate < 0) === (serie[i + 1].rate < 0)) continue;
+    ctx.fillStyle = pal.moon;
+    ctx.beginPath(); ctx.arc(X(serie[i].ms), Y(serie[i].h), 3, 0, 7); ctx.fill();
+  }
+  /* cursore */
+  var cx = X(CUR.cursorDate.getTime());
+  ctx.strokeStyle = pal.meridian; ctx.globalAlpha = .7;
+  ctx.beginPath(); ctx.moveTo(cx, T); ctx.lineTo(cx, h - B); ctx.stroke(); ctx.globalAlpha = 1;
+}
+
 /* ================= render master ================= */
 var rafPending = false;
 function scheduleRender() { if (rafPending) return; rafPending = true; requestAnimationFrame(function () { rafPending = false; renderAll(); }); }
 
 function renderAll() {
   renderSourceBar(); renderDatebar(); renderArrival(); renderSunMoonCards(); renderCrepuscoli(); renderTime();
+  renderTide();
   if (ST.view === 'giorno') drawChart(); else drawSphere();
 }
 function renderArrivalOnly() { computeArrival(); renderArrival(); }
@@ -1017,7 +1218,7 @@ document.getElementById('dbNow').addEventListener('click', function () {
   computeDay(); computeNow(); renderAll();
 });
 
-function onSlider(v) { ST.minute = +v; computeNow(); renderTime(); if (ST.view === 'giorno') drawChart(); else drawSphere(); }
+function onSlider(v) { ST.minute = +v; computeNow(); renderTime(); renderTide(); if (ST.view === 'giorno') drawChart(); else drawSphere(); }
 document.getElementById('chSlider').addEventListener('input', function (e) { onSlider(e.target.value); });
 document.getElementById('chSlider2').addEventListener('input', function (e) { onSlider(e.target.value); });
 
@@ -1060,16 +1261,31 @@ document.getElementById('tgYear').addEventListener('click', function () {
   drawSphere();
 });
 
-['chartCv', 'sphereCv'].forEach(function (id) {
+['chartCv', 'sphereCv', 'tideCv'].forEach(function (id) {
   var cv = document.getElementById(id);
   if (window.ResizeObserver) {
-    var ro = new ResizeObserver(function () { if (id === 'chartCv') drawChart(); else drawSphere(); });
+    var ro = new ResizeObserver(function () {
+      if (id === 'chartCv') drawChart(); else if (id === 'tideCv') drawTide(); else drawSphere();
+    });
     ro.observe(cv);
   }
 });
 
+/* bacino: e' una preferenza della barca, non della sessione — chi naviga in
+   laguna ci naviga sempre. Chiave del contratto raffyca-*, quindi finisce
+   anche nel backup. */
+var tideBasinEl = document.getElementById('tideBasin');
+try { ST.bacino = localStorage.getItem('raffyca-marea-bacino') === '1'; } catch (e) {}
+tideBasinEl.checked = ST.bacino;
+tideBasinEl.addEventListener('change', function () {
+  ST.bacino = this.checked;
+  try { localStorage.setItem('raffyca-marea-bacino', ST.bacino ? '1' : '0'); } catch (e) {}
+  renderTide();
+});
+
 /* ================= avvio ================= */
 computeDay(); computeNow(); computeArrival(); bindArrival(); DEST_FIRMA = firmaDest(); renderAll();
+mareeAvvia();
 })();
 </script>
 </body>

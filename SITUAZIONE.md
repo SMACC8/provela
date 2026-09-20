@@ -3413,3 +3413,158 @@ Tre casi, con `fetch` finto che distingue token buono e token vecchio:
 - Non provato cosa succede se il rinnovo riesce mentre un upload da 3 MB e' a
   meta': il corpo e' un Blob e si rilegge, quindi in teoria il ritentativo
   funziona, ma con un file vero non e' stato visto.
+
+---
+
+## 20/09/2026 — Le maree: la tendenza, non il livello
+
+Sole e Luna diventa **Sole, Luna e maree**. Non per fare un mareografo: per
+rispondere a una domanda sola, che in bocca di porto vale piu' di tutte —
+**la marea monta o cala, e quando si ferma?** Il verso della corrente in una
+bocca, in un canale, in una laguna lo decide quello, non il livello.
+
+Quindi la grandezza attorno a cui e' costruito tutto il modulo non e' `h` ma
+`dh/dt`, e nemmeno per un passaggio si campiona il livello per differenziarlo
+dopo: la derivata e' in **forma chiusa**, costituente per costituente, con
+ogni termine moltiplicato per la propria pulsazione. E la stanca si cerca
+sullo **zero della derivata**, non sul colmo del livello: vicino a un massimo
+il livello e' piatto, varia come il quadrato dello scarto, e individuarne il
+vertice al minuto non si puo'; la derivata invece attraversa lo zero con
+pendenza piena, e li' la bisezione morde.
+
+Roba nuova: `rf-maree.js` (motore, ES5, niente dipendenze, niente rete),
+`maree/eot20-italia.bin` + `.json` (388 kB), `build_maree.py` (rigenera il
+pacchetto), `valida_maree.py` (le prove), `maree/LEGGIMI.md` (procedura e
+citazione). Nel modulo, una scheda **Marea** con tendenza, prossima stanca,
+grafico del giorno colorato per verso, interruttore *bacino con bocche*,
+attendibilita' motivata. Hub: tessera rinominata, `sw.js` a
+**dritta-hub-v18** con i tre file nuovi nel precache. Chiave nuova nel
+contratto: `raffyca-marea-bacino`.
+
+Dati: **EOT20** (Hart-Davis et al. 2021, SEANOE doi:10.17882/79489, CC BY
+4.0), 1/8 di grado, ritagliato su 6-19,5 E / 35-46 N, dieci costituenti su
+diciassette. La citazione e' nel LEGGIMI e va tenuta **anche nei crediti
+dell'app**: la licenza la pretende.
+
+### Alternative scartate
+
+**Interpolare ampiezza e fase invece delle componenti.** Le fasi sono angoli
+(fra 350 e 10 gradi la media non e' 180) e vicino a un punto anfidromico
+ruotano di 360 gradi in poche celle. Nel pacchetto vanno reale e immaginaria,
+che sono due campi continui e si annullano insieme.
+
+**Far valere zero come «terra».** Nei NetCDF di EOT20 la terra e' scritta 0,0.
+Ma zero e' anche un'ampiezza legittima — nei punti anfidromici la marea si
+annulla davvero — quindi la terra sta in una maschera a parte, un byte per
+cella. Una cella e' terra se e' zero in **tutte** le costituenti: con la sola
+M2 sarebbero finiti «a terra» punti di mare aperto.
+
+**Togliere M4 per alleggerire.** Sul livello e' un centimetro. Sulla derivata
+pesa il doppio di quanto pesi sul livello, perche' ogni costituente ci entra
+moltiplicata per la propria pulsazione, ed e' lei a rendere il riempimento di
+durata diversa dallo svuotamento. Toglierla sarebbe stato buttare via proprio
+il dato che si cerca.
+
+**Correzioni nodali tabellate o poste a 1.** Il nodo lunare in 18,6 anni
+modula M2 del 4 %, K1 del 12 %, K2 del 29 %. Sul livello l'errore sarebbe
+piccolo; sull'ISTANTE della stanca si sposta di minuti, e l'istante e' il
+prodotto. Si calcolano da N, all'istante richiesto.
+
+**Restituire `flow` sempre.** Il campo c'e' solo se il chiamante dichiara
+`basin`. In un bacino a bocche la portata segue il prisma di marea (`Q = A ·
+dh/dt`), quindi corrente massima a **meta' marea** e nulla ai colmi: sembra
+sbagliato e non lo e', livello e corrente sono in quadratura. Ma in un canale
+fra due bacini — Messina — conta il dislivello fra i due capi e la regola non
+vale. Meglio un campo assente che un campo che mente; nel codice c'e' un
+commento apposta, perche' chi legge dopo e' tentato di «correggere».
+
+**Quantizzare a 1 mm.** Sembrava il passo naturale (ed era quello che avevo
+scritto). Ma il valore piu' grande del riquadro e' 271 mm su 32767
+disponibili: si buttavano cinque bit su sedici, e l'errore di quantizzazione
+diventava il termine **dominante** nello scarto da EOT20 (0,22 cm sul livello,
+fino a 25 minuti sulla stanca dove la marea e' piccola). A 0,1 mm per unita',
+a parita' di byte, lo scarto e' sceso a 0,03 cm e 3,6 minuti. Il fattore sta
+nell'header, il runtime non lo sa.
+
+**Correzione di ampiezza nella tabella di calibrazione.** Solo fase: sul segno
+della tendenza e sull'istante della stanca l'ampiezza non incide.
+
+### Il trabocchetto di S1, e come si e' visto
+
+La prima validazione contro EOT20 dava un centimetro di scarto sul livello e
+oltre un'**ora** sulla stanca dove la marea e' piccola. Colpa della
+convenzione di fase di S1: la famiglia OTIS/TPXO le da' −90 gradi, la famiglia
+FES/GOT — a cui EOT20 appartiene — nessuno scarto. Con la convenzione
+sbagliata S1 (2,8 cm di ampiezza massima nel riquadro) entra in opposizione e
+sporca proprio la derivata. E' il primo posto dove guardare se la validazione
+peggiora di colpo; nel codice c'e' il commento.
+
+### Validazione
+
+Due prove, e tutte e due fanno girare **il codice vero** dentro
+JavaScriptCore: una riscrittura in Python avrebbe provato la riscrittura.
+
+**Contro EOT20 a piena precisione** (argomenti astronomici di `pyTMD`, 30
+giorni, 8 punti): livello entro 0,03 cm, derivata entro 0,014 cm/h, stanca
+entro 3,6 minuti nel caso peggiore.
+
+**Contro 60 giorni di osservato RMN** (19/07-18/09/2026; i sensori sono quelli
+di `mareografico.it`, presi pero' dal servizio IOC perche' il sito ISPRA non
+e' interrogabile da uno script):
+
+| | segno | fuori banda morta | contro la sola marea | varianza che e' marea | stanca |
+|---|---|---|---|---|---|
+| Trieste | 91,8 % | 94,2 % | **97,7 %** | 94 % | 6,8 min |
+| Venezia | 88,4 % | 90,8 % | **97,8 %** | 93 % | 6,7 min |
+| Ancona | 80,3 % | 87,5 % | **94,0 %** | 87 % | 14,3 min |
+| Cagliari | 68,9 % | 72,7 % | **98,6 %** | 77 % | 4,6 min |
+
+La colonna che misura il modello e' la terza: il confronto con la **sola
+marea** estratta dall'osservato per analisi armonica. Le prime due misurano
+il modello contro il mare vero, sovralzo compreso, e la differenza non e'
+imprecisione: e' meteorologia. Si vede bene a Cagliari, dove la marea
+astronomica vale pochi centimetri e spiega il 77 % di quello che fa il
+livello — il modello azzecca la marea al 98,6 % e il livello osservato al
+69 %, perche' li' il livello lo fa il vento. E' il motivo per cui
+`setMeteoWarning()` esiste.
+
+Controprova: ampiezze e fasi di EOT20 interpolate nei quattro punti contro
+quelle ricavate dagli osservati coincidono entro 1 cm e pochi gradi su M2,
+S2, N2, O1 (Trieste, M2: 26,7 contro 26,8 cm, 0,6 gradi = un minuto e mezzo).
+
+**Due errori miei, nella validazione, che valgono piu' del risultato.**
+
+1. *Le stanche osservate cercate sulla derivata filtrata a 30 minuti.* Uscivano
+   da 12 a 42 «stanche» al giorno invece di 4: a quella scala il mare vero ha
+   sesse e onde lunghe che attraversano lo zero in continuazione, e a Cagliari,
+   dove l'escursione astronomica e' di pochi centimetri, sono dieci volte piu'
+   numerose delle stanche. Appaiarle vuol dire misurare rumore. Servono due
+   filtri: 30 minuti per il confronto dei segni (come da specifica), 3 ore per
+   **trovare** le stanche.
+2. *Orari letti con `mktime`.* Il servizio pubblica in UTC; `mktime` li legge
+   come ora locale e d'estate ci aggiunge pure l'ora legale. Risultato: un'ora
+   tonda di ritardo apparente, identico a un ritardo idraulico di stazione — e
+   per un giro di misure l'ho preso per tale, arrivando a proporre
+   `delta_min: -60` per Trieste e Venezia. Con `timegm` gli sfasamenti veri
+   sono fra −15 e +5 minuti. Morale gia' nota in questo repo: un numero che
+   conferma quello che ti aspetti va controllato **piu'** degli altri.
+
+### Aperti
+
+- **`delta_min` resta vuoto, di proposito.** Gli sfasamenti misurati sono
+  rumore (mezzo punto di concordanza). La tabella serve **dentro** le lagune,
+  dove il ritardo e' vero e vale mezz'ora e piu': mancano gli osservati. I
+  quattro valori misurati sono annotati commentati in `rf-maree.js`.
+- **Ancona e' la piu' debole** (94,0 % contro la marea, 14,3 minuti sulla
+  stanca): M2 vale 6,7 cm e la stazione sta dietro un molo. Non indagata.
+- **La griglia non entra nelle lagune.** Dentro Venezia il modulo dichiara
+  attendibilita' bassa e dice perche', ma dichiararlo non e' risolverlo.
+- **Nessuna prova su dispositivo vero.** Provato nel pannello browser a 375
+  px: scheda, grafico, interruttore bacino, avviso meteo, punti a terra e
+  fuori riquadro (che sollevano un'eccezione con messaggio in italiano). Il
+  service worker nel pannello non si registra, quindi **il precache dei 388 kB
+  non e' stato verificato**: va guardato a bordo, in modalita' aereo.
+- **Crediti**: la citazione EOT20 e' nel LEGGIMI, nei commenti del motore e
+  nella riga delle fonti di `impostazioni/` (la licenza CC BY la pretende).
+  Non e' un punto aperto, e' fatto: resta da guardare che su schermo stretto
+  quella riga, ora lunga, non diventi illeggibile.

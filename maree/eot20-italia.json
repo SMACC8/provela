@@ -1,0 +1,35 @@
+{
+ "formato": "dritta-maree-1",
+ "fonte": "EOT20 (Hart-Davis et al. 2021, SEANOE doi:10.17882/79489, CC BY 4.0)",
+ "generato": "2026-09-20",
+ "generato_da": "build_maree.py",
+ "bbox": {
+  "lonW": 6.0,
+  "lonE": 19.5,
+  "latS": 35.0,
+  "latN": 46.0
+ },
+ "passo": 0.125,
+ "nx": 109,
+ "ny": 89,
+ "origine": "sud-ovest: la cella 0 e' (latS, lonW), x cresce verso est, y verso nord",
+ "costituenti": [
+  "M2",
+  "S2",
+  "N2",
+  "K2",
+  "K1",
+  "O1",
+  "P1",
+  "Q1",
+  "M4",
+  "S1"
+ ],
+ "componenti": "reale e immaginaria, int16 little endian, re = A cos(g), im = A sin(g)",
+ "scala_mm": 0.1,
+ "unita": "millimetri sul livello medio del mare",
+ "offset_mask": 0,
+ "offset_dati": 9701,
+ "bin": "eot20-italia.bin",
+ "byte": 397741
+}

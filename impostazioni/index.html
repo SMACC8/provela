@@ -825,17 +825,21 @@ select.rf-sel{color:hsl(var(--ink));text-align:left;appearance:none;padding-righ
         <div class="gd-r"><b>Carta Nautica</b><span>waypoint, tracce, batimetria e fari a settori</span></div>
         <div class="gd-r"><b>Manutenzione</b><span>albero della barca, interventi, scadenze e dossier di bordo</span></div>
         <div class="gd-r"><b>Calcoli di bordo</b><span>conversioni e conti ricorrenti di navigazione</span></div>
-        <div class="gd-r"><b>Sole e Luna</b><span>luce all'arrivo, crepuscoli, orari di sole e luna, volta celeste</span></div>
+        <div class="gd-r"><b>Sole, Luna e maree</b><span>luce all'arrivo, crepuscoli, orari di sole e luna, volta celeste, tendenza della marea</span></div>
       </div>
     </details>
 
     <details class="gd">
-      <summary>Sole e Luna</summary>
+      <summary>Sole, Luna e maree</summary>
       <div class="gd-b">
         <p style="margin:0 0 10px;font-size:12.5px;color:hsl(var(--muted));line-height:1.5">Serve a sapere <b>che luce troverai, dove e quando</b>. Funziona del tutto offline: i calcoli avvengono sul dispositivo, senza rete.</p>
         <div class="gd-r"><b>Giorno</b><span>luce all'arrivo, orari di sole e luna, andamento delle altezze, crepuscoli</span></div>
         <div class="gd-r"><b>Volta celeste</b><span>modello tridimensionale trascinabile; nord in fondo, est a destra</span></div>
         <div class="gd-r"><b>Barra della data</b><span>vale per entrambe le viste; le frecce si tengono premute per scorrere veloce</span></div>
+        <p style="margin:10px 0 8px;font-size:12.5px;color:hsl(var(--muted));line-height:1.5"><b>Marea.</b> La scheda non serve a sapere quanta acqua hai sotto la chiglia — per quello servono lo zero della carta e il sovralzo da vento, che il calcolo non conosce — ma a sapere <b>se la marea monta o cala e quando si ferma</b>: è quello che decide il verso della corrente in una bocca di porto o in un canale. Il livello indicato è riferito al <b>medio mare</b>, non allo zero delle carte nautiche.</p>
+        <div class="gd-r"><b>Montante / calante / stanca</b><span>sotto i 2 cm/h di variazione si legge stanca: la marea non ha un verso riconoscibile</span></div>
+        <div class="gd-r"><b>Bacino con bocche</b><span>laguna, darsena, valle: la corrente in bocca è <b>massima a metà marea</b> e <b>nulla in alta e in bassa</b>. Non vale per un canale fra due mari come lo Stretto di Messina</span></div>
+        <div class="gd-r"><b>Attendibilità</b><span>bassa sotto costa e nelle lagune, dove la griglia da 14 km non risolve; media in alto Adriatico, dove il vento può valere quanto l'astronomia</span></div>
         <p style="margin:10px 0 8px;font-size:12.5px;color:hsl(var(--muted));line-height:1.5"><b>Che luce troverò all'arrivo.</b> L'orario si stima dalla distanza alla destinazione attiva (la traccia ha la precedenza sul waypoint) e dalla velocità, correggibile a mezzo nodo per volta; spostando giorno o ora si passa in manuale, con un tasto per tornare al calcolo. La luce è calcolata alle coordinate della destinazione, non alle tue. La riga più utile non è la fascia ma <b>quanto ti separa dal passaggio di luce successivo</b>: mezzo nodo in più può farti entrare con l'orizzonte ancora leggibile. Il bordo colorato ai due lati della scheda ripete la condizione di luce.</p>
         <p style="margin:0 0 10px;font-size:12.5px;color:hsl(var(--muted));line-height:1.5">Non viene dato alcun giudizio di sintesi, e la scelta è voluta: un &laquo;condizioni buone&raquo; presupporrebbe di sapere la <b>nuvolosità</b>, che il calcolo non conosce. La scala qui sotto è invece un fatto astronomico, vero a prescindere dalle nuvole. L'unico avviso compare su una condizione verificabile: sole sotto i −12° e luna che non contribuisce.</p>
         <div class="gd-r"><b>Pieno giorno</b><span>sole oltre +6° &middot; nessun problema di visibilità</span></div>
@@ -879,7 +883,7 @@ select.rf-sel{color:hsl(var(--ink));text-align:left;appearance:none;padding-righ
     </details>
 
     <div class="field" style="margin-top:4px">
-      <div class="lbl"><div class="h">Dati meteo: modelli pubblici &middot; Cartografia: OpenStreetMap / OpenSeaMap &middot; Polari: ORC</div></div>
+      <div class="lbl"><div class="h">Dati meteo: modelli pubblici &middot; Cartografia: OpenStreetMap / OpenSeaMap &middot; Polari: ORC &middot; Maree: modello EOT20 &mdash; Hart-Davis M. G., Piccioni G., Dettmering D., Schwatke C., Passaro M., Seitz F. (2021), <i>EOT20 - A global Ocean Tide model from multi-mission satellite altimetry</i>, SEANOE, doi:10.17882/79489, licenza CC BY 4.0</div></div>
     </div>
   </section>
 
