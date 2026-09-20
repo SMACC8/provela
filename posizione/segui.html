@@ -115,12 +115,15 @@ a.map{display:block;text-align:center;color:var(--teal);text-decoration:none;fon
      dispositivo della barca e non viaggia in questo link.
    Il codice sessione, casuale, resta quindi l'unica cosa da non diffondere.
 
-   DA FARE UNA VOLTA SOLA: incollare qui i due valori, che si trovano nella
-   dashboard Supabase sotto Project Settings → API (Project URL e anon
-   public). Sono gli stessi due valori inseriti in Impostazioni. */
+   I due valori si trovano nella dashboard Supabase sotto Project Settings →
+   API: il Project URL e la chiave PUBBLICA — `anon public` nel formato
+   vecchio (un JWT lungo), `sb_publishable_...` in quello nuovo, che è
+   quello usato qui. Mai la chiave `secret` / `service_role`: quella
+   scavalca RLS, e in un repository pubblico vorrebbe dire regalare il
+   database. */
 const CFG = {
-  SUPABASE_URL: "INCOLLA_QUI_L_INDIRIZZO_DEL_PROGETTO",   // https://xxxxxxxx.supabase.co
-  ANON_KEY:     "INCOLLA_QUI_LA_ANON_KEY"
+  SUPABASE_URL: "https://neerhmxjwbyynhqpnggn.supabase.co",
+  ANON_KEY:     "sb_publishable_9ldfCFXZAE4yvIhuLR6wiQ_TCHKe3b-"
 };
 const POLL_MS = 60000;   // lettura ogni minuto (come la trasmissione)
 
