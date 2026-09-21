@@ -490,6 +490,33 @@ input[type=range]{width:100%;accent-color:var(--teal)}
   <div class="note">Il tiro è la sola resistenza aerodinamica dello scafo esposto (Cd≈1,2): non comprende il rinculo dell'onda, che su mare formato può raddoppiarlo, né gli strappi se la catena si tende. Il raggio di evitata va confrontato con i vicini <b>prima</b> di calare.</div>
  </div>
 </details></section>
+
+<section><details>
+ <summary>Autonomia della batteria</summary>
+ <div class="body">
+  <div class="grid">
+    <div class="f"><label>Capacità nominale <span class="u">Ah</span></label><input id="bt_c" inputmode="decimal" value="100"></div>
+    <div class="f"><label>Tensione <span class="u">V</span></label>
+      <select id="bt_v"><option value="12" selected>12 V</option><option value="24">24 V</option></select>
+    </div>
+    <div class="f"><label>Tipo di batteria</label>
+      <select id="bt_t">
+        <option value="piombo" selected>Piombo o AGM &mdash; metà utile</option>
+        <option value="gel">Gel &mdash; 60% utile</option>
+        <option value="litio">Litio LiFePO₄ &mdash; 80% utile</option>
+        <option value="tutto">Fino a zero &mdash; capacità di targa</option>
+      </select>
+    </div>
+    <div class="f"><label>Stato di carica <span class="u">%</span></label><input id="bt_soc" inputmode="decimal" value="100"></div>
+    <div class="f"><label>Potenza accesa <span class="u">W</span></label><input id="bt_p" inputmode="decimal" value="45"></div>
+    <div class="f"><label>Ore accese al giorno <span class="u">h</span></label><input id="bt_h" inputmode="decimal" value="8"></div>
+  </div>
+  <div class="out" id="bt_out"></div>
+  <div class="note" id="bt_tipo"></div>
+  <div class="note"><b>Senza alternatore il conto è a scendere</b>: la sola ricarica è la banchina o il solare, e quello che esce qui non rientra da solo. Il numero è teorico e ottimista. Una batteria a metà vita rende il 70&#8211;80% della targa, sotto i 10&nbsp;°C perde un altro 10&#8211;20%, e la potenza dichiarata dagli apparecchi è quella di picco: il frigo, che è quasi sempre il primo consumo di bordo, lavora a intermittenza e in media assorbe la metà o meno.<br>
+  Potenze indicative a 12&nbsp;V: frigo 40&#8211;60&nbsp;W a compressore acceso &middot; pilota 25&#8211;40&nbsp;W &middot; plotter 10&#8211;15&nbsp;W &middot; VHF in ascolto 5&nbsp;W (35&#8211;60&nbsp;W in trasmissione) &middot; luci di via LED 5&#8211;10&nbsp;W &middot; fanale di fonda LED 2&nbsp;W &middot; pompa di sentina 50&#8211;80&nbsp;W &middot; AIS 3&#8211;5&nbsp;W.</div>
+ </div>
+</details></section>
 </div>
 
 
@@ -822,6 +849,50 @@ function calc(){
     row('Raggio di evitata','√(L²−h²) + LOA', val(fmt(Rev,1)+' m')) +
     row('Tiro del vento sull\'ancora','½·ρ·A·V²·1,2', kg(Fw)) +
     row('Con raffiche +40%','strappo di picco', kg(Fw*1.96));
+
+  /* Autonomia batteria. Serve a chi non ha l'alternatore: il conto è solo a
+     scendere, e l'unico rientro è la banchina o il solare.
+     f = frazione davvero utilizzabile (scaricare oltre accorcia la vita)
+     k = esponente di Peukert: a corrente alta una batteria al piombo rende
+         MENO della targa, e la differenza è quella fra un frigo che arriva a
+         sera e uno che si spegne nel pomeriggio. Sul litio è quasi 1. */
+  const BATT = {
+    piombo:{f:0.50,k:1.20,t:'Piombo aperto o AGM: sotto la metà della capacità la vita della batteria si accorcia in fretta, e la tensione crolla prima di quanto dica il conto.'},
+    gel:   {f:0.60,k:1.15,t:'Gel: sopporta scariche un po\' più profonde del piombo aperto, ma vuole un caricabatterie tarato per lui.'},
+    litio: {f:0.80,k:1.05,t:'LiFePO₄: l\'80% è la quota prudente, il resto lo protegge il BMS. Attenzione, la tensione resta piatta quasi fino alla fine: il calo non si vede arrivare dal voltmetro.'},
+    tutto: {f:1.00,k:1.00,t:'Capacità di targa e nessuna correzione: è il numero del cartellino, non quello che la batteria dà a bordo. Utile solo per confrontare due batterie fra loro.'}
+  };
+  const bt = BATT[$('bt_t').value] || BATT.piombo;
+  const btV = parseFloat($('bt_v').value) || 12;
+  const btC = Math.max(0, num('bt_c'));
+  const btSoc = Math.min(100, Math.max(0, num('bt_soc')))/100;
+  const btP = Math.max(0, num('bt_p'));
+  const btH = Math.min(24, Math.max(0, num('bt_h')));
+  const btI = btP/btV;                               /* A assorbiti */
+  const AhU = btC*bt.f*btSoc, WhU = AhU*btV;         /* energia utile */
+  const tCont = btI>0 ? AhU/btI : NaN;               /* h, conto lineare */
+  /* Peukert: t = 20 h · (C/(20·I))^k è il tempo a scarica completa alla
+     corrente I; la parte utilizzabile ne è la frazione f, allo stato di carica
+     attuale. Sotto la corrente di targa (C/20) la formula darebbe PIU' della
+     targa: quel guadagno qui non lo si conta, perche' e' la prima cosa che
+     l'eta' della batteria si mangia, e un conto di autonomia che promette piu'
+     del cartellino non serve a nessuno. */
+  const tPeukRaw = btI>0 ? 20*Math.pow(btC/(20*btI), bt.k)*bt.f*btSoc : NaN;
+  const tPeuk = Math.min(tPeukRaw, tCont);
+  const AhDay = btI*btH, WhDay = btP*btH;
+  const giorni = AhDay>0 ? AhU/AhDay : NaN;
+  $('bt_tipo').innerHTML = bt.t;
+  $('bt_out').innerHTML =
+    row('Energia utile','C · scarica utile · stato di carica', val(fmt(AhU,1)+' Ah', fmt(WhU)+' Wh')) +
+    row('Corrente assorbita','P / V', val(fmt(btI,1)+' A')) +
+    row('Tempo prima che si scarichi','tutto acceso, senza interruzioni', val(hm(tCont)), true) +
+    (bt.k>1 ? row('Lo stesso con l\'effetto Peukert', tPeukRaw>tCont
+        ? 'k = '+fmt(bt.k,2)+' · sotto la corrente di targa il guadagno non si conta'
+        : 'k = '+fmt(bt.k,2)+' · a corrente alta rende meno della targa', val(hm(tPeuk))) : '') +
+    row('Consumo dichiarato',fmt(btP)+' W per '+fmt(btH,1)+' h al giorno', val(fmt(AhDay,1)+' Ah al giorno', fmt(WhDay)+' Wh')) +
+    row('Autonomia con quell\'uso','energia utile / consumo giornaliero', val(isFinite(giorni)?fmt(giorni,1)+' giorni':'—'), true) +
+    (btP<=0 ? '<div class="warn">Nessun carico acceso: metti la potenza degli apparecchi in funzione.</div>' :
+     tPeuk<tCont*0.8 ? '<div class="warn">A questa corrente il piombo rende molto meno della targa: conta sul numero con Peukert, non sull\'altro.</div>' : '');
 
   turni();
 }

@@ -202,6 +202,26 @@ td.p{color:var(--muted);font-style:italic}
 .script .todo{color:var(--amber);border-bottom:1px dashed var(--amber)}
 .saying{background:var(--panel2);border:1px solid var(--teal)}
 
+/* ---------- conversioni ---------- */
+.cv-row{display:flex;gap:7px;align-items:stretch}
+.cv-row .tx{flex:1;min-width:0}
+.cv-sel{flex:0 0 46%;background:var(--panel2);border:1px solid var(--line);border-radius:9px;
+        color:var(--ink);font:600 13px system-ui,sans-serif;padding:10px 8px;cursor:pointer}
+.cv-sel:focus{border-color:var(--teal);outline:none}
+td.cv-v{font:600 13px ui-monospace,Menlo,monospace;color:var(--ink);text-align:right;
+        font-variant-numeric:tabular-nums}
+tr.cv-hi td{background:var(--dp)}
+tr.cv-hi td.cv-v{color:var(--teal)}
+td.cv-n{white-space:normal;color:var(--muted)}
+.cv-co{padding:9px 11px;border-bottom:1px solid var(--line)}
+.cv-co:last-child{border-bottom:none}
+.cv-co span{display:block;font:600 10px ui-monospace,Menlo,monospace;letter-spacing:.11em;
+            text-transform:uppercase;color:var(--muted2);margin-bottom:3px}
+.cv-co b{display:block;font:600 14px ui-monospace,Menlo,monospace;color:var(--ink);
+         line-height:1.5;overflow-wrap:anywhere}
+.cv-co.hi{background:var(--dp)}
+.cv-co.hi b{color:var(--teal)}
+
 /* ---------- bollettini ---------- */
 .slot{display:flex;align-items:baseline;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
 .slot:last-child{border-bottom:none}
@@ -248,6 +268,7 @@ td.p{color:var(--muted);font-style:italic}
       <button class="tile" data-go="vhf"><span class="ic">&#128225;</span><span class="nm">Messaggio VHF</span><span class="ds">testo pronto, e la voce lo legge</span></button>
       <button class="tile" data-go="legenda"><span class="ic">&#128506;</span><span class="nm">Legenda carta</span><span class="ds">sigle e abbreviazioni</span></button>
       <button class="tile" data-go="bollettini"><span class="ic">&#128251;</span><span class="nm">Bollettini</span><span class="ds">orari Meteomar e canali</span></button>
+      <button class="tile" data-go="conversioni"><span class="ic">&#128207;</span><span class="nm">Conversioni</span><span class="ds">unit&#224; di misura e coordinate</span></button>
     </div>
     <div class="warn" style="margin-top:11px">
       <b>Nessuno di questi dati sostituisce i documenti ufficiali.</b> Il prontuario serve a ricordare
@@ -418,6 +439,53 @@ td.p{color:var(--muted);font-style:italic}
     <span class="mono" style="color:var(--muted2)">verificato 03/09/2026</span></p>
   </div>
 
+
+  <!-- ============ CONVERSIONI ============ -->
+  <div id="v-conversioni" hidden>
+    <div class="vhead"><button class="bk" data-back>&#8249;</button><div><h1>Conversioni</h1><div class="sub">Unita&#768; di misura e coordinate</div></div></div>
+
+    <div class="card">
+      <div class="chips" id="cvKinds"></div>
+
+      <!-- unita' lineari: un valore, una unita', tutte le altre sotto -->
+      <div id="cvUnits" style="margin-top:11px">
+        <div class="cv-row">
+          <input class="tx" id="cvVal" inputmode="decimal" value="1" spellcheck="false" autocomplete="off" aria-label="valore da convertire">
+          <select class="cv-sel" id="cvUnit" aria-label="unita&#768; di partenza"></select>
+        </div>
+        <div class="tbl-wrap" style="max-height:none;margin-top:9px">
+          <table><tbody id="cvOut"></tbody></table>
+        </div>
+        <p class="hint" id="cvNota" style="margin-top:9px"></p>
+      </div>
+
+      <!-- coordinate: stesso punto scritto nei tre modi che girano a bordo -->
+      <div id="cvCoord" hidden>
+        <div class="field">
+          <label class="lb" for="cvLat">Latitudine</label>
+          <input class="tx" id="cvLat" placeholder="45 41,255 N &#8212; oppure 45.68758" spellcheck="false" autocapitalize="off" autocomplete="off">
+        </div>
+        <div class="field" style="margin-top:9px">
+          <label class="lb" for="cvLon">Longitudine</label>
+          <input class="tx" id="cvLon" placeholder="13 41,910 E &#8212; oppure 13.69850" spellcheck="false" autocapitalize="off" autocomplete="off">
+        </div>
+        <button class="btn" id="cvGps" style="margin-top:10px">&#9678; Dalla mia posizione</button>
+        <p class="hint" id="cvGpsNota" hidden style="margin-top:6px"></p>
+        <div class="tbl-wrap" style="max-height:none;margin-top:10px" id="cvCoOut"></div>
+        <p class="hint" style="margin-top:9px">Si scrive come viene: <b>45.68758</b>, <b>45 41,255 N</b>,
+        <b>45&#176;41&#8242;15,3&#8243;N</b>, con la virgola o con il punto. Senza emisfero valgono <b>N</b> ed
+        <b>E</b>; per l&#8217;altro metti la lettera o il segno meno.</p>
+      </div>
+    </div>
+
+    <div class="warn">
+      <b>I fattori sono esatti per definizione</b>, ma l&#8217;arrotondamento a video no: per un calcolo
+      di carico o di stabilita&#768; riporta piu&#768; cifre di quelle che leggi qui. Il miglio nautico e&#768;
+      1852 m tondi, e non e&#768; il miglio terrestre (1609 m): sono due misure diverse con lo stesso
+      nome, ed e&#768; l&#8217;errore che si paga piu&#768; caro.
+    </div>
+  </div>
+
 </div>
 
 <div class="sheet" id="sheet" hidden><div class="sheet-in" id="sheetIn"></div></div>
@@ -435,7 +503,7 @@ var RM = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce
    Deep link: ?v=fari&ch=Fl(2)%20W%2010s&n=Cap%20Pertusato
    (usato dalla Carta per "Come si vede" su un faro)
    ============================================================ */
-var VIEWS = ["menu","fari","bandiere","fonetico","vhf","legenda","bollettini"];
+var VIEWS = ["menu","fari","bandiere","fonetico","vhf","legenda","bollettini","conversioni"];
 function show(v){
   if (VIEWS.indexOf(v) < 0) v = "menu";
   VIEWS.forEach(function(k){ $("v-" + k).hidden = (k !== v); });
@@ -1272,6 +1340,206 @@ function stopSpeak(){
   draw();
   setInterval(draw, 60000);
 })();
+
+/* ============================================================
+   7. CONVERSIONI — un fattore per unita', base SI (o quella
+   comoda), e tutto passa dalla base. Niente tabella N x N: con
+   nove grandezze sarebbero centinaia di numeri da sbagliare.
+   I fattori sono esatti per definizione, non misurati: il miglio
+   nautico e' 1852 m, il piede 0,3048 m, la libbra 0,45359237 kg.
+   ============================================================ */
+var CONV = [
+  { id:"lung", nm:"Lunghezza", def:2, u:[
+    ["mm","millimetri",0.001], ["cm","centimetri",0.01], ["m","metri",1],
+    ["km","chilometri",1000], ["in","pollici",0.0254], ["ft","piedi",0.3048],
+    ["yd","iarde",0.9144], ["fm","braccia (fathom), 6 piedi",1.8288],
+    ["NM","miglia nautiche",1852], ["cbl","gomene, un decimo di miglio",185.2],
+    ["mi","miglia terrestri",1609.344] ] },
+  { id:"area", nm:"Area", def:1, u:[
+    ["cm²","centimetri quadrati",0.0001], ["m²","metri quadrati",1],
+    ["km²","chilometri quadrati",1e6], ["ha","ettari",10000],
+    ["in²","pollici quadrati",0.00064516], ["ft²","piedi quadrati",0.09290304],
+    ["yd²","iarde quadrate",0.83612736], ["acre","acri",4046.8564224],
+    ["NM²","miglia nautiche quadrate",3429904] ] },
+  { id:"vol", nm:"Volume", def:1, u:[
+    ["ml","millilitri",0.001], ["l","litri",1], ["m³","metri cubi",1000],
+    ["in³","pollici cubi",0.016387064], ["ft³","piedi cubi",28.316846592],
+    ["gal US","galloni americani",3.785411784], ["gal UK","galloni imperiali",4.54609],
+    ["qt US","quarti americani",0.946352946], ["pt UK","pinte imperiali",0.56826125] ] },
+  { id:"massa", nm:"Massa", def:1, u:[
+    ["g","grammi",0.001], ["kg","chilogrammi",1], ["t","tonnellate metriche",1000],
+    ["oz","once",0.028349523125], ["lb","libbre",0.45359237],
+    ["st","stone, 14 libbre",6.35029318],
+    ["long ton","tonnellate lunghe (UK)",1016.0469088],
+    ["short ton","tonnellate corte (US)",907.18474] ] },
+  { id:"vel", nm:"Velocità", def:0, u:[
+    ["kn","nodi, miglia nautiche all'ora",1852/3600], ["km/h","chilometri orari",1/3.6],
+    ["m/s","metri al secondo",1], ["mph","miglia terrestri orarie",0.44704],
+    ["ft/min","piedi al minuto",0.00508] ] },
+  { id:"forza", nm:"Forza", def:4, u:[
+    ["N","newton",1], ["daN","decanewton",10], ["kN","chilonewton",1000],
+    ["kgf","chilogrammi forza",9.80665], ["lbf","libbre forza",4.4482216152605],
+    ["tf","tonnellate forza",9806.65] ] },
+  { id:"pres", nm:"Pressione", def:1, u:[
+    ["Pa","pascal",1], ["hPa","ettopascal, uguali ai millibar",100],
+    ["mbar","millibar",100], ["bar","bar",1e5], ["atm","atmosfere",101325],
+    ["mmHg","millimetri di mercurio",133.322387415],
+    ["inHg","pollici di mercurio",3386.388640341],
+    ["psi","libbre per pollice quadrato",6894.757293168],
+    ["kg/cm²","chilogrammi per centimetro quadrato",98066.5] ] },
+  { id:"pot", nm:"Potenza", def:2, u:[
+    ["W","watt",1], ["kW","chilowatt",1000], ["CV","cavalli vapore (metrici)",735.49875],
+    ["hp","horsepower (imperiali)",745.6998715823],
+    ["kcal/h","chilocalorie all'ora",1.163], ["BTU/h","BTU all'ora",0.29307107017] ] },
+  { id:"tempo", nm:"Tempo", def:2, u:[
+    ["s","secondi",1], ["min","minuti",60], ["h","ore",3600],
+    ["d","giorni",86400], ["sett","settimane",604800] ] },
+  { id:"coord", nm:"Coordinate", u:null }
+];
+var cvSel = 0, cvUn = CONV[0].def;   /* si parte dai metri, non dai millimetri */
+
+/* Numeri di taglia molto diversa nella stessa colonna: si tengono sei cifre
+   significative, e fuori da un intervallo leggibile si passa all'esponenziale
+   invece di stampare una fila di zeri. */
+function cvFmt(x){
+  if (!isFinite(x)) return "—";
+  if (x === 0) return "0";
+  var a = Math.abs(x);
+  if (a >= 1e15 || a < 1e-9) return x.toExponential(3).replace(".", ",").replace("e", " × 10^");
+  return x.toLocaleString("it-IT", { maximumSignificantDigits: 6 });
+}
+
+function cvChips(){
+  var host = $("cvKinds");
+  host.innerHTML = "";
+  CONV.forEach(function(g, i){
+    var b = document.createElement("button");
+    b.className = "chip";
+    b.type = "button";
+    b.textContent = g.nm;
+    b.setAttribute("aria-pressed", i === cvSel ? "true" : "false");
+    b.addEventListener("click", function(){ cvSel = i; cvUn = CONV[i].def || 0; cvChips(); cvRender(); });
+    host.appendChild(b);
+  });
+}
+
+function cvUnitOpts(){
+  var g = CONV[cvSel], sel = $("cvUnit");
+  sel.innerHTML = "";
+  g.u.forEach(function(u, i){
+    var o = document.createElement("option");
+    o.value = String(i);
+    o.textContent = u[0] + " — " + u[1].split(",")[0];
+    sel.appendChild(o);
+  });
+  sel.value = String(cvUn);
+}
+
+function cvRender(){
+  var g = CONV[cvSel], coord = !g.u;
+  $("cvUnits").hidden = coord;
+  $("cvCoord").hidden = !coord;
+  if (coord) { cvCoord(); return; }
+  cvUnitOpts();
+  var v = parseFloat(String($("cvVal").value || "").replace(",", "."));
+  var base = isFinite(v) ? v * g.u[cvUn][2] : NaN;
+  var out = $("cvOut");
+  out.innerHTML = "";
+  g.u.forEach(function(u, i){
+    var tr = document.createElement("tr");
+    if (i === cvUn) tr.className = "cv-hi";
+    tr.innerHTML = '<td class="k"></td><td class="cv-n"></td><td class="cv-v"></td>';
+    tr.children[0].textContent = u[0];
+    tr.children[1].textContent = u[1];
+    tr.children[2].textContent = cvFmt(base / u[2]);
+    out.appendChild(tr);
+  });
+  $("cvNota").innerHTML = CV_NOTE[g.id] || "";
+}
+
+var CV_NOTE = {
+  lung: "Il <b>braccio</b> (fathom) e la <b>gomena</b> stanno sulle carte vecchie e nelle tabelle delle ancore: 6 piedi il primo, un decimo di miglio la seconda.",
+  vel:  "Un nodo e&#768; un miglio nautico all&#8217;ora: 1,852 km/h. La regola del pollice — nodi × 2 = km/h circa — sbaglia dell&#8217;8%, che su una traversata sono miglia.",
+  pres: "Il barometro di bordo e&#768; in <b>hPa</b>, che sono i vecchi <b>millibar</b>: stesso numero, nome nuovo. Gli strumenti americani danno <b>inHg</b>: 1013 hPa = 29,92 inHg.",
+  pot:  "<b>CV</b> e <b>hp</b> non coincidono: il cavallo metrico e&#768; 735,5 W, quello imperiale 745,7 W. Un motore da 20 hp e&#768; 20,3 CV.",
+  forza: "Il carico delle attrezzature si legge spesso in <b>daN</b>, che vale circa un chilogrammo forza: 1 kgf = 0,981 daN.",
+  massa: "La <b>tonnellata lunga</b> (1016 kg) compare nel rapporto dislocamento/lunghezza: e&#768; quella che usano le formule anglosassoni, non la tonnellata metrica."
+};
+
+/* ---- coordinate: lo stesso punto nei tre modi che girano a bordo ---- */
+/* parser tollerante, stessa idea di quello di Carta e Percorso: decimali,
+   gradi-primi, gradi-primi-secondi, virgola o punto, emisfero o segno. */
+function cvParse(s){
+  s = String(s || "").trim();
+  if (!s) return NaN;
+  var neg = /[SWsw]/.test(s) || /^\s*-/.test(s);
+  s = s.replace(/[°'"′″]/g, " ").replace(/[NSEWnsew]/g, " ").replace(",", ".").trim();
+  var p = s.split(/\s+/).map(parseFloat).filter(function(x){ return !isNaN(x); });
+  if (!p.length) return NaN;
+  var v = Math.abs(p[0]) + (p[1] || 0) / 60 + (p[2] || 0) / 3600;
+  return neg ? -v : v;
+}
+function cvDM(v, a, b){
+  var h = v >= 0 ? a : b, x = Math.abs(v);
+  var d = Math.floor(x), m = (x - d) * 60;
+  if (m >= 59.9995) { m = 0; d += 1; }
+  return d + "° " + m.toFixed(3).replace(".", ",") + "′ " + h;
+}
+function cvDMS(v, a, b){
+  var h = v >= 0 ? a : b, x = Math.abs(v);
+  var d = Math.floor(x), mf = (x - d) * 60, m = Math.floor(mf), sec = (mf - m) * 60;
+  if (sec >= 59.95) { sec = 0; m += 1; }
+  if (m >= 60) { m = 0; d += 1; }
+  return d + "° " + m + "′ " + sec.toFixed(1).replace(".", ",") + "″ " + h;
+}
+function cvCoord(){
+  var la = cvParse($("cvLat").value), lo = cvParse($("cvLon").value);
+  var out = $("cvCoOut");
+  out.innerHTML = "";
+  var ok = isFinite(la) && isFinite(lo) && Math.abs(la) <= 90 && Math.abs(lo) <= 180;
+  function riga(k, a, b, hi){
+    var d = document.createElement("div");
+    d.className = "cv-co" + (hi ? " hi" : "");
+    d.innerHTML = '<span></span><b></b>' + (b == null ? '' : '<b></b>');
+    d.children[0].textContent = k;
+    d.children[1].textContent = a;
+    if (b != null) d.children[2].textContent = b;
+    out.appendChild(d);
+  }
+  if (!ok) {
+    riga("", isFinite(la) || isFinite(lo) ? "Coordinate fuori intervallo o incomplete"
+                                          : "Scrivi latitudine e longitudine");
+    return;
+  }
+  /* cinque decimali, virgola italiana: la convenzione del MOB e della Carta,
+     una sola in tutta la suite. Sei cifre significative qui darebbero 45,6876,
+     che sono undici metri di incertezza su una posizione. */
+  function dec(v, a, b){ return Math.abs(v).toFixed(5).replace(".", ",") + "° " + (v >= 0 ? a : b); }
+  riga("Gradi decimali", dec(la, "N", "S"), dec(lo, "E", "W"));
+  riga("Gradi e primi", cvDM(la, "N", "S"), cvDM(lo, "E", "W"), true);
+  riga("Gradi primi secondi", cvDMS(la, "N", "S"), cvDMS(lo, "E", "W"));
+  riga("Da incollare altrove", la.toFixed(6) + ", " + lo.toFixed(6));
+}
+
+$("cvVal").addEventListener("input", cvRender);
+$("cvUnit").addEventListener("change", function(){ cvUn = parseInt(this.value, 10) || 0; cvRender(); });
+$("cvLat").addEventListener("input", cvCoord);
+$("cvLon").addEventListener("input", cvCoord);
+$("cvGps").addEventListener("click", function(){
+  var p = posizione();
+  var n = $("cvGpsNota");
+  if (!p) {
+    n.hidden = false;
+    n.innerHTML = "Posizione non disponibile. Apri la <b>Carta Nautica</b> o il <b>Cruscotto</b> " +
+                  "una volta con il GPS acceso: la posizione e’ condivisa fra i moduli.";
+    return;
+  }
+  n.hidden = true;
+  $("cvLat").value = p.lat.toFixed(6).replace(".", ",");
+  $("cvLon").value = p.lon.toFixed(6).replace(".", ",");
+  cvCoord();
+});
+cvChips(); cvRender();
 
 /* ============================================================
    AVVIO — deep link dalla Carta: ?v=fari&ch=...&n=...

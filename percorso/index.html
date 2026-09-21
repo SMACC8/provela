@@ -424,7 +424,7 @@ svg text{font-family:var(--mono);}
 
     <details class="rf-details"><summary>Simulatore (test a tavolino)</summary>
       <div class="inner">
-        <div class="hint" style="margin-bottom:8px">Muove la barca verso la boa attiva a velocità polare (1× o 10× per accelerare). Parte dal <b>centro della linea di partenza</b>; se la linea non è impostata, da 400 m sottovento alla prima boa. Solo per prova: il GPS reale è ignorato mentre è attivo, e la posizione simulata non viene condivisa con gli altri moduli.</div>
+        <div class="hint" style="margin-bottom:8px">Muove la barca verso la boa attiva a velocità polare (1× o 10× per accelerare). Parte dal <b>centro della linea di partenza</b>; se la linea non è impostata, da 400 m sottovento alla prima boa. Solo per prova: il GPS reale è ignorato mentre è attivo, e la posizione simulata non viene condivisa con gli altri moduli. I passaggi boa li conta la <b>regata</b>: se non è avviata la barca arriva sulla prima boa e le gira intorno.</div>
         <div style="display:flex;gap:8px">
           <button class="rf-btn" id="simBtn" style="flex:1">Avvia simulazione</button>
           <button class="rf-btn ghost" id="simSpd" style="flex:0 0 auto;min-width:54px">1×</button>
@@ -534,6 +534,15 @@ function toXY(ref,p){return {x:(p.lon-ref.lon)*Math.cos(ref.lat*d2r)*60*NM, y:(p
 function crossv(a,b){return a.x*b.y-a.y*b.x;}
 function subv(a,b){return {x:a.x-b.x,y:a.y-b.y};}
 function uvec(brgDeg){return {x:Math.sin(brgDeg*d2r), y:Math.cos(brgDeg*d2r)};}
+/* distanza minima del punto p dal TRATTO a→b, metri (piano locale su p) */
+function distSeg(a,b,p){
+  var A=toXY(p,a), B=toXY(p,b);
+  var vx=B.x-A.x, vy=B.y-A.y, L2=vx*vx+vy*vy;
+  if(L2<1e-9)return Math.sqrt(A.x*A.x+A.y*A.y);
+  var t=-(A.x*vx+A.y*vy)/L2; t=Math.max(0,Math.min(1,t));
+  var qx=A.x+t*vx, qy=A.y+t*vy;
+  return Math.sqrt(qx*qx+qy*qy);
+}
 
 /* ---------- polare condivisa (raffyca-polar), interpolazione bilineare ---------- */
 var POL_DEMO={twa:[0,52,60,75,90,110,120,135,150,180],tws:[6,8,10,12,14,16,20],
@@ -783,6 +792,10 @@ function toast(msg,ms){var t=$("toast");t.textContent=msg;t.classList.add("on");
 
 /* ---------- GPS ---------- */
 var _lastFix=null;
+/* Tratto percorso fra il fix precedente e quello attuale. Il passaggio boa si
+   misura su QUESTO, non sul punto del fix: vedi tick(). Vale per il fix appena
+   arrivato e basta, per questo tick() lo consuma e onFix lo azzera. */
+var _seg=null, _posT=0;
 function onFix(lat,lon,head,spdMs,acc){
   var now=Date.now();
   if(head!=null&&isFinite(head)&&spdMs!=null&&spdMs>0.4){COG=head;SOG=spdMs*1.94384;}
@@ -794,7 +807,14 @@ function onFix(lat,lon,head,spdMs,acc){
                  :(COG+angDiff(brg(_lastFix,{lat:lat,lon:lon}),COG)*0.4+360)%360;
       _lastFix={lat:lat,lon:lon,t:now};}
   } else _lastFix={lat:lat,lon:lon,t:now};
+  var era=POS;
   POS={lat:lat,lon:lon};
+  /* il tratto vale solo se i due fix sono davvero consecutivi: un salto (GPS
+     riagganciato dopo dieci minuti, simulatore acceso, barca caricata da un
+     altro modulo) non e' una rotta percorsa e non deve passare le boe che ha
+     scavalcato. */
+  _seg=(era && (now-_posT)<30000 && hav(era,POS)<2000) ? {a:era,b:POS} : null;
+  _posT=now;
   /* raffyca-pos e' il contratto condiviso: lo leggono la barra GPS, Carta,
      Sole Luna e maree. Durante la simulazione NON si scrive, altrimenti una
      prova a tavolino sposta la barca anche in tutti gli altri moduli. */
@@ -803,6 +823,7 @@ function onFix(lat,lon,head,spdMs,acc){
   }
   gpsUi(acc);
   tick();
+  _seg=null;
 }
 function gpsUi(acc){var d=$("gpsDot"),t=$("gpsTxt");if(!d||!t)return;
   if(SIM.on){d.className="dot warn";t.textContent="SIM";return;}
@@ -966,8 +987,15 @@ function tick(){
   if(NAV.on&&REC){recSample();recManeuver();}
   var t=curTarget();
   if(NAV.on&&t){
-    var d=hav(POS,targetPt(t));
-    if(d<COURSE.buffer){if(!_inBuffer){_inBuffer=true;advance(true);}}
+    var pt=targetPt(t), d=hav(POS,pt);
+    /* Il passaggio si misura sul TRATTO fra i due fix, non sul punto del fix.
+       Con la sola distanza puntuale la boa si infila FRA due campioni e non
+       viene contata: a 8 nodi e dieci secondi di buco GPS la barca fa 41 m, e
+       con il raggio a 30 m la boa passa in mezzo senza che nessuno se ne
+       accorga. Da li' la barca non se ne va piu': gira intorno alla boa,
+       perche' la target non avanza mai. */
+    var ds=_seg?Math.min(d,distSeg(_seg.a,_seg.b,pt)):d;
+    if(ds<COURSE.buffer){if(!_inBuffer){_inBuffer=true;advance(true);}}
     else _inBuffer=false;
   }
   rcUi();
@@ -1175,14 +1203,17 @@ function simStep(){
 function simToggle(){
   if(SIM.on){SIM.on=false;clearInterval(SIM.timer);$("simBtn").textContent="Avvia simulazione";gpsUi(null);
     /* il prossimo fix vero riprende il comando: si azzera la scia finta */
-    POS=null;COG=null;SOG=0;_lastFix=null;tick();}
+    POS=null;COG=null;SOG=0;_lastFix=null;_seg=null;_posT=0;tick();}
   else{SIM.on=true;
     /* si riparte dalla linea A OGNI ACCENSIONE, non solo la prima volta:
        fermare e riavviare la simulazione deve riportare la barca in griglia,
        non lasciarla dove l'aveva portata il giro precedente. */
-    POS=simPartenza();COG=null;SOG=0;_lastFix=null;SIM.tack=0;
+    POS=simPartenza();COG=null;SOG=0;_lastFix=null;_seg=null;_posT=0;SIM.tack=0;
     $("simBtn").textContent="Ferma simulazione";SIM.timer=setInterval(simStep,1000);
-    gpsUi(null);tick();}
+    gpsUi(null);tick();
+    /* i passaggi boa li conta la regata: senza, la barca finta arriva sulla
+       prima boa e le gira intorno all'infinito, e sembra un blocco. */
+    if(!NAV.on)toast("Simulazione avviata, ma la regata è ferma: premi ▶ Avvia, altrimenti le boe non vengono passate.",5000);}
 }
 
 /* ---------- wiring ---------- */
