@@ -424,7 +424,7 @@ svg text{font-family:var(--mono);}
 
     <details class="rf-details"><summary>Simulatore (test a tavolino)</summary>
       <div class="inner">
-        <div class="hint" style="margin-bottom:8px">Muove la barca verso la boa attiva a velocità polare (1× o 10× per accelerare). Parte dal <b>centro della linea di partenza</b>; se la linea non è impostata, da 400 m sottovento alla prima boa. Solo per prova: il GPS reale è ignorato mentre è attivo, e la posizione simulata non viene condivisa con gli altri moduli. I passaggi boa li conta la <b>regata</b>: se non è avviata la barca arriva sulla prima boa e le gira intorno.</div>
+        <div class="hint" style="margin-bottom:8px">Muove la barca verso la boa attiva a velocità polare (1× o 10× per accelerare). Parte dal <b>centro della linea di partenza</b>; se la linea non è impostata, da 400 m sottovento alla prima boa. Solo per prova: il GPS reale è ignorato mentre è attivo, e la posizione simulata non viene condivisa con gli altri moduli. Se la regata è ferma <b>la avvia la simulazione</b>, e allo stop lo stato di gara torna com'era: niente registrazione, niente giro mezzo corso da cancellare a mano.</div>
         <div style="display:flex;gap:8px">
           <button class="rf-btn" id="simBtn" style="flex:1">Avvia simulazione</button>
           <button class="rf-btn ghost" id="simSpd" style="flex:0 0 auto;min-width:54px">1×</button>
@@ -1167,7 +1167,7 @@ function drawPlan(){
 }
 
 /* ---------- simulatore ---------- */
-var SIM={on:false,timer:null,tack:0,mult:1};
+var SIM={on:false,timer:null,tack:0,mult:1,navPrima:null};
 
 /* Da dove parte la barca finta. Dal CENTRO DELLA LINEA DI PARTENZA, che e'
    l'unico posto da cui un percorso di regata ha senso guardarlo.
@@ -1188,6 +1188,10 @@ function simPartenza(){
 
 function simStep(){
   var t=curTarget();
+  /* percorso finito: la prova si spegne da sola. Senza, la barca finta
+     ripuntava la prima boa (`goal` di ripiego) e ricominciava a girarle
+     intorno a regata ormai chiusa — di nuovo il sintomo di prima. */
+  if(!t && NAV.tIdx>0){simToggle();return;}
   if(!POS)POS=simPartenza();
   var goal=t?targetPt(t):(COURSE.marks[0]||null);
   if(!goal)return;
@@ -1202,18 +1206,39 @@ function simStep(){
 }
 function simToggle(){
   if(SIM.on){SIM.on=false;clearInterval(SIM.timer);$("simBtn").textContent="Avvia simulazione";gpsUi(null);
+    /* la regata avviata dalla simulazione torna esattamente com'era */
+    if(SIM.navPrima){NAV.on=SIM.navPrima.on;NAV.tIdx=SIM.navPrima.tIdx;
+      NAV.startT=SIM.navPrima.startT;NAV.log=SIM.navPrima.log;SIM.navPrima=null;
+      _inBuffer=false;save();}
     /* il prossimo fix vero riprende il comando: si azzera la scia finta */
-    POS=null;COG=null;SOG=0;_lastFix=null;_seg=null;_posT=0;tick();}
-  else{SIM.on=true;
+    POS=null;COG=null;SOG=0;_lastFix=null;_seg=null;_posT=0;
+    /* `tick()` esce subito senza POS e non ridisegnerebbe: il quadro resterebbe
+       sull'ultimo stato della prova. */
+    tick();rcUi();}
+  else{
+    if(!raceReady()){toast("Definisci prima almeno una boa");return;}
+    SIM.on=true;
+    /* LA SIMULAZIONE AVVIA LA REGATA, se e' ferma. Il passaggio boa lo conta
+       la regata (`tick()` avanza solo con NAV.on): a regata ferma la barca
+       finta arriva sulla prima boa, la supera, torna indietro, e balla li'
+       in eterno fra due rotte opposte senza che la target avanzi mai. Non e'
+       uno stato utile: e' solo il modo di vedere il simulatore rotto.
+       Allo stop si rimette tutto com'era, cosi' una prova a tavolino non
+       lascia una regata mezza corsa nello stato salvato. Niente startRec():
+       una prova non deve riempire l'Analisi di registrazioni finte. */
+    if(!NAV.on){
+      SIM.navPrima={on:NAV.on,tIdx:NAV.tIdx,startT:NAV.startT,log:NAV.log.slice()};
+      if(NAV.tIdx>=targets().length){NAV.tIdx=0;NAV.log=[];}
+      NAV.on=true; if(!NAV.startT)NAV.startT=Date.now();
+      _inBuffer=false;
+      toast("Regata avviata per la prova → "+tgtLabel(curTarget())+". Allo stop torna com'era.",4000);
+    } else SIM.navPrima=null;
     /* si riparte dalla linea A OGNI ACCENSIONE, non solo la prima volta:
        fermare e riavviare la simulazione deve riportare la barca in griglia,
        non lasciarla dove l'aveva portata il giro precedente. */
     POS=simPartenza();COG=null;SOG=0;_lastFix=null;_seg=null;_posT=0;SIM.tack=0;
     $("simBtn").textContent="Ferma simulazione";SIM.timer=setInterval(simStep,1000);
-    gpsUi(null);tick();
-    /* i passaggi boa li conta la regata: senza, la barca finta arriva sulla
-       prima boa e le gira intorno all'infinito, e sembra un blocco. */
-    if(!NAV.on)toast("Simulazione avviata, ma la regata è ferma: premi ▶ Avvia, altrimenti le boe non vengono passate.",5000);}
+    gpsUi(null);tick();}
 }
 
 /* ---------- wiring ---------- */

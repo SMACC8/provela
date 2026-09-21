@@ -3819,7 +3819,7 @@ prima di rieseguirlo.
 
 ---
 
-## 21/09/2026 (3) — La boa passava fra due campioni, e la barca finta le girava intorno
+## 21/09/2026 (3) — La barca finta girava intorno alla boa, per due motivi diversi
 
 Quattro cose in una volta, l'ultima tornata sulla PWA prima di dedicarsi
 all'apk: il simulatore di regata che si piantava sulla B1, l'ordine delle
@@ -3833,7 +3833,13 @@ modulo stesso: linea CB/PIN e le boe B1, B2, B3, B4, A), la simulazione
 arriva sulla **B1 e li' si ferma**. Non si blocca la pagina: la barca gira
 intorno alla boa e la target non avanza mai.
 
-**La causa non e' la navigazione, e' la misura del passaggio.** In `tick()`
+Le cause sono **due, indipendenti, con lo stesso sintomo**. La prima sta qui
+sotto ed e' reale ma rara; la seconda — sezione seguente — e' quella che ha
+colpito davvero, e si e' vista solo dalle schermate. Vale la pena tenerle
+scritte tutte e due: cercando la prima non avrei trovato la seconda, e
+fermandomi alla prima avrei chiuso un difetto ancora aperto.
+
+**Prima causa: non e' la navigazione, e' la misura del passaggio.** In `tick()`
 il passaggio boa si decideva con `hav(POS, boa) < COURSE.buffer`, cioe'
 confrontando il **punto** del fix con il raggio. Fra un fix e l'altro pero'
 la barca percorre un tratto, e se la boa sta **dentro quel tratto ma fuori
@@ -3871,16 +3877,53 @@ Alternative valutate e scartate:
   e' un'altra cosa, e non e' la causa. Resta un'idea per quando serve un
   simulatore che assomigli a una regata e non solo a un collaudo.
 
-### La seconda trappola, trovata leggendo: la regata ferma
+### La seconda causa — ed era QUESTA quella segnalata
 
-`simStep` insegue `curTarget()` **anche a regata ferma**, ma i passaggi li
-conta `tick()` solo `if(NAV.on)`. Chi accende il simulatore senza aver
-premuto **▶ Avvia** vede esattamente lo stesso sintomo: la barca arriva sulla
-prima boa e le gira intorno, e il bottone «Boa passata» e' disabilitato
-proprio perche' la regata non e' avviata. Non e' stato cambiato il
-comportamento (il simulatore muove la barca, la regata conta le boe: sono due
-cose diverse e restano tali), ma ora l'accensione a regata ferma lo **dice**
-con un avviso, e la nota sotto il simulatore lo scrive.
+Leggendo il codice per la prima correzione ne e' saltata fuori una seconda,
+che porta allo **stesso identico sintomo**: `simStep` insegue `curTarget()`
+anche a **regata ferma**, ma i passaggi li conta `tick()` solo `if(NAV.on)`.
+Chi accende il simulatore senza aver premuto **▶ Avvia** vede la barca
+arrivare sulla prima boa, superarla, tornare indietro, e ballare li' fra due
+rotte opposte per sempre; e il bottone «Boa passata» e' disabilitato proprio
+perche' la regata non e' avviata.
+
+Alla prima correzione questa l'avevo solo **segnalata con un avviso**,
+lasciando il comportamento com'era, con la motivazione che il simulatore
+muove la barca e la regata conta le boe. Sbagliato due volte: perche' quello
+stato non e' utile a nessuno, e perche' — dalle schermate mandate — **era
+proprio quello il caso reale**. Si vede tutto: sotto «PROSSIMA BOA B1» c'e'
+scritto *premi Avvia*, il raggio e' a **60 m** di fabbrica, e le distanze
+lette sono **43 m e 19 m**, cioe' ben dentro il raggio. SOG e COG che
+saltano da 10,5 kn / 082° a 6,0 kn / 262°: la barca entra nel cerchio, esce,
+rientra. Con la regata ferma non c'era raggio abbastanza largo per salvarla.
+
+**Correzione**: se la regata e' ferma, **la avvia la simulazione**. Allo stop
+lo stato di gara torna esattamente com'era (`SIM.navPrima` conserva `on`,
+`tIdx`, `startT` e il registro), cosi' una prova a tavolino non lascia una
+regata mezza corsa in `raffyca-race-course`. **Niente `startRec()`**: una
+prova non deve riempire l'Analisi di registrazioni finte. Se invece la regata
+l'hai avviata tu, il simulatore non tocca niente — ne' all'accensione ne'
+allo spegnimento.
+
+Scartate: (a) lasciare l'avviso e basta — e' quello che avevo gia' fatto, e
+il difetto e' rimasto; (b) far contare i passaggi al simulatore invece che
+alla regata — il quadro continuerebbe a dire «premi Avvia» mentre la barca
+gira il percorso, e tempo, TTG e boe rimaste resterebbero spenti; (c)
+disabilitare il bottone del simulatore a regata ferma — toglie un uso
+legittimo (guardare la barca muoversi) per un problema che si puo' risolvere
+facendo la cosa giusta da soli.
+
+Trovati di passaggio, tutti e due sulla stessa strada:
+
+- Allo stop `tick()` esce subito perche' `POS` e' gia' `null`, quindi il
+  quadro non si ridisegnava e restava sull'ultimo stato della prova. Ora lo
+  stop chiama `rcUi()`.
+- **A percorso finito la barca finta ripuntava la prima boa.** `simStep`
+  usava `COURSE.marks[0]` come ripiego quando `curTarget()` e' nullo: chiuso
+  il giro, la barca tornava verso la B1 e ricominciava a girarle intorno, con
+  la regata ormai finita — di nuovo lo stesso sintomo, in coda invece che in
+  testa. Ora la simulazione si **spegne da sola** quando il percorso e'
+  completo.
 
 ### Verifica
 
@@ -3894,7 +3937,15 @@ server locale.
 | 12 direzioni di vento a 10x, raggio 60 m, polare demo | 12 giri su 12 completati |
 | 6 direzioni di vento a 1x | 6 su 6 completati |
 | modello fuori dal browser, 12960 casi (2 velocita' × 10 intensita' × 15 raggi × 36 direzioni) × 4 polari di taglia crescente | col punto 59 giri piantati, **col tratto 0** |
-| simulatore acceso a regata ferma | avviso mostrato, barca in moto, `raffyca-pos` non scritta |
+| caso reale delle schermate (regata ferma, raggio 60 m, TWD 217°) | prima: fermo sulla B1 a 43 e 19 m; dopo: giro completo |
+| 12 direzioni di vento a 10x partendo **da regata ferma**, dai bottoni veri | 12 su 12 completate |
+| 4 direzioni a 1x, da regata ferma | 4 su 4 completate |
+| stop dopo un giro intero | `nav` torna a `{on:false, tIdx:0, startT:null, log:[]}`, anche nel salvato |
+| stop a meta' del primo lato | stessa cosa, e il quadro torna a «premi Avvia» |
+| regata avviata a mano, poi simulatore | `SIM.navPrima` nullo, allo stop la regata resta avviata e `tIdx` intatto |
+| percorso completato | la simulazione si spegne da sola dopo 935 passi, avviso «🏁 Arrivo» |
+| Analisi dopo tutte le prove | **zero** registrazioni lasciate |
+| `raffyca-pos` durante la simulazione | non scritta |
 | stop simulazione | `POS`, `_seg` e `_posT` azzerati, etichetta ripristinata |
 
 Nota: nelle 59 piantate del modello la boa incriminata **non e' sempre la
@@ -3987,6 +4038,10 @@ tessere dell'hub, che elencano gli strumenti dei due moduli.
   passaggio di troppo, che si annulla con «↩ Indietro», di una boa che non si
   conta mai — ma se dovesse capitare davvero, la strada e' confrontare il
   tratto con la velocita' dichiarata dal GPS.
+- **Se una registrazione e' gia' aperta e si accende il simulatore, la traccia
+  finta finisce dentro quella sessione.** Non e' stato toccato: capita solo
+  avviando la regata a mano, registrando, e poi accendendo il simulatore. La
+  strada, se da' fastidio, e' saltare `recSample()` con `SIM.on`.
 - **L'autonomia della batteria non e' stata confrontata con una misura
   vera.** I fattori sono da manuale; la verifica e' un amperometro e una
   notte alla fonda.
