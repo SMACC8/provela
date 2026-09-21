@@ -1,0 +1,15 @@
+{
+  "name": "dritta-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Guscio Android di Dritta: la stessa PWA, piu' quello che il browser non puo' fare (socket NMEA, GPS in background).",
+  "scripts": {
+    "sito": "node ./prepara-sito.js",
+    "sync": "npm run sito && npx cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/cli": "^8.5.2",
+    "@capacitor/core": "^8.5.2"
+  }
+}

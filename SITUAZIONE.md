@@ -3816,3 +3816,159 @@ prima di rieseguirlo.
   cella «Accuratezza» della prova in Impostazioni.
 - `performance/index.html` non e' stato toccato (non usa la geolocalizzazione)
   e non e' stato verificato se e' ancora allineato a `build_perf.py`.
+
+---
+
+## 21/09/2026 (3) — Strumenti di bordo, e Dritta diventa anche un'app Android
+
+**Ramo `capacitor`, worktree separato: `main` non e' toccata.** Quanto segue non
+e' nel sito pubblicato.
+
+Sergio ha chiesto se valesse la pena impacchettare Dritta in un APK invece di
+lasciarla PWA. La risposta breve: **per una cosa sola, ma quella cosa non si
+puo' avere in nessun altro modo** — il collegamento agli strumenti di bordo.
+
+### Perche' il browser non arriva agli strumenti (verificato, non supposto)
+
+Il gateway che Sergio sta per comprare e' uno **Yacht Devices YDWG-02**
+(NMEA 2000 -> Wi-Fi). Letto il manuale (YDWG02-010, marzo 2024, 64 pagine):
+pubblica i dati **solo** su **TCP (porta 1456 di fabbrica) o UDP**, in NMEA
+0183 o RAW. Le parole «WebSocket» e «JSON» **non compaiono mai**. Le «Web
+Gauges» sono una pagina servita dal dispositivo, non un'API.
+
+Una pagina web una socket TCP non la sa aprire: non esiste nel web. E c'e' una
+beffa in piu' — il sito sta su GitHub Pages, quindi HTTPS, e una pagina HTTPS
+non puo' nemmeno parlare in `ws://` o `http://` con un apparato locale
+(contenuto misto). Quindi anche l'unica strada che il web concederebbe (un
+SignalK via WebSocket) sarebbe chiusa dal fatto di essere pubblicati in HTTPS.
+
+**La barca**: Raymarine SeaTalk NG, **i50** (profondita' e velocita') e **i60**
+(vento). Niente bussola sul bus: nessun EV-1, nessun i70. Conseguenza pesante,
+vedi sotto. Da comprare la variante **SeaTalk NG** del gateway (suffisso R),
+non la DeviceNet.
+
+### Cosa c'e' adesso
+
+| file | |
+|---|---|
+| `rf-nmea.js` | il lettore: ES5, nessuna dipendenza, stessa forma di `rf-live.js` |
+| `strumenti.html` | banco di prova: valori vivi + frasi grezze + indirizzo |
+| `ponte_nmea.py` | TCP -> WebSocket, per provare tutto nel browser |
+| `app/` | il guscio Capacitor 8 + il plugin Java della socket |
+| finto gateway | in scratchpad: `finto_ydwg.py`, parla come il YDWG-02 |
+
+Il parser **non e' duplicato** fra browser e app: il plugin nativo legge righe
+e le passa a `rf-nmea.js`, che e' lo stesso file provato nel browser. Cambia
+solo il tubo.
+
+### Il TWD senza bussola: tre scelte, tutte visibili a schermo
+
+Gli strumenti danno il vento **relativo alla prua** (TWA). Per avere il TWD —
+il numero su cui `partenza/` calcola il lato favorito — serve sapere dove
+punta la barca. Senza bussola si ricava dal COG, che e' un'altra cosa:
+coincide con la prua solo senza scarroccio ne' corrente, e a bassa velocita'
+balla. Quindi:
+
+1. **e' sempre etichettato** «stimato dal COG — niente bussola», in giallo.
+   Verde solo il giorno che arriva un sensore di prua;
+2. **media circolare su 60 secondi** accanto all'istantaneo. Il COG contiene
+   l'imbardata e il lato favorito sfarfallerebbe mentre lo leggi. La media e'
+   a vettori: su valori attorno allo zero quella aritmetica darebbe il vento
+   all'opposto (358 e 2 gradi -> 180);
+3. **sotto 1,5 kn tiene l'ultimo valore buono** e dice da quanti secondi,
+   invece di seguire un COG che a barca ferma e' rumore puro.
+
+`partenza/` usa la media e torna a manuale da sola appena scrivi nel campo.
+
+### Alternative scartate
+
+**TWA (Trusted Web Activity).** Impacchetta la PWA in un APK pubblicabile, ma
+dentro resta un browser: niente socket, niente GPS in background. Avrebbe dato
+l'icona e nient'altro.
+
+**Riscrivere nativo.** Sedici moduli, una persona.
+
+**Un plugin di terze parti per le socket.** Scritto il nostro, un centinaio di
+righe di Java: nessuna dipendenza da mantenere, e il codice che ci serve e'
+esattamente quello che c'e'.
+
+**`server.url` verso il sito pubblicato.** Comodo per provare, ma l'app
+mostrerebbe `main`, dove `rf-nmea.js` non esiste. Il sito viene impacchettato
+dentro l'APK da `app/prepara-sito.js`.
+
+**Lasciare vivi i service worker dentro l'app.** Nel sito servono, nell'app no
+— i file sono gia' nell'APK — e un SW che sopravvive a un aggiornamento
+continuerebbe a servire la copia vecchia. `prepara-sito.js` inietta in ogni
+pagina un guardiano che dentro l'app li annulla e ne cancella le cache.
+
+### Quattro cose che si sono rotte, e come
+
+1. **JDK 25 e' troppo nuovo** per il Gradle che Capacitor genera:
+   `Unsupported class file major version 69`. Serve un JDK 21 (messo in
+   `~/.local/jdk21`, insieme a `~/.local/node`).
+2. **L'APK conteneva se' stesso.** Il file finito stava nella radice del sito
+   e lo script di impacchettamento copia tutto: 8 MB di app con dentro 7,6 MB
+   di app. Ora esce in `app/` e l'estensione `.apk` e' esclusa comunque.
+3. **Le frasi arrivavano doppie** — scoperto sul tablet, guardando l'elenco
+   delle frasi grezze. Cambiando l'indirizzo del gateway restavano attaccati
+   gli ascoltatori vecchi *e* un secondo ciclo di lettura sul lato Java. I
+   valori reggevano (rileggere la stessa frase da' lo stesso numero) ma al
+   terzo cambio sarebbero state tre letture. Corretto in due punti: gli
+   ascoltatori si registrano una volta sola, e il plugin ha un **numero di
+   giro** — il ciclo vecchio, che puo' essere fermo su una `readLine()` e
+   morire secondi dopo, smette di parlare appena non e' piu' il corrente. Era
+   lui, col suo «fermo» di commiato in ritardo, a spegnere la spia a
+   collegamento riuscito.
+4. **Schermata nera sul tablet, e NON era il codice.** Il Play Store ha
+   aggiornato la System WebView mentre l'app girava; da quel momento
+   `ActivityManager: Unable to launch app … SandboxedProcessService0: process
+   is bad`. Il bridge partiva, la pagina veniva servita, ma non c'era nessun
+   renderer a eseguirla: nero, zero errori. Messo un canarino
+   (`console.log` a fine pagina) per distinguere «pagina morta» da
+   «schermata che mente»: non parlava nemmeno lui, quindi la pagina davvero
+   non girava — ma per colpa del sistema. **Cura: riavvio del tablet.** Da
+   ricordare, perche' la prossima volta somigliera' a una regressione.
+
+### Validazione
+
+**Parser, contro il finto gateway** (jsc, senza barca e senza app):
+
+| prova | esito |
+|---|---|
+| flusso consegnato a pezzi casuali da 1 byte | frasi ricostruite, nessuna persa |
+| checksum, con una frase alterata | rifiutata, valore buono preservato |
+| m/s, km/h, piedi, emisferi S/W | convertiti |
+| vento reale ricalcolato dall'apparente, nel test | scarto **0,014 gradi** e **0,014 kn** da quello dichiarato |
+| TWD ricostruito contro quello vero del simulatore | **0,05 gradi** |
+| media circolare attorno allo zero | 0,1 gradi (l'aritmetica darebbe 180) |
+| barca ferma, COG a 188 invece di 30 | tiene 315, non salta a 113 |
+| flusso fermo | media **congelata**: prima scivolava da sola (319 -> 321 a stream fermo) |
+
+**Nel browser**: `partenza/` col vento vero — TWD da 311 a 321 gradi, il lato
+favorito da «PIN 43 gradi +343 m» a «PIN 32 gradi +270 m».
+
+**Nell'app, sul tablet vero** (Active 8 Pro, Android 13, via Wi-Fi, col Mac a
+fare da gateway): vento 320 gradi, 13,0 kn, apparente 52 gradi a sinistra,
+velocita' acqua 5,7 kn, profondita' 15,6 m, temperatura 22,4 gradi, COG 33 —
+frasi singole, un ciclo al secondo, spia «GATEWAY COLLEGATO». Riconnessione
+provata staccando il gateway: `ENETUNREACH`, riprova ogni 3 secondi, riparte
+da sola.
+
+### Aperti
+
+- **Il GPS in background non e' fatto.** E' l'altra meta' del motivo per cui
+  esiste il guscio: il foreground service per la veglia d'ancora a schermo
+  spento. La prova che decide: ancora in veglia, schermo spento, telefono in
+  tasca, camminare oltre il raggio.
+- **Il gateway vero non e' ancora arrivato.** Tutto e' provato contro una
+  finta che parla come il manuale dice che parli il YDWG-02. Il primo
+  collegamento vero puo' smentire qualcosa.
+- **Firma di debug.** Per una cosa seria serve una chiave di release, e un
+  modo di aggiornare il sito dentro l'app senza ricostruire l'APK.
+- **L'app parte con localStorage vuoto**: profilo, waypoint e polari non
+  arrivano dalla PWA. Si porta un backup da `impostazioni/`.
+- **Solo `partenza/` legge gli strumenti.** `percorso/` (laylines e VMG),
+  `cruscotto/` (STW) e `anchor/` (profondita' vera) usano ancora dati
+  manuali: stesso schema, lavoro meccanico.
+- **L'indirizzo del ponte e del gateway si imposta da `strumenti.html`**, non
+  da `impostazioni/`. Va spostato quando la cosa smette di essere una prova.

@@ -10,3 +10,23 @@ land-polygons-*/
 land-polygons-*.zip
 isobate_ITALIA_v2*/
 isobate_ITALIA_v2*.zip
+
+# ── guscio Android (ramo capacitor) ─────────────────────────────────────
+# Si committa cio' che e' SCRITTO a mano: configurazione, plugin Java, lo
+# script che prepara il sito. Non cio' che si rigenera con due comandi
+# (`npm install` e `npm run sync`), che qui sono 90 MB su 104.
+# ATTENZIONE: in .gitignore un commento a fine riga NON e' un commento, e'
+# parte del pattern. Scritto cosi' la prima volta, e 11 MB di copia del sito
+# sono entrati lo stesso nell'indice senza che niente protestasse.
+app/node_modules/
+# copia del sito: la rifa' prepara-sito.js
+app/www/
+# la stessa copia, dentro il progetto Android
+app/android/app/src/main/assets/public/
+app/android/.gradle/
+app/android/build/
+app/android/app/build/
+# percorso dell'SDK, diverso su ogni macchina
+app/android/local.properties
+app/android/capacitor-cordova-android-plugins/
+*.apk

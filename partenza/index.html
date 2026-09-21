@@ -107,6 +107,11 @@ body{font-family:var(--sans);color:var(--ink);background:var(--bg);padding-top:4
 .pill.info{border-color:var(--sub);color:var(--sub);}
 .pill.set{border-color:var(--teal);color:var(--teal);}
 .pill.unset{border-color:var(--sub2);color:var(--sub2);}
+.pill.sorg{cursor:pointer;padding:3px 8px;}
+.pill.live{border-color:var(--teal);color:var(--teal);}
+.pill.stima{border-color:var(--amber);color:var(--amber);}
+.sorgnota{font-size:10px;line-height:1.35;color:var(--sub2);margin-top:5px;min-height:13px;}
+.sorgnota.warn{color:var(--amber);}
 
 .fav{text-align:center;font-family:var(--mono);font-size:15px;margin-top:10px;color:var(--green);font-weight:700;}
 .fav.neu{color:var(--sub);font-weight:400;}
@@ -158,6 +163,7 @@ body{font-family:var(--sans);color:var(--ink);background:var(--bg);padding-top:4
   <span class="rf-status" id="rfStatus"></span>
 </div>
 <script src="../rf-topbar.js" defer></script>
+<script src="../rf-nmea.js"></script>
 <script src="../rf-live.js"></script>
 <!-- ===== /rf-topbar ===== -->
 
@@ -220,11 +226,13 @@ body{font-family:var(--sans);color:var(--ink);background:var(--bg);padding-top:4
 
   <!-- VENTO -->
   <div class="rf-g2">
-    <div class="rf-card"><h3><span>Vento — direz.</span><span class="pill info">manuale</span></h3>
+    <div class="rf-card"><h3><span>Vento — direz.</span><span class="pill info sorg" id="twdSorg" title="Tocca per passare da manuale a strumenti">manuale</span></h3>
       <div class="numfield"><div class="numwrap"><input id="twdIn" type="number" inputmode="numeric" step="1"><span class="u">°</span></div></div>
+      <div class="sorgnota" id="twdNota"></div>
     </div>
-    <div class="rf-card"><h3><span>Vento — intens.</span><span class="pill info">info</span></h3>
+    <div class="rf-card"><h3><span>Vento — intens.</span><span class="pill info" id="twsSorg">info</span></h3>
       <div class="numfield"><div class="numwrap"><input id="twsIn" type="number" inputmode="decimal" step="1"><span class="u">kn</span></div></div>
+      <div class="sorgnota" id="twsNota"></div>
     </div>
   </div>
 
@@ -319,8 +327,13 @@ function thresholds(){var s=settings();
 /* ---------- stato linea / vento / countdown (persistenti) ---------- */
 var LINE=readJSON("raffyca-startline",{pin:null,rc:null,mode:"two",dir:95,anchor:"pin"});
 if(!LINE.mode)LINE.mode="two"; if(LINE.dir==null)LINE.dir=95; if(!LINE.anchor)LINE.anchor="pin";
-var PREF=readJSON("raffyca-start",{twd:0,tws:0,target:300,audio:true});
+var PREF=readJSON("raffyca-start",{twd:0,tws:0,target:300,audio:true,ventoDa:"manuale"});
 if(PREF.target==null)PREF.target=300; if(PREF.audio==null)PREF.audio=true;
+/* Prima apertura: manuale, perche' senza gateway "strumenti" direbbe solo
+   che non c'e' niente. Ma appena gli strumenti danno un vento ci si passa
+   DA SOLI, una volta sola — vedi ventoDaStrumenti(). Se l'utente tocca la
+   pillola, la sua scelta vince per sempre (ventoDaScelto). */
+if(PREF.ventoDa!=="strumenti")PREF.ventoDa="manuale";
 function saveLine(){writeJSON("raffyca-startline",LINE);}
 function savePref(){writeJSON("raffyca-start",PREF);}
 
@@ -843,9 +856,106 @@ document.addEventListener("DOMContentLoaded",function(){
   $("cdAudio").textContent=PREF.audio?"🔊":"🔇"; $("cdAudio").className="rf-btn "+(PREF.audio?"on":"");
 
   /* vento */
-  $("twdIn").addEventListener("input",function(){ var n=Number(this.value); if(this.value===""){PREF.twd=0;} else if(isFinite(n)){PREF.twd=((n%360)+360)%360;} savePref(); render(); });
+/* ═══════════ VENTO DAGLI STRUMENTI ═══════════
+   La direzione del vento non e' un numero fra gli altri in questa
+   schermata: e' quello su cui si calcola il lato favorito, cioe' la
+   ragione per cui la schermata esiste. Digitarlo a mano vuol dire che a
+   ogni salto il giudizio invecchia senza dirlo.
+
+   DUE SORGENTI, una alla volta, e si vede sempre quale:
+
+   - manuale    il numero e' tuo, nessuno lo tocca;
+   - strumenti  arriva da rf-nmea.js (i60 via gateway), e si aggiorna da
+                solo ogni secondo.
+
+   TRE SCELTE che vale la pena spiegare, perche' non sono ovvie.
+
+   1. Si usa la MEDIA a 60 secondi, non il valore istantaneo. Senza
+      bussola a bordo il TWD si ricava dal COG, che contiene l'imbardata:
+      l'istantaneo balla di qualche grado a ogni onda e il lato favorito
+      sfarfallerebbe proprio mentre lo stai leggendo. La media e'
+      circolare (a vettori): su valori attorno allo zero quella aritmetica
+      darebbe il vento all'opposto.
+
+   2. Se scrivi nel campo, si torna a MANUALE da solo. E' il gesto con cui
+      uno dice «da qui comando io», e non ha senso chiedergli anche di
+      cambiare modalita' prima.
+
+   3. Il TWD stimato dal COG e' etichettato SEMPRE, in giallo. Non e' una
+      misura: e' una deduzione che regge finche' la barca ha abbrivio.
+      Sotto il nodo e mezzo rf-nmea tiene l'ultimo valore buono e dice da
+      quanto: qui si riporta, invece di far finta di niente. */
+var VENTO={ultimo:0};
+
+function ventoSorgIndicatori(d){
+  var p=$("twdSorg"), nota=$("twdNota");
+  var pw=$("twsSorg"), notaw=$("twsNota");
+  if(PREF.ventoDa!=="strumenti"){
+    p.className="pill info sorg"; p.textContent="manuale";
+    nota.className="sorgnota"; nota.textContent="tocca per usare gli strumenti";
+    pw.className="pill info"; pw.textContent="info"; notaw.textContent=""; notaw.className="sorgnota";
+    return;
+  }
+  var vivo = d && d.twd!=null;
+  var stima = vivo && (d.twdDa==="cog");
+  p.className="pill sorg "+(vivo?(stima?"stima":"live"):"unset");
+  p.textContent = vivo?"strumenti":"nessun dato";
+  if(!vivo){
+    nota.className="sorgnota warn";
+    nota.textContent="strumenti non collegati: il valore resta l'ultimo noto";
+  } else {
+    var t=[];
+    t.push(d.twdDa==="cog" ? "stimato dal COG (niente bussola)" : ("da "+d.twdDa));
+    if(d.twdMed!=null) t.push("media 60 s");
+    if(d.twdEta>5) t.push("fermo da "+d.twdEta+" s");
+    if(d.twdStab!=null&&d.twdStab<0.9) t.push("vento instabile");
+    nota.className="sorgnota"+(stima||d.twdEta>5?" warn":"");
+    nota.textContent=t.join(" · ");
+  }
+  pw.className="pill "+(d&&d.tws!=null?"live":"info");
+  pw.textContent = (d&&d.tws!=null)?"strumenti":"info";
+  notaw.className="sorgnota"+(d&&d.twDa==="calcolato"?" warn":"");
+  notaw.textContent = (d&&d.tws!=null)?(d.twDa==="calcolato"?"calcolato dall'apparente":"dagli strumenti"):"";
+}
+
+function ventoDaStrumenti(){
+  if(!window.rfNmea) { ventoSorgIndicatori(null); return; }
+  var d=rfNmea.dati();
+  /* passaggio automatico alla prima volta che gli strumenti parlano */
+  if(!PREF.ventoDaScelto && PREF.ventoDa!=="strumenti" && d && d.twd!=null){
+    PREF.ventoDa="strumenti"; savePref();
+  }
+  if(PREF.ventoDa==="strumenti"){
+    /* la media quando c'e', l'istantaneo appena collegati */
+    var twd = (d.twdMed!=null && d.twdStab!=null && d.twdStab>0.5) ? d.twdMed : d.twd;
+    var cambiato=false;
+    if(twd!=null && Math.abs(((twd-(PREF.twd||0)+540)%360)-180)>0.4){ PREF.twd=((twd%360)+360)%360; cambiato=true; }
+    if(d.tws!=null && Math.abs(d.tws-(PREF.tws||0))>0.05){ PREF.tws=d.tws; cambiato=true; }
+    if(cambiato){
+      if(document.activeElement!==$("twdIn")) $("twdIn").value=Math.round(PREF.twd);
+      if(document.activeElement!==$("twsIn")) $("twsIn").value=Math.round(PREF.tws*10)/10;
+      savePref(); render();
+    }
+  }
+  ventoSorgIndicatori(d);
+}
+
+$("twdSorg").addEventListener("click",function(){
+  PREF.ventoDa = (PREF.ventoDa==="strumenti")?"manuale":"strumenti";
+  PREF.ventoDaScelto = true;          /* d'ora in poi decide lui */
+  savePref(); ventoDaStrumenti();
+});
+
+setInterval(ventoDaStrumenti,1000);
+
+  $("twdIn").addEventListener("input",function(){ var n=Number(this.value); if(this.value===""){PREF.twd=0;} else if(isFinite(n)){PREF.twd=((n%360)+360)%360;}
+    /* chi scrive comanda: si torna a manuale senza chiedere */
+    if(PREF.ventoDa==="strumenti"){ PREF.ventoDa="manuale"; PREF.ventoDaScelto=true; ventoSorgIndicatori(null); }
+    savePref(); render(); });
   $("twdIn").addEventListener("blur",function(){ this.value=Math.round(PREF.twd); });
-  $("twsIn").addEventListener("input",function(){ var n=Number(this.value); PREF.tws=(this.value===""||!isFinite(n))?0:Math.max(0,n); savePref(); render(); });
+  $("twsIn").addEventListener("input",function(){ var n=Number(this.value); PREF.tws=(this.value===""||!isFinite(n))?0:Math.max(0,n);
+    if(PREF.ventoDa==="strumenti"){ PREF.ventoDa="manuale"; PREF.ventoDaScelto=true; ventoSorgIndicatori(null); }
+    savePref(); render(); });
 
   /* countdown */
   $("cdStart").addEventListener("click",cdStart);

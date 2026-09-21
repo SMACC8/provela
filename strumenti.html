@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Strumenti di bordo · Dritta</title>
+<script>(function(){try{var t=localStorage.getItem('raffyca-theme');if(t==='sun')t='day';if(t==='day'||t==='night')document.documentElement.classList.add(t);}catch(e){}})();</script>
+<style>
+:root{--bg:#060e18;--panel:#0e2036;--dp:#040c14;--line:#1a3248;--ink:#deedf5;--sub:#5a7a94;
+  --teal:#2BD9C4;--amber:#FFC24B;--coral:#FF6B6B;--muted:#5c7079;
+  --mono:ui-monospace,"SF Mono","Roboto Mono",Menlo,monospace}
+html.day{--bg:#eef1f4;--panel:#fff;--dp:#f3f6f9;--line:#c2ccd6;--ink:#0a1420;--sub:#3b4e60;
+  --teal:#067d70;--amber:#8f5600;--coral:#c62020;--muted:#7a909b}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,sans-serif;padding:14px;max-width:640px;margin:0 auto}
+h1{font-size:17px;font-weight:600;margin-bottom:3px}
+.sub{color:var(--sub);font-size:12px;margin-bottom:14px}
+.stato{display:inline-flex;align-items:center;gap:7px;background:var(--dp);border:1px solid var(--line);
+  border-radius:999px;padding:5px 12px;font:600 11px/1 var(--mono);margin-bottom:14px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--muted)}
+.dot.on{background:var(--teal)} .dot.off{background:var(--coral)}
+.griglia{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:9px}
+.cella{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 13px}
+.k{font:600 10px/1 var(--mono);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.v{font:700 25px/1.1 var(--mono);margin-top:7px;letter-spacing:-.02em}
+.v small{font-size:13px;font-weight:600;color:var(--sub);margin-left:3px}
+.n{font:600 11px/1.3 var(--mono);color:var(--sub);margin-top:5px;min-height:14px}
+.n.warn{color:var(--amber)}
+.cella.vento{border-color:rgba(43,217,196,.35)}
+.vuoto .v{color:var(--muted)}
+.conf{display:flex;gap:7px;align-items:center;margin:0 0 14px}
+.conf label{font:600 10px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);flex:none}
+.conf input{flex:1;min-width:0;background:var(--dp);border:1px solid var(--line);border-radius:9px;
+  color:var(--ink);font:12px/1 var(--mono);padding:9px 10px}
+.conf button{flex:none;background:var(--dp);border:1px solid var(--line);color:var(--teal);
+  border-radius:9px;font:600 12px/1 var(--mono);padding:9px 13px;cursor:pointer}
+.crudo{margin-top:16px}
+.crudo pre{background:var(--dp);border:1px solid var(--line);border-radius:10px;padding:10px;
+  font:11px/1.45 var(--mono);color:var(--sub);overflow:auto;max-height:190px;white-space:pre-wrap}
+</style>
+</head>
+<body>
+
+<h1>Strumenti di bordo</h1>
+<div class="sub">Banco di prova del lettore NMEA. Con il ponte acceso mostra quello che mostrerà a bordo.</div>
+<div class="stato"><span class="dot" id="dot"></span><span id="statoTxt">—</span></div>
+<div class="conf">
+  <label id="confEtichetta">Gateway</label>
+  <input id="confVal" type="text" inputmode="url" autocomplete="off" spellcheck="false">
+  <button id="confSalva">Salva</button>
+</div>
+
+<div class="griglia">
+  <div class="cella vento" id="c_twd"><div class="k">Vento reale da</div><div class="v" id="twd">—</div><div class="n" id="twdN"></div></div>
+  <div class="cella vento" id="c_tws"><div class="k">Intensità reale</div><div class="v" id="tws">—</div><div class="n" id="twsN"></div></div>
+  <div class="cella" id="c_awa"><div class="k">Vento apparente</div><div class="v" id="awa">—</div><div class="n" id="awaN"></div></div>
+  <div class="cella" id="c_stw"><div class="k">Velocità acqua</div><div class="v" id="stw">—</div><div class="n">solcometro i50</div></div>
+  <div class="cella" id="c_dbt"><div class="k">Profondità</div><div class="v" id="dbt">—</div><div class="n">ecoscandaglio i50</div></div>
+  <div class="cella" id="c_hdg"><div class="k">Prua</div><div class="v" id="hdg">—</div><div class="n" id="hdgN"></div></div>
+  <div class="cella" id="c_cog"><div class="k">COG / SOG</div><div class="v" id="cog">—</div><div class="n" id="cogN"></div></div>
+  <div class="cella" id="c_mtw"><div class="k">Temp. acqua</div><div class="v" id="mtw">—</div><div class="n">i50</div></div>
+</div>
+
+<div class="crudo"><div class="k" style="margin-bottom:6px">Ultime frasi ricevute</div><pre id="crudo">in attesa…</pre></div>
+
+<script src="./rf-nmea.js"></script>
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id);};
+  var righe=[];
+
+  /* le righe grezze arrivano dall'aggancio del motore, non rimpiazzando
+     alimenta(): il collegamento WebSocket chiama la funzione interna, e
+     una sostituzione dall'esterno non la vedrebbe mai. */
+  rfNmea.onFlusso(function(riga,presa){
+    if(!riga) return;
+    righe.push((presa?"  ":"✗ ")+riga);
+    while(righe.length>12) righe.shift();
+    $("crudo").textContent=righe.join("\n");
+  });
+
+  function n(v,d){ return (v==null)?null:v.toFixed(d===undefined?0:d); }
+  function vuoto(id,cond){ $("c_"+id).classList.toggle("vuoto",cond); }
+
+  function dipingi(){
+    var d=rfNmea.dati();
+
+    $("twd").innerHTML = d.twd==null?"—":(n(d.twd)+'<small>°</small>');
+    vuoto("twd", d.twd==null);
+    var nota="";
+    if(d.twd!=null){
+      nota = d.twdDa==="cog" ? "stimato dal COG — niente bussola" : ("da "+d.twdDa);
+      if(d.twdEta>5) nota += " · fermo da "+d.twdEta+" s";
+      if(d.twdMed!=null) nota += " · media 60 s "+n(d.twdMed)+"°";
+    }
+    $("twdN").textContent=nota;
+    $("twdN").className="n"+((d.twdDa==="cog"||d.twdEta>5)?" warn":"");
+
+    $("tws").innerHTML = d.tws==null?"—":(n(d.tws,1)+'<small>kn</small>');
+    vuoto("tws", d.tws==null);
+    $("twsN").textContent = d.twDa?("vento reale "+(d.twDa==="calcolato"?"calcolato dall'apparente":"dagli strumenti")):"";
+    $("twsN").className="n"+(d.twDa==="calcolato"?" warn":"");
+
+    $("awa").innerHTML = d.awa==null?"—":(n(Math.abs(d.awa))+'<small>°'+(d.awa>=0?" dritta":" sinistra")+'</small>');
+    vuoto("awa", d.awa==null);
+    $("awaN").textContent = d.aws==null?"":(n(d.aws,1)+" kn apparenti");
+
+    $("stw").innerHTML = d.stw==null?"—":(n(d.stw,1)+'<small>kn</small>');
+    vuoto("stw", d.stw==null);
+    $("dbt").innerHTML = d.dbt==null?"—":(n(d.dbt,1)+'<small>m</small>');
+    vuoto("dbt", d.dbt==null);
+
+    $("hdg").innerHTML = d.hdg==null?"—":(n(d.hdg)+'<small>°</small>');
+    vuoto("hdg", d.hdg==null);
+    $("hdgN").textContent = d.hdg==null?"nessuna bussola sul bus":(d.hdgDa||"");
+    $("hdgN").className="n"+(d.hdg==null?" warn":"");
+
+    $("cog").innerHTML = d.cog==null?"—":(n(d.cog)+'<small>°</small>');
+    vuoto("cog", d.cog==null);
+    $("cogN").textContent = d.sog==null?"":(n(d.sog,1)+" kn sul fondo");
+    $("mtw").innerHTML = d.mtw==null?"—":(n(d.mtw,1)+'<small>°C</small>');
+    vuoto("mtw", d.mtw==null);
+
+    var s=rfNmea.stato();
+    $("dot").className="dot"+(s==="collegato"?" on":(s==="fermo"?"":" off"));
+    $("statoTxt").textContent = (s==="collegato")
+      ? ((rfNmea.nativo()?"GATEWAY":"PONTE")+" COLLEGATO") : s.toUpperCase();
+  }
+
+  /* Nell'app si configura l'indirizzo del GATEWAY (la socket la apre il
+     nativo); nel browser l'indirizzo del PONTE. Stessa casella, due
+     mondi: l'etichetta dice quale dei due si sta impostando. */
+  var native = rfNmea.nativo();
+  $("confEtichetta").textContent = native ? "Gateway" : "Ponte";
+  $("confVal").value = native ? rfNmea.gateway() : (rfNmea.ponte() || ("ws://"+(location.hostname||"127.0.0.1")+":1460"));
+  $("confSalva").addEventListener("click",function(){
+    var v=$("confVal").value.trim();
+    if(native) rfNmea.gateway(v); else rfNmea.ponte(v);
+    this.textContent="✓"; var b=this; setTimeout(function(){b.textContent="Salva";},1200);
+  });
+
+  rfNmea.onChange(dipingi);
+  if(!native && !rfNmea.ponte()) rfNmea.collega("ws://"+(location.hostname||"127.0.0.1")+":1460");
+  setInterval(dipingi,1000);
+  dipingi();
+})();
+</script>
+</body>
+</html>
