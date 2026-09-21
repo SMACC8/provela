@@ -497,9 +497,14 @@ function onErr(e){
 async function startGPS(){
   if(!navigator.geolocation){ gpsState.textContent='GPS non disponibile'; gpsState.className='err'; return; }
   watchId=navigator.geolocation.watchPosition(onFix,onErr,
-    {enableHighAccuracy:true,maximumAge:1000,timeout:12000});
+    rfGpsOpt({maximumAge:1000,timeout:12000}));
   try{ if('wakeLock' in navigator){ wakeLock=await navigator.wakeLock.request('screen'); } }catch(e){}
 }
+/* Preferenza GPS condivisa (rf-topbar.js). Il ripiego serve perche' la
+   barra e' caricata con defer: se questo script gira prima, si usa il
+   comportamento storico, cioe' GPS diretto. */
+function rfGpsOpt(o){var g=window.rfGeo;
+  return (g&&typeof g.opzioni==="function")?g.opzioni(o):(o.enableHighAccuracy=true,o);}
 function stopGPS(){
   if(watchId!==null){ navigator.geolocation.clearWatch(watchId); watchId=null; }
   if(wakeLock){ wakeLock.release().catch(()=>{}); wakeLock=null; }

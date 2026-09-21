@@ -493,6 +493,11 @@ function gpsEta(){return (GPS.ok&&GPS.lat!=null&&GPS.ts)?(Date.now()-GPS.ts):nul
 function gpsFresh(){var e=gpsEta();return e!=null&&e<GPS_FRESCO;}
 function gpsUsable(){var e=gpsEta();return e!=null&&e<GPS_MAX;}
 function etaTxt(ms){var s=Math.round(ms/1000);return s<60?(s+' s'):(Math.round(s/60)+' min');}
+/* Preferenza GPS condivisa (rf-topbar.js). Il ripiego serve perche' la
+   barra e' caricata con defer: se questo script gira prima, si usa il
+   comportamento storico, cioe' GPS diretto. */
+function rfGpsOpt(o){var g=window.rfGeo;
+  return (g&&typeof g.opzioni==="function")?g.opzioni(o):(o.enableHighAccuracy=true,o);}
 function gpsStart(){
   if(!navigator.geolocation)return;
   navigator.geolocation.watchPosition(function(pp){
@@ -512,7 +517,7 @@ function gpsStart(){
     GPS._prev={lat:c.latitude,lon:c.longitude,ts:now};
     try{localStorage.setItem('raffyca-pos',JSON.stringify({lat:c.latitude,lon:c.longitude,ts:Date.now()}));}catch(e){}
     paint();
-  },function(){GPS.ok=false;paint();},{enableHighAccuracy:true,maximumAge:2000,timeout:20000});
+  },function(){GPS.ok=false;paint();},rfGpsOpt({maximumAge:2000,timeout:20000}));
 }
 function wpTarget(){try{var id=localStorage.getItem('raffyca-active-wp')||'';if(!id)return null;
   var w=(JSON.parse(localStorage.getItem('raffyca-waypoints')||'[]')).find(function(x){return x.id===id;});

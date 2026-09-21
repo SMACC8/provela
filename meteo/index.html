@@ -605,6 +605,11 @@ function renderHome(){
   document.getElementById('spotList').innerHTML=html;updateDateBar();
 }
 function gpsMsg(t){var el=document.getElementById('gpsMsg');if(el)el.textContent=t||'';}
+/* Preferenza GPS condivisa (rf-topbar.js). Il ripiego serve perche' la
+   barra e' caricata con defer: se questo script gira prima, si usa il
+   comportamento storico, cioe' GPS diretto. */
+function rfGpsOpt(o){var g=window.rfGeo;
+  return (g&&typeof g.opzioni==="function")?g.opzioni(o):(o.enableHighAccuracy=true,o);}
 function useGPS(){
   if(!navigator.geolocation){gpsMsg('Geolocalizzazione non disponibile su questo dispositivo.');return;}
   gpsMsg('Individuo la posizione…');
@@ -614,7 +619,7 @@ function useGPS(){
     spot.data=genSpot(p);
     if(SPOTS[0]&&SPOTS[0].gps)SPOTS[0]=spot;else SPOTS.unshift(spot);
     gpsMsg('');renderHome();openRibbon(0);
-  },function(err){gpsMsg('Posizione non disponibile: '+((err&&err.message)||'permesso negato')+'. Funziona su sito https con permesso attivo.');},{enableHighAccuracy:true,timeout:10000,maximumAge:60000});
+  },function(err){gpsMsg('Posizione non disponibile: '+((err&&err.message)||'permesso negato')+'. Funziona su sito https con permesso attivo.');},rfGpsOpt({timeout:10000,maximumAge:60000}));
 }
 function haversineNM(a,b){var R=3440.065,dLat=(b[0]-a[0])*Math.PI/180,dLon=(b[1]-a[1])*Math.PI/180,la1=a[0]*Math.PI/180,la2=b[0]*Math.PI/180;var h=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(la1)*Math.cos(la2)*Math.sin(dLon/2)*Math.sin(dLon/2);return 2*R*Math.asin(Math.min(1,Math.sqrt(h)));}
 function bearingDeg(a,b){var la1=a[0]*Math.PI/180,la2=b[0]*Math.PI/180,dLon=(b[1]-a[1])*Math.PI/180;var y=Math.sin(dLon)*Math.cos(la2),x=Math.cos(la1)*Math.sin(la2)-Math.sin(la1)*Math.cos(la2)*Math.cos(dLon);return (Math.atan2(y,x)*180/Math.PI+360)%360;}

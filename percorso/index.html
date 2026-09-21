@@ -424,7 +424,7 @@ svg text{font-family:var(--mono);}
 
     <details class="rf-details"><summary>Simulatore (test a tavolino)</summary>
       <div class="inner">
-        <div class="hint" style="margin-bottom:8px">Muove la barca verso la boa attiva a velocità polare (1× o 10× per accelerare). Solo per prova: il GPS reale è ignorato mentre è attivo.</div>
+        <div class="hint" style="margin-bottom:8px">Muove la barca verso la boa attiva a velocità polare (1× o 10× per accelerare). Parte dal <b>centro della linea di partenza</b>; se la linea non è impostata, da 400 m sottovento alla prima boa. Solo per prova: il GPS reale è ignorato mentre è attivo, e la posizione simulata non viene condivisa con gli altri moduli.</div>
         <div style="display:flex;gap:8px">
           <button class="rf-btn" id="simBtn" style="flex:1">Avvia simulazione</button>
           <button class="rf-btn ghost" id="simSpd" style="flex:0 0 auto;min-width:54px">1×</button>
@@ -795,7 +795,12 @@ function onFix(lat,lon,head,spdMs,acc){
       _lastFix={lat:lat,lon:lon,t:now};}
   } else _lastFix={lat:lat,lon:lon,t:now};
   POS={lat:lat,lon:lon};
-  try{localStorage.setItem("raffyca-pos",JSON.stringify({lat:lat,lon:lon,ts:Date.now()}));}catch(e){}
+  /* raffyca-pos e' il contratto condiviso: lo leggono la barra GPS, Carta,
+     Sole Luna e maree. Durante la simulazione NON si scrive, altrimenti una
+     prova a tavolino sposta la barca anche in tutti gli altri moduli. */
+  if(!(typeof SIM!=="undefined"&&SIM&&SIM.on)){
+    try{localStorage.setItem("raffyca-pos",JSON.stringify({lat:lat,lon:lon,ts:Date.now()}));}catch(e){}
+  }
   gpsUi(acc);
   tick();
 }
@@ -803,19 +808,24 @@ function gpsUi(acc){var d=$("gpsDot"),t=$("gpsTxt");if(!d||!t)return;
   if(SIM.on){d.className="dot warn";t.textContent="SIM";return;}
   if(acc==null){d.className="dot err";t.textContent="GPS";return;}
   d.className="dot "+(acc<=25?"ok":"warn");t.textContent="±"+Math.round(acc)+" m";}
+/* Preferenza GPS condivisa (rf-topbar.js). Il ripiego serve perche' la
+   barra e' caricata con defer: se questo script gira prima, si usa il
+   comportamento storico, cioe' GPS diretto. */
+function rfGpsOpt(o){var g=window.rfGeo;
+  return (g&&typeof g.opzioni==="function")?g.opzioni(o):(o.enableHighAccuracy=true,o);}
 function startGps(){
   if(!navigator.geolocation){gpsUi(null);return;}
   navigator.geolocation.watchPosition(function(p){
     if(SIM.on)return;
     onFix(p.coords.latitude,p.coords.longitude,p.coords.heading,p.coords.speed,p.coords.accuracy);
-  },function(){gpsUi(null);},{enableHighAccuracy:true,maximumAge:1000,timeout:15000});
+  },function(){gpsUi(null);},rfGpsOpt({maximumAge:1000,timeout:15000}));
 }
 function gpsOnce(cb){
   if(SIM.on&&POS){cb(POS);return;}
   if(!navigator.geolocation){toast("GPS non disponibile");return;}
   navigator.geolocation.getCurrentPosition(function(p){
     cb({lat:p.coords.latitude,lon:p.coords.longitude});
-  },function(){toast("Posizione non ottenuta");},{enableHighAccuracy:true,timeout:12000});
+  },function(){toast("Posizione non ottenuta");},rfGpsOpt({timeout:12000}));
 }
 
 /* ---------- EDITOR ---------- */
@@ -1130,9 +1140,27 @@ function drawPlan(){
 
 /* ---------- simulatore ---------- */
 var SIM={on:false,timer:null,tack:0,mult:1};
+
+/* Da dove parte la barca finta. Dal CENTRO DELLA LINEA DI PARTENZA, che e'
+   l'unico posto da cui un percorso di regata ha senso guardarlo.
+   Prima il centro linea si usava solo `if(!POS)`, cioe' solo quando il GPS
+   non aveva ancora agganciato: con un fix in tasca la simulazione partiva da
+   casa e la barca attraversava mezza regione per andare alla prima boa,
+   rendendo illeggibili distanze, TTG e lati. In ordine: centro linea, un
+   estremo solo se ce n'e' uno solo, 400 m sottovento alla prima boa, e in
+   ultimo un punto qualunque in Adriatico per non restare senza. */
+function simPartenza(){
+  var s=COURSE.start;
+  if(s.cb&&s.pin)return mid(s.cb,s.pin);
+  if(s.cb)return {lat:s.cb.lat,lon:s.cb.lon};
+  if(s.pin)return {lat:s.pin.lat,lon:s.pin.lon};
+  if(COURSE.marks[0])return dest(COURSE.marks[0],180,400);
+  return {lat:45.6,lon:13.5};
+}
+
 function simStep(){
   var t=curTarget();
-  if(!POS){var s=COURSE.start;POS=(s.cb&&s.pin)?mid(s.cb,s.pin):(COURSE.marks[0]?dest(COURSE.marks[0],180,400):{lat:45.6,lon:13.5});}
+  if(!POS)POS=simPartenza();
   var goal=t?targetPt(t):(COURSE.marks[0]||null);
   if(!goal)return;
   var b=brg(POS,goal), rel=angDiff(b,WIND.twd), arel=Math.abs(rel), head=b;
@@ -1145,8 +1173,16 @@ function simStep(){
   onFix(p.lat,p.lon,head,ms,8);
 }
 function simToggle(){
-  if(SIM.on){SIM.on=false;clearInterval(SIM.timer);$("simBtn").textContent="Avvia simulazione";gpsUi(null);}
-  else{SIM.on=true;$("simBtn").textContent="Ferma simulazione";SIM.timer=setInterval(simStep,1000);}
+  if(SIM.on){SIM.on=false;clearInterval(SIM.timer);$("simBtn").textContent="Avvia simulazione";gpsUi(null);
+    /* il prossimo fix vero riprende il comando: si azzera la scia finta */
+    POS=null;COG=null;SOG=0;_lastFix=null;tick();}
+  else{SIM.on=true;
+    /* si riparte dalla linea A OGNI ACCENSIONE, non solo la prima volta:
+       fermare e riavviare la simulazione deve riportare la barca in griglia,
+       non lasciarla dove l'aveva portata il giro precedente. */
+    POS=simPartenza();COG=null;SOG=0;_lastFix=null;SIM.tack=0;
+    $("simBtn").textContent="Ferma simulazione";SIM.timer=setInterval(simStep,1000);
+    gpsUi(null);tick();}
 }
 
 /* ---------- wiring ---------- */

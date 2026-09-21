@@ -17,6 +17,63 @@
 (function () {
   "use strict";
 
+  /* ───────────────── preferenza GPS, condivisa da tutta la suite ─────────────
+
+     Sta qui perche' questo file e' l'unico caricato da OGNI modulo: cosi' la
+     preferenza si legge ovunque senza aggiungere un file e senza toccare
+     cinque service worker.
+
+     COSA SI PUO' SCEGLIERE DAVVERO. Una pagina web non puo' dire al telefono
+     «usa il servizio di Google» o «usa il chip»: l'unica leva che l'API di
+     geolocalizzazione espone e' `enableHighAccuracy`, e il resto lo decide il
+     sistema operativo.
+
+       true  -> il sistema accende il ricevitore GNSS. Qualche secondo per il
+                primo aggancio, metri di errore, batteria che si sente.
+       false -> il sistema puo' rispondere dalla sua stima di rete (celle e
+                wi-fi noti). Su Android quella stima la fornisce Google, su
+                iPhone Apple: e' questo che in Impostazioni si chiama
+                «servizio del sistema». Immediata, decine o centinaia di
+                metri di errore, quasi zero batteria. Al largo, dove di celle
+                e wi-fi non ce ne sono, non risponde affatto.
+
+     Il default e' il GPS diretto: e' quello che serve in barca, ed e' il
+     comportamento che la suite ha sempre avuto.
+
+     Due moduli NON la leggono di proposito — anchor/ e mob/. La veglia
+     d'ancora deve accorgersi di un'arata di dieci metri e l'uomo a mare va
+     cercato al metro: una posizione di rete li renderebbe inutili senza
+     dirlo. Se in futuro qualcuno li ricollega a questa preferenza, sappia
+     che e' una scelta tolta, non una dimenticanza. */
+  var K_GPS = "raffyca-gps";
+  function gpsAlta() {
+    try {
+      var c = JSON.parse(localStorage.getItem(K_GPS) || "null");
+      return !c || c.alta !== false;          /* assente = GPS diretto */
+    } catch (e) { return true; }
+  }
+  /* Si chiama rfGeo e non rfGps di proposito: nel markup della barra c'e'
+     gia' <span id="rfGps">, e un id nel DOM diventa una variabile globale
+     omonima. Con quel nome `window.rfGps` era lo SPAN finche' la barra (che
+     e' defer) non veniva eseguita, quindi il controllo di ripiego passava e
+     poi esplodeva su .opzioni: errore a tempo di esecuzione, in una riga che
+     a rileggerla sembra corretta. */
+  window.rfGeo = {
+    alta: gpsAlta,
+    imposta: function (v) {
+      try { localStorage.setItem(K_GPS, JSON.stringify({ alta: !!v })); } catch (e) {}
+    },
+    /* Prende le opzioni del chiamante e ci mette dentro la sola
+       enableHighAccuracy: maximumAge e timeout restano di chi chiama, che sa
+       se sta disegnando una rotta o tenendo una veglia. */
+    opzioni: function (base) {
+      var o = {}, k;
+      if (base) for (k in base) if (Object.prototype.hasOwnProperty.call(base, k)) o[k] = base[k];
+      o.enableHighAccuracy = gpsAlta();
+      return o;
+    }
+  };
+
   /* ─────────────────────────── stile ─────────────────────────── */
   var CSS = '' +
 '.rf-topbar{position:fixed;top:0;left:0;right:0;height:40px;z-index:9000;display:flex;align-items:center;gap:9px;' +
@@ -238,7 +295,7 @@
     if (r && REC.watch == null && navigator.geolocation) {
       REC.ultimo = 0;
       REC.watch = navigator.geolocation.watchPosition(onPos, function () {},
-        { enableHighAccuracy: true, maximumAge: 2000, timeout: 30000 });
+        window.rfGeo.opzioni({ maximumAge: 2000, timeout: 30000 }));
       wakeLock(true);
     } else if (!r && REC.watch != null) {
       navigator.geolocation.clearWatch(REC.watch);

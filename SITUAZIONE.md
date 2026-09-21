@@ -3686,3 +3686,133 @@ errori, e la stessa regola del primo arrivato.
   `SUPABASE_URL` e `SUPABASE_ANON_KEY` nelle impostazioni del repository.
   GitHub disattiva i workflow schedulati dopo 60 giorni senza commit: se
   Dritta resta ferma a lungo, si addormenta anche il guardiano.
+
+---
+
+## 21/09/2026 (2) — Sorgente GPS scegliibile, e la barca finta parte dalla linea
+
+Tre richieste in una volta: una scelta nuova in Impostazioni, una domanda
+sull'orientamento del quadro di Partenza, e la posizione di partenza del
+simulatore di Percorso.
+
+### 1. Sorgente della posizione (Impostazioni → Stato GPS)
+
+Segmento a due stati, chiave nuova `raffyca-gps` = `{alta:true}`, default
+GPS diretto — cioe' il comportamento che la suite ha sempre avuto.
+
+**Cosa si puo' scegliere davvero.** Una pagina web non puo' dire al telefono
+«usa il servizio di Google»: l'unica leva dell'API di geolocalizzazione e'
+`enableHighAccuracy`, e chi risponde lo decide il sistema operativo. Con
+`false` la risposta arriva dalla stima di rete — che su Android e' quella di
+Google e su iPhone quella di Apple — immediata, quasi gratis in batteria,
+imprecisa, e al largo **assente**, perche' celle e wi-fi non ce ne sono. Il
+testo in Impostazioni lo dice cosi', senza promettere una scelta di fornitore
+che non esiste.
+
+Il lettore condiviso sta in `rf-topbar.js` (`window.rfGeo`), che e' l'unico
+file caricato da **tutti** i moduli: nessun file nuovo, nessun service worker
+in piu' da gestire. Ogni chiamante mantiene i suoi `maximumAge` e `timeout`,
+che `opzioni()` non tocca: chi disegna una rotta e chi tiene una veglia hanno
+bisogni diversi e li sanno meglio loro.
+
+Collegati: barra GPS/registratore GPX, `rf-live.js`, cruscotto, percorso,
+carta, meteo, routing, xte, sole-luna, partenza, e la prova in Impostazioni.
+
+**`anchor/` e `mob/` NON sono collegati, di proposito.** La veglia d'ancora
+deve accorgersi di un'arata di dieci metri e l'uomo a mare va cercato al
+metro: una posizione di rete li renderebbe inutili senza dirlo. E' una scelta
+tolta all'utente, non una dimenticanza — sta scritto nel commento in
+`rf-topbar.js` e nel testo in Impostazioni.
+
+### La trappola: `window.rfGps` era uno `<span>`
+
+Il nome scelto all'inizio era `window.rfGps`. Nel markup della barra c'e' da
+sempre `<span class="rf-gps" id="rfGps">`, e **un id nel DOM diventa una
+variabile globale omonima**: finche' `rf-topbar.js` (che e' `defer`) non
+veniva eseguito, `window.rfGps` era quello span. Il ripiego scritto come
+`window.rfGps ? window.rfGps.opzioni(o) : …` passava il controllo e poi
+esplodeva su `.opzioni`, con un `TypeError` a meta' pagina: in `percorso/`
+il modulo si fermava prima di esporre `__pvTest`, e il sintomo sembrava
+tutt'altro. Rinominato in **`rfGeo`** (nessun id omonimo nel repo) e il
+ripiego ora controlla `typeof g.opzioni === "function"`, non la sola
+esistenza. Lezione generale: in questa suite ogni `id=` e' anche un nome
+globale, e un `if (window.qualcosa)` non dice che sia il *tuo* qualcosa.
+
+### 2. Orientamento del quadro di Partenza — nessuna modifica
+
+Era una domanda, e la risposta era gia' nel codice
+(`partenza/index.html`, commento sopra `drawSvg`): **il quadro ruota con la
+LINEA**, non col nord e non col vento. Assi ruotati: x lungo PIN→RC con RC a
+destra, y lungo la normale col lato percorso in alto. Cosi' la convenzione di
+posa e' leggibile a colpo d'occhio — barca sotto la linea = sei a posto,
+sopra = sei OCS — e resta la stessa comunque ruotino vento e barca. Il nord
+non sparisce: e' la rosa in alto a sinistra, che gira; il vento e' quella in
+alto a destra. Orientare al nord vorrebbe dire che a ogni posa cambia il
+significato di «sopra» e «sotto», che e' esattamente cio' che in partenza non
+si vuole dover ricalcolare.
+
+### 3. Simulatore di Percorso: si parte dal centro della linea
+
+Difetto osservato: la simulazione partiva **dalla posizione GPS reale**. Il
+centro linea era gia' previsto, ma dietro un `if(!POS)`, cioe' solo quando il
+GPS non aveva ancora agganciato: con un fix in tasca la barca finta partiva
+da casa e attraversava mezza regione per andare alla prima boa, rendendo
+illeggibili distanze, TTG e lati.
+
+Ora `simPartenza()` decide in ordine: centro della linea, un estremo solo se
+ce n'e' uno solo, 400 m sottovento alla prima boa, e in ultimo un punto
+qualunque per non restare senza. Si applica **a ogni accensione**, non solo
+la prima: fermare e riavviare riporta la barca in griglia invece di lasciarla
+dove l'aveva portata il giro precedente.
+
+Due cose trovate strada facendo e sistemate:
+
+- **La posizione finta finiva in `raffyca-pos`**, il contratto condiviso:
+  una prova a tavolino spostava la barca anche nella barra GPS, in Carta e in
+  Sole Luna e maree. Ora durante la simulazione non si scrive.
+- **Allo stop restava la scia finta.** Ora `POS`, `COG`, `SOG` e `_lastFix` si
+  azzerano e il primo fix vero riprende il comando.
+
+### Validazione
+
+Nel pannello browser, a 375 px, con server locale.
+
+| prova | esito |
+|---|---|
+| preferenza assente | `alta()` vero, `opzioni()` da `enableHighAccuracy:true` |
+| «Servizio» | scritto `{"alta":false}`, segmento e cella «Sorgente» allineati |
+| percorso, carta, cruscotto con «Servizio» | `enableHighAccuracy:false`, `maximumAge` e `timeout` di ciascuno intatti |
+| `anchor/` con «Servizio» | nessun helper: resta su GPS diretto, come voluto |
+| simulatore con fix GPS a Trieste e linea in Sardegna | parte dal centro linea (41.2100 / 9.4050) e dopo 3 s si e' mosso verso la boa |
+| `raffyca-pos` durante la simulazione | invariata |
+| stop simulazione | `POS` azzerata, etichetta tornata «Avvia simulazione» |
+| sintassi | tutti i blocchi `<script>` dei file toccati passano `checkSyntax` |
+
+Alzati i cinque service worker che precacheano `rf-topbar.js`/`rf-live.js`:
+hub v19→v20, meteo v18→v19, anchor v16→v17, routing v23→v24, xte v10→v11.
+
+### Corretto un «limite noto» che non era piu' vero
+
+`CLAUDE.md` diceva che `performance/` e `partenza/` sono build React non
+modificabili da questo repository. **Non lo sono piu'**: zero occorrenze di
+React o webpack in entrambi, `partenza/` e' scritto a mano (61 funzioni,
+commenti in italiano) e `performance/` lo assembla `build_perf.py`, che sta
+in radice e dice di se' «sostituisce il vecchio bundle Lovable». Quella riga
+mi ha quasi fatto rispondere «non si puo' toccare» a una domanda su
+`partenza/`. Attenzione pero': il `ROOT` dentro `build_perf.py` punta a
+`/home/claude/work/provela`, un percorso di un'altra macchina, e va corretto
+prima di rieseguirlo.
+
+### Aperti
+
+- **La sorgente si legge quando il watch parte.** Cambiarla mentre un modulo
+  sta gia' seguendo il GPS non ha effetto fino al riavvio del watch (cambio
+  pagina, o spegni e riaccendi). In Impostazioni la prova si riavvia da sola,
+  proprio per poter confrontare le accuratezze; altrove no. Se diventa
+  noioso, la strada e' un evento `storage` che faccia ripartire i watch.
+- **Non provato su telefono**: il pannello e' Chromium su desktop, dove
+  «Servizio» e «GPS diretto» danno la stessa risposta e quindi la differenza
+  di accuratezza non si vede. Va guardata all'aperto, col telefono, sulla
+  cella «Accuratezza» della prova in Impostazioni.
+- `performance/index.html` non e' stato toccato (non usa la geolocalizzazione)
+  e non e' stato verificato se e' ancora allineato a `build_perf.py`.

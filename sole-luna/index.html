@@ -511,9 +511,14 @@ function onGeo(pos) {
   if (ST.speedAuto && GPS.sog != null) ST.speed = Math.max(0.1, +GPS.sog.toFixed(1));
   scheduleRender();
 }
+/* Preferenza GPS condivisa (rf-topbar.js). Il ripiego serve perche' la
+   barra e' caricata con defer: se questo script gira prima, si usa il
+   comportamento storico, cioe' GPS diretto. */
+function rfGpsOpt(o){var g=window.rfGeo;
+  return (g&&typeof g.opzioni==="function")?g.opzioni(o):(o.enableHighAccuracy=true,o);}
 function gpsFresh() { return GPS.ts && (Date.now() - GPS.ts < 25000); }
 if (navigator.geolocation) {
-  navigator.geolocation.watchPosition(onGeo, function () {}, { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 });
+  navigator.geolocation.watchPosition(onGeo, function () {}, rfGpsOpt({maximumAge: 5000, timeout: 15000 }));
 }
 
 /* ================= formattazione ================= */

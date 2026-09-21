@@ -1353,7 +1353,12 @@ function downloadGPX(){var gpx=buildGPX();if(!gpx){toast('Nessuna rotta da espor
     a.href=url;a.download='dritta-'+(FIELD.area||'rotta')+'.gpx';document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(url);},1500);
     toast('GPX esportato ('+R_CACHE.path.length+' punti)');}catch(e){toast('Export non riuscito');}}function startNav(){if(typeof navigator==='undefined'||!navigator.geolocation){toast('Geolocalizzazione non supportata');return;}
   NAV.on=true;document.getElementById('navBtn').classList.add('on');document.getElementById('navBtn').textContent='■ Ferma';
-  try{NAV.watch=navigator.geolocation.watchPosition(onNavFix,onNavErr,{enableHighAccuracy:true,maximumAge:2000,timeout:15000});}catch(e){onNavErr();}}
+  try{NAV.watch=navigator.geolocation.watchPosition(onNavFix,onNavErr,rfGpsOpt({maximumAge:2000,timeout:15000}));}catch(e){onNavErr();}}
+/* Preferenza GPS condivisa (rf-topbar.js). Il ripiego serve perche' la
+   barra e' caricata con defer: se questo script gira prima, si usa il
+   comportamento storico, cioe' GPS diretto. */
+function rfGpsOpt(o){var g=window.rfGeo;
+  return (g&&typeof g.opzioni==="function")?g.opzioni(o):(o.enableHighAccuracy=true,o);}
 function stopNav(){NAV.on=false;var b=document.getElementById('navBtn');if(b){b.classList.remove('on');b.textContent='▶ Naviga';}
   if(NAV.watch!=null&&navigator.geolocation){navigator.geolocation.clearWatch(NAV.watch);}NAV.watch=null;
   if(NAV.marker&&map){map.removeLayer(NAV.marker);}NAV.marker=null;NAV.pos=null;renderNav();}
@@ -1415,7 +1420,7 @@ function initMap(){if(typeof L==='undefined'){return;}
     saveUI();
   });
   seaLayer=L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenSeaMap'}).addTo(map);
-  var LocateCtl=L.Control.extend({options:{position:'topleft'},onAdd:function(){var b=L.DomUtil.create('a','leaflet-bar');b.href='#';b.title='La mia posizione';b.innerHTML='◎';b.style.cssText='width:30px;height:30px;line-height:30px;text-align:center;font-size:17px;background:#0e2036;color:#2BD9C4;text-decoration:none';L.DomEvent.on(b,'click',function(e){L.DomEvent.stop(e);if(!navigator.geolocation){toast('GPS non disponibile');return;}navigator.geolocation.getCurrentPosition(function(pp){map.setView([pp.coords.latitude,pp.coords.longitude],11);toast('La tua posizione');},function(){toast('Posizione non disponibile');},{enableHighAccuracy:true,timeout:15000});});return b;}});map.addControl(new LocateCtl());
+  var LocateCtl=L.Control.extend({options:{position:'topleft'},onAdd:function(){var b=L.DomUtil.create('a','leaflet-bar');b.href='#';b.title='La mia posizione';b.innerHTML='◎';b.style.cssText='width:30px;height:30px;line-height:30px;text-align:center;font-size:17px;background:#0e2036;color:#2BD9C4;text-decoration:none';L.DomEvent.on(b,'click',function(e){L.DomEvent.stop(e);if(!navigator.geolocation){toast('GPS non disponibile');return;}navigator.geolocation.getCurrentPosition(function(pp){map.setView([pp.coords.latitude,pp.coords.longitude],11);toast('La tua posizione');},function(){toast('Posizione non disponibile');},rfGpsOpt({timeout:15000}));});return b;}});map.addControl(new LocateCtl());
   namesLayer=buildNames();namesLayer.addTo(map);
   map.on('move zoom viewreset zoomend moveend resize',redraw);
   map.on('moveend zoomend',saveSharedView);

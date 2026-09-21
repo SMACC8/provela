@@ -639,8 +639,27 @@ select.rf-sel{color:hsl(var(--ink));text-align:left;appearance:none;padding-righ
     <div class="rf-title">Stato GPS</div>
     <div class="field">
       <div class="lbl">
+        <div class="k">Sorgente della posizione</div>
+        <div class="h">Vale per tutti gli strumenti</div>
+      </div>
+      <div class="ctl">
+        <div class="seg" role="group" aria-label="Sorgente della posizione">
+          <button type="button" id="gpsHi" aria-pressed="true">GPS</button>
+          <button type="button" id="gpsNet" aria-pressed="false">Servizio</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="lbl"><div class="h"><b>GPS diretto</b> — il chip del telefono: metri di errore, qualche secondo per agganciare, batteria che si sente. È quello che serve in barca, ed è il predefinito.<br>
+      <b>Servizio</b> — la stima da celle e wi-fi che fa il sistema operativo (Google su Android, Apple su iPhone): immediata e quasi gratis, ma imprecisa, e al largo, dove celle e wi-fi non ce ne sono, non risponde affatto. Serve per le prove a terra e per risparmiare batteria sotto costa.<br>
+      <b>Veglia d'ancora</b> e <b>Uomo a mare</b> non seguono questa scelta: restano sempre su GPS diretto, perché una posizione di rete li renderebbe inutili senza dirlo.</div></div>
+    </div>
+
+    <div class="field">
+      <div class="lbl">
         <div class="k">Stato del ricevitore</div>
-        <div class="h">Fix e accuratezza dal GPS del dispositivo.</div>
+        <div class="h">Fix e accuratezza con la sorgente scelta qui sopra: cambiandola, la prova riparte e si vede subito la differenza sull'accuratezza.</div>
       </div>
       <div class="ctl">
         <button type="button" class="gps-btn" id="gpsToggle">Attiva</button>
@@ -656,7 +675,7 @@ select.rf-sel{color:hsl(var(--ink));text-align:left;appearance:none;padding-righ
         <div class="gps-cell"><div class="c-k">Altitudine</div><div class="c-v" id="gpsAlt">\u2014</div></div>
         <div class="gps-cell"><div class="c-k">Velocit\u00e0</div><div class="c-v" id="gpsSpd">\u2014</div></div>
         <div class="gps-cell"><div class="c-k">Rotta (COG)</div><div class="c-v" id="gpsHdg">\u2014</div></div>
-        <div class="gps-cell"><div class="c-k">Sorgente</div><div class="c-v" id="gpsSrc">device</div></div>
+        <div class="gps-cell"><div class="c-k">Sorgente</div><div class="c-v" id="gpsSrc">\u2014</div></div>
       </div>
     </div>
   </section>
@@ -1434,10 +1453,32 @@ select.rf-sel{color:hsl(var(--ink));text-align:left;appearance:none;padding-righ
     if(!('geolocation' in navigator)){setDot('err');q('gpsFixTxt').textContent='GPS non supportato dal browser';return;}
     btn.textContent='Disattiva'; btn.classList.add('on');
     setDot(''); q('gpsFixTxt').textContent='Ricerca del fix\u2026';
-    try{watchId=navigator.geolocation.watchPosition(onPos,onErr,{enableHighAccuracy:true,maximumAge:0,timeout:15000});}
+    try{watchId=navigator.geolocation.watchPosition(onPos,onErr,
+      (window.rfGeo&&window.rfGeo.opzioni)?window.rfGeo.opzioni({maximumAge:0,timeout:15000})
+                  :{enableHighAccuracy:true,maximumAge:0,timeout:15000});}
     catch(e){onErr({code:2});}
     ageTimer=setInterval(tickAge,1000);
   }
+  /* ── sorgente della posizione ─────────────────────────────────────────
+     Scritta in "raffyca-gps" e letta da tutta la suite via window.rfGeo
+     (rf-topbar.js). Qui si fa una cosa in piu' che altrove non serve: se la
+     prova e' accesa si riavvia il watch, perche' enableHighAccuracy si legge
+     solo quando il watch parte — cambiare sorgente a prova accesa, senza
+     riavviare, non avrebbe cambiato niente e sarebbe sembrato un comando
+     rotto. */
+  function srcAlta(){ return !(window.rfGeo&&window.rfGeo.alta) || window.rfGeo.alta(); }
+  function srcPaint(){
+    var hi=q('gpsHi'), net=q('gpsNet'), alta=srcAlta();
+    if(hi&&net){ hi.setAttribute('aria-pressed',alta?'true':'false');
+                 net.setAttribute('aria-pressed',alta?'false':'true'); }
+    var sc=q('gpsSrc'); if(sc)sc.textContent=alta?'GPS diretto':'servizio di sistema';
+  }
+  function srcSet(alta){
+    if(window.rfGeo&&window.rfGeo.imposta)window.rfGeo.imposta(alta);
+    srcPaint();
+    if(watchId!=null){ stop(); start(); }   /* la prova riparte con la nuova sorgente */
+  }
+
   function stop(){
     if(watchId!=null){try{navigator.geolocation.clearWatch(watchId);}catch(e){}watchId=null;}
     if(ageTimer){clearInterval(ageTimer);ageTimer=null;}
@@ -1445,6 +1486,9 @@ select.rf-sel{color:hsl(var(--ink));text-align:left;appearance:none;padding-righ
     setDot(''); q('gpsFixTxt').textContent='Spento';
   }
   btn.addEventListener('click',function(){ if(watchId==null) start(); else stop(); });
+  if(q('gpsHi'))q('gpsHi').addEventListener('click',function(){srcSet(true);});
+  if(q('gpsNet'))q('gpsNet').addEventListener('click',function(){srcSet(false);});
+  srcPaint();
 })();
 </script>
 <script>

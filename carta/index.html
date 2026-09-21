@@ -411,9 +411,9 @@ function onFix(p){
   updatePosInfo();drawPosMarker();drawRecTrail();seguiTick();
 }
 if(navigator.geolocation){
-  navigator.geolocation.getCurrentPosition(onFix,function(){},{enableHighAccuracy:true,timeout:15000});
+  navigator.geolocation.getCurrentPosition(onFix,function(){},rfGpsOpt({timeout:15000}));
   try{navigator.geolocation.watchPosition(onFix,function(){},
-    {enableHighAccuracy:true,maximumAge:2000,timeout:30000});}catch(e){}
+    rfGpsOpt({maximumAge:2000,timeout:30000}));}catch(e){}
 }
 setInterval(drawRecTrail,1500);
 
@@ -513,7 +513,12 @@ function seguiToggle(){
 var LocateCtl=L.Control.extend({options:{position:'topleft'},onAdd:function(){var b=L.DomUtil.create('a','leaflet-bar');b.href='#';b.innerHTML='\u25ce';b.style.cssText='width:30px;height:30px;line-height:30px;text-align:center;font-size:17px;background:#0e2036;color:#2BD9C4;text-decoration:none';seguiBtn=b;seguiVesti();L.DomEvent.on(b,'click',function(e){L.DomEvent.stop(e);seguiToggle();});return b;}});
 map.addControl(new LocateCtl());
 map.on('dragstart',function(){if(SEGUI)seguiSet(false);});
-function locateMe(){if(!navigator.geolocation){alert('GPS non disponibile.');return;}navigator.geolocation.getCurrentPosition(function(p){POS=[p.coords.latitude,p.coords.longitude];try{localStorage.setItem('raffyca-pos',JSON.stringify({lat:POS[0],lon:POS[1],ts:Date.now()}));}catch(e){}map.setView(POS,14);drawPosMarker();updatePosInfo();renderList();},function(){alert('Posizione non disponibile (permesso negato o segnale assente).');},{enableHighAccuracy:true,timeout:15000});}
+/* Preferenza GPS condivisa (rf-topbar.js). Il ripiego serve perche' la
+   barra e' caricata con defer: se questo script gira prima, si usa il
+   comportamento storico, cioe' GPS diretto. */
+function rfGpsOpt(o){var g=window.rfGeo;
+  return (g&&typeof g.opzioni==="function")?g.opzioni(o):(o.enableHighAccuracy=true,o);}
+function locateMe(){if(!navigator.geolocation){alert('GPS non disponibile.');return;}navigator.geolocation.getCurrentPosition(function(p){POS=[p.coords.latitude,p.coords.longitude];try{localStorage.setItem('raffyca-pos',JSON.stringify({lat:POS[0],lon:POS[1],ts:Date.now()}));}catch(e){}map.setView(POS,14);drawPosMarker();updatePosInfo();renderList();},function(){alert('Posizione non disponibile (permesso negato o segnale assente).');},rfGpsOpt({timeout:15000}));}
 /* Sotto i 0.5 nodi la rotta calcolata e' rumore: resta il punto.
    Sopra, diventa un triangolo orientato sulla rotta al fondo. */
 var COG=null, SOG=null;

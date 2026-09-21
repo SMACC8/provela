@@ -252,8 +252,11 @@
     if (watchId != null) return;
     if (!navigator.geolocation) { ultimoEsito = "geolocalizzazione non disponibile"; avvisa(); return; }
     var s = stato();
+    /* Preferenza GPS condivisa, da rf-topbar.js; se la barra non e' ancora
+       stata eseguita (e' caricata con defer) vale il comportamento storico. */
     watchId = navigator.geolocation.watchPosition(onFix, onErr,
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
+      (window.rfGeo && window.rfGeo.opzioni) ? window.rfGeo.opzioni({ maximumAge: 0, timeout: 20000 })
+                   : { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
     invia();
     timer = setInterval(invia, s.freq * 1000);
     avvisa();

@@ -334,6 +334,11 @@ var CD={running:false, endTs:0, remaining:PREF.target};
 
 /* ---------- GPS ---------- */
 var GPS={lat:null,lon:null,ts:0,ok:false,sog:0,cog:null,_buf:[],_prev:null};
+/* Preferenza GPS condivisa (rf-topbar.js). Il ripiego serve perche' la
+   barra e' caricata con defer: se questo script gira prima, si usa il
+   comportamento storico, cioe' GPS diretto. */
+function rfGpsOpt(o){var g=window.rfGeo;
+  return (g&&typeof g.opzioni==="function")?g.opzioni(o):(o.enableHighAccuracy=true,o);}
 function gpsStart(){
   if(!navigator.geolocation)return;
   navigator.geolocation.watchPosition(function(pp){
@@ -352,7 +357,7 @@ function gpsStart(){
     GPS._prev={lat:c.latitude,lon:c.longitude,ts:now};
     writeJSON("raffyca-pos",{lat:c.latitude,lon:c.longitude,ts:now});
     render();
-  }, function(){GPS.ok=false;render();}, {enableHighAccuracy:true,maximumAge:2000,timeout:20000});
+  }, function(){GPS.ok=false;render();}, rfGpsOpt({maximumAge:2000,timeout:20000}));
 }
 function haversine(la1,lo1,la2,lo2){var R=6371000,r=D2R;
   var dla=(la2-la1)*r, dlo=(lo2-lo1)*r;
