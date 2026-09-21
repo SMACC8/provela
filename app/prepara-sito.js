@@ -30,6 +30,35 @@ const ESTENSIONI_FUORI = [".py", ".sql", ".md", ".apk"];
    guardiano che dentro l'app annulla la registrazione e cancella quelli
    gia' registrati. Nel sito il guardiano non fa niente, perche' li'
    window.Capacitor non esiste. */
+/* ── I LINK A CARTELLA VANNO ESPLICITATI ─────────────────────────────────
+   Dritta e' piena di link come `href="../"` o `data-href="cruscotto/"`.
+   Su un server web vero — python http.server, GitHub Pages — chiedere una
+   cartella restituisce il suo index.html, e l'indirizzo resta quello della
+   cartella: i link relativi successivi si risolvono giusti.
+
+   Il server locale di Capacitor NON risolve le cartelle. Chiede il file
+   `cruscotto/`, non lo trova, e ripiega sulla index.html della radice: a
+   video ricompare il menu, ma l'indirizzo e' diventato
+   `https://localhost/cruscotto/`. Il tocco successivo aggiunge un altro
+   pezzo, e si finisce con
+   `/performance/performance/cruscotto/cruscotto/cruscotto/...` e infine un
+   errore. Segnalato da Sergio alla prima prova vera dell'APK, 21/09/2026.
+
+   Qui i link a cartella diventano espliciti (`../` -> `../index.html`).
+   Si tocca solo la copia che entra nell'APK: il sito pubblicato resta
+   com'e', perche' li' quei link funzionano e cambiarli sarebbe una
+   modifica a quaranta file per un problema che li' non esiste. */
+function esplicita(html) {
+  /* href/data-href che finiscono con "/" e non sono assoluti */
+  return html.replace(/((?:data-)?href\s*=\s*")([^"]*?\/)"/g, (tutto, testa, url) => {
+    if (/^(https?:|\/\/|mailto:|tel:|data:)/i.test(url)) return tutto;
+    return testa + url + 'index.html"';
+  }).replace(/(location\.href\s*=\s*(["']))([^"']*?\/)\2/g, (tutto, testa, virg, url) => {
+    if (/^(https?:|\/\/)/i.test(url)) return tutto;
+    return testa + url + 'index.html' + virg;
+  });
+}
+
 const GUARDIANO = `<script>(function(){if(!window.Capacitor||!navigator.serviceWorker)return;
 try{navigator.serviceWorker.register=function(){return Promise.resolve(null);};
 navigator.serviceWorker.getRegistrations().then(function(rs){rs.forEach(function(r){r.unregister();});}).catch(function(){});
@@ -49,6 +78,7 @@ function copia(da, a) {
       let html = fs.readFileSync(sorgente, "utf8");
       /* subito dopo <head>: deve girare prima di qualunque altro script */
       html = html.replace(/<head([^>]*)>/i, (m) => m + "\n" + GUARDIANO);
+      html = esplicita(html);
       fs.writeFileSync(destinazione, html);
       file++; byte += Buffer.byteLength(html);
       continue;

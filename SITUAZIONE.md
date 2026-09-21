@@ -3901,7 +3901,7 @@ dentro l'APK da `app/prepara-sito.js`.
 continuerebbe a servire la copia vecchia. `prepara-sito.js` inietta in ogni
 pagina un guardiano che dentro l'app li annulla e ne cancella le cache.
 
-### Quattro cose che si sono rotte, e come
+### Cinque cose che si sono rotte, e come
 
 1. **JDK 25 e' troppo nuovo** per il Gradle che Capacitor genera:
    `Unsupported class file major version 69`. Serve un JDK 21 (messo in
@@ -3919,7 +3919,23 @@ pagina un guardiano che dentro l'app li annulla e ne cancella le cache.
    morire secondi dopo, smette di parlare appena non e' piu' il corrente. Era
    lui, col suo «fermo» di commiato in ritardo, a spegnere la spia a
    collegamento riuscito.
-4. **Schermata nera sul tablet, e NON era il codice.** Il Play Store ha
+4. **I link a cartella si accumulavano.** Prima prova vera dell'APK in mano
+   a Sergio: il menu non apriva i moduli, e quando apriva qualcosa l'indirizzo
+   era diventato
+   `https://localhost/performance/performance/cruscotto/cruscotto/...` fino
+   all'errore. Dritta e' piena di link come `href="../"` e
+   `data-href="cruscotto/"`: su un server web vero chiedere una cartella
+   restituisce il suo `index.html` e l'indirizzo resta quello della cartella.
+   **Il server locale di Capacitor non risolve le cartelle**: non trova il
+   file, ripiega sulla index.html della radice, e a video ricompare il menu —
+   ma all'indirizzo sbagliato, e il tocco dopo aggiunge un altro pezzo.
+   Corretto in `prepara-sito.js`, che negli HTML che entrano nell'APK rende
+   espliciti i link (`../` -> `../index.html`), href, data-href e
+   `location.href` compresi. Il sito pubblicato **non** si tocca: li' quei
+   link funzionano, e cambiarli sarebbe una modifica a quaranta file per un
+   problema che li' non esiste.
+
+5. **Schermata nera sul tablet, e NON era il codice.** Il Play Store ha
    aggiornato la System WebView mentre l'app girava; da quel momento
    `ActivityManager: Unable to launch app … SandboxedProcessService0: process
    is bad`. Il bridge partiva, la pagina veniva servita, ma non c'era nessun
