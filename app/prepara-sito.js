@@ -129,6 +129,47 @@ var t=ev.target,a=(t&&t.closest)?t.closest("a[download]"):null;
 if(a&&porta(a)){ev.preventDefault();ev.stopPropagation();}},true);
 })();</scr` + `ipt>`;
 
+/* ── LA VOCE, NELLA WEBVIEW, NON ESISTE ───────────────────────
+   Android non implementa la Web Speech API dentro la WebView:
+   `window.speechSynthesis` e' proprio assente. Le pagine se ne accorgono e
+   si spengono con garbo — il Cruscotto dice "voce non supportata dal
+   browser", il Prontuario disabilita il tasto "Leggilo" — quindi non
+   sembra un guasto, sembra una funzione che non c'e'. Segnalato da Sergio
+   il 22/09/2026: "la lettura vocale di cruscotto e di vhf non funziona".
+
+   Qui si mette al suo posto un finto `speechSynthesis` che parla con il
+   plugin Voce, cioe' col TextToSpeech nativo. Si e' scelto di imitare
+   l'oggetto standard invece di cambiare le due pagine: quelle continuano a
+   funzionare nel browser senza saperne niente, e non nascono due versioni
+   della stessa logica. La coda la tiene Android, perche' il Prontuario
+   accoda piu' frasi in un colpo e mette `onend` solo sull'ultima. */
+const VOCE = `<script>(function(){
+if(!window.Capacitor||("speechSynthesis" in window))return;
+var n=0, coda={}, agganciato=false;
+function P(){return (window.Capacitor.Plugins&&window.Capacitor.Plugins.Voce)||null;}
+function aggancia(p){if(agganciato)return;agganciato=true;
+try{p.addListener("fine",function(e){chiudi(e&&e.id,"onend");});
+p.addListener("errore",function(e){chiudi(e&&e.id,"onerror");});
+p.addListener("inizio",function(e){chiudi(e&&e.id,"onstart",true);});}catch(e){}}
+function chiudi(id,quale,resta){var u=coda[id];if(!u)return;if(!resta)delete coda[id];
+try{if(typeof u[quale]==="function")u[quale]({type:quale});}catch(e){}}
+function Utt(t){this.text=(t==null?"":String(t));this.lang="it-IT";this.rate=1;this.pitch=1;
+this.volume=1;this.voice=null;this.onstart=null;this.onend=null;this.onerror=null;}
+window.SpeechSynthesisUtterance=Utt;
+window.speechSynthesis={
+speak:function(u){var p=P();if(!p||!u)return;aggancia(p);
+var id="v"+(++n);coda[id]=u;
+p.parla({id:id,testo:String(u.text||""),lingua:u.lang||"it-IT",
+velocita:(+u.rate||1),tono:(+u.pitch||1)})
+.catch(function(){chiudi(id,"onerror");});},
+cancel:function(){var p=P();coda={};if(p)p.ferma();},
+pause:function(){},resume:function(){},
+getVoices:function(){return [{name:"Voce di sistema",lang:"it-IT",
+default:true,localService:true,voiceURI:"sistema"}];},
+speaking:false,pending:false,paused:false};
+})();</scr` + `ipt>`;
+
+
 
 let file = 0, byte = 0;
 function copia(da, a) {
@@ -142,7 +183,8 @@ function copia(da, a) {
     if (path.extname(nome) === ".html") {
       let html = fs.readFileSync(sorgente, "utf8");
       /* subito dopo <head>: deve girare prima di qualunque altro script */
-      html = html.replace(/<head([^>]*)>/i, (m) => m + "\n" + GUARDIANO + "\n" + SCARICAMENTI);
+      html = html.replace(/<head([^>]*)>/i,
+        (m) => m + "\n" + GUARDIANO + "\n" + SCARICAMENTI + "\n" + VOCE);
       html = esplicita(html);
       html = allargaFiltri(html);
       fs.writeFileSync(destinazione, html);

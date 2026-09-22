@@ -4427,3 +4427,109 @@ e verificata come non-regressione qui.
   cache vecchia), `xte-v11 → v12`, `raffyca-meteo-v19 → v20`,
   `anchor-v17 → v18`, `raffyca-rt-v24 → v25`. Dentro l'app i service worker
   restano spenti dal guardiano: i bump servono al sito.
+
+---
+
+## 22/09/2026 (2) — Il QR mandava a casa propria, e nella WebView non parla nessuno
+
+Seconda prova dell'APK sul tablet, in serata. Tre segnalazioni, due guasti
+veri e una cosa che con Dritta non c'entra.
+
+### 1. Il QR della Posizione Live portava a `localhost`
+
+Sintomo: si inquadra il QR con un telefono qualunque e Chrome dice
+**«Impossibile raggiungere il sito — Connessione negata da localhost»**,
+`ERR_CONNECTION_REFUSED`, su un indirizzo `localhost/posizione/segui.html`.
+
+Il link lo costruiva `new URL("segui.html#"+session(), location.href)`. Nel
+browser, servito da GitHub Pages, quello e' giusto. Dentro l'APK
+`location.href` e' `https://localhost/posizione/index.html`, perche' il
+server di Capacitor vive li': il QR finiva per contenere «localhost», e chi
+lo inquadra con un ALTRO telefono chiama se' stesso, dove non risponde
+nessuno. Lo stesso succede col server di prova su `localhost:8765`.
+
+E' un difetto di ragionamento, non di ambiente: **chi segue da terra sta
+sempre su un altro dispositivo**, quindi quel link non puo' mai essere
+relativo a dove gira il trasmettitore. Ora `baseCondivisione()` riconosce le
+origini locali (`localhost`, `127.0.0.1`, `[::1]`) e in quel caso punta al
+sito pubblico; da un sito vero resta relativo com'era.
+
+Questo introduce la seconda costante di tutto il repo che conosce il proprio
+indirizzo in rete — `SITO_PUBBLICO` in `posizione/index.html`, accanto alla
+chiave in `segui.html`. **Scartato: dedurlo.** Non c'e' niente da cui
+dedurlo: dentro l'APK non esiste alcuna traccia di dove il sito sia
+pubblicato. **Scartato anche metterlo in `raffyca-supabase` o in una
+impostazione**: sarebbe una domanda in piu' all'utente per un dato che
+cambia solo se cambia il repository.
+
+### 2. La lettura vocale non funzionava — ne' nel Cruscotto ne' nel VHF
+
+Non era un difetto del codice: **la WebView di Android non implementa la Web
+Speech API**. Misurato sul tablet, `typeof window.speechSynthesis` =
+`"undefined"`. Le due pagine se ne accorgono e si spengono con garbo — il
+Cruscotto mostra «voce non supportata dal browser», il Prontuario disabilita
+il tasto con «Voce non disponibile» — ed e' per questo che sembrava una
+funzione mancante e non un guasto.
+
+Nuovo **`VocePlugin`** (TextToSpeech nativo) piu' un guardiano iniettato da
+`prepara-sito.js` che costruisce un finto `window.speechSynthesis` e un
+finto `SpeechSynthesisUtterance` sopra il plugin.
+
+**Scartato: cambiare le due pagine** perche' chiamassero il plugin. Sarebbe
+stato piu' diretto, ma avrebbe creato due strade per la stessa cosa — una
+per il browser e una per l'app — che col tempo divergono; ed e' esattamente
+l'errore che il progetto ha gia' evitato col parser NMEA. Imitando l'oggetto
+standard, `cruscotto/` e `prontuario/` non sanno niente di tutto questo.
+
+**Scartato: un plugin di terze parti** (`@capacitor-community/text-to-speech`).
+Fa di piu' di quel che serve, aggiunge una dipendenza da aggiornare, e la
+parte difficile non e' parlare: e' la **coda**. Il Prontuario accoda quattro
+frasi in un colpo e mette `onend` solo sull'ultima, quindi il finto
+`speechSynthesis` deve tenere la corrispondenza fra frase e callback. La
+tiene una mappa id → utterance, e gli eventi `inizio`/`fine`/`errore` del
+plugin la consumano; la coda vera la fa Android con `QUEUE_ADD`.
+
+### 3. keepalive Supabase: non e' Dritta
+
+Il workflow fallisce **in 3 secondi**, che e' il tempo di arrivare al
+controllo dei segreti e uscire. Provata la stessa chiamata dal Mac con la
+chiave pubblica del progetto: `POST /rest/v1/rpc/get_pos` → **HTTP 200**,
+corpo `null`, cioe' esattamente quello che il workflow si aspetta. Quindi
+il workflow e' giusto e mancano i due segreti su GitHub
+(`SUPABASE_URL`, `SUPABASE_ANON_KEY`), o sono rimasti al formato vecchio.
+Non e' una cosa che si aggiusta nel repo.
+
+### Verificato sul tablet
+
+Active 8 Pro, Android 13, APK ricostruito e installato:
+
+| prova | esito |
+|---|---|
+| link da condividere | `https://smacc8.github.io/provela/posizione/segui.html#…` — non piu' localhost; QR rigenerato |
+| quel sito risponde davvero | `HTTP 200` sia sulla radice sia su `posizione/segui.html` |
+| `speechSynthesis` nell'app | da `undefined` a `object`, `SpeechSynthesisUtterance` a `function` |
+| motore vocale | `{pronto:true, lingua:"it-IT", italiano:true}` |
+| due frasi accodate | inizio A a 382 ms, fine A a 3,4 s, fine B a 6,0 s: ordine e `onend` come nel browser |
+| Prontuario → VHF → «Leggilo» | tasto abilitato, legge le quattro righe, e a fine lettura torna da solo a «▶ Leggilo» |
+| Cruscotto → tasto voce | si accende e resta acceso, nessun avviso di voce non supportata |
+
+### Service worker
+
+**Nessun bump.** `posizione/index.html` non sta nel precache di nessun
+service worker (l'hub precachea `rf-live.js`, non il pannello), e le
+navigazioni l'hub le serve network-first. La correzione della voce non tocca
+nemmeno un file del sito: vive tutta nel guscio Android.
+
+### Aperti
+
+- **`SITO_PUBBLICO` e' scritto a mano.** Se il repository cambia nome — e il
+  nome `provela` e' gia' fuori tempo — il QR punta a un indirizzo morto
+  senza che niente protesti. E' il solito difetto silenzioso: il codice
+  continua a sembrare giusto.
+- **La voce non e' stata provata in cuffia ne' col Bluetooth acceso**, che a
+  bordo e' il caso vero.
+- **Il tasto «Ferma» del VHF non e' stato provato a meta' lettura**: la
+  lettura e' stata lasciata finire da sola.
+- **Se il motore vocale del dispositivo non ha l'italiano**, `stato()` lo
+  sa dire ma nessuna pagina lo chiede: si sentirebbe una voce inglese che
+  legge parole italiane. Sul tablet l'italiano c'e'.

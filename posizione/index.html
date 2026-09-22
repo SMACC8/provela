@@ -245,7 +245,27 @@ function session(){
     localStorage.setItem("raffyca-live-session",s);}
   return s;
 }
-function shareUrl(){return new URL("segui.html#"+session(),location.href).href;}
+/* ---------- il link da dare a terra ----------
+   NON si costruisce su location.href. Dentro l'APK l'origine e'
+   `https://localhost`, e col server di prova e' `localhost:8765`: in tutti e
+   due i casi il QR conterrebbe «localhost», e chi lo inquadra con un altro
+   telefono chiama se' stesso e trova la porta chiusa — ERR_CONNECTION_REFUSED.
+   Segnalato da Sergio il 22/09/2026, inquadrando il QR dell'app con un
+   telefono qualsiasi.
+
+   Chi segue da terra sta SEMPRE su un altro dispositivo, quindi il link deve
+   puntare al sito pubblico. Questo e' l'unico posto di Dritta, insieme alla
+   chiave in segui.html, che conosce il proprio indirizzo in rete: serve
+   perche' l'app non puo' dedurlo da dove sta girando. Se il sito cambia
+   indirizzo, si cambia qui. */
+var SITO_PUBBLICO = "https://smacc8.github.io/provela/";
+function baseCondivisione(){
+  var h = location.hostname;
+  if (h === "localhost" || h === "127.0.0.1" || h === "[::1]" || h === "")
+    return SITO_PUBBLICO + "posizione/";
+  return new URL("./", location.href).href;   /* servito da un sito vero: resta relativo */
+}
+function shareUrl(){return baseCondivisione()+"segui.html#"+session();}
 function renderQR(url){
   var el=$("qr");if(!el||typeof __qrmod==="undefined")return;
   try{var qr=__qrmod(0,"M");qr.addData(url);qr.make();
