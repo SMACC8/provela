@@ -3819,7 +3819,239 @@ prima di rieseguirlo.
 
 ---
 
-## 21/09/2026 (3) — Strumenti di bordo, e Dritta diventa anche un'app Android
+## 21/09/2026 (3) — La barca finta girava intorno alla boa, per due motivi diversi
+
+Quattro cose in una volta, l'ultima tornata sulla PWA prima di dedicarsi
+all'apk: il simulatore di regata che si piantava sulla B1, l'ordine delle
+schede in Sole Luna e maree, l'autonomia della batteria nei Calcoli, le
+conversioni nel Prontuario.
+
+### 1. Il simulatore non superava la prima boa
+
+Difetto segnalato: caricato il percorso Barcolana 2026 (GPX esportato dal
+modulo stesso: linea CB/PIN e le boe B1, B2, B3, B4, A), la simulazione
+arriva sulla **B1 e li' si ferma**. Non si blocca la pagina: la barca gira
+intorno alla boa e la target non avanza mai.
+
+Le cause sono **due, indipendenti, con lo stesso sintomo**. La prima sta qui
+sotto ed e' reale ma rara; la seconda — sezione seguente — e' quella che ha
+colpito davvero, e si e' vista solo dalle schermate. Vale la pena tenerle
+scritte tutte e due: cercando la prima non avrei trovato la seconda, e
+fermandomi alla prima avrei chiuso un difetto ancora aperto.
+
+**Prima causa: non e' la navigazione, e' la misura del passaggio.** In `tick()`
+il passaggio boa si decideva con `hav(POS, boa) < COURSE.buffer`, cioe'
+confrontando il **punto** del fix con il raggio. Fra un fix e l'altro pero'
+la barca percorre un tratto, e se la boa sta **dentro quel tratto ma fuori
+dai due estremi** nessuno se ne accorge: la barca scavalca la boa, se ne
+allontana, torna indietro, riscavalca, e continua cosi' per sempre.
+Misurato sul posto, col simulatore a 10x: distanza dalla boa che oscilla
+**22 → 32 → 22 → 32 m** all'infinito, con il raggio a 10 m.
+
+Le condizioni che lo fanno accadere: passo lungo (simulatore a 10x, che fa
+30–70 m per campione secondo la polare) e raggio stretto (10–20 m). A 1x, o
+col raggio da 60 m di fabbrica, il caso non capita quasi mai — ed e' il
+motivo per cui non era mai saltato fuori prima. **Non e' un difetto del solo
+simulatore**: a 8 nodi con dieci secondi fra un fix e l'altro la barca vera
+fa 41 m, e una boa segnata con raggio piccolo si perde allo stesso modo.
+
+**Correzione**: la distanza si misura sul **tratto** fra il fix precedente e
+quello attuale, non sul punto. Helper nuovo `distSeg(a,b,p)` (distanza
+punto-segmento sul piano locale, gli stessi metri di `toXY`), e `onFix`
+tiene il tratto appena percorso in `_seg`, che `tick()` consuma. Il tratto
+vale solo se i due fix sono **davvero consecutivi** — meno di 30 s e meno di
+2 km — altrimenti un GPS riagganciato dopo dieci minuti, o l'accensione del
+simulatore, farebbero «passare» tutte le boe scavalcate dal salto.
+
+Alternative valutate e scartate:
+
+- **Allargare il raggio minimo dello slider** (da 10 a 40 m): nasconde il
+  difetto invece di toglierlo, e lascia intatto il caso della barca vera con
+  un buco GPS. Il raggio stretto e' una scelta legittima su una boa piccola.
+- **Rallentare il 10x**: il 10x serve proprio a vedere un giro intero in
+  pochi minuti. E comunque non risolve il buco GPS.
+- **Far virare il simulatore quando resta fermo** (contatore di stallo): un
+  cerotto che maschera il sintomo. La barca finta gia' naviga bene; era la
+  misura del passaggio a essere sbagliata.
+- **Rifare `simStep` con virata sulla layline**: sarebbe piu' realistico, ma
+  e' un'altra cosa, e non e' la causa. Resta un'idea per quando serve un
+  simulatore che assomigli a una regata e non solo a un collaudo.
+
+### La seconda causa — ed era QUESTA quella segnalata
+
+Leggendo il codice per la prima correzione ne e' saltata fuori una seconda,
+che porta allo **stesso identico sintomo**: `simStep` insegue `curTarget()`
+anche a **regata ferma**, ma i passaggi li conta `tick()` solo `if(NAV.on)`.
+Chi accende il simulatore senza aver premuto **▶ Avvia** vede la barca
+arrivare sulla prima boa, superarla, tornare indietro, e ballare li' fra due
+rotte opposte per sempre; e il bottone «Boa passata» e' disabilitato proprio
+perche' la regata non e' avviata.
+
+Alla prima correzione questa l'avevo solo **segnalata con un avviso**,
+lasciando il comportamento com'era, con la motivazione che il simulatore
+muove la barca e la regata conta le boe. Sbagliato due volte: perche' quello
+stato non e' utile a nessuno, e perche' — dalle schermate mandate — **era
+proprio quello il caso reale**. Si vede tutto: sotto «PROSSIMA BOA B1» c'e'
+scritto *premi Avvia*, il raggio e' a **60 m** di fabbrica, e le distanze
+lette sono **43 m e 19 m**, cioe' ben dentro il raggio. SOG e COG che
+saltano da 10,5 kn / 082° a 6,0 kn / 262°: la barca entra nel cerchio, esce,
+rientra. Con la regata ferma non c'era raggio abbastanza largo per salvarla.
+
+**Correzione**: se la regata e' ferma, **la avvia la simulazione**. Allo stop
+lo stato di gara torna esattamente com'era (`SIM.navPrima` conserva `on`,
+`tIdx`, `startT` e il registro), cosi' una prova a tavolino non lascia una
+regata mezza corsa in `raffyca-race-course`. **Niente `startRec()`**: una
+prova non deve riempire l'Analisi di registrazioni finte. Se invece la regata
+l'hai avviata tu, il simulatore non tocca niente — ne' all'accensione ne'
+allo spegnimento.
+
+Scartate: (a) lasciare l'avviso e basta — e' quello che avevo gia' fatto, e
+il difetto e' rimasto; (b) far contare i passaggi al simulatore invece che
+alla regata — il quadro continuerebbe a dire «premi Avvia» mentre la barca
+gira il percorso, e tempo, TTG e boe rimaste resterebbero spenti; (c)
+disabilitare il bottone del simulatore a regata ferma — toglie un uso
+legittimo (guardare la barca muoversi) per un problema che si puo' risolvere
+facendo la cosa giusta da soli.
+
+Trovati di passaggio, tutti e due sulla stessa strada:
+
+- Allo stop `tick()` esce subito perche' `POS` e' gia' `null`, quindi il
+  quadro non si ridisegnava e restava sull'ultimo stato della prova. Ora lo
+  stop chiama `rcUi()`.
+- **A percorso finito la barca finta ripuntava la prima boa.** `simStep`
+  usava `COURSE.marks[0]` come ripiego quando `curTarget()` e' nullo: chiuso
+  il giro, la barca tornava verso la B1 e ricominciava a girarle intorno, con
+  la regata ormai finita — di nuovo lo stesso sintomo, in coda invece che in
+  testa. Ora la simulazione si **spegne da sola** quando il percorso e'
+  completo.
+
+### Verifica
+
+Percorso Barcolana 2026 importato dal GPX vero, nel pannello browser con
+server locale.
+
+| prova | esito |
+|---|---|
+| caso segnalato riprodotto (polare rapida, raggio 10 m, 10x, TWD 40°) | prima: fermo sulla B1, distanza 22/32 m all'infinito |
+| lo stesso caso dopo la correzione | giro completo: B1, B2, B3, B4, A, arrivo |
+| 12 direzioni di vento a 10x, raggio 60 m, polare demo | 12 giri su 12 completati |
+| 6 direzioni di vento a 1x | 6 su 6 completati |
+| modello fuori dal browser, 12960 casi (2 velocita' × 10 intensita' × 15 raggi × 36 direzioni) × 4 polari di taglia crescente | col punto 59 giri piantati, **col tratto 0** |
+| caso reale delle schermate (regata ferma, raggio 60 m, TWD 217°) | prima: fermo sulla B1 a 43 e 19 m; dopo: giro completo |
+| 12 direzioni di vento a 10x partendo **da regata ferma**, dai bottoni veri | 12 su 12 completate |
+| 4 direzioni a 1x, da regata ferma | 4 su 4 completate |
+| stop dopo un giro intero | `nav` torna a `{on:false, tIdx:0, startT:null, log:[]}`, anche nel salvato |
+| stop a meta' del primo lato | stessa cosa, e il quadro torna a «premi Avvia» |
+| regata avviata a mano, poi simulatore | `SIM.navPrima` nullo, allo stop la regata resta avviata e `tIdx` intatto |
+| percorso completato | la simulazione si spegne da sola dopo 935 passi, avviso «🏁 Arrivo» |
+| Analisi dopo tutte le prove | **zero** registrazioni lasciate |
+| `raffyca-pos` durante la simulazione | non scritta |
+| stop simulazione | `POS`, `_seg` e `_posT` azzerati, etichetta ripristinata |
+
+Nota: nelle 59 piantate del modello la boa incriminata **non e' sempre la
+B1** — sono B1, B2, B3, B4, A e anche l'arrivo, secondo il vento. La B1 e' la
+prima che si incontra, ed e' li' che il giro si interrompe.
+
+### 2. Sole, Luna e maree: prima la luce, poi la marea
+
+Nella scheda **Giorno** il grafico *Altezza sull'orizzonte* era sotto la
+scheda Marea. Scambiate: la luce e' la domanda che si fa piu' spesso, e
+adesso sta subito sotto le schede Sole e Luna, con la marea di seguito. Solo
+markup, nessuna logica toccata (i due canvas si dimensionano da soli).
+
+**«attendibilita' bassa» non si scrive piu'.** Si legge come «il calcolo e'
+sbagliato», mentre quello che dice e' un'altra cosa: che li' la griglia da
+1/8 di grado non risolve il bacino e il dato va confrontato con quello che si
+vede. Ora la pastiglia dice **«da verificare le condizioni locali»**, e la
+riga di spiegazione sotto la nota comincia allo stesso modo. Media e alta
+restano «attendibilita' media/alta»: quelle si leggono per quello che sono.
+
+### 3. Calcoli di bordo → Barca: autonomia della batteria
+
+Richiesta di chi **non ha l'alternatore sul motore**: il conto e' solo a
+scendere, e l'unico rientro e' la banchina o il solare. Si danno capacita',
+tensione, tipo, stato di carica, potenza accesa e ore al giorno; si leggono
+energia utile, corrente assorbita, **tempo prima che si scarichi** (tutto
+acceso) e **autonomia in giorni** con l'uso dichiarato — le due letture della
+richiesta, che non sono la stessa cosa.
+
+Due scelte non ovvie:
+
+- **La scarica utile non e' la capacita' di targa**: piombo/AGM 50%, gel 60%,
+  litio 80%. La voce «fino a zero» c'e' ma e' dichiarata teorica.
+- **Peukert**, con esponente per tipo (1,20 piombo, 1,15 gel, 1,05 litio):
+  a corrente alta una batteria al piombo rende molto meno della targa, ed e'
+  la differenza fra un frigo che arriva a sera e uno che molla nel
+  pomeriggio. **Il guadagno sotto la corrente di targa invece non si conta**:
+  la formula lo darebbe (a C/20 e meno la resa sale), ma e' la prima cosa che
+  l'eta' della batteria si mangia, e un conto di autonomia che promette piu'
+  del cartellino non serve a nessuno. Per questo `tPeuk` e' limitato a
+  `tCont`, e l'etichetta della riga dice quale dei due casi si sta vedendo.
+
+Nella nota, le potenze indicative di bordo a 12 V (frigo, pilota, plotter,
+VHF, luci di via, sentina, AIS) e l'avvertenza che il frigo lavora a
+intermittenza: la potenza di targa non e' il consumo medio.
+
+### 4. Prontuario → Conversioni
+
+Tessera nuova nel menu e vista `?v=conversioni`. Nove grandezze lineari
+(lunghezza, area, volume, massa, velocita', forza, pressione, potenza,
+tempo) piu' le **coordinate**.
+
+Struttura: **un fattore per unita' verso una base**, e tutto passa dalla
+base. Niente tabella N×N — con nove grandezze sarebbero centinaia di numeri
+da sbagliare. I fattori sono quelli **esatti per definizione** (miglio
+nautico 1852 m, piede 0,3048 m, libbra 0,45359237 kg, psi 6894,757293168 Pa),
+non arrotondati.
+
+Dettagli che contano:
+
+- **Unita' di partenza sensata per grandezza** (metri, non millimetri; nodi;
+  hPa; CV; ore), altrimenti la prima cosa che si vede e' una colonna di
+  esponenziali.
+- Le unita' che a bordo si confondono hanno la riga di spiegazione: braccio e
+  gomena, hPa uguali ai millibar, CV diverso da hp, daN vicino al kgf,
+  tonnellata lunga del rapporto D/L, e il miglio nautico che **non** e' il
+  miglio terrestre.
+- **Coordinate**: parser tollerante (decimali, gradi-primi, gradi-primi-
+  secondi, virgola o punto, emisfero o segno meno) e lo stesso punto scritto
+  nei tre modi, piu' una riga da incollare altrove. I gradi decimali sono a
+  **cinque decimali** come nel MOB e in Carta: sei cifre significative
+  darebbero 45,6876, cioe' undici metri di incertezza. Bottone «dalla mia
+  posizione» che legge `raffyca-pos`, il contratto condiviso — nessuna
+  chiamata al GPS da qui.
+- A 375 px le coordinate non stanno su una riga: latitudine e longitudine
+  sono impilate, non in tabella.
+
+### Service worker
+
+`calcoli/`, `sole-luna/`, `prontuario/` e `index.html` stanno nel precache
+dell'hub: **`dritta-hub-v20` → `v21`**. `percorso/` non e' precacheato da
+nessuno e non richiede bump. Aggiornate anche le due descrizioni delle
+tessere dell'hub, che elencano gli strumenti dei due moduli.
+
+### Aperti
+
+- **Un salto di GPS sotto le soglie passa le boe che scavalca.** Il tratto si
+  considera valido fino a 30 s e 2 km: dentro quei limiti un fix sbagliato
+  che attraversa una boa la fa contare. E' il compromesso scelto — meglio un
+  passaggio di troppo, che si annulla con «↩ Indietro», di una boa che non si
+  conta mai — ma se dovesse capitare davvero, la strada e' confrontare il
+  tratto con la velocita' dichiarata dal GPS.
+- **Se una registrazione e' gia' aperta e si accende il simulatore, la traccia
+  finta finisce dentro quella sessione.** Non e' stato toccato: capita solo
+  avviando la regata a mano, registrando, e poi accendendo il simulatore. La
+  strada, se da' fastidio, e' saltare `recSample()` con `SIM.on`.
+- **L'autonomia della batteria non e' stata confrontata con una misura
+  vera.** I fattori sono da manuale; la verifica e' un amperometro e una
+  notte alla fonda.
+- **Niente conversione di temperatura** nelle Conversioni: non e' un fattore
+  moltiplicativo e l'elenco richiesto non la comprendeva.
+- **Nessuna prova su telefono**: pannello Chromium a 375 px.
+
+---
+
+## 21/09/2026 (4) — Strumenti di bordo, e Dritta diventa anche un'app Android
 
 **Ramo `capacitor`, worktree separato: `main` non e' toccata.** Quanto segue non
 e' nel sito pubblicato.
@@ -4164,11 +4396,15 @@ APK di debug installato di lato:
   layout e non tutti hanno `box-sizing:border-box` sul corpo, quindi una
   riga sola potrebbe aggiustarne uno e rompere gli altri. E' un ritaglio,
   non un blocco.
-- **Il ramo `capacitor` e' indietro di due commit rispetto a `main`**
-  (`calcoli/`, `prontuario/`, `sole-luna/`, `percorso/`, e l'hub a v21).
-  L'APK provato qui **non contiene** quel lavoro. La fusione va fatta, e
-  `partenza/index.html` e `sw.js` sono i due file cambiati da tutte e due le
-  parti.
+- **`main` e' stata fusa dentro `capacitor` subito dopo queste prove**, cosi'
+  l'APK contiene anche `calcoli/`, `prontuario/`, `sole-luna/` e `percorso/`
+  nella versione buona. Due conflitti, tutti e due previsti: la versione del
+  service worker dell'hub (tenuta **v22**, che scavalca la v21 di `main`) e
+  la coda di questo file, dove le due voci «21/09 (3)» sono state rimesse in
+  ordine — quella di `main` resta la (3), il guscio Android diventa la (4).
+  `partenza/index.html` non ha dato conflitto: `main` non l'aveva toccata
+  dopo la biforcazione. **Le prove qui sopra sono state fatte PRIMA della
+  fusione**, e vanno rifatte sull'APK fuso.
 - **Service worker**: alzati `dritta-hub-v20 → v22` (v21 esiste gia' su
   `main`, e saltarlo evita che chi ha preso quella versione resti con la
   cache vecchia), `xte-v11 → v12`, `raffyca-meteo-v19 → v20`,

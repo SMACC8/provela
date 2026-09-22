@@ -309,6 +309,21 @@ button:active{filter:brightness(1.35)}
     </section>
   </div>
 
+  <section class="sl-card">
+    <div class="sl-chart-head">
+      <span class="sl-eyebrow">Altezza sull'orizzonte</span>
+      <div class="sl-legend2"><i style="background:var(--amber)"></i>sole<i style="background:var(--moon)"></i>luna</div>
+    </div>
+    <div class="sl-chart-wrap"><canvas id="chartCv"></canvas></div>
+    <div class="sl-time">
+      <div class="sl-time-head">
+        <span class="mono big" id="chTime"></span>
+        <span class="sl-now-pill" id="chPill"></span>
+      </div>
+      <input type="range" id="chSlider" min="0" max="1439" value="0">
+    </div>
+  </section>
+
   <!-- ═══ MAREA ═══
        Struttura fissa, come la card d'arrivo: qui sotto si aggiornano solo i
        valori. Il numero che conta non e' il livello ma la tendenza. -->
@@ -335,21 +350,6 @@ button:active{filter:brightness(1.35)}
       <div class="sl-tide-warn off" id="tideWarn">Calcolo puramente astronomico: con scirocco o bora sostenuti il sovralzo da vento può invertire la tendenza reale.</div>
     </div>
     <div class="sl-tide-err off" id="tideErr"></div>
-  </section>
-
-  <section class="sl-card">
-    <div class="sl-chart-head">
-      <span class="sl-eyebrow">Altezza sull'orizzonte</span>
-      <div class="sl-legend2"><i style="background:var(--amber)"></i>sole<i style="background:var(--moon)"></i>luna</div>
-    </div>
-    <div class="sl-chart-wrap"><canvas id="chartCv"></canvas></div>
-    <div class="sl-time">
-      <div class="sl-time-head">
-        <span class="mono big" id="chTime"></span>
-        <span class="sl-now-pill" id="chPill"></span>
-      </div>
-      <input type="range" id="chSlider" min="0" max="1439" value="0">
-    </div>
   </section>
 
   <section class="sl-card">
@@ -1119,15 +1119,22 @@ function renderTide() {
     f.style.color = col;
   }
 
+  /* «attendibilità bassa» si legge come «il calcolo è sbagliato», che non è
+     quello che dice: dice che qui la griglia non risolve e che il dato locale
+     va confrontato con quello che si vede. Lo scriviamo così. */
   var c = document.getElementById('tideConf');
-  c.textContent = 'attendibilità ' + m.confidence;
+  c.textContent = m.confidence === 'bassa' ? 'da verificare le condizioni locali'
+                                           : 'attendibilità ' + m.confidence;
   c.style.color = m.confidence === 'alta' ? 'var(--sub)'
                 : m.confidence === 'media' ? 'var(--moon)' : 'var(--amber)';
   c.style.borderColor = m.confidence === 'alta' ? 'var(--line)'
                 : m.confidence === 'media' ? 'var(--moon)' : 'var(--amber)';
 
-  var perche = m.confidence_perche ? '<br>Attendibilità ' + m.confidence + ': ' +
-        m.confidence_perche + '.' : '';
+  var perche = m.confidence_perche
+    ? '<br>' + (m.confidence === 'bassa' ? 'Da verificare le condizioni locali: '
+                                         : 'Attendibilità ' + m.confidence + ': ') +
+      m.confidence_perche + '.'
+    : '';
   document.getElementById('tideNote').innerHTML = (ST.bacino
     ? 'In un bacino con bocche la corrente segue la portata, non il livello: è <b>massima a metà marea</b> e <b>nulla in alta e in bassa</b>. Non vale per un canale fra due mari — nello Stretto di Messina conta il dislivello fra i due capi, non la marea locale.'
     : 'Calcolo astronomico: non contiene il sovralzo da vento. Per la corrente in una bocca di laguna o di darsena, segna il bacino qui sopra.') + perche;
