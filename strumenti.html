@@ -8,12 +8,15 @@
 <style>
 :root{--bg:#060e18;--panel:#0e2036;--dp:#040c14;--line:#1a3248;--ink:#deedf5;--sub:#5a7a94;
   --teal:#2BD9C4;--amber:#FFC24B;--coral:#FF6B6B;--muted:#5c7079;
-  --mono:ui-monospace,"SF Mono","Roboto Mono",Menlo,monospace}
+  --mono:ui-monospace,"SF Mono","Roboto Mono",Menlo,monospace;--panel2:#0b1a2c}
 html.day{--bg:#eef1f4;--panel:#fff;--dp:#f3f6f9;--line:#c2ccd6;--ink:#0a1420;--sub:#3b4e60;
-  --teal:#067d70;--amber:#8f5600;--coral:#c62020;--muted:#7a909b}
+  --teal:#067d70;--amber:#8f5600;--coral:#c62020;--muted:#7a909b;--panel2:#eef2f6}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,sans-serif;padding:14px;max-width:640px;margin:0 auto}
-h1{font-size:17px;font-weight:600;margin-bottom:3px}
+/* il padding in alto lo mette rf-topbar.js, che conosce l'altezza vera
+   della barra (40px piu' la barra di stato del sistema) */
+body{background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,sans-serif;
+  padding:14px;max-width:640px;margin:0 auto}
+h1{font-size:17px;font-weight:600;margin:6px 0 3px}
 .sub{color:var(--sub);font-size:12px;margin-bottom:14px}
 .stato{display:inline-flex;align-items:center;gap:7px;background:var(--dp);border:1px solid var(--line);
   border-radius:999px;padding:5px 12px;font:600 11px/1 var(--mono);margin-bottom:14px}
@@ -40,6 +43,23 @@ h1{font-size:17px;font-weight:600;margin-bottom:3px}
 </style>
 </head>
 <body>
+
+<!-- ===== rf-topbar: markup canonico, come negli altri moduli. Senza, da
+     qui non si torna al menu: la pagina e' in radice, quindi il link alla
+     home e' "./" e lo script "./rf-topbar.js". Mancava, e nell'APK — dove
+     non c'e' nemmeno la barra del browser — Strumenti era un vicolo cieco.
+     Segnalato da Sergio il 22/09/2026. ===== -->
+<div class="rf-topbar" role="banner">
+  <a class="rf-home" href="./" aria-label="Menu Dritta" title="Menu Dritta">
+    <svg viewBox="0 0 64 64" width="19" height="19" aria-hidden="true"><path d="M32 8 L32 56 L10 56 Z" fill="#2BD9C4" opacity=".95"/><path d="M32 26 L54 56 L32 56 Z" fill="#2BD9C4" opacity=".45"/><line x1="32" y1="6" x2="32" y2="58" stroke="#1a4a42" stroke-width="3"/></svg>
+  </a>
+  <span class="rf-boat" id="rfBoat"></span>
+  <span class="rf-gps" id="rfGps" title="Stato GPS"><span class="gdot"></span></span>
+  <span class="rf-spacer"></span>
+  <span class="rf-status" id="rfStatus"></span>
+</div>
+<script src="./rf-topbar.js" defer></script>
+<!-- ===== /rf-topbar ===== -->
 
 <h1>Strumenti di bordo</h1>
 <div class="sub">Banco di prova del lettore NMEA. Con il ponte acceso mostra quello che mostrerà a bordo.</div>

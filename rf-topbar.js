@@ -75,9 +75,25 @@
   };
 
   /* ─────────────────────────── stile ─────────────────────────── */
+  /* ── LA BARRA DEVE STARE SOTTO LA BARRA DI STATO ───────────────────────
+     Nel browser la pagina comincia dove finisce la barra di stato del
+     telefono, e una barra fissa a `top:0` si vede tutta. Dentro l'APK no:
+     da Android 15 la WebView e' a tutto schermo e la barra di stato ci sta
+     SOPRA. Risultato visto sull'emulatore il 22/09/2026: orologio e icone
+     di sistema stampati addosso al tasto home, che diventa intoccabile —
+     ed e' il «manca l'icona in alto a sinistra» segnalato da Sergio.
+
+     Il sistema dichiara quanto spazio si prende con env(safe-area-inset-*),
+     che vale 0 dove non serve (browser, desktop) e 55px sul tablet. Quindi
+     --rf-barra e' l'altezza VERA della barra, ed e' anche quello che le
+     pagine devono togliersi dall'altezza utile: mob/ la usa al posto dei
+     suoi 40px fissi. Perche' env() non torni 0 serve `viewport-fit=cover`
+     nel meta viewport della pagina. */
   var CSS = '' +
-'.rf-topbar{position:fixed;top:0;left:0;right:0;height:40px;z-index:9000;display:flex;align-items:center;gap:9px;' +
-'  padding:0 10px;background:linear-gradient(#0c1c2e,#081521);border-bottom:1px solid #1a3248;' +
+':root{--rf-sicuro:env(safe-area-inset-top,0px);--rf-barra:calc(40px + var(--rf-sicuro));}' +
+'.rf-topbar{position:fixed;top:0;left:0;right:0;height:var(--rf-barra);box-sizing:border-box;' +
+'  z-index:9000;display:flex;align-items:center;gap:9px;' +
+'  padding:var(--rf-sicuro) 10px 0;background:linear-gradient(#0c1c2e,#081521);border-bottom:1px solid #1a3248;' +
 '  font-family:ui-monospace,"SF Mono","Roboto Mono",Menlo,Consolas,monospace;color:var(--sub,#5a7a94);font-size:11.5px;' +
 '  letter-spacing:.02em;-webkit-user-select:none;user-select:none;box-shadow:0 2px 10px -6px rgba(0,0,0,.8);}' +
 /* I token vengono ridefiniti sullo scope della barra: in Impostazioni e Percorso
@@ -106,7 +122,7 @@
 '.rf-topbar .rf-status .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:currentColor;' +
 '  margin-right:5px;animation:rfblink 1.4s infinite;}' +
 '@keyframes rfblink{0%,45%{opacity:1}50%,95%{opacity:.25}100%{opacity:1}}' +
-'body{padding-top:40px!important;}' +
+'body{padding-top:var(--rf-barra,40px)!important;}' +
 
 /* ── zona di stato: da etichetta muta a bottone ──────────────────────────
    Nessun tasto nuovo in barra: si preme quello che gia' mostra REC, WP o
@@ -130,8 +146,9 @@
 '.rf-scrim{position:fixed;inset:0;z-index:8990;background:rgba(2,8,14,.55);opacity:0;' +
 '  pointer-events:none;transition:opacity .2s;}' +
 '.rf-scrim.on{opacity:1;pointer-events:auto;}' +
-'.rf-panel{position:fixed;top:40px;left:0;right:0;z-index:9010;max-height:calc(100vh - 52px);' +
-'  max-height:calc(100dvh - 52px);overflow-y:auto;-webkit-overflow-scrolling:touch;' +
+'.rf-panel{position:fixed;top:var(--rf-barra,40px);left:0;right:0;z-index:9010;' +
+'  max-height:calc(100vh - 12px - var(--rf-barra,40px));' +
+'  max-height:calc(100dvh - 12px - var(--rf-barra,40px));overflow-y:auto;-webkit-overflow-scrolling:touch;' +
 '  background:var(--panel,#0e2036);border:1px solid var(--line,#1a3248);border-top:0;' +
 '  border-radius:0 0 16px 16px;box-shadow:0 12px 34px -10px rgba(0,0,0,.7);' +
 '  transform:translateY(-115%);transition:transform .24s cubic-bezier(.32,.72,.3,1);' +

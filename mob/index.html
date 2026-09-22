@@ -48,7 +48,7 @@ body{background:var(--mb-fondo);color:var(--mb-ink);font-family:var(--mb-sans);
 button{font:inherit;cursor:pointer}
 
 /* ── schermata a riposo ── */
-#riposo{min-height:calc(100dvh - 40px);display:flex;flex-direction:column;
+#riposo{min-height:calc(100dvh - var(--rf-barra,40px));display:flex;flex-direction:column;
   align-items:center;justify-content:center;gap:26px;padding:24px}
 #btnSegna{width:min(70vw,270px);height:min(70vw,270px);border-radius:50%;
   background:var(--mb-mob);border:none;color:#fff;display:flex;flex-direction:column;
@@ -174,7 +174,7 @@ html.mobdark #btnSegna{box-shadow:0 0 0 10px rgba(255,59,36,.13),0 0 0 20px rgba
 </section>
 
 <!-- ─────────── attivo ─────────── -->
-<section id="attivo" hidden style="min-height:calc(100dvh - 40px);display:flex;flex-direction:column">
+<section id="attivo" hidden style="min-height:calc(100dvh - var(--rf-barra,40px));display:flex;flex-direction:column">
   <div id="capo">
     <span class="t">UOMO IN MARE</span>
     <span class="c" id="crono">00:00</span>

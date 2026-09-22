@@ -3988,3 +3988,189 @@ da sola.
   manuali: stesso schema, lavoro meccanico.
 - **L'indirizzo del ponte e del gateway si imposta da `strumenti.html`**, non
   da `impostazioni/`. Va spostato quando la cosa smette di essere una prova.
+
+---
+
+## 22/09/2026 — L'APK alla prima prova vera: GPS muto, nessun file, nessuna via d'uscita
+
+Prima prova dell'APK sul tablet, e quattro cose rotte tutte insieme. Sono
+guaste **diverse** fra loro, ma hanno una radice comune: dentro una WebView
+mancano tre servizi che nel browser si danno per scontati — il permesso di
+posizione, lo scaricamento di un file e la barra di stato che non ti sta
+addosso. Il sito non era sbagliato: era **ospitato male**.
+
+### 1. Il GPS non agganciava, e non chiedeva nemmeno il permesso
+
+Il sintomo: nessuna posizione, in nessun modulo, e **nessuna domanda a
+video**. Quel «nessuna domanda» e' la traccia che conta: se Android avesse
+chiesto e l'utente avesse negato, la domanda si sarebbe vista.
+
+Il manifesto dichiarava un solo permesso, `INTERNET`. Quando la pagina chiama
+`navigator.geolocation`, il ponte di Capacitor chiede ad Android
+`ACCESS_FINE_LOCATION`: un permesso che il manifesto non nomina Android lo
+nega **all'istante e in silenzio**, senza mostrare niente, e alla pagina
+arriva un `PERMISSION_DENIED` indistinguibile da un rifiuto dell'utente.
+
+Corretto aggiungendo `ACCESS_FINE_LOCATION` e `ACCESS_COARSE_LOCATION`, piu'
+`uses-feature android.hardware.location.gps` con `required="false"`.
+
+**Scartato: scrivere un plugin di posizione nativo.** Esiste
+`@capacitor/geolocation`, e si sarebbe potuto anche fare in casa come per il
+NMEA. Ma non serve: la WebView la geolocalizzazione ce l'ha gia' —
+`setGeolocationEnabled(true)` lo fa Capacitor da se' — e un plugin in piu'
+vorrebbe dire due strade per la stessa posizione, una nel browser e una
+nell'app, che col tempo divergono. Mancava solo la riga nel manifesto.
+
+**Non fatto: il GPS in background.** Resta quello che era, un punto aperto:
+serve un foreground service, non un permesso.
+
+### 2. Esportare non faceva niente, importare non mostrava niente
+
+Due guasti diversi, uno per verso.
+
+**In uscita.** Tutta Dritta esporta come esporta il web: Blob, URL
+temporaneo, clic finto su un `<a download>` — otto punti fra tracce,
+waypoint, polari, backup e rotte. In una WebView quel clic **non fa
+assolutamente niente**: non c'e' un gestore di scaricamenti, e un URL `blob:`
+non sarebbe scaricabile comunque, perche' quei byte stanno dentro la pagina e
+non su un server. Nessun errore, nessun avviso: e' il caso peggiore, perche'
+sembra che il bottone non risponda.
+
+Ora il guardiano iniettato da `prepara-sito.js` intercetta il clic sui link
+con `download`, rilegge il Blob e lo passa in base64 al plugin nuovo
+**`SalvaPlugin`**, che scrive nella cartella Download vera del dispositivo e
+lo dice con un avviso. Si intercettano due strade — `HTMLAnchorElement.click`
+(il codice crea link mai attaccati al documento, che un ascoltatore sul
+documento non vedrebbe) e il clic vero in cattura — perche' Dritta usa
+entrambe.
+
+**Scartato: toccare gli otto punti di esportazione.** Avrebbe voluto dire
+otto file, una funzione condivisa in piu' e il sito pubblicato che cambia per
+un difetto che li' non esiste. L'intercettazione sta in un posto solo, come
+gia' il guardiano dei service worker e i link a cartella.
+
+**Scartato: `DownloadListener` sulla WebView.** E' il modo canonico, ma
+riceve solo l'URL, e da un `blob:` non c'e' niente da scaricare: i byte
+bisogna comunque farseli dare dalla pagina.
+
+**In entrata.** `<input type="file" accept=".gpx">` nell'app apriva un
+selettore **vuoto**, o non lo apriva affatto. Capacitor traduce ogni
+estensione dell'`accept` in un tipo MIME usando la tabella di Android, che
+`.gpx` non ce l'ha: con una sola estensione la lista tradotta e' vuota, con
+`.gpx,application/gpx+xml` il selettore parte filtrato su un tipo che nessun
+gestore di file assegna ai .gpx — che arrivano come `application/octet-stream`
+— e i file compaiono spenti, non selezionabili. **Ed e' il motivo per cui
+l'app non si lasciava nemmeno riempire con un backup**: `accept` del backup
+e' `application/json,.json`, stessa trappola.
+
+Ora `prepara-sito.js` allarga il filtro a «qualsiasi tipo» in tutti gli
+`accept`, tranne dove Android sa davvero rispondere: `image/*`, `video/*` e
+`application/pdf` (che servono anche alla scorciatoia fotocamera di
+`manutenzione/`). Si sceglie l'un contro l'altro: filtro giusto e file
+invisibili, oppure tutti i file e l'utente che riconosce il suo.
+
+### 3. La barra in alto stava sotto la barra di stato
+
+Sergio l'ha vista da `strumenti.html` — «non si torna indietro, manca
+l'icona in alto a sinistra» — ma **non era un difetto di quella pagina sola**.
+Da Android 15 la WebView e' a tutto schermo e la barra di stato del sistema
+le sta sopra: `rf-topbar`, fissata a `top:0` e alta 40px, finiva **interamente
+sotto** l'orologio e le icone di sistema. Il tasto home c'era, disegnato, e
+non si poteva toccare. In tutti i moduli.
+
+La correzione sta in `rf-topbar.js`, il file che tutti caricano:
+`--rf-sicuro: env(safe-area-inset-top,0px)` e `--rf-barra: calc(40px + var(--rf-sicuro))`.
+La barra si alza dell'inset, e il `padding-top` del corpo lo segue. Nel
+browser e sul desktop l'inset vale 0 e non cambia niente. Perche' `env()`
+non torni 0 serve `viewport-fit=cover` nel meta viewport: mancava in cinque
+pagine (`cruscotto/`, `performance/`, `partenza/`, `manutenzione/`, `xte/`),
+aggiunto. In `mob/` i due `calc(100dvh - 40px)` diventano
+`calc(100dvh - var(--rf-barra,40px))`.
+
+**Scartato: rinunciare al tutto schermo lato Android**
+(`windowOptOutEdgeToEdgeEnforcement`). Sarebbe stata una riga sola e zero
+modifiche al sito, ma e' una deroga che Android smette di rispettare per chi
+punta all'SDK 36 — cioe' noi, gia' adesso: sull'emulatore Android 17 non ha
+effetto. Rispettare le safe area e' la strada che regge.
+
+E `strumenti.html` la barra non ce l'aveva proprio: aggiunta col markup
+canonico degli altri moduli, home a `./` (che nell'APK diventa
+`./index.html`).
+
+### 4. L'icona era ancora quella di Capacitor
+
+Nel lanciatore c'era il robottino del modello, e all'avvio il logo di
+Capacitor su fondo bianco. Dritta la sua icona ce l'ha gia' — la barca su
+fondo blu della PWA — quindi non se ne disegna un'altra: **`app/fai-icone.py`**
+la ricava da `pwa-maskable-512.png`.
+
+Il punto meno ovvio e' la separazione della barca dal fondo: l'icona e' un
+PNG senza trasparenza. Il fondo pero' e' una sfumatura radiale regolare,
+descritta da tre numeri (centro a un quarto del lato, lineare da (26,55,90) a
+(8,21,37)); si ricostruisce e si confronta, e dove il pixel e' piu' chiaro
+del fondo previsto c'e' disegno. Errore massimo del modello, misurato sui
+pixel senza disegno: **8,6 su 255**, contro una soglia di 12 da cui l'alfa
+comincia a salire.
+
+L'altro punto: l'icona adattiva si disegna su 108dp ma se ne vedono i 72dp
+centrali, e il ritaglio puo' essere tondo. Nell'icona della PWA la barca
+arriva a 0,348 del lato dal centro; rimpicciolita a 0,306 sta dentro il
+cerchio sicuro. Senza, le creste delle onde restavano fuori.
+
+Prodotti: i cinque `ic_launcher_foreground.png`, le icone piene quadrata e
+tonda, il fondo come sfumatura vettoriale (`drawable/ic_launcher_background.xml`)
+e le undici `splash.png`. Da Android 12 pero' la schermata d'avvio non e'
+piu' un'immagine: il sistema disegna l'icona dell'app su una tinta unita, e
+l'unica cosa che l'app decide e' il colore — `windowSplashScreenBackground`
+in `styles.xml`, `#0C1E33`. Senza, l'avvio era un lampo bianco.
+
+### Verificato
+
+Su emulatore **Pixel 10, Android 17** (il tablet vero non era collegato),
+APK di debug installato di lato:
+
+| prova | esito |
+|---|---|
+| posizione | **compare la richiesta di permesso**, concessa: fix 42,1050 / 14,7050 con 5 m, cioe' la posizione finta iniettata nell'emulatore |
+| `carta/` | la mappa si apre sul punto giusto, spia GPS verde in barra |
+| esportazione backup da `impostazioni/` | file in `Download/Dritta-backup-20260922-0435.json`, contenuto corretto, avviso a video |
+| importazione backup | il selettore mostra **tutti** i file, il .json si legge, profilo ripristinato |
+| importazione GPX in `carta/` | «Importati: 2 waypoint, 1 tracce» |
+| barra in alto | sotto la barra di stato, tasto home libero, in tema Scuro e Giorno |
+| `strumenti.html` → tasto home | torna all'hub (`https://localhost/index.html`) |
+| icona nel lanciatore | la barca di Dritta |
+| schermata d'avvio | icona Dritta su fondo blu |
+| icone di sistema in tema Giorno | nere su barra bianca, leggibili |
+
+### Aperti
+
+- **Niente di tutto questo e' stato provato sul tablet vero.** L'emulatore e'
+  Android 17 su x86; il tablet e' un Active 8 Pro con Android 13. Il
+  permesso, i Download e le safe area sono proprio le cose che cambiano fra
+  una versione e l'altra.
+- **La cartella Download pubblica si usa solo da Android 10 in su.** Sotto,
+  `SalvaPlugin` scrive nella cartella dell'app: raggiungibile, ma scomoda.
+  Scelta deliberata, per non chiedere `WRITE_EXTERNAL_STORAGE` a tutti per un
+  caso che sul tablet di bordo non si presenta.
+- **Se Android uccide l'app mentre il selettore di file e' aperto, al ritorno
+  si riparte dall'hub e l'importazione si perde in silenzio.** Visto una
+  volta sull'emulatore a 2 GB (l'ha ucciso il lowmemorykiller), non piu' a 4.
+  Non e' stato affrontato: vorrebbe dire salvare e ripristinare la pagina
+  corrente.
+- **L'inset in basso (24px di barra dei gesti) non e' gestito** se non in
+  `percorso/`, che gia' lo faceva. Nei moduli a tutta altezza — `cruscotto/`
+  per primo — l'ultima riga di riquadri finisce sotto la barra dei gesti.
+  Si e' scelto di non mettere una regola globale su `body`: sono diciassette
+  layout e non tutti hanno `box-sizing:border-box` sul corpo, quindi una
+  riga sola potrebbe aggiustarne uno e rompere gli altri. E' un ritaglio,
+  non un blocco.
+- **Il ramo `capacitor` e' indietro di due commit rispetto a `main`**
+  (`calcoli/`, `prontuario/`, `sole-luna/`, `percorso/`, e l'hub a v21).
+  L'APK provato qui **non contiene** quel lavoro. La fusione va fatta, e
+  `partenza/index.html` e `sw.js` sono i due file cambiati da tutte e due le
+  parti.
+- **Service worker**: alzati `dritta-hub-v20 → v22` (v21 esiste gia' su
+  `main`, e saltarlo evita che chi ha preso quella versione resti con la
+  cache vecchia), `xte-v11 → v12`, `raffyca-meteo-v19 → v20`,
+  `anchor-v17 → v18`, `raffyca-rt-v24 → v25`. Dentro l'app i service worker
+  restano spenti dal guardiano: i bump servono al sito.

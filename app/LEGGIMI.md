@@ -75,11 +75,55 @@ profilo, waypoint e polari non arrivano da soli. Si porta un backup da
 sito servono, qui no — i file sono già nell'APK — e uno rimasto indietro
 continuerebbe a servire la copia vecchia dopo un aggiornamento.
 
-## Il plugin
+## I plugin
 
-`android/app/src/main/java/it/dritta/bordo/NmeaPlugin.java`, un centinaio di
-righe. Apre la socket, legge righe, le passa a JavaScript. **Non interpreta
-niente**: il parser è `rf-nmea.js`, lo stesso che gira nel browser, così non
-esistono due versioni della stessa logica che col tempo divergono.
+Due, tutti e due in `android/app/src/main/java/it/dritta/bordo/`, registrati
+a mano in `MainActivity`.
 
-Riconnette da solo ogni 3 secondi: in barca il gateway si spegne col quadro.
+**`NmeaPlugin`**, un centinaio di righe. Apre la socket, legge righe, le
+passa a JavaScript. **Non interpreta niente**: il parser è `rf-nmea.js`, lo
+stesso che gira nel browser, così non esistono due versioni della stessa
+logica che col tempo divergono. Riconnette da solo ogni 3 secondi: in barca
+il gateway si spegne col quadro.
+
+**`SalvaPlugin`**, l'esportazione dei file. Dritta esporta come esporta il
+web — Blob, URL temporaneo, clic finto su un `<a download>` — e in una
+WebView quel clic non fa **niente**: nessun file, nessun errore. Il guardiano
+iniettato da `prepara-sito.js` intercetta il clic, rilegge il Blob e lo passa
+qui in base64; qui si scrive nella cartella Download e si avvisa. Il plugin
+non sa niente dei formati.
+
+## Le icone
+
+`app/fai-icone.py` (serve Pillow) le ricava tutte da `pwa-maskable-512.png`,
+l'icona della PWA: icona adattiva, icone piene, fondo vettoriale e le undici
+schermate d'avvio. Si rilancia dalla radice del worktree e basta:
+
+```bash
+python3 app/fai-icone.py
+```
+
+Le uscite si committano, perché il progetto Android non si rigenera. Dentro
+lo script c'è scritto come la barca viene separata dal fondo blu e perché
+nell'icona adattiva è più piccola che nella PWA.
+
+## Provare senza il tablet
+
+C'è un emulatore (`Pixel_10`). Va avviato con più memoria del suo default,
+altrimenti Android uccide l'app appena si apre il selettore di file:
+
+```bash
+$ANDROID_HOME/emulator/emulator -avd Pixel_10 -memory 4096
+adb install -r app/Dritta-prova.apk
+adb emu geo fix 14.7050 42.1050 3      # posizione finta, al largo di Vasto
+```
+
+La WebView si ispeziona da fuori: l'APK di debug espone DevTools su una
+socket, e `adb forward tcp:9222 localabstract:webview_devtools_remote_<pid>`
+la porta sul Mac. Da lì `http://127.0.0.1:9222/json/list` dice che pagina è
+aperta, e con una connessione WebSocket si valuta JavaScript dentro l'app —
+è così che si è verificato che la posizione arrivasse davvero.
+
+**L'emulatore non sostituisce il tablet**: è Android 17 su x86, il tablet è
+un Active 8 Pro con Android 13, e permessi, cartella Download e safe area
+sono proprio le cose che cambiano fra una versione e l'altra.

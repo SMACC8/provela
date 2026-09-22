@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Il blu di Dritta, preso dall'icona: e' il colore su cui Android
+         disegna la schermata d'avvio da Android 12 in poi. Senza, il
+         sistema usa il proprio fondo chiaro e all'avvio dell'app si vede
+         un lampo bianco prima del blu della pagina. -->
+    <color name="dritta_fondo">#0C1E33</color>
+</resources>

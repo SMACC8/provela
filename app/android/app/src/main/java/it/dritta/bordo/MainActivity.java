@@ -10,6 +10,7 @@ public class MainActivity extends BridgeActivity {
            il bridge si avvii: quelli di terze parti li trova da solo
            leggendo le dipendenze, questo no perche' vive qui. */
         registerPlugin(NmeaPlugin.class);
+        registerPlugin(SalvaPlugin.class);
         super.onCreate(savedInstanceState);
     }
 }

@@ -35,7 +35,21 @@
         </provider>
     </application>
 
-    <!-- Permissions -->
+    <!-- Permessi -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- La WebView chiede la posizione con navigator.geolocation, ma il
+         permesso lo deve dichiarare l'applicazione: senza queste due righe
+         il ponte di Capacitor chiede a Android un permesso che il manifesto
+         non nomina, Android lo nega all'istante e alla pagina arriva un
+         PERMISSION_DENIED senza che all'utente venga chiesto niente.
+         Visto sul tablet il 21/09/2026: nessun aggancio, nessuna domanda. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- Il GPS vero, non la stima di rete: al largo celle e wi-fi non ci
+         sono, e senza questa dichiarazione il Play Store installerebbe
+         Dritta anche su un dispositivo che il ricevitore non ce l'ha. -->
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
 </manifest>

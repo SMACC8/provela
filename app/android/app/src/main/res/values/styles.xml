@@ -16,7 +16,15 @@
     </style>
 
 
+    <!-- Schermata d'avvio. Due meccanismi, uno per epoca:
+         - fino ad Android 11 la finestra mostra @drawable/splash, l'immagine
+           generata da app/fai-icone.py;
+         - da Android 12 il sistema disegna da se' l'icona dell'app su un
+           fondo a tinta unita, e l'unica cosa che l'app puo' dire e' di che
+           colore. Senza la riga qui sotto quel fondo resta il chiaro di
+           sistema, e l'avvio e' un lampo bianco. -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="android:background">@drawable/splash</item>
+        <item name="windowSplashScreenBackground">@color/dritta_fondo</item>
     </style>
 </resources>
