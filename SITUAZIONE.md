@@ -4374,12 +4374,29 @@ APK di debug installato di lato:
 | schermata d'avvio | icona Dritta su fondo blu |
 | icone di sistema in tema Giorno | nere su barra bianca, leggibili |
 
+### Verificato sul tablet vero
+
+Poi `main` e' stata fusa nel ramo, l'APK ricostruito e installato sul tablet
+di bordo (**Ulefone Armor Pad 3 Pro "Active 8 Pro", Android 13, 1200x2000**),
+sui dati veri di Raffyca:
+
+| prova | esito |
+|---|---|
+| posizione | **compare la richiesta di permesso**, in italiano; concessa, fix in **1 secondo con 15 m** di errore dichiarato |
+| esportazione backup da `impostazioni/` | `Download/Dritta-backup-20260922-0510.json`, 4,6 kB, avviso «Salvato in Download/…» |
+| importazione dello stesso file | il selettore mostra **tutti** i file, il .json si legge, le voci tornano identiche — giro completo senza toccare un dato |
+| `strumenti.html` → tasto home | torna all'hub |
+| icona nel lanciatore e all'avvio | la barca di Dritta |
+| `calcoli/` e `prontuario/` nell'elenco dell'hub | ci sono: la fusione e' dentro l'APK |
+
+**Su Android 13 le safe area valgono zero** (`env(safe-area-inset-top)` = 0,
+la barra resta alta 40px): la WebView li' non e' ancora a tutto schermo. La
+correzione della barra quindi **su questo tablet non cambia niente** — serve
+ad Android 15 e oltre, dove il difetto e' stato visto. Provata sull'emulatore
+e verificata come non-regressione qui.
+
 ### Aperti
 
-- **Niente di tutto questo e' stato provato sul tablet vero.** L'emulatore e'
-  Android 17 su x86; il tablet e' un Active 8 Pro con Android 13. Il
-  permesso, i Download e le safe area sono proprio le cose che cambiano fra
-  una versione e l'altra.
 - **La cartella Download pubblica si usa solo da Android 10 in su.** Sotto,
   `SalvaPlugin` scrive nella cartella dell'app: raggiungibile, ma scomoda.
   Scelta deliberata, per non chiedere `WRITE_EXTERNAL_STORAGE` a tutti per un
@@ -4403,8 +4420,8 @@ APK di debug installato di lato:
   la coda di questo file, dove le due voci «21/09 (3)» sono state rimesse in
   ordine — quella di `main` resta la (3), il guscio Android diventa la (4).
   `partenza/index.html` non ha dato conflitto: `main` non l'aveva toccata
-  dopo la biforcazione. **Le prove qui sopra sono state fatte PRIMA della
-  fusione**, e vanno rifatte sull'APK fuso.
+  dopo la biforcazione. Le prove sull'emulatore sono di PRIMA della fusione,
+  quelle sul tablet di dopo.
 - **Service worker**: alzati `dritta-hub-v20 → v22` (v21 esiste gia' su
   `main`, e saltarlo evita che chi ha preso quella versione resti con la
   cache vecchia), `xte-v11 → v12`, `raffyca-meteo-v19 → v20`,
