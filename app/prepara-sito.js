@@ -169,7 +169,67 @@ default:true,localService:true,voiceURI:"sistema"}];},
 speaking:false,pending:false,paused:false};
 })();</scr` + `ipt>`;
 
+/* ── L'INDIRIZZO PUBBLICO VA CONTROLLATO QUI ─────────────────────────────
+   Dentro l'APK l'origine e' https://localhost, quindi il link della
+   Posizione Live non si puo' costruire su location.href: posizione/index.html
+   porta scritto a mano l'indirizzo del sito pubblico, SITO_PUBBLICO. E' il
+   tipico difetto silenzioso: se il repository cambia nome, GitHub Pages
+   cambia indirizzo, e l'APK continua a stampare QR che portano a una pagina
+   morta senza che niente protesti.
 
+   Qui lo si confronta con il remote git, da cui l'indirizzo di GitHub Pages
+   si ricava senza ambiguita' (utente.github.io/repo/, oppure il dominio del
+   file CNAME se c'e'). Se non combaciano la costruzione SI FERMA: meglio un
+   APK in meno che un QR sbagliato in tasca a chi ti segue da terra. Poi,
+   se c'e' rete, si bussa alla pagina: quello e' solo un avviso, perche' si
+   deve poter costruire anche senza campo. */
+function indirizzoAtteso() {
+  const cname = path.join(RADICE, "CNAME");
+  if (fs.existsSync(cname)) {
+    const d = fs.readFileSync(cname, "utf8").trim();
+    if (d) return "https://" + d.replace(/\/+$/, "") + "/";
+  }
+  let remote = "";
+  try {
+    remote = require("child_process")
+      .execFileSync("git", ["-C", RADICE, "remote", "get-url", "origin"], { encoding: "utf8" }).trim();
+  } catch (e) { return null; }
+  const m = remote.match(/github\.com[:/]([^/]+)\/([^/]+?)(?:\.git)?\/?$/i);
+  if (!m) return null;
+  const utente = m[1].toLowerCase(), repo = m[2];
+  if (repo.toLowerCase() === utente + ".github.io") return "https://" + utente + ".github.io/";
+  return "https://" + utente + ".github.io/" + repo + "/";
+}
+function controllaSitoPubblico() {
+  const pagina = path.join(RADICE, "posizione", "index.html");
+  const m = fs.readFileSync(pagina, "utf8").match(/var\s+SITO_PUBBLICO\s*=\s*"([^"]+)"/);
+  if (!m) {
+    console.error("\n*** SITO_PUBBLICO non trovato in posizione/index.html: il QR della Posizione Live punterebbe a localhost.\n");
+    process.exit(1);
+  }
+  const scritto = m[1], atteso = indirizzoAtteso();
+  if (atteso === null) {
+    console.warn("! remote git non riconosciuto: SITO_PUBBLICO (" + scritto + ") non si puo' verificare.");
+  } else if (scritto.toLowerCase() !== atteso.toLowerCase()) {
+    console.error("\n*** SITO_PUBBLICO in posizione/index.html e' " + scritto +
+                  "\n    ma dal remote git il sito pubblico risulta " + atteso +
+                  "\n    Il QR della Posizione Live porterebbe a una pagina sbagliata. Correggi e ricostruisci.\n");
+    process.exit(1);
+  }
+  return scritto;
+}
+function bussa(sito) {
+  const url = sito + "posizione/segui.html";
+  require("https").request(url, { method: "HEAD", timeout: 8000 }, (r) => {
+    if (r.statusCode >= 400)
+      console.warn("! " + url + " risponde HTTP " + r.statusCode + ": il QR della Posizione Live porterebbe a una pagina morta.");
+    else console.log("sito pubblico raggiungibile: " + url + " (HTTP " + r.statusCode + ")");
+  }).on("timeout", function () { this.destroy(); })
+    .on("error", () => console.warn("! " + url + " non raggiungibile ora (senza rete?): non verificato."))
+    .end();
+}
+
+const SITO = controllaSitoPubblico();
 
 let file = 0, byte = 0;
 function copia(da, a) {
@@ -198,3 +258,4 @@ function copia(da, a) {
 fs.rmSync(USCITA, { recursive: true, force: true });
 copia(RADICE, USCITA);
 console.log("sito pronto in www: " + file + " file, " + (byte / 1048576).toFixed(1) + " MB");
+bussa(SITO);

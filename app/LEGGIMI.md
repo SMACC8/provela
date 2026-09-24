@@ -77,7 +77,7 @@ continuerebbe a servire la copia vecchia dopo un aggiornamento.
 
 ## I plugin
 
-Due, tutti e due in `android/app/src/main/java/it/dritta/bordo/`, registrati
+Quattro, tutti in `android/app/src/main/java/it/dritta/bordo/`, registrati
 a mano in `MainActivity`.
 
 **`NmeaPlugin`**, un centinaio di righe. Apre la socket, legge righe, le
@@ -92,6 +92,44 @@ WebView quel clic non fa **niente**: nessun file, nessun errore. Il guardiano
 iniettato da `prepara-sito.js` intercetta il clic, rilegge il Blob e lo passa
 qui in base64; qui si scrive nella cartella Download e si avvisa. Il plugin
 non sa niente dei formati.
+
+**`VocePlugin`**, la lettura vocale. La WebView di Android non ha
+`window.speechSynthesis`; `prepara-sito.js` ne mette uno finto sopra il
+TextToSpeech nativo, e Cruscotto e Prontuario non se ne accorgono.
+
+**`VegliaPlugin`** + **`VegliaService`**, la veglia d'ancora a schermo spento.
+Un servizio in primo piano di tipo *location* tiene il GPS acceso quando la
+pagina non può, e **il suono lo fa sempre lui**, sulla suoneria sveglia (si
+sente anche in silenzioso). Chi decide se suonare cambia:
+
+- finché `anchor/` è aperta e visibile batte ogni secondo (`presente()`) e
+  decide **lei**, col modello completo — anche la deriva del centro;
+- quando smette di battere — schermo spento, app dietro, un'altra pagina di
+  Dritta — decide **il servizio**, con le due regole che non hanno bisogno
+  di storia: fuori dal raggio per tre fix di fila, oppure nessun fix da tre
+  minuti.
+
+Il ponte lato pagina è `rf-veglia.js` in radice, che nel browser non fa
+niente. **Non** serve `ACCESS_BACKGROUND_LOCATION`: il servizio parte da un
+tocco su «Cala ancora», e un servizio *location* avviato con l'app in uso
+tiene il permesso «mentre usi l'app» anche a schermo spento.
+
+## Quando Android ricrea l'attività
+
+Succede senza chiudere l'app: cambio del carattere di sistema, degli overlay
+di tema (sfondo col colore dinamico), aggiornamento della WebView. Capacitor
+ricarica la pagina iniziale, quindi l'app ricompariva sull'hub — con la
+veglia d'ancora sparita dallo schermo. `MainActivity` ora salva l'indirizzo
+della pagina e alla ricreazione la riapre. Per provarlo a comando:
+
+```bash
+adb shell settings put system font_scale 1.15     # l'attività si ricrea
+adb shell settings put system font_scale 1.0
+```
+
+Ogni plugin nuovo deve reggere questo giro: il `VocePlugin` non lo reggeva e
+**faceva morire l'app** (NullPointerException nella callback d'avvio del motore
+vocale, arrivata dopo la distruzione del plugin).
 
 ## Le icone
 
@@ -123,6 +161,12 @@ socket, e `adb forward tcp:9222 localabstract:webview_devtools_remote_<pid>`
 la porta sul Mac. Da lì `http://127.0.0.1:9222/json/list` dice che pagina è
 aperta, e con una connessione WebSocket si valuta JavaScript dentro l'app —
 è così che si è verificato che la posizione arrivasse davvero.
+
+Per la veglia: `adb shell input keyevent KEYCODE_SLEEP` spegne lo schermo, e
+una `geo fix` a 100 m (`42.1059` invece di `42.1050`) porta la barca fuori dal
+raggio. **Il GPS dell'emulatore non si ammutolisce** smettendo di mandare
+`geo fix`: ripete da solo l'ultima posizione. Per provare «GPS fermo» si
+spegne la localizzazione: `adb shell cmd location set-location-enabled false`.
 
 **L'emulatore non sostituisce il tablet**: è Android 17 su x86, il tablet è
 un Active 8 Pro con Android 13, e permessi, cartella Download e safe area

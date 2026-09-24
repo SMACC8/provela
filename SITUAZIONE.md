@@ -4533,3 +4533,209 @@ nemmeno un file del sito: vive tutta nel guscio Android.
 - **Se il motore vocale del dispositivo non ha l'italiano**, `stato()` lo
   sa dire ma nessuna pagina lo chiede: si sentirebbe una voce inglese che
   legge parole italiane. Sul tablet l'italiano c'e'.
+
+---
+
+## 24/09/2026 — La veglia d'ancora a schermo spento, e cinque difetti trovati provandola
+
+Giornata dei punti in coda: il GPS in background, `SITO_PUBBLICO` meno
+fragile, i pallini di Sole e Luna, e una domanda di Sergio sulle carte
+raster senza rete. Il pezzo grosso e' il primo, e la parte che vale di piu'
+di questa voce sono i difetti che le prove hanno tirato fuori — tre erano
+miei, di questa settimana, e uno faceva **morire l'app**.
+
+### 1. La veglia d'ancora a schermo spento
+
+**Il limite di partenza**, dichiarato fin dal 21/07: in `anchor/` l'allarme
+suona solo con la pagina davanti e lo schermo acceso. Col tablet in tasca
+Android sospende il JavaScript, la posizione smette di arrivare e la veglia
+e' cieca senza dirlo.
+
+**Com'e' fatto adesso** (solo nell'APK; nel browser non cambia niente):
+
+- `VegliaService`, servizio in primo piano di tipo *location*: tiene il GPS
+  a schermo spento, un `PARTIAL_WAKE_LOCK` perche' il controllo del GPS
+  fermo giri anche fra un fix e l'altro, e una notifica fissa «Veglia
+  d'ancora accesa · 12 m dall'ancora · raggio 40 m».
+- **Il suono lo fa sempre il servizio**, sulla suoneria sveglia di sistema
+  (stream sveglia: si sente anche col telefono in silenzioso), piu'
+  vibrazione e notifica a tutto schermo che accende lo schermo e apre
+  **Ancoraggio**, da qualunque pagina si fosse.
+- **Chi decide se suonare, invece, cambia.** Finche' `anchor/` e' aperta e
+  visibile batte ogni secondo (`rfVeglia.presente(allarme)`) e decide lei,
+  col modello completo: centro stimato col fit, deriva, silenzio di cinque
+  minuti. Quando il battito si ferma — schermo spento, app dietro, un'altra
+  pagina di Dritta — decide il servizio, con le due regole che non hanno
+  bisogno di storia: fuori dal raggio per **tre fix di fila**, oppure
+  **nessun fix da tre minuti** (lo stesso `FIX_CIECO` della pagina).
+- Al rientro la pagina si riprende i fix raccolti dal servizio
+  (`recuperaDalServizio`), cosi' il fit del cerchio non ha un buco lungo
+  quanto il sonno.
+- Ponte lato pagina: `rf-veglia.js` in radice. Senza il plugin — cioe' nel
+  browser — ogni chiamata e' senza effetto.
+
+**Scartato: `ACCESS_BACKGROUND_LOCATION`.** Era quello che mi aspettavo di
+dover chiedere (lo avevo scritto martedi'). Non serve: un servizio
+*location* avviato con l'app in uso — il tocco su «Cala ancora» — conserva
+il permesso «mentre usi l'app» anche a schermo spento. Il permesso «sempre»
+costringerebbe l'utente a un giro nelle impostazioni di sistema, e servirebbe
+solo per partire dal background, che qui non succede mai.
+
+**Scartato: rifare in Java il modello della pagina** (fit di Kasa, deriva).
+Due copie della stessa logica che divergono: l'errore che il progetto evita
+dal parser NMEA in poi. Il servizio fa solo le due regole senza storia, la
+pagina il resto quando c'e'.
+
+**Una differenza voluta** fra pagina e servizio: il servizio vuole tre fix
+consecutivi fuori raggio, la pagina uno. Nella pagina un falso allarme costa
+un'occhiata; col telefono in tasca sveglia qualcuno alle tre di notte. A un
+nodo di deriva tre secondi sono un metro e mezzo.
+
+### 2. I difetti che le prove hanno tirato fuori
+
+Tutti sull'emulatore (Pixel 10, Android 17), a schermo spento, con la barca
+spostata di 100 m. **Nessuno si vedeva rileggendo il codice.**
+
+**a) Undici secondi muti.** `MediaPlayer.prepare()` sincrono sulla suoneria
+di sistema: lettore creato alle 09:33:05, partito alle 09:33:16. E la
+notifica a tutto schermo, pubblicata dopo, ha acceso lo schermo con lo
+stesso ritardo. Ora la notifica va per prima e la suoneria si prepara in
+modo asincrono.
+
+**b) Otto secondi di thread principale fermo.** Spostata la notifica in
+testa, lo schermo si accendeva in 0,4 s, ma la sola creazione del
+`ToneGenerator` bloccava il processo dalle 09:37:31,65 alle 09:37:39,7:
+l'audio di un dispositivo assopito si sveglia con calma. Sul thread
+principale passano i fix e il controllo del GPS fermo — cioe' la veglia era
+cieca proprio mentre suonava. Tutto l'audio ora sta su un thread suo.
+
+**c) La pagina muta.** La prima versione faceva suonare la pagina (WebAudio)
+finche' era davanti, e il servizio solo dopo. Ma il WebAudio si arma solo
+con un tocco: riaprendo la pagina dalla notifica d'allarme la pagina diceva
+«guardo io», il servizio taceva, e **non suonava nessuno**. Da qui la regola
+del punto 1: nell'app la pagina non suona mai, decide soltanto.
+
+**d) Due suonerie, una non piu' tacitabile.** Al rientro la pagina, appena
+aperta e senza ancora una posizione, diceva «allarme no»; il servizio
+fermava e ripartiva, e il vecchio lettore restava vivo accanto al nuovo —
+irraggiungibile, cioe' non piu' spegnibile. Due correzioni: la pagina
+decide solo con un fix fresco (prima tace, e decide il servizio), e l'audio
+non crea mai un secondo lettore.
+
+**e) Il silenzio sopravviveva alla calata.** «Tacita 5 min», poi «Salpa» e
+una nuova calata entro cinque minuti: la veglia nuova partiva muta
+(`motivo: fuori`, `suona: false`). Il silenzio era statico nel servizio e
+nessuno lo azzerava. Ora ogni calata e ogni salpata lo azzerano.
+
+### 3. L'app tornava all'hub, e poteva morire
+
+Durante le prove l'app e' tornata da sola sull'hub a veglia appena calata.
+Non era un mio comando: `configuration_changed 0x80000000` — gli «asset
+path», cioe' un cambio degli overlay di tema o un aggiornamento della
+WebView — e Android **ha ricreato l'attivita'**. Capacitor a ogni creazione
+carica la pagina iniziale: la veglia d'ancora spariva dallo schermo. Quel
+cambio non si puo' dichiarare in `configChanges`, non ha un nome.
+`MainActivity` ora salva l'indirizzo della pagina e alla ricreazione la
+riapre.
+
+Riprodotto a comando cambiando la dimensione del carattere
+(`settings put system font_scale 1.15`), e li' e' venuto fuori il peggio:
+**il `VocePlugin` di martedi' faceva morire l'app.** L'avvio del motore
+vocale e' asincrono, e la sua callback arrivava dopo che la ricreazione
+aveva distrutto il plugin: `NullPointerException` su un campo gia' a null,
+processo morto. Quindi un cambio di sfondo col colore dinamico, a bordo,
+avrebbe chiuso Dritta. Corretto: l'ascoltatore si aggancia subito, il resto
+si fa dopo e solo se il motore e' ancora il nostro. Provato con quattro
+ricreazioni di fila: app viva, pagina al suo posto, voce pronta.
+
+E probabilmente e' questa, e non la memoria scarsa, la spiegazione del
+«ritorno all'hub dopo il selettore di file» del 22/09 — anche se allora il
+processo era morto davvero (pid nuovo), quindi i casi erano due.
+
+### 4. Le carte raster senza rete
+
+La domanda di Sergio: le carte georeferenziate stanno su Supabase, e in mare
+senza internet? **Le immagini stanno in locale**, in IndexedDB — Supabase le
+distribuisce, non le sostituisce, ed era gia' cosi'. **Ma c'era un buco:**
+`rsSyncImmagini()` mandava sul cloud le immagini che mancavano la', e saltava
+quelle che mancavano QUI («non tocca a noi»). Un'immagine arrivava su un
+dispositivo solo APRENDO quella carta. Una carta calibrata sul Mac e mai
+aperta sul tablet prima di partire, in mare non c'era. Ora appena si apre
+Carta con la rete si scaricano tutte quelle che mancano.
+
+**Resta aperto, e va detto chiaro:** le piastrelle della **mappa di base**
+(OpenStreetMap, OpenSeaMap, Esri) non si tengono offline da nessuna parte —
+`carta/` non ha service worker, e nell'APK i service worker sono spenti. In
+mare senza rete la carta raster, il GPS, i waypoint e le tracce ci sono; lo
+sfondo intorno no.
+
+### 5. `SITO_PUBBLICO` meno fragile
+
+Due guardie, una per momento.
+
+- **Quando si costruisce l'APK**, `prepara-sito.js` ricava l'indirizzo di
+  GitHub Pages dal remote git (`utente.github.io/repo/`, oppure il dominio
+  del file `CNAME`) e **si ferma** se `SITO_PUBBLICO` non combacia. Provato
+  con un repo finto rinominato in `dritta` e con un `CNAME`: esce con errore
+  in tutti e due i casi. Poi bussa alla pagina: quello e' solo un avviso,
+  perche' si deve poter costruire senza rete.
+- **Nell'app**, sotto il link della Posizione Live, se l'indirizzo non
+  risponde compare un avviso rosso prima che il QR finisca in mano a
+  qualcuno. **Trappola trovata provandolo:** GitHub Pages manda
+  `Access-Control-Allow-Origin: *` sulle pagine che esistono ma NON sul 404,
+  quindi una `fetch` su un indirizzo morto fallisce come se mancasse la rete
+  — e non avvisava. Nell'app si usa la richiesta nativa di Capacitor, che il
+  CORS non lo conosce.
+
+### 6. Sole, Luna e maree — i pallini
+
+Nel grafico «Altezza sull'orizzonte» i pallini di adesso erano di 4 e
+3,5 px, sopra una curva del loro stesso colore. Ora 7 e 6,5 px, con un
+alone e un bordo nel colore del testo, che li stacca in tutti e tre i temi.
+
+### Verificato
+
+Sull'emulatore, con la barca spostata di 100 m:
+
+| prova | esito |
+|---|---|
+| calata | chiede il permesso notifiche; servizio in primo piano, tipo `location` (0x8) |
+| schermo spento, barca fuori (quattro prove) | allarme 3 s dopo lo spostamento (i tre fix); dall'allarme: **primo bip fra +0,02 e +0,25 s**, schermo acceso fra +0,5 e +0,8 s, suoneria sveglia fra +0,2 e +1,8 s |
+| rientro | pagina su Ancoraggio, «ARANDO», **una** suoneria che continua |
+| «Tacita 5 min» dalla pagina | silenzio; a schermo spento, ancora fuori raggio, il servizio rispetta i cinque minuti |
+| tacita, salpa e ricala subito | la veglia nuova suona (difetto e) |
+| app sull'hub, barca fuori | il servizio suona: il battito si e' fermato |
+| app sul Meteo, schermo spento, barca fuori | lo schermo si accende **su Ancoraggio** |
+| localizzazione spenta | «GPS FERMO» a 180 s esatti, notifica e suono |
+| «Salpa» | servizio fermo, nessuna notifica |
+| app aggiornata con ancora calata | riaprendo Ancoraggio il servizio riparte da solo |
+| quattro ricreazioni di fila | app viva, pagina al suo posto, voce pronta |
+| `anchor/` nel browser | invariata: allarme col WebAudio, avviso «non allarme in background» |
+| costruzione dell'APK | controllo di `SITO_PUBBLICO` passato; con repo rinominato si ferma |
+
+### Service worker
+
+`dritta-hub-v22 → v23` (`sole-luna/` e' nel precache dell'hub);
+`anchor-v18 → v19`, con `../rf-veglia.js` aggiunto al precache. `carta/` e
+`posizione/` non stanno in nessun precache.
+
+### Aperti
+
+- **Niente di questo e' stato provato sul tablet.** Era scollegato. La prova
+  che decide resta quella di martedi': ancora calata, schermo spento, tablet
+  in tasca, camminare oltre il raggio. In piu', sul tablet vero: il volume
+  **sveglia** (se e' a zero non si sente niente, e Dritta non lo alza da se'),
+  il blocco con PIN (l'allarme deve continuare finche' non si sblocca), e le
+  ottimizzazioni della batteria di Ulefone, che potrebbero chiudere il
+  servizio dopo ore.
+- **Nessuna prova lunga.** La piu' lunga e' di pochi minuti. Una notte vera
+  e' un'altra cosa: consumo, e se Android tiene vivo il servizio.
+- **A schermo spento la deriva del centro non suona**: il servizio non ha il
+  fit. Si vede riaprendo. Scritto anche nell'avviso della pagina.
+- **Il registratore di tracce di `rf-topbar.js` non usa il servizio**: una
+  traccia registrata col telefono in tasca ha ancora i buchi. Il servizio
+  raccoglie gia' i fix; collegarli al registratore e' il passo dopo.
+- **Le piastrelle della mappa di base non sono offline** (punto 4).
+- **Queste correzioni stanno sul ramo `capacitor`, non su `main`**: il sito
+  pubblicato non ha ancora i pallini nuovi, il prefetch delle carte ne' il
+  controllo del link.

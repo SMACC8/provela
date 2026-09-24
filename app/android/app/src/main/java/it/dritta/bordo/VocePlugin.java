@@ -1,5 +1,7 @@
 package it.dritta.bordo;
 
+import android.os.Handler;
+import android.os.Looper;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
 
@@ -37,20 +39,36 @@ public class VocePlugin extends Plugin {
     private volatile boolean pronto = false;
     private volatile String linguaCorrente = "";
 
+    /* L'inizializzazione del motore e' ASINCRONA, e il suo "pronto" puo'
+     * arrivare quando questo plugin e' gia' stato distrutto: succede a ogni
+     * ricreazione dell'attivita' (cambio di tema, di carattere, di overlay).
+     * La prima versione in onInit usava il campo `motore`, che
+     * handleOnDestroy() aveva gia' messo a null: NullPointerException, e
+     * l'app intera moriva. Visto sull'emulatore il 24/09/2026 cambiando la
+     * dimensione del carattere.
+     * Ora l'ascoltatore si aggancia subito (non serve aspettare l'init), e il
+     * resto si fa DOPO, sul thread principale, solo se il motore e' ancora il
+     * nostro. Il post serve anche al caso in cui onInit arrivasse dentro il
+     * costruttore, prima che `motore` sia assegnato. */
     @Override
     public void load() {
-        motore = new TextToSpeech(getContext(), new TextToSpeech.OnInitListener() {
-            @Override public void onInit(int stato) {
-                if (stato != TextToSpeech.SUCCESS) return;
-                lingua("it-IT");
-                motore.setOnUtteranceProgressListener(new UtteranceProgressListener() {
-                    @Override public void onStart(String id) { avvisa("inizio", id); }
-                    @Override public void onDone(String id)  { avvisa("fine", id); }
-                    @Override public void onError(String id) { avvisa("errore", id); }
+        final TextToSpeech t = new TextToSpeech(getContext(), new TextToSpeech.OnInitListener() {
+            @Override public void onInit(final int stato) {
+                new Handler(Looper.getMainLooper()).post(new Runnable() {
+                    @Override public void run() {
+                        if (stato != TextToSpeech.SUCCESS || motore == null) return;
+                        lingua("it-IT");
+                        pronto = true;
+                    }
                 });
-                pronto = true;
             }
         });
+        t.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+            @Override public void onStart(String id) { avvisa("inizio", id); }
+            @Override public void onDone(String id)  { avvisa("fine", id); }
+            @Override public void onError(String id) { avvisa("errore", id); }
+        });
+        motore = t;
     }
 
     @PluginMethod

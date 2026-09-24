@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icona piccola delle notifiche (barra di stato): Android la vuole
+     monocroma, bianca su trasparente, e la colora da se'. E' la vela del
+     tasto home di rf-topbar, ridisegnata su 24x24: randa piena, fiocco
+     pieno, albero. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path android:fillColor="#FFFFFFFF" android:pathData="M11.2,3 L11.2,20 L3.5,20 Z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M12.8,9 L20.5,20 L12.8,20 Z" />
+</vector>

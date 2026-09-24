@@ -1032,8 +1032,19 @@ function drawChart() {
   var cxp = X(CUR.cursorDate.getTime());
   ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.55; ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(cxp, T); ctx.lineTo(cxp, h - B); ctx.stroke(); ctx.globalAlpha = 1;
-  ctx.fillStyle = pal.sun; ctx.beginPath(); ctx.arc(cxp, Y(CUR.now.sun.alt), 4, 0, 7); ctx.fill();
-  ctx.fillStyle = pal.moon; ctx.beginPath(); ctx.arc(cxp, Y(CUR.now.moon.alt), 3.5, 0, 7); ctx.fill();
+  /* I pallini di "adesso" sul cursore. Erano 4 e 3,5 px: sul tablet, e al
+     sole, si perdevano sopra la curva del loro stesso colore (Sergio,
+     24/09/2026). Ora sono piu' grandi, con un alone e un bordo nel colore
+     del testo, che li stacca dalla curva in tutti e tre i temi senza dover
+     conoscere il colore di fondo del pannello. */
+  var pallino = function (y, colore, r) {
+    ctx.fillStyle = colore;
+    ctx.globalAlpha = 0.28; ctx.beginPath(); ctx.arc(cxp, y, r + 5, 0, 7); ctx.fill();
+    ctx.globalAlpha = 1; ctx.beginPath(); ctx.arc(cxp, y, r, 0, 7); ctx.fill();
+    ctx.lineWidth = 1.5; ctx.strokeStyle = pal.ink; ctx.stroke();
+  };
+  pallino(Y(CUR.now.moon.alt), pal.moon, 6.5);
+  pallino(Y(CUR.now.sun.alt), pal.sun, 7);
   ctx.restore();
 }
 

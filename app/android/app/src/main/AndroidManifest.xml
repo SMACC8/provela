@@ -33,6 +33,15 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+
+        <!-- La veglia d'ancora a schermo spento. Tipo "location": col
+             permesso "mentre usi l'app" continua a ricevere il GPS anche
+             quando l'app va dietro, perche' parte da un tocco sulla pagina.
+             Non esportato: lo avvia e lo ferma solo Dritta. -->
+        <service
+            android:name=".VegliaService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
     </application>
 
     <!-- Permessi -->
@@ -48,8 +57,28 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
-    <!-- Il GPS vero, non la stima di rete: al largo celle e wi-fi non ci
-         sono, e senza questa dichiarazione il Play Store installerebbe
-         Dritta anche su un dispositivo che il ricevitore non ce l'ha. -->
+    <!-- Dichiarare ACCESS_FINE_LOCATION fa presumere al Play Store che il
+         ricevitore GPS sia OBBLIGATORIO, e lo nasconderebbe ai tablet senza.
+         required="false" dice il contrario: Dritta lo usa se c'e', e senza
+         funziona lo stesso (meteo, carte, manutenzione, prontuario). -->
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+
+    <!-- Veglia d'ancora (VegliaService).
+         FOREGROUND_SERVICE e _LOCATION: il servizio che tiene il GPS a
+         schermo spento; da Android 14 il tipo va dichiarato anche qui.
+         WAKE_LOCK: senza, fra un fix e l'altro la CPU dorme e il controllo
+         "GPS fermo da tre minuti" non girerebbe mai.
+         POST_NOTIFICATIONS: da Android 13 si chiede a video; la veglia
+         funziona anche senza, ma la notifica d'allarme non si vede.
+         USE_FULL_SCREEN_INTENT: l'allarme accende lo schermo, come una
+         sveglia. VIBRATE: la vibrazione in loop durante l'allarme.
+         NON c'e' ACCESS_BACKGROUND_LOCATION, di proposito: vedi
+         VegliaService, non serve e costringerebbe a un giro nelle
+         impostazioni di sistema. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-permission android:name="android.permission.VIBRATE" />
 </manifest>

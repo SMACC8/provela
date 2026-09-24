@@ -1412,8 +1412,21 @@ function rsSyncImmagini(){
     }
     var c=lista[i];
     RDB.get(c.id,function(blob){
-      if(!blob){                                   /* qui non c'e': non tocca a noi */
-        prossima(i+1,cambiato);return;}
+      if(!blob){
+        /* Qui non c'e'. Prima si saltava ("non tocca a noi") e l'immagine
+           arrivava solo APRENDO la carta: una carta calibrata sul Mac e mai
+           aperta sul tablet prima di partire, in mare non c'era. Sergio se
+           n'e' accorto il 24/09/2026 chiedendosi cosa succede senza campo.
+           Ora la si scarica appena Carta si apre con la rete, e da li' sta in
+           IndexedDB. Se sul server non c'e' ancora — l'altro dispositivo non
+           l'ha mandata — si passa oltre: si riprova alla prossima apertura. */
+        RS.sync='scarico';rsBarra();
+        SB.giu(c.id,function(b){
+          RS.sync=null;
+          if(!b){rsBarra();prossima(i+1,cambiato);return;}
+          RDB.put(c.id,b,function(){rsBarra();prossima(i+1,cambiato);});
+        });
+        return;}
       SB.esiste(c.id,function(ci){
         if(ci){                                    /* c'e' su entrambi: allinea la bandiera */
           var era=c.sb;c.sb=true;

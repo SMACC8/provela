@@ -144,6 +144,7 @@ a.link{color:var(--teal);word-break:break-all;font-size:12px;font-family:var(--m
     <h3>Link per chi ti segue</h3>
     <div class="muted" style="margin-bottom:8px">Chi apre questo link vede la tua posizione in sola lettura. Il codice sessione è la tua chiave: condividilo solo con chi vuoi.</div>
     <a class="link" id="shareLink" href="#">—</a>
+    <div id="shareWarn" hidden style="margin-top:8px;font-size:12px;line-height:1.45;color:var(--coral)"></div>
     <div class="row" style="margin-top:11px;gap:9px">
       <button class="ghost" id="btnCopy" style="flex:1">⧉ Copia link</button>
       <button class="ghost" id="btnNew">↻ Nuovo codice</button>
@@ -257,7 +258,15 @@ function session(){
    puntare al sito pubblico. Questo e' l'unico posto di Dritta, insieme alla
    chiave in segui.html, che conosce il proprio indirizzo in rete: serve
    perche' l'app non puo' dedurlo da dove sta girando. Se il sito cambia
-   indirizzo, si cambia qui. */
+   indirizzo, si cambia qui.
+
+   E' anche un difetto silenzioso pronto a scattare: se il repository cambia
+   nome, GitHub Pages cambia indirizzo e il QR punta a una pagina morta senza
+   che niente protesti. Due guardie, una per momento:
+   - quando si costruisce l'APK, prepara-sito.js confronta questa riga con il
+     remote git e si ferma se non combaciano;
+   - qui, con la rete, si bussa all'indirizzo (verificaLink) e se non risponde
+     lo si dice sotto il link, prima che il QR finisca in mano a qualcuno. */
 var SITO_PUBBLICO = "https://smacc8.github.io/provela/";
 function baseCondivisione(){
   var h = location.hostname;
@@ -273,7 +282,40 @@ function renderQR(url){
     var svg=el.querySelector("svg");if(svg){svg.setAttribute("width","100%");svg.setAttribute("height","100%");}
   }catch(e){el.innerHTML="";}
 }
-function refreshShare(){var u=shareUrl();$("shareLink").textContent=u;$("shareLink").href=u;renderQR(u);}
+function refreshShare(){var u=shareUrl();$("shareLink").textContent=u;$("shareLink").href=u;renderQR(u);verificaLink(u);}
+
+/* Si bussa alla pagina di chi segue, senza il frammento (il codice sessione
+   non esce dal dispositivo). Si controlla solo quando il link e' quello
+   scritto a mano: servito da un sito vero, il link e' la pagina accanto a
+   questa, ed esiste per costruzione.
+
+   TRAPPOLA: GitHub Pages manda Access-Control-Allow-Origin: * sulle pagine
+   che esistono, ma NON sul 404. Una fetch dal browser su un indirizzo morto
+   quindi non restituisce "404": fallisce come se mancasse la rete, ed e'
+   esattamente il caso da scoprire. Provato il 24/09/2026 con un indirizzo
+   inventato: nessun avviso. Dentro l'APK si usa allora la richiesta nativa
+   di Capacitor (CapacitorHttp), che il CORS non lo conosce e lo stato lo
+   legge sempre. Nel browser resta la fetch: vede i 200, e sul resto tace —
+   ma nel browser questo ramo scatta solo col server di prova in locale.
+   Senza rete non si dice niente: un avviso a vuoto insegna solo a ignorarlo. */
+function statoHttp(url){
+  var H=window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.CapacitorHttp;
+  if(H&&H.request)
+    return H.request({url:url,method:"HEAD"}).then(function(r){return r.status;},function(){return null;});
+  if(!window.fetch)return Promise.resolve(null);
+  return fetch(url,{method:"HEAD",cache:"no-store"}).then(function(r){return r.status;},function(){return null;});
+}
+function verificaLink(u){
+  var el=$("shareWarn");if(!el)return;
+  el.hidden=true;el.textContent="";
+  if(u.indexOf(SITO_PUBBLICO)!==0||!navigator.onLine)return;
+  statoHttp(u.split("#")[0]).then(function(s){
+    if(s===null||(s>=200&&s<400))return;
+    el.textContent="Attenzione: il sito di Dritta non risponde a questo indirizzo (HTTP "+s+
+      "). Chi inquadra il QR troverebbe una pagina inesistente: il sito si e' spostato?";
+    el.hidden=false;
+  });
+}
 
 /* ---------- start/stop: la macchina vera sta in rf-live.js ----------
    Quella logica viveva qui dentro, quindi moriva appena si cambiava

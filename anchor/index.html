@@ -138,12 +138,23 @@ html.day .handle{background:#c2ccd6;}
 </div>
 <script src="../rf-topbar.js" defer></script>
 <script src="../rf-live.js"></script>
+<script src="../rf-veglia.js"></script>
 <!-- ===== /rf-topbar ===== -->
 
 <div class="disc" id="disc">
   <b>Veglia attiva, non allarme in background.</b> In una pagina web l'allarme suona solo con
   <b>app in primo piano e schermo acceso</b>: il browser sospende timer e audio quando esci o blocchi il telefono.
   Tieni Dritta aperta in pozzetto; per la notte fai turni di guardia. Lo schermo resta acceso (Wake Lock) quando l'ancora è calata.
+</div>
+<!-- Nell'APK l'avviso qui sopra sarebbe falso: il servizio di veglia tiene il
+     GPS e suona anche a schermo spento. Lo si sostituisce con quello che vale
+     li', compresi i due limiti veri. Nel browser resta com'e'. -->
+<div class="disc" id="discApp" hidden>
+  <b>Veglia anche a schermo spento.</b> Con l'ancora calata Dritta tiene il GPS acceso in
+  background e suona come una sveglia se esci dal raggio o se il GPS tace per tre minuti,
+  anche col telefono in tasca. A schermo spento controlla solo <b>raggio e GPS fermo</b>:
+  la deriva dell'ancora si vede quando riapri. Il suono segue il <b>volume sveglia</b> del
+  tablet: tienilo alto.
 </div>
 
 <div id="wrap" class="card" style="padding:0;overflow:hidden;">
@@ -351,8 +362,11 @@ function haversine(la1,lo1,la2,lo2){var R=6371000,d1=(la2-la1)*DEG,d2=(lo2-lo1)*
   a=Math.sin(d1/2)*Math.sin(d1/2)+Math.cos(la1*DEG)*Math.cos(la2*DEG)*Math.sin(d2/2)*Math.sin(d2/2);
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
 
-/* ---- ingest fix quando ancorati: track + fit + allarmi ---- */
-function ingest(){
+/* ---- ingest fix quando ancorati: track + fit + allarmi ----
+   nosave: al rientro dal servizio di veglia arrivano anche migliaia di fix in
+   un colpo, e salvare lo stato a ognuno vorrebbe dire migliaia di scritture in
+   localStorage per niente. Si salva una volta alla fine. */
+function ingest(nosave){
   if(!cur||!S.drop)return;
   var xy=toXY(cur.lat,cur.lon), now=cur.t;
   // gating rumore: usa per il FIT solo fix con moto reale (SOG >= 0.2 kn = 0.103 m/s)
@@ -365,7 +379,43 @@ function ingest(){
     if(S.track.length>200)S.track.splice(0,S.track.length-200);
     refitCenter(now);
   }
-  save();
+  if(!nosave)save();
+}
+
+/* ---- veglia a schermo spento (solo nell'APK: rf-veglia.js) ----
+   Il servizio Android tiene il GPS mentre questa pagina non puo'. Qui si
+   decide cosa passargli: il centro che si usa davvero per l'allarme — quello
+   stimato dal fit se valido, altrimenti il punto di calata, come fa
+   evalAlarms() — e il raggio. Nel browser rfVeglia non ha il plugin e ogni
+   chiamata e' senza effetto. */
+function centroLL(){
+  if(!S.drop)return null;
+  if(S.fitValid&&S.center)return toLL(S.center.x,S.center.y);
+  return{lat:S.drop.lat,lon:S.drop.lon};
+}
+function vegliaAttiva(){return !!(window.rfVeglia&&rfVeglia.disponibile());}
+/* Al rientro: i fix che il servizio ha raccolto mentre la pagina dormiva
+   entrano nel fit come se li avesse visti lei, nell'ordine e con la loro
+   ora. Si prendono solo quelli piu' recenti dell'ultimo fix della pagina:
+   mentre la pagina guardava, il servizio raccoglieva gli stessi. */
+function recuperaDalServizio(){
+  if(!vegliaAttiva()||!S.active)return;
+  var dopo=cur?cur.t:0;
+  rfVeglia.recupera(function(f){
+    if(!(f.t>dopo)||!isFinite(f.lat)||!isFinite(f.lon))return;
+    var prima=lastFixLL;
+    cur={lat:f.lat,lon:f.lon,acc:(f.acc!=null?f.acc:null),
+         sog:(f.sog!=null&&isFinite(f.sog))?f.sog:null,t:f.t};
+    if(cur.sog==null&&prima){var d=haversine(prima.lat,prima.lon,cur.lat,cur.lon),
+        dt=(cur.t-lastFixT)/1000; cur.sog=dt>0?d/dt:0;}
+    lastFixLL={lat:cur.lat,lon:cur.lon,ts:cur.t}; lastFixT=cur.t;
+    ingest(true);
+  },function(n){
+    if(!n)return;
+    save();
+    try{localStorage.setItem("raffyca-pos",JSON.stringify({lat:cur.lat,lon:cur.lon,ts:cur.t}));}catch(e){}
+    draw();updateUI();
+  });
 }
 function refitCenter(now){
   var fit=kasaFit(S.track);
@@ -444,9 +494,11 @@ function releaseWake(){try{if(wakeLock){wakeLock.release();wakeLock=null;}}catch
 document.addEventListener("visibilitychange",function(){
   if(document.hidden)return;
   /* Con lo schermo spento il browser sospende la posizione: al ritorno il fix
-     e' vecchio per forza. Venti secondi per riagganciare prima di gridare. */
+     e' vecchio per forza. Venti secondi per riagganciare prima di gridare.
+     Nell'APK il servizio di veglia il GPS non l'ha mollato: i suoi fix
+     rientrano subito, e il fix non e' piu' vecchio. */
   graziaFino=Date.now()+20000;
-  if(S.active)acquireWake();});
+  if(S.active){acquireWake();recuperaDalServizio();}});
 
 /* ============================ CANVAS ============================ */
 var cv=document.getElementById("cv"),ctx=cv.getContext("2d"),DPR=Math.min(window.devicePixelRatio||1,2.5);
@@ -634,7 +686,26 @@ function updateUI(){
   $("btnSilence").style.display=(A.on&&Date.now()>S.silenceUntil)?"":"none";
   $("vAlarm").textContent=S.rAlarm;
   // suono
-  if(S.active&&A.on&&Date.now()>S.silenceUntil)startAlarmSound();else stopAlarmSound();
+  var suonare=S.active&&A.on&&Date.now()>S.silenceUntil;
+  if(vegliaAttiva()){
+    /* Nell'APK il suono lo fa il servizio di veglia, sullo stream sveglia:
+       qui si decide soltanto SE suonare, e glielo si dice col battito. Il
+       WebAudio della pagina si arma solo con un tocco, e riaprendo la pagina
+       dalla notifica d'allarme restava muto (emulatore, 24/09/2026).
+       Il battito parte solo a pagina visibile: nascosta deve tacere, perche'
+       e' proprio il suo silenzio a passare la decisione al servizio. */
+    stopAlarmSound();
+    /* La pagina decide solo quando ha una posizione fresca con cui decidere.
+       Appena riaperta non ce l'ha ancora: se battesse subito direbbe
+       "allarme no" e fermerebbe il servizio che sta suonando — visto
+       sull'emulatore, l'allarme si spegneva e riaccendeva al rientro. Finche'
+       la pagina tace, decide il servizio; i suoi fix arrivano con
+       recuperaDalServizio() e il turno passa in un secondo. */
+    if(S.active&&!document.hidden&&cur&&fixEta()<FIX_VECCHIO){
+      rfVeglia.presente(suonare);
+      var cLL=centroLL(); if(cLL)rfVeglia.aggiorna(cLL.lat,cLL.lon,S.rAlarm);
+    }
+  }else if(suonare)startAlarmSound();else stopAlarmSound();
   // pericoli list
   renderHz();
 }
@@ -662,13 +733,18 @@ $("btnDrop").addEventListener("click",function(){
   S.center=null;S.fitValid=false;
   // reidrata parametri dagli input
   readParams();
-  save();acquireWake();draw();updateUI();
+  save();acquireWake();
+  if(vegliaAttiva())rfVeglia.avvia(S.drop.lat,S.drop.lon,S.rAlarm);
+  draw();updateUI();
 });
 $("btnWeigh").addEventListener("click",function(){
   if(!confirm("Salpare? La sessione d'ancoraggio e i pericoli verranno azzerati."))return;
+  if(vegliaAttiva())rfVeglia.ferma();
   stopAlarmSound();releaseWake();S=freshState();readParams();save();draw();updateUI();
 });
-$("btnSilence").addEventListener("click",function(){S.silenceUntil=Date.now()+5*60000;stopAlarmSound();save();updateUI();});
+$("btnSilence").addEventListener("click",function(){S.silenceUntil=Date.now()+5*60000;stopAlarmSound();
+  if(vegliaAttiva())rfVeglia.tacita();
+  save();updateUI();});
 
 /* ---- parametri ---- */
 function readParams(){
@@ -744,6 +820,12 @@ function boot(){
   $("vAlarm").textContent=S.rAlarm;$("tgCoast").textContent=S.coast?"on":"off";$("tgCoast").classList.toggle("primary",S.coast);
   if(S.coast)loadCoast();
   if(S.active)acquireWake();
+  /* Ancora gia' calata all'apertura (si torna da un'altra pagina, o l'app e'
+     stata chiusa): si riaccende la veglia — se il servizio gira gia' riceve
+     solo il centro — e si riprendono i fix che ha raccolto nel frattempo. */
+  if(S.active&&vegliaAttiva()){var c0=centroLL();
+    if(c0)rfVeglia.avvia(c0.lat,c0.lon,S.rAlarm).then(recuperaDalServizio);}
+  if(vegliaAttiva()){$("disc").hidden=true;$("discApp").hidden=false;}
   startWatch();fitCanvas();draw();updateUI();
   setInterval(function(){draw();updateUI();},1000);
   window.addEventListener("resize",function(){fitCanvas();draw();});
