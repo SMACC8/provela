@@ -108,6 +108,14 @@ select,button,input,textarea{font-family:var(--sans);color:var(--ink);}
    scorrendo il bordo dell'immagine arriva al bordo del contenitore, mai al
    centro. E i punti agli angoli sono proprio quelli che si usano. */
 .rmark{position:absolute;width:0;height:0;pointer-events:none;z-index:3;}
+/* Crocino al centro della carta: compare quando la carta NON segue la barca, e
+   dice dove sta il centro rispetto a te. Nero con alone bianco, cosi' si legge
+   sia sulla base chiara sia sul satellite. Non intercetta i tocchi. */
+.cmira{position:absolute;left:50%;top:50%;width:0;height:0;z-index:650;pointer-events:none;display:none;}
+.cmira svg{position:absolute;left:-13px;top:-13px;}
+.cmira .t{position:absolute;left:50%;top:15px;transform:translateX(-50%);white-space:nowrap;
+  font:700 12px var(--mono,ui-monospace,monospace);color:#fff;background:rgba(6,14,24,.82);
+  padding:2px 7px;border-radius:6px;border:1px solid rgba(255,255,255,.25);}
 .rmark::before,.rmark::after{content:"";position:absolute;background:#FF6B6B;
   box-shadow:0 0 0 1px rgba(0,0,0,.6);}
 .rmark::before{left:-26px;top:-.5px;width:52px;height:1px;}
@@ -408,7 +416,7 @@ function onFix(p){
   POS=[la,lo];
   try{localStorage.setItem('raffyca-pos',JSON.stringify({lat:la,lon:lo,ts:t,
     sog:SOG==null?undefined:SOG,cog:COG==null?undefined:COG}));}catch(e){}
-  updatePosInfo();drawPosMarker();drawRecTrail();seguiTick();
+  updatePosInfo();drawPosMarker();drawRecTrail();seguiTick();updateMira();
 }
 if(navigator.geolocation){
   navigator.geolocation.getCurrentPosition(onFix,function(){},rfGpsOpt({timeout:15000}));
@@ -502,7 +510,7 @@ function seguiVesti(){if(!seguiBtn)return;
   seguiBtn.style.background=SEGUI?'#2BD9C4':'#0e2036';
   seguiBtn.style.color=SEGUI?'#06202a':'#2BD9C4';
   seguiBtn.title=SEGUI?'Segue la barca \u2014 tocca per sganciare':'Segui la barca';}
-function seguiSet(on){SEGUI=!!on;seguiVesti();try{saveView();}catch(e){}}
+function seguiSet(on){SEGUI=!!on;seguiVesti();try{saveView();}catch(e){}try{updateMira();}catch(e){}}
 function seguiTick(){if(!SEGUI||!POS||!map)return;seguiMove=true;map.panTo(POS,{animate:false});}
 function seguiToggle(){
   if(SEGUI){seguiSet(false);return;}
@@ -513,6 +521,44 @@ function seguiToggle(){
 var LocateCtl=L.Control.extend({options:{position:'topleft'},onAdd:function(){var b=L.DomUtil.create('a','leaflet-bar');b.href='#';b.innerHTML='\u25ce';b.style.cssText='width:30px;height:30px;line-height:30px;text-align:center;font-size:17px;background:#0e2036;color:#2BD9C4;text-decoration:none';seguiBtn=b;seguiVesti();L.DomEvent.on(b,'click',function(e){L.DomEvent.stop(e);seguiToggle();});return b;}});
 map.addControl(new LocateCtl());
 map.on('dragstart',function(){if(SEGUI)seguiSet(false);});
+/* ---- Crocino al centro: distanza e rilevamento dalla barca ----
+   Richiesta dalla prova notturna del 27/09/2026: spostando la carta si vuole
+   sapere «quel punto li', quanto e' lontano e per dove». Si legge DALLA barca
+   AL centro, cioe' la rotta vera da tenere per andarci. Senza posizione il
+   crocino resta e dice le coordinate del centro. Sparisce quando la carta
+   segue la barca, perche' li' il centro E' la barca; e sparisce anche se il
+   centro cade sul segnaposto (meno di 12 px), per non coprirlo. Una linea
+   tratteggiata sottile unisce barca e centro: con la carta molto spostata la
+   barca e' fuori dallo schermo, e la linea dice da che parte sta. */
+var miraEl=L.DomUtil.create('div','cmira',map.getContainer());
+miraEl.innerHTML='<svg width="26" height="26" viewBox="0 0 26 26">'+
+  '<path d="M13 1V9M13 17V25M1 13H9M17 13H25" stroke="#fff" stroke-width="4" stroke-linecap="round"/>'+
+  '<path d="M13 1V9M13 17V25M1 13H9M17 13H25" stroke="#111" stroke-width="2" stroke-linecap="round"/>'+
+  '<circle cx="13" cy="13" r="1.8" fill="#111" stroke="#fff" stroke-width="1"/></svg><span class="t"></span>';
+var miraTx=miraEl.querySelector('.t'), miraLinea=null;
+function fmtMiglia(m){var nm=m/1852;
+  if(nm<0.1)return Math.round(m)+' m';
+  return (nm<10?nm.toFixed(2):nm.toFixed(1)).replace('.',',')+' M';}
+function updateMira(){
+  if(typeof map==='undefined'||!map||!miraEl)return;
+  var c=map.getCenter(),cc=[c.lat,c.lng],vis=!SEGUI,tx='';
+  if(vis&&POS){
+    var pp=map.latLngToContainerPoint(POS),pc=map.latLngToContainerPoint(c);
+    if(pp.distanceTo(pc)<12)vis=false;
+    else tx=fmtMiglia(hav(POS,cc))+' \u00b7 '+pad3c(brng(POS,cc))+'\u00b0';
+  }else if(vis){
+    tx=c.lat.toFixed(4)+', '+c.lng.toFixed(4);
+  }
+  miraEl.style.display=vis?'block':'none';
+  if(vis)miraTx.textContent=tx;
+  var serve=vis&&!!POS;
+  if(!serve){if(miraLinea){map.removeLayer(miraLinea);miraLinea=null;}return;}
+  if(!miraLinea)miraLinea=L.polyline([POS,cc],{color:'#111',weight:1.5,opacity:.7,
+    dashArray:'4 5',interactive:false}).addTo(map);
+  else miraLinea.setLatLngs([POS,cc]);
+}
+map.on('move zoom',updateMira);
+updateMira();
 /* Preferenza GPS condivisa (rf-topbar.js). Il ripiego serve perche' la
    barra e' caricata con defer: se questo script gira prima, si usa il
    comportamento storico, cioe' GPS diretto. */
@@ -520,19 +566,23 @@ function rfGpsOpt(o){var g=window.rfGeo;
   return (g&&typeof g.opzioni==="function")?g.opzioni(o):(o.enableHighAccuracy=true,o);}
 function locateMe(){if(!navigator.geolocation){alert('GPS non disponibile.');return;}navigator.geolocation.getCurrentPosition(function(p){POS=[p.coords.latitude,p.coords.longitude];try{localStorage.setItem('raffyca-pos',JSON.stringify({lat:POS[0],lon:POS[1],ts:Date.now()}));}catch(e){}map.setView(POS,14);drawPosMarker();updatePosInfo();renderList();},function(){alert('Posizione non disponibile (permesso negato o segnale assente).');},rfGpsOpt({timeout:15000}));}
 /* Sotto i 0.5 nodi la rotta calcolata e' rumore: resta il punto.
-   Sopra, diventa un triangolo orientato sulla rotta al fondo. */
-var COG=null, SOG=null;
+   Sopra, diventa un triangolo orientato sulla rotta al fondo.
+   ROSSO, non acqua: il #2BD9C4 di prima sulla base nautica chiara era verde su
+   azzurro, e a bordo non si trovava (prova notturna del 27/09/2026). Il rosso
+   non lo usa nessun altro segno della carta a quella intensita': la scia di
+   registrazione e' magenta, i fari hanno il loro bagliore. */
+var COG=null, SOG=null, POS_COL='#FF2D2D';
 function drawPosMarker(){
   if(posMarker)map.removeLayer(posMarker);
   if(!POS)return;
   if(COG==null||SOG==null||SOG<0.5){
-    posMarker=L.circleMarker(POS,{radius:6,color:'#fff',weight:2,fillColor:'#2BD9C4',fillOpacity:1})
+    posMarker=L.circleMarker(POS,{radius:7,color:'#fff',weight:2.5,fillColor:POS_COL,fillOpacity:1})
       .addTo(map).bindTooltip('La tua posizione');
     return;
   }
   var ic=L.divIcon({className:'',iconSize:[30,30],iconAnchor:[15,15],
     html:'<svg width="30" height="30" viewBox="0 0 30 30" style="transform:rotate('+COG.toFixed(0)+'deg);transform-origin:15px 15px">'+
-         '<path d="M15 3 L23 25 L15 20.5 L7 25 Z" fill="#2BD9C4" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>'});
+         '<path d="M15 3 L23 25 L15 20.5 L7 25 Z" fill="'+POS_COL+'" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/></svg>'});
   posMarker=L.marker(POS,{icon:ic,interactive:true,keyboard:false})
     .addTo(map).bindTooltip('Rotta '+pad3c(COG)+'\u00b0 \u00b7 '+SOG.toFixed(1)+' kn');
 }

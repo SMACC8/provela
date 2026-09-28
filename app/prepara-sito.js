@@ -231,6 +231,29 @@ function bussa(sito) {
 
 const SITO = controllaSitoPubblico();
 
+/* ── LE BARRE DI SISTEMA LE SCANSA ANDROID, NON LA PAGINA ──────────────
+   Con `viewport-fit=cover` e una WebView recente (140+), il plugin
+   SystemBars di Capacitor passa le barre di sistema alla pagina, che le
+   dovrebbe scansare da se' con env(safe-area-inset-*). `rf-topbar.js` lo fa
+   per quella in alto; per quella in basso non lo fa nessuno, e sono
+   diciassette impaginazioni diverse. Sul telefono «G15» di Sergio (prova
+   del 27/09/2026) la barra di sistema copriva le funzioni in fondo alle
+   pagine; riprodotto sull'emulatore Android 17 a tre tasti: il piede
+   dell'hub finiva sotto i tasti.
+
+   Senza `cover`, lo stesso plugin fa l'altra cosa: imbottisce la finestra
+   di quanto sono alte le barre, sopra e sotto, e la pagina vive nel
+   rettangolo libero. Tutti i moduli insieme, senza toccarne uno. env()
+   torna 0, quindi la barra di Dritta resta alta 40px e non raddoppia.
+   Si toglie solo nella copia che entra nell'APK: nel sito `cover` serve
+   alla PWA su iPhone. Il colore delle due strisce lo danno `styles.xml`
+   (fondo) e `capacitor.config.json` (icone chiare). */
+function senzaCover(html) {
+  return html.replace(/(<meta[^>]+name="viewport"[^>]+content=")([^"]*)"/i,
+    (m, testa, c) => testa + c.split(",").map((x) => x.trim())
+      .filter((x) => !/^viewport-fit\s*=/i.test(x)).join(",") + '"');
+}
+
 let file = 0, byte = 0;
 function copia(da, a) {
   fs.mkdirSync(a, { recursive: true });
@@ -247,6 +270,7 @@ function copia(da, a) {
         (m) => m + "\n" + GUARDIANO + "\n" + SCARICAMENTI + "\n" + VOCE);
       html = esplicita(html);
       html = allargaFiltri(html);
+      html = senzaCover(html);
       fs.writeFileSync(destinazione, html);
       file++; byte += Buffer.byteLength(html);
       continue;

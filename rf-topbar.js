@@ -220,6 +220,14 @@
 '  border-radius:9px;padding:9px 14px;font-size:12.5px;opacity:0;transition:.2s;pointer-events:none;' +
 '  max-width:88vw;font-family:system-ui,-apple-system,sans-serif;}' +
 '.rf-toast.on{opacity:1;transform:translateX(-50%) translateY(0);}' +
+/* scorciatoia Cruscotto <-> Carta: grande, perche' a bordo si tocca coi guanti */
+'.rf-topbar a.rf-salta{display:flex;align-items:center;gap:6px;flex:none;height:34px;min-width:88px;' +
+'  box-sizing:border-box;padding:0 12px;border-radius:9px;justify-content:center;text-decoration:none;' +
+'  border:1.5px solid var(--teal,#2BD9C4);color:var(--teal,#2BD9C4);background:hsl(172 70% 51% / .10);' +
+'  font:700 13px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:.2px;}' +
+'.rf-topbar a.rf-salta:active{transform:scale(.95);background:hsl(172 70% 51% / .25);}' +
+'.rf-topbar.rf-con-salta .rf-pol{flex:0 1 auto;min-width:0;}' +
+'@media (max-width:420px){.rf-topbar.rf-con-salta .rf-pol{display:none;}}' +
 '@media (prefers-reduced-motion:reduce){.rf-panel,.rf-scrim,.rf-status .rf-chev{transition:none;}}' +
 /* In stampa la barra non c'entra nulla, e il padding-top che riserva lo spazio
    lascerebbe una fascia vuota in cima al foglio. Sta qui e non nei moduli
@@ -712,9 +720,52 @@
     }
   }
 
+  /* ─────────────── scorciatoia Cruscotto <-> Carta ───────────────
+     Chiesta dopo l'uscita notturna del 27/09/2026: in navigazione si passa
+     di continuo fra le due, e tornare dal menu costa due tocchi e uno
+     scorrimento. Due strade per la stessa cosa:
+       - un BOTTONE in barra, il comando vero: grande (34x88 px) perche'
+         d'inverno si usa coi guanti, e un gesto su una striscia di 40 px coi
+         guanti non si fa;
+       - uno SCORRIMENTO orizzontale sulla barra, per chi lo conosce.
+     Il gesto sta solo sulla barra: sotto, la Carta usa trascinamento,
+     pizzico e pressione lunga, il Cruscotto la pressione lunga, e i bordi
+     dello schermo sono il «indietro» di Android.
+     Il link porta index.html esplicito: dentro l'APK il server di Capacitor
+     non risolve le cartelle (vedi prepara-sito.js), e questo link nasce in
+     JavaScript, dove la riscrittura degli href non arriva. */
+  function scorciatoia() {
+    var p = location.pathname, meta;
+    if (/\/cruscotto\/(index\.html)?$/.test(p)) meta = { url: "../carta/index.html", nome: "Carta" };
+    else if (/\/carta\/(index\.html)?$/.test(p)) meta = { url: "../cruscotto/index.html", nome: "Cruscotto" };
+    if (!meta) return;
+    var barra = document.querySelector(".rf-topbar");
+    if (!barra || barra.querySelector(".rf-salta")) return;
+    var a = document.createElement("a");
+    a.className = "rf-salta"; a.href = meta.url;
+    a.setAttribute("aria-label", "Vai a " + meta.nome);
+    a.title = "Vai a " + meta.nome + " (anche: scorri di lato sulla barra)";
+    a.innerHTML = '<span aria-hidden="true">\u21C4</span>' + meta.nome;
+    var dopo = barra.querySelector(".rf-gps") || barra.querySelector(".rf-boat");
+    if (dopo && dopo.nextSibling) barra.insertBefore(a, dopo.nextSibling); else barra.appendChild(a);
+    barra.classList.add("rf-con-salta");
+    var x0 = null, y0 = 0;
+    barra.addEventListener("touchstart", function (e) {
+      if (e.touches.length !== 1) { x0 = null; return; }
+      x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
+    }, { passive: true });
+    barra.addEventListener("touchend", function (e) {
+      if (x0 == null) return;
+      var t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
+      x0 = null;
+      if (Math.abs(dx) > 70 && Math.abs(dx) > 2 * Math.abs(dy)) location.href = meta.url;
+    }, { passive: true });
+  }
+
   /* ──────────────────────────── avvio ──────────────────────────── */
   function avvia() {
     if (!aggancia()) return;      // pagina senza barra: resta solo il registratore
+    scorciatoia();
     dipingi();
     setInterval(dipingi, 1000);
     window.addEventListener("storage", function (e) {

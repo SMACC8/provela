@@ -233,6 +233,7 @@ html.day [fill="#46d68a"]{fill:#12894f;} html.night [fill="#46d68a"]{fill:#c23a3
       <button data-ab="B">Arrivo B</button>
     </div>
     <select id="wpPick" title="Imposta A/B da un waypoint salvato" style="font:inherit;padding:8px 10px;border-radius:8px;border:1px solid var(--line,#1a3248);background:var(--panel2);color:var(--ink)"><option value="">— A/B da waypoint —</option></select>
+    <button class="go" id="aGpsBtn" title="Mette la partenza A dove sei adesso (GPS)">📍 A = qui</button>
     <button class="go" id="abMoveBtn" title="Attiva lo spostamento di A e B: quando è attivo puoi trascinare i pin o toccare la carta. Evita spostamenti accidentali su touch.">✥ Muovi A/B</button>
     <button class="go" id="resetBtn" title="Riporta A e B ai punti di esempio">↺ Reset</button>
     <button class="go" id="fitBtn" title="Crea un'area di mare che racchiude A e B (es. Trieste↔Venezia)">⤢ Area su A↔B</button>
@@ -399,9 +400,16 @@ function parseField(json,area){var arr=Array.isArray(json)?json:[json],times=arr
   for(var h=0;h<H;h++){var u=[],v=[];for(var j=0;j<NY;j++){var ru=[],rv=[];for(var i=0;i<NX;i++){var pt=arr[j*NX+i],sp=pt.hourly.wind_speed_10m[h],dr=pt.hourly.wind_direction_10m[h];if(sp==null||dr==null){ru.push(0);rv.push(0);continue;}var w=deg2uv(dr,sp);ru.push(w.u);rv.push(w.v);}u.push(ru);v.push(rv);}slices.push({u:u,v:v});}
   FIELD.area=area;FIELD.times=times;FIELD.slices=slices;FIELD.source='live';}
 function smooth(s){return s*s*(3-2*s);}
+/* Ore del campo sintetico in ORA LOCALE, come quelle di Open-Meteo con
+   timezone=auto. Prima erano toISOString(), cioe' UTC: la mezzanotte locale
+   diventava "22:00" del giorno prima, e l'indice 2 di partenza di default si
+   leggeva "00:00" — la «partenza a mezzanotte» segnalata il 27/09/2026. E 48
+   ore invece di 24, altrimenti la sera non restava orizzonte per partire. */
+function oraLocaleISO(d){function z(n){return ('0'+n).slice(-2);}
+  return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+'T'+z(d.getHours())+':'+z(d.getMinutes());}
 function synthField(area){var times=[],slices=[],base=new Date();base.setHours(0,0,0,0);
-  for(var h=0;h<24;h++){var u=[],v=[],t=new Date(base.getTime()+h*3600000);times.push(t.toISOString().slice(0,16));
-    var s=clamp((h-8)/8,0,1),baseDir=45+175*smooth(s),baseSpd=4.5+9*Math.sin(Math.PI*clamp((h-6)/12,0,1));
+  for(var h=0;h<48;h++){var u=[],v=[],t=new Date(base.getTime()+h*3600000);times.push(oraLocaleISO(t));
+    var hd=h%24,s=clamp((hd-8)/8,0,1),baseDir=45+175*smooth(s),baseSpd=4.5+9*Math.sin(Math.PI*clamp((hd-6)/12,0,1));
     for(var j=0;j<NY;j++){var ru=[],rv=[],fy=j/(NY-1);for(var i=0;i<NX;i++){var fx=i/(NX-1);
       var dir=baseDir+(fx-0.5)*28,spd=Math.max(1.5,baseSpd+(fy-0.5)*5+fx*2.5);var w=deg2uv(((dir%360)+360)%360,spd);ru.push(w.u);rv.push(w.v);}u.push(ru);v.push(rv);}slices.push({u:u,v:v});}
   FIELD.area=area;FIELD.times=times;FIELD.slices=slices;FIELD.source='demo';}
@@ -748,7 +756,34 @@ function rebuildWorker(){if(RF_WORKER){try{RF_WORKER.terminate();}catch(e){}}RF_
 function jobParams(){if(STATE.coastBuf>0)coastDistField(MED_MASKS[FIELD.area]);return {seq:++rfReqs,area:FIELD.area,areaObj:AREAS[FIELD.area],field:FIELD,mask:MED_MASKS[FIELD.area],
   state:{dep:STATE.dep,motorOn:STATE.motorOn,mot:STATE.mot,maxWind:STATE.maxWind,coastBuf:STATE.coastBuf,tackPen:STATE.tackPen,polarEff:STATE.polarEff,A:{lat:STATE.A.lat,lon:STATE.A.lon},B:{lat:STATE.B.lat,lon:STATE.B.lon}}};}
 function routeSync(){R_CACHE=route();R_CACHE.area=FIELD.area;diagnose(R_CACHE);refreshAfterRoute();}
-function windClock(idx){var t=(FIELD.times&&FIELD.times[clamp(Math.round(idx),0,(FIELD.times.length||1)-1)])||'';return t.slice(11)||('+'+Math.round(idx)+'h');}
+var GG_SETT=['dom','lun','mar','mer','gio','ven','sab'];
+function windClock(idx){var t=(FIELD.times&&FIELD.times[clamp(Math.round(idx),0,(FIELD.times.length||1)-1)])||'';
+  if(!t)return '+'+Math.round(idx)+'h';
+  /* il giorno si scrive solo se non e' oggi: con 96 ore di campo "14:00" da
+     solo non dice se e' oggi o dopodomani */
+  var d=parseOraLocale(t),oggi=new Date();
+  if(d&&d.toDateString()!==oggi.toDateString())return GG_SETT[d.getDay()]+' '+t.slice(11);
+  return t.slice(11);}
+/* ---- Partenza: parte da ADESSO, non dall'inizio del campo ----
+   Il campo vento comincia alla mezzanotte di oggi (Open-Meteo, timezone=auto),
+   e la partenza era un indice fisso in quel campo: 2, cioe' le 02:00 di oggi,
+   gia' passate appena fatto giorno. Ora il cursore parte dall'ora in corso e
+   non puo' tornare indietro; se il campo e' tutto nel passato (dati vecchi,
+   senza rete) resta sull'ultima ora disponibile. La scelta si salva come ORA
+   (depT), non come indice: un indice salvato ieri oggi vuol dire un'altra ora. */
+function idxAdesso(){var T=FIELD.times||[];if(!T.length)return 0;
+  var now=Date.now(),k=0;
+  for(var i=0;i<T.length;i++){var d=parseOraLocale(T[i]);if(d&&d.getTime()<=now)k=i;else break;}
+  return k;}
+function depMax(){var n=(FIELD.times||[]).length;
+  /* almeno 12 ore di vento dopo la partenza, altrimenti la rotta non ha dove andare */
+  return Math.max(idxAdesso(),n-13);}
+function syncDep(voluta){var sl=document.getElementById('dep'),lo=idxAdesso(),hi=depMax(),d=lo;
+  if(voluta){var k=(FIELD.times||[]).indexOf(voluta);if(k>=lo)d=k;}
+  STATE.dep=clamp(d,lo,hi);
+  if(sl){sl.min=lo;sl.max=hi;sl.value=STATE.dep;}
+  var l=document.getElementById('depLbl');if(l)l.textContent=windClock(STATE.dep);}
+function depT(){return (FIELD.times&&FIELD.times[Math.round(STATE.dep)])||null;}
 function syncWindView(){var sl=document.getElementById('windHour');if(!sl)return;var maxI=Math.max(1,(FIELD.slices.length||15)-1);sl.max=maxI;
   if(WIND_VIEW==null){sl.value=clamp(Math.round(STATE.dep),0,maxI);}
   var l=document.getElementById('windHourLbl');if(l)l.textContent=windClock(WIND_VIEW==null?STATE.dep:WIND_VIEW);updateWindPt();}
@@ -805,8 +840,11 @@ function buildOverlay(P){
   // stessa punta di prima (le misure sono in unita' di stroke-width: cambiarle la
   // ingrandirebbe), piu' un bordo scuro sottile. overflow=visible perche' il bordo
   // esce dal riquadro del marker, che altrimenti lo taglierebbe.
+  /* Testa piu' snella (27/09/2026): larga 5,2 invece di 7 sulla stessa lunghezza.
+     Il marker scala con lo spessore della linea (2,2), quindi 7 diventava una
+     punta di 15 px per lato, e sulle frecce corte copriva meta' dell'asta. */
   function whead(id,col){return '<marker id="'+id+'" markerWidth="7" markerHeight="7" refX="5.8" refY="3.5" orient="auto" overflow="visible">'+
-    '<path d="M0 0 L7 3.5 L0 7 z" fill="'+col+'" stroke="'+CASE+'" stroke-width="0.7" stroke-linejoin="round" paint-order="stroke"/></marker>';}
+    '<path d="M0 0.9 L7 3.5 L0 6.1 z" fill="'+col+'" stroke="'+CASE+'" stroke-width="0.7" stroke-linejoin="round" paint-order="stroke"/></marker>';}
   var defs='<defs>'+whead('wha','#2BD9C4')+whead('whb','#7BD88A')+whead('whc','#FFC24B')+whead('whd','#FF6B6B')+'</defs>';
   // costa del modello (confine della maschera terra/mare che il router usa davvero)
   var tc=document.getElementById('tCoast');
@@ -840,7 +878,7 @@ function buildOverlay(P){
   if(document.getElementById('tWind').checked){var sl=FIELD.slices[clamp(Math.round(_wv),0,FIELD.slices.length-1)];
     var wCas='',wTop='';
     for(var j=0;j<NY;j++)for(var i=0;i<NX;i++){var lon=A.lonW+(A.lonE-A.lonW)*i/(NX-1),lat=A.latN-(A.latN-A.latS)*j/(NY-1);
-      var w=uv2dir(sl.u[j][i],sl.v[j][i]),pt=P(lat,lon),ar=(w.twd+180)*Math.PI/180,L=clamp(6+w.tws*0.6,8,16),dx=Math.sin(ar)*L,dy=-Math.cos(ar)*L;
+      var w=uv2dir(sl.u[j][i],sl.v[j][i]),pt=P(lat,lon),ar=(w.twd+180)*Math.PI/180,L=clamp(7.5+w.tws*0.75,10,18),dx=Math.sin(ar)*L,dy=-Math.cos(ar)*L;
       var col=speedColor(w.tws),mk=w.tws<7?'wha':w.tws<13?'whb':w.tws<18?'whc':'whd';
       wCas+='M'+(pt.x-dx).toFixed(1)+' '+(pt.y-dy).toFixed(1)+'L'+(pt.x+dx).toFixed(1)+' '+(pt.y+dy).toFixed(1);
       wTop+='<line x1="'+(pt.x-dx).toFixed(1)+'" y1="'+(pt.y-dy).toFixed(1)+'" x2="'+(pt.x+dx).toFixed(1)+'" y2="'+(pt.y+dy).toFixed(1)+'" stroke="'+col+'" stroke-opacity="0.98" stroke-width="2.2" marker-end="url(#'+mk+')"/>';}
@@ -878,8 +916,8 @@ function updateReadout(){var R=R_CACHE||route(),A=AREAS[FIELD.area],P=R.path;
   var capTxt=(STATE.maxWind&&STATE.maxWind>0)?' · <b style="color:#9fd8ff">evita &gt;'+STATE.maxWind+' kt</b>':'';
   capTxt+=(STATE.coastBuf&&STATE.coastBuf>0)?' · <b style="color:#7BD88A">costa &ge;'+STATE.coastBuf+' NM</b>':'';
   var pctStr=R.finished?(', +'+Math.round((sailed/Math.max(1,straight)-1)*100)+'%'):'';
-  document.getElementById('read').innerHTML='Partenza <b>'+t.slice(11)+'</b> · vento <b>'+wA.tws.toFixed(0)+' kt</b> da <b>'+Math.round(wA.twd)+'°</b> · ETA <b>'+hh+'h'+(mm?(' '+mm+'m'):'')+'</b> · '+sailed.toFixed(1)+' NM (diretta '+straight.toFixed(1)+pctStr+')'+(pctMot?' · <b style="color:var(--amber)">'+pctMot+'% motore</b>':'')+capTxt+(R.finished?'':' <span style="color:var(--coral)">[B non raggiunto]</span>')+warn;
-  document.getElementById('depLbl').textContent=t.slice(11)||('+'+STATE.dep+'h');
+  document.getElementById('read').innerHTML='Partenza <b>'+windClock(STATE.dep)+'</b> · vento <b>'+wA.tws.toFixed(0)+' kt</b> da <b>'+Math.round(wA.twd)+'°</b> · ETA <b>'+hh+'h'+(mm?(' '+mm+'m'):'')+'</b> · '+sailed.toFixed(1)+' NM (diretta '+straight.toFixed(1)+pctStr+')'+(pctMot?' · <b style="color:var(--amber)">'+pctMot+'% motore</b>':'')+capTxt+(R.finished?'':' <span style="color:var(--coral)">[B non raggiunto]</span>')+warn;
+  document.getElementById('depLbl').textContent=windClock(STATE.dep);
   renderLuceArrivo(R,t);
   renderDiag(R);renderWindProfile(R);}
 
@@ -937,13 +975,13 @@ function renderLuceArrivo(R,t){
   box.style.borderLeftColor=col;
   box.style.display='';
 }
-function scanDepartures(){var saved=STATE.dep,N=Math.min(48,(FIELD.times?FIELD.times.length:24)-1),res=[];
+function scanDepartures(){var saved=STATE.dep,d0=idxAdesso(),N=Math.min(d0+48,depMax()),res=[];
   if(STATE.coastBuf>0&&typeof coastDistField==='function')coastDistField(MED_MASKS[FIELD.area]);
-  for(var d=0;d<=N;d++){STATE.dep=d;var R=route();res.push({dep:d,eta:R.finished?R.eta:null});}
+  for(var d=d0;d<=N;d++){STATE.dep=d;var R=route();res.push({dep:d,eta:R.finished?R.eta:null});}
   STATE.dep=saved;return res;}
 function renderScan(){var el=document.getElementById('scanRes');if(!el)return;
   var res=scanDepartures(),fin=res.filter(function(r){return r.eta!=null;});
-  function tlabel(d){var t=(FIELD.times&&FIELD.times[d])||'';return t.slice(11)||('+'+d+'h');}
+  function tlabel(d){return windClock(d);}
   if(!fin.length){el.innerHTML='<div class="scan-h">Nessuna partenza raggiunge B nell\'orizzonte disponibile.</div>';el.classList.add('on');return;}
   var best=fin.reduce(function(a,b){return b.eta<a.eta?b:a;}),maxE=Math.max.apply(null,fin.map(function(r){return r.eta;})),minE=best.eta;
   var W=300,H=96,padL=4,padB=16,bw=(W-2*padL)/res.length,bars='';
@@ -952,7 +990,8 @@ function renderScan(){var el=document.getElementById('scanRes');if(!el)return;
     var hgt=(H-padB-8)*(0.22+0.78*(maxE-r.eta)/Math.max(0.1,maxE-minE)),y=(H-padB-hgt),col=(r.dep===best.dep)?'#2BD9C4':'#3f5f7d';
     bars+='<rect x="'+(x+1).toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+(bw-2).toFixed(1)+'" height="'+hgt.toFixed(1)+'" rx="2" fill="'+col+'"/>';
     if(r.dep===best.dep)bars+='<text x="'+(x+bw/2).toFixed(1)+'" y="'+(y-3).toFixed(1)+'" text-anchor="middle" font-size="8" fill="#2BD9C4" font-family="ui-monospace,Menlo,monospace">'+fmtH(r.eta)+'</text>';}
-  var labels='';[0,best.dep,res.length-1].forEach(function(d){var x=padL+(d+0.5)*bw;labels+='<text x="'+x.toFixed(1)+'" y="'+(H-4)+'" text-anchor="middle" font-size="8" fill="#566f87" font-family="ui-monospace,Menlo,monospace">'+tlabel(d)+'</text>';});
+  /* le barre partono da "adesso", non dall'indice 0: posizione = i, etichetta = res[i].dep */
+  var labels='';[0,res.indexOf(best),res.length-1].forEach(function(i){var x=padL+(i+0.5)*bw;labels+='<text x="'+x.toFixed(1)+'" y="'+(H-4)+'" text-anchor="middle" font-size="8" fill="#566f87" font-family="ui-monospace,Menlo,monospace">'+tlabel(res[i].dep)+'</text>';});
   el.innerHTML='<div class="scan-h">Miglior partenza: <b>'+tlabel(best.dep)+'</b> · ETA <b>'+fmtH(best.eta)+'</b> <button class="go" id="scanUse">usa</button></div><svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:84px">'+bars+labels+'</svg>';
   el.classList.add('on');
   var ub=document.getElementById('scanUse');if(ub)ub.addEventListener('click',function(){STATE.dep=best.dep;var ds=document.getElementById('dep');if(ds)ds.value=best.dep;computeRoute();toast('Partenza impostata: '+tlabel(best.dep));});}
@@ -1320,8 +1359,9 @@ function salvaInCarta(){
      col vento, e in Carta e' indistinguibile da una traccia registrata. Senza
      l'ora di partenza scritta sopra, fra tre giorni sembra un piano valido. */
   var area=(AREAS[FIELD.area]&&AREAS[FIELD.area].name)||FIELD.area;
-  var ora=windClock(STATE.dep), oggi=new Date();
-  var gg=('0'+oggi.getDate()).slice(-2)+'/'+('0'+(oggi.getMonth()+1)).slice(-2);
+  var ora=(depT()||'').slice(11)||windClock(STATE.dep), oggi=new Date(), dP=parseOraLocale(depT())||oggi;
+  /* la data e' quella della PARTENZA: col campo a 4 giorni puo' non essere oggi */
+  var gg=('0'+dP.getDate()).slice(-2)+'/'+('0'+(dP.getMonth()+1)).slice(-2);
   var nome='Rotta '+gg+' '+ora+' · '+area;
   /* due rotte con la stessa partenza avrebbero lo stesso nome, e in lista
      diventano indistinguibili: numero solo i duplicati, senza sporcare il primo */
@@ -1330,7 +1370,7 @@ function salvaInCarta(){
   var nota=[
     'Calcolata in Traversata il '+oggi.toLocaleString('it-IT'),
     'Zona: '+area+' · campo vento: '+(FIELD.source==='live'?('live '+MODELN):'sintetico'),
-    'Partenza impostata: '+ora,
+    'Partenza impostata: '+gg+' '+ora,
     'ETA: '+(R.finished?fmtH(R.eta):'rotta non chiusa'),
     'Buffer costa: '+(STATE.coastBuf||0)+' NM · perdita manovra: '+STATE.tackPen+'% · efficienza polare: '+Math.round(STATE.polarEff*100)+'%',
     (STATE.motorOn?('Motore consentito a '+STATE.mot+' kn'):'Solo vela'),
@@ -1428,14 +1468,43 @@ function initMap(){if(typeof L==='undefined'){return;}
   fitArea(FIELD.area);placeMarkers();redraw();}
 
 function setPill(){var p=document.getElementById('pill');if(FIELD.source==='live'){p.className='pill live';p.textContent='dati live · '+MODELN;}else{p.className='pill demo';p.textContent='campo sintetico';}}
-function loadArea(area){resetAB(area);synthField(area);buildCoastSegs();setPill();if(map){fitArea(area);placeMarkers();}computeRoute();if(ISO_ON)refreshIsobate();}
+/* LIVE_SEQ scarta le risposte arrivate tardi: cambiando zona mentre il vento
+   della zona prima e' ancora in viaggio, quel campo non deve finire su questa.
+   Il nome dell'area non basta — tutte le zone di profilo si chiamano "custom". */
+var LIVE_SEQ=0, LIVE_AUTO=false;
+function loadArea(area){var vt=depT();LIVE_SEQ++;resetAB(area);synthField(area);syncDep(vt);buildCoastSegs();setPill();if(map){fitArea(area);placeMarkers();}computeRoute();if(ISO_ON)refreshIsobate();
+  if(LIVE_AUTO&&navigator.onLine!==false)loadReal();}
 function loadReal(){var area=FIELD.area,b=document.getElementById('loadBtn');b.textContent='⟳ scarico…';
-  fetch(buildURL(area)).then(function(r){return r.json();}).then(function(j){parseField(j,area);setPill();computeRoute();b.textContent='⟳ Carica vento reale';})
-  .catch(function(){b.textContent='⟳ Carica vento reale';var p=document.getElementById('pill');p.className='pill demo';p.textContent='offline — campo sintetico';});}
+  var vt=depT(),seq=++LIVE_SEQ;
+  fetch(buildURL(area)).then(function(r){return r.json();}).then(function(j){if(seq!==LIVE_SEQ){b.textContent='⟳ Carica vento reale';return;}parseField(j,area);syncDep(vt);WIND_VIEW=null;setPill();computeRoute();b.textContent='⟳ Carica vento reale';})
+  .catch(function(){b.textContent='⟳ Carica vento reale';if(seq!==LIVE_SEQ)return;var p=document.getElementById('pill');p.className='pill demo';p.textContent='offline — campo sintetico';});}
 
 document.querySelectorAll('.bar button[data-area]').forEach(function(b){b.addEventListener('click',function(){document.querySelectorAll('.bar button[data-area]').forEach(function(x){x.classList.toggle('on',x===b);});loadArea(b.getAttribute('data-area'));});});
 document.querySelectorAll('.find .seg button').forEach(function(b){b.addEventListener('click',function(){activeAB=b.getAttribute('data-ab');document.querySelectorAll('.find .seg button').forEach(function(x){x.classList.toggle('on',x===b);});});});
 document.getElementById('abMoveBtn').addEventListener('click',toggleAbMove);
+/* A = posizione attuale. Chiesta dalla prova notturna del 27/09/2026: in mare
+   la partenza e' quasi sempre «dove sono». Prima si chiede un fix vero; se il
+   GPS tace si ripiega sull'ultima posizione condivisa (raffyca-pos, scritta da
+   Carta, Cruscotto e dalla barra) purche' abbia meno di 15 minuti.
+   Fuori dalla zona di calcolo A NON si mette: setAB la schiaccerebbe sul
+   bordo, cioe' in un posto dove non sei, senza dirlo. Si dice invece quale
+   zona scegliere. */
+function aDaGps(){var btn=document.getElementById('aGpsBtn');
+  function metti(lat,lon,fonte){btn.textContent='📍 A = qui';
+    var a=AREAS[FIELD.area];
+    if(!(lat>a.latS&&lat<a.latN&&lon>a.lonW&&lon<a.lonE)){
+      var z=null;for(var k in ZONE_BOX){var b=ZONE_BOX[k];if(lat>b.latS&&lat<b.latN&&lon>b.lonW&&lon<b.lonE){z=k;break;}}
+      toast('Sei fuori da '+(a.name||'questa zona')+(z?(': scegli «'+z+'», poi di nuovo 📍'):''));return;}
+    setAB('A',lat,lon);if(map)map.panTo([lat,lon]);toast('A → la tua posizione'+(fonte?(' ('+fonte+')'):''));}
+  function ripiego(){var p=null;try{p=JSON.parse(localStorage.getItem('raffyca-pos')||'null');}catch(e){}
+    if(p&&isFinite(p.lat)&&isFinite(p.lon)&&p.ts&&Date.now()-p.ts<15*60000){
+      metti(p.lat,p.lon,'ultimo fix, '+Math.max(1,Math.round((Date.now()-p.ts)/60000))+' min fa');return;}
+    btn.textContent='📍 A = qui';toast('Posizione non disponibile');}
+  if(!navigator.geolocation){ripiego();return;}
+  btn.textContent='📍 …';
+  navigator.geolocation.getCurrentPosition(function(pp){metti(pp.coords.latitude,pp.coords.longitude,'');},
+    ripiego,rfGpsOpt({maximumAge:30000,timeout:15000}));}
+document.getElementById('aGpsBtn').addEventListener('click',aDaGps);
 document.getElementById('resetBtn').addEventListener('click',function(){resetAB(FIELD.area);placeMarkers();computeRoute();toast('A e B riportati ai punti di esempio');});
 document.getElementById('fitBtn').addEventListener('click',fitAreaToAB);
 document.getElementById('recalcBtn').addEventListener('click',function(){computeRoute();toast('Ricalcolo rotta…');});
@@ -1561,7 +1630,7 @@ function saveUI(){if(!_uiReady)return;
     var u={v:1,
       A:STATE.A?{lat:STATE.A.lat,lon:STATE.A.lon}:null,
       B:STATE.B?{lat:STATE.B.lat,lon:STATE.B.lon}:null,
-      dep:STATE.dep,mot:STATE.mot,maxWind:STATE.maxWind,coastBuf:STATE.coastBuf,tackPen:STATE.tackPen,polarEff:STATE.polarEff,
+      dep:STATE.dep,depT:depT(),mot:STATE.mot,maxWind:STATE.maxWind,coastBuf:STATE.coastBuf,tackPen:STATE.tackPen,polarEff:STATE.polarEff,
       motRaw:rv('mot'),windCapRaw:rv('windCap'),
       motorChk:cv('motorOn'),windCapChk:cv('windCapOn'),coastChk:cv('coastOn'),
       tSea:cv('tSea'),tCoast:cv('tCoast'),tWind:cv('tWind'),tIso:cv('tIso'),tIsoCorr:cv('tIsoCorr'),tNames:cv('tNames'),tBathy:cv('tBathy'),navFollow:cv('navFollow'),
@@ -1571,7 +1640,6 @@ function saveUI(){if(!_uiReady)return;
 }
 /* applica le impostazioni salvate (indipendenti dall'area) — prima di computeRoute */
 function restoreSettings(){var u=SAVED_UI;if(!u)return;
-  if(isFinite(u.dep))STATE.dep=u.dep;
   if(isFinite(u.mot))STATE.mot=u.mot;
   if(isFinite(u.maxWind))STATE.maxWind=u.maxWind;
   if(isFinite(u.coastBuf))STATE.coastBuf=u.coastBuf;
@@ -1579,7 +1647,7 @@ function restoreSettings(){var u=SAVED_UI;if(!u)return;
   if(isFinite(u.polarEff))STATE.polarEff=u.polarEff;
   STATE.motorOn=!!u.motorChk;
   function setv(id,val,lbl){var e=document.getElementById(id);if(!e||val==null)return;e.value=val;if(lbl){var l=document.getElementById(lbl);if(l)l.textContent=val;}}
-  var dep=document.getElementById('dep');if(dep&&isFinite(u.dep))dep.value=u.dep;
+  /* la partenza la rimette syncDep(u.depT): il vecchio u.dep era un indice, e non vale piu' */
   if(u.motorChk!=null){var mo=document.getElementById('motorOn');mo.checked=u.motorChk;var ms=document.getElementById('mot');if(ms)ms.disabled=!u.motorChk;}
   setv('mot',u.motRaw,'motV');
   if(u.windCapChk!=null){var wo=document.getElementById('windCapOn');wo.checked=u.windCapChk;var wc=document.getElementById('windCap');if(wc)wc.disabled=!u.windCapChk;}
@@ -1618,6 +1686,7 @@ function applySavedAB(){var u=SAVED_UI;if(!u||!u.A||!u.B)return;
 loadSavedUI();
 resetAB('adriatico');synthField('adriatico');setPill();
 restoreSettings();
+syncDep(SAVED_UI&&SAVED_UI.depT);
 computeRoute();renderPolarPreview();loadSharedPolar();
 loadCoast();
 if(typeof L!=='undefined'){initMap();applySavedAB();applyRestoredToggles();
@@ -1625,6 +1694,12 @@ if(typeof L!=='undefined'){initMap();applySavedAB();applyRestoredToggles();
   try{applySharedView();}catch(e){}}
 initWorker();
 _uiReady=true;
+/* Con la rete, il vento vero si carica da solo. Prima si apriva sempre sul
+   campo sintetico, e bisognava ricordarsi «⟳ Carica vento reale»: a bordo la
+   rotta mostrata era quella di un vento inventato. Senza rete resta il
+   sintetico, come prima, e la pastiglia lo dice. */
+LIVE_AUTO=true;
+if(navigator.onLine!==false){try{loadReal();}catch(e){}}
 // persisti anche i toggle di sola visualizzazione (non passano da computeRoute)
 document.addEventListener('change',function(e){var id=e.target&&e.target.id;
   if(id&&/^navFollow$/.test(id))saveUI();});

@@ -29,6 +29,15 @@ tale.
 Deploy: push su `main` → GitHub Pages ricostruisce da solo. `.nojekyll` è già
 presente e va lasciato.
 
+**Dal 28/09/2026 da `main` esce anche l'APK Android** (Capacitor, cartella
+`app/`, istruzioni in `app/LEGGIMI.md`). Non è un secondo sito: è lo stesso,
+copiato in `app/www` da `app/prepara-sito.js`, che nella copia fa gli
+adattamenti che servono solo dentro l'app (link a cartella espliciti,
+service worker spenti, niente `viewport-fit=cover`). Le modifiche si fanno
+**nel sito**, una volta sola, e arrivano a tutte e due; un ramo a parte per
+l'APK è già stato provato e lascia la PWA indietro. Chi aggiunge un
+adattamento solo-app lo mette in `prepara-sito.js`, non nelle pagine.
+
 L'applicazione non si compila, ma **una parte dei dati sì**: le isobate e le
 maschere terra/mare sono uscite di due script in radice (vedi "Dati derivati"
 sotto). Sono committate perché il sito è statico, non perché siano scritte a
@@ -53,6 +62,8 @@ Ognuno è una cartella autonoma in radice, con il proprio service worker:
 | `impostazioni/` | profilo, tema, caricatore polare CSV, guida |
 | `performance/`, `partenza/` | build React precompilati |
 | `sole-luna/`, `percorso/`, `calcoli/` | strumenti minori |
+| `strumenti.html` | lettore NMEA del gateway di bordo: vero solo nell'APK |
+| `app/` | guscio Android (Capacitor), non fa parte del sito |
 
 ## Convenzioni da rispettare
 

@@ -4739,3 +4739,226 @@ Sull'emulatore, con la barca spostata di 100 m:
 - **Queste correzioni stanno sul ramo `capacitor`, non su `main`**: il sito
   pubblicato non ha ancora i pallini nuovi, il prefetch delle carte ne' il
   controllo del link.
+
+---
+
+## 28/09/2026 — Dopo l'uscita notturna: la barca rossa, il crocino, la partenza che segnava mezzanotte
+
+Prima prova lunga dell'APK a bordo: 50 miglia di notte, tablet in murata su
+supporti magnetici. Sei punti da sistemare, tutti fatti sul ramo `capacitor`
+(worktree `ProVela-capacitor`); **`main` non e' toccata**.
+
+### 1. Carta: la barca era verde su azzurro
+
+Il «cursore» e' il segnaposto della posizione, pallino da fermi e triangolo
+orientato sulla COG sopra mezzo nodo. Era `#2BD9C4`, il colore d'accento
+della suite: sulla base nautica chiara, cioe' sul mare azzurro, non si
+trovava. Ora `POS_COL = #FF2D2D` con bordo bianco piu' spesso. Scelto il
+rosso perche' nessun altro segno della carta lo usa a quell'intensita' (la
+scia di registrazione e' magenta). Il bottone ◎ «segui» resta acqua: e' un
+controllo, non un segno sulla mappa.
+
+### 2. Carta: crocino al centro con distanza e rilevamento
+
+Quando la carta **non** segue la barca compare un crocino al centro con
+un'etichetta «2,77 M · 038°»: distanza e rilevamento vero **dalla barca al
+centro**, cioe' la rotta da tenere per andarci. Una linea tratteggiata sottile
+unisce barca e centro, perche' con la carta molto spostata la barca e' fuori
+schermo e la linea dice da che parte sta. Sparisce col «segui» acceso (il
+centro e' la barca) e quando il centro cade a meno di 12 px dal segnaposto.
+Senza posizione il crocino resta e mostra le coordinate del centro. Sotto
+0,1 M la distanza e' in metri.
+
+Scartato: usare il mirino del raster (`.rmark`), che e' un'altra cosa — si
+posa dove si tocca un'immagine da calibrare, non sta sulla mappa.
+
+### 3. Traversata: «A = qui»
+
+Bottone **📍 A = qui** accanto a «Muovi A/B». Chiede un fix vero; se il GPS
+tace ripiega su `raffyca-pos` purche' abbia meno di 15 minuti, e lo dice
+(«ultimo fix, 5 min fa»). **Fuori dalla zona di calcolo A non si mette**:
+`setAB` la schiaccerebbe sul bordo del riquadro, cioe' in un posto dove non
+sei, senza avvisare. Si dice invece quale zona scegliere, cercando la
+posizione nei `ZONE_BOX`.
+
+### 4. Traversata: la partenza a mezzanotte — due difetti sovrapposti
+
+La partenza era un **indice fisso** nel campo vento (`STATE.dep = 2`) e il
+campo comincia alla mezzanotte di oggi. Quindi alle 02:00, gia' passate.
+Ma la mezzanotte vista a bordo veniva da un secondo difetto, silenzioso: il
+campo **sintetico** con cui la pagina si apre scriveva le ore con
+`toISOString()`, cioe' in **UTC**. La mezzanotte locale diventava «22:00» del
+giorno prima, e l'indice 2 si leggeva «00:00». Riprodotto su `main` nel
+pannello: `t0 = 2026-09-27T22:00`, «Partenza 00:00» alle 06:11 del 28.
+Anche `parseOraLocale` e quindi la «luce all'arrivo» ragionavano su un'ora
+sbagliata di due, col campo sintetico.
+
+Correzioni:
+
+- campo sintetico in ora locale (`oraLocaleISO`) e di **48 ore**, non 24:
+  la sera non restava orizzonte per partire;
+- `syncDep()`: il cursore della partenza parte dall'**ora in corso**
+  (`idxAdesso`) e non torna indietro; il massimo lascia almeno 12 ore di
+  vento dopo la partenza. Se il campo e' tutto passato (dati vecchi, senza
+  rete) resta sull'ultima ora disponibile — l'«ultima disponibilita'» della
+  domanda;
+- la scelta si salva come **ora** (`depT` in `raffyca-traversata-ui`), non
+  come indice: un indice salvato ieri oggi vuol dire un'altra ora. Il vecchio
+  `u.dep` si ignora; nessuna migrazione serve, e' una chiave di modulo;
+- con la rete **il vento reale si carica da solo** all'apertura e a ogni
+  cambio di zona. Prima si apriva sul campo sintetico e bisognava ricordarsi
+  «⟳ Carica vento reale»: a bordo la rotta mostrata era quella di un vento
+  inventato. Senza rete resta il sintetico, e la pastiglia lo dice. Un
+  contatore (`LIVE_SEQ`) scarta le risposte arrivate tardi: tutte le zone di
+  profilo si chiamano `custom`, quindi il nome dell'area non basta a capire
+  se il campo e' ancora quello giusto;
+- l'ora si scrive col giorno quando non e' oggi («mar 06:00»): con 96 ore di
+  campo «06:00» da solo e' ambiguo. Vale per partenza, vento in carta,
+  readout e scansione;
+- «Trova il miglior orario» scandisce da adesso, non dalla mezzanotte; le
+  etichette del grafico usavano la posizione della barra come indice del
+  campo, corretto;
+- il nome della rotta salvata porta la **data della partenza**, non quella
+  di oggi.
+
+### 5. Traversata: frecce del vento
+
+Mezza lunghezza da `clamp(6+0,6·tws, 8, 16)` a `clamp(7,5+0,75·tws, 10, 18)`,
+testa larga 5,2 invece di 7 (il marker scala con lo spessore 2,2, quindi era
+una punta di 15 px per lato). Provato anche il tetto a 20: a zoom di zona le
+frecce vicine si toccavano, tenuto 18.
+
+### 6. La barra di sistema copriva le funzioni (telefono «G15»)
+
+Riprodotto sull'emulatore Android 17 con navigazione **a tre tasti**: il piede
+dell'hub finiva sotto i tasti, e le icone della barra di stato erano scure su
+fondo scuro. E' l'«inset in basso non gestito» lasciato aperto il 22/09.
+
+Il meccanismo, letto in `SystemBars.java` di Capacitor 8.5: con
+`viewport-fit=cover` e WebView 140+, il plugin **passa le barre alla
+pagina** e si aspetta che la pagina le scansi con `env()`. `rf-topbar.js` lo
+fa per quella in alto; per quella in basso nessuno. Senza `cover`, lo stesso
+plugin fa l'altra cosa: **imbottisce la finestra** di quanto sono alte le
+barre, sopra e sotto.
+
+Correzione, tutta lato APK:
+
+- `prepara-sito.js` toglie `viewport-fit=cover` dalle copie che entrano
+  nell'APK (`senzaCover`). Tutti i moduli insieme, senza toccarne uno;
+  `env()` torna 0 e la barra di Dritta resta a 40px, niente doppio margine;
+- `styles.xml`: `windowBackground` = `@color/dritta_fondo`, il colore delle
+  due strisce;
+- `capacitor.config.json`: `SystemBars.style = DARK`, icone chiare.
+
+Scartato: una regola `padding-bottom: env(safe-area-inset-bottom)` globale in
+`rf-topbar.js` — e' la stessa strada scartata il 22/09 per le stesse ragioni
+(diciassette impaginazioni, corpi a `100vh`/`100dvh` e barre fisse diverse in
+ogni modulo). Scartato anche il ritorno a `windowOptOutEdgeToEdgeEnforcement`,
+che con `targetSdk 36` Android non rispetta piu'.
+
+**Resta aperto per la PWA**: il sito pubblicato tiene `cover` (serve su
+iPhone), quindi la PWA installata da Chrome su un Android 15 ha ancora il
+difetto, e li' va affrontato modulo per modulo. Il G15 usa l'APK (vedi sotto).
+
+### Verificato
+
+| prova | esito |
+|---|---|
+| Traversata su `main`, pannello, 06:11 | riprodotto: `t0 22:00`, «Partenza 00:00» |
+| Traversata corretta, primo avvio | vento live caricato da solo, partenza 06:00, cursore 6–83 |
+| partenza spostata a mar 06:00, pagina riaperta | torna a «mar 06:00», `depT` salvato |
+| 📍 con fix in zona | A spostata, «A → la tua posizione» |
+| 📍 con fix a 43,6 N (fuori Alto Adriatico) | A ferma, «scegli «Medio Adriatico», poi di nuovo 📍» |
+| 📍 con GPS in errore e `raffyca-pos` di 5 min | A dall'ultimo fix, lo dice |
+| scansione orari | da 06:00 di oggi a mer 06:00 |
+| Carta, pannello, carta spostata | «2,77 M · 038°», uguale al calcolo indipendente `hav`/`brng` |
+| Carta, «segui» acceso | crocino e linea spariti |
+| APK su emulatore Android 17, tre tasti | piede dell'hub sopra i tasti, ultima fila del Cruscotto intera, icone di stato chiare su blu |
+| APK sul tablet vero, Android 13 | nessun doppio margine; Carta col GPS vero: pallino rosso, crocino «0,10 M · 092°» |
+
+Sintassi: `jsc checkSyntax` sugli script di `carta/` e Traversata.
+Service worker: `raffyca-rt-v25 → v26` (Traversata e' nel precache di
+`routing/`). `carta/` non e' in nessun precache e l'hub serve gli HTML dalla
+rete per primi: nessun bump.
+
+### Non verificato / aperti
+
+- ~~Il G15 vero non l'ho visto~~ — **poi verificato**: e' un **moto g15**,
+  Android 15, navigazione a tre tasti, con l'APK (`it.dritta.bordo`, non la
+  PWA). Installato sopra la versione del 24/09 via adb senza fili, dati
+  conservati; Sergio conferma: «la barra in basso ora e' a posto».
+- **Avviso «A a terra»** sul punto di esempio dell'Alto Adriatico
+  (45,70 / 13,42) al primo avvio: c'e' identico su `main`, non viene da qui.
+  Non indagato.
+- All'avvio dell'APK la pagina resta bianca un paio di secondi prima di
+  disegnarsi: e' il fondo della WebView. Non toccato.
+- Il vento reale non si conserva: senza rete al largo si riapre sul
+  sintetico. Tenerne l'ultimo campo in memoria e' il passo successivo.
+- Tutto questo sta sul ramo `capacitor`: il sito pubblicato non lo ha.
+
+---
+
+## 28/09/2026 (2) — Scorciatoia Cruscotto ⇄ Carta, pensata per i guanti
+
+In navigazione si passa di continuo fra Cruscotto e Carta, e dal menu costa
+due tocchi e uno scorrimento. Sta tutta in `rf-topbar.js` (`scorciatoia()`),
+che si accende solo in quelle due pagine:
+
+- **un bottone in barra**, «⇄ Carta» sul Cruscotto e «⇄ Cruscotto» in Carta,
+  **34×88 px**. E' il comando vero: Sergio ha sollevato il problema dell'uso
+  d'inverno coi guanti, e un gesto su una striscia di 40 px coi guanti non si
+  fa. Sotto i 420 px di larghezza la scritta della polare in barra sparisce
+  per fargli posto;
+- **uno scorrimento orizzontale sulla barra** (oltre 70 px, e piu' di lato
+  che in verticale), come scorciatoia per chi lo conosce.
+
+Gesti scartati, e perche':
+
+- **sul contenuto della pagina**: la Carta usa trascinamento, pizzico,
+  pressione lunga (nuovo WP); il Cruscotto la pressione lunga sui riquadri;
+- **dal bordo dello schermo**: su Android a gesti e' il «indietro» di sistema;
+- **doppio tocco sulla barra**: stesso posto dello scorrimento, e nessuno lo
+  scopre;
+- **scuotere**: in barca il telefono si scuote da solo.
+
+**Tasto fisico** (per esempio volume giu' tenuto premuto, solo nell'APK):
+discusso, non fatto. Sarebbe l'unico comando sicuro coi guanti spessi, ma
+toglie il volume a quel tasto mentre Dritta e' aperta — e il volume serve
+alla lettura vocale del Cruscotto.
+
+Il link porta `index.html` esplicito: nasce in JavaScript, dove la
+riscrittura degli href di `prepara-sito.js` non arriva, e il server di
+Capacitor non risolve le cartelle.
+
+Service worker: `rf-topbar.js` e' nel precache dell'hub,
+**`dritta-hub-v23 → v24`**.
+
+### Verificato
+
+Emulatore Android 17, tre tasti, APK ricostruito: dal Cruscotto il bottone
+porta in Carta; in Carta compare «⇄ Cruscotto»; lo scorrimento sulla barra
+(partito sopra la freccina del pannello) riporta al Cruscotto senza aprire il
+pannello. Sintassi con `jsc`.
+
+### Non verificato
+
+- ~~Sul tablet no~~ — **poi verificato**. Dopo l'installazione la WebView
+  era rimasta nera con `process is bad` nei log, lo stesso stato del 21/09
+  (vedi `app/LEGGIMI.md`), mentre lo stesso APK sull'emulatore partiva.
+  Riavviato il tablet via adb: Dritta riparte, «⇄ Carta» dal Cruscotto porta
+  in Carta (pallino rosso e crocino «0,21 M · 292°» col GPS vero), e lo
+  scorrimento sulla barra riporta al Cruscotto. Sul tablet, largo, la scritta
+  della polare resta accanto al bottone.
+- Coi guanti veri, ovviamente no.
+
+### Il ramo `capacitor` entra in `main`
+
+Stesso giorno, su richiesta di Sergio («procedi pure»): `main` era ferma su
+`e04c97c` e interamente contenuta nel ramo, quindi l'unione e' un
+avanzamento senza conflitti. Da qui **un ramo solo**: l'APK si costruisce da
+`main` (vedi `CLAUDE.md`). Il sito pubblicato riceve cosi' anche il lavoro
+del 21–24/09 rimasto sul ramo — lettore NMEA, veglia d'ancora a schermo
+spento, voce e salvataggi nell'APK — che nel browser resta inerte dove
+serve `window.Capacitor`. La cartella `app/` finisce anche su GitHub Pages:
+sono sorgenti, nessuno la linka, `node_modules` e `www` non sono committati.
+

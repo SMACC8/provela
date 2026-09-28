@@ -13,6 +13,11 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
+        <!-- Il colore delle strisce sopra e sotto la pagina: la WebView ora
+             sta DENTRO le barre di sistema (vedi senzaCover in
+             prepara-sito.js), e quel che resta fuori e' questo fondo. Col
+             chiaro di sistema le icone chiare non si leggevano. -->
+        <item name="android:windowBackground">@color/dritta_fondo</item>
     </style>
 
 

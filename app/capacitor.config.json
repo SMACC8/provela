@@ -5,6 +5,9 @@
   "android": {
     "allowMixedContent": true
   },
+  "plugins": {
+    "SystemBars": { "style": "DARK" }
+  },
   "server": {
     "androidScheme": "https",
     "cleartext": true
