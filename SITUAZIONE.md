@@ -5155,3 +5155,103 @@ sono piccoli.
   (`--sub:#5a7a94`). Va fatto con il foglio di stile unico, non modulo per
   modulo.
 - L'hub mostra la barra anche nella schermata di benvenuto del primo avvio.
+
+---
+
+## 28/09/2026 (5) — Tre decisioni, e l'hub diventa una pagina di stato
+
+### Decise da Sergio (i tre aperti della voce 3)
+
+- **Una Traversata sola, nel routing.** La ricerca delle località per nome
+  passa nella Traversata del routing; dal Meteo un tasto «Pianifica la
+  traversata» ci porta con la zona già scelta; la versione in linea retta
+  del Meteo sparisce. Scartato: tenerle tutte e due collegate come «colpo
+  d'occhio + rotta vera», perché rimangono due modi di scegliere A e B.
+  **Da fare.**
+- **All'avvio, una pagina di stato** al posto del menu. Scartato: riaprire
+  l'ultimo modulo usato, più veloce ma senza lo stato generale; e il menu a
+  riquadri, che ormai ripete la barra in basso. **Fatto qui sotto.**
+- **Performance: il rilevamento manuale resta, ma chiuso**, dietro il
+  confronto automatico con GPS e gateway. Scartato: toglierlo, perché senza
+  gateway il modulo avrebbe solo il GPS. **Da fare.**
+
+### La pagina di stato
+
+`index.html` non elenca più i moduli: ci pensa la barra in basso. Mostra:
+
+- **Adesso**: vento previsto per l'ora corrente (Open-Meteo, al punto della
+  posizione), con freccia, direzione e raffiche; la nota dice «Previsione del
+  modello per le hh:mm». Sotto, la posizione in gradi e
+  primi, con età del fix, SOG e COG se è recente.
+- **In corso**, ognuna tocca e porta al suo modulo: ancora calata (raggio e
+  da quanto), registrazione traccia (apre il pannello della barra in alto,
+  che la ferma), waypoint attivo o traccia seguita (distanza e rilevamento),
+  posizione live attiva. Se non c'è niente: «Niente in corso.»
+- **Oggi**: alba, tramonto, buio nautico (`rf-astro.js`); marea montante o
+  calante e prossima stanca (`rf-maree.js`, già nella cache dell'hub).
+- **La barca**: il profilo, con «modifica» che riapre il benvenuto.
+- **MOB attivo**: un riquadro rosso in cima, che riporta alla schermata MOB.
+
+Grande come la barra: numeri del vento da 46 px (64 sul tablet), righe da
+64 px, etichette schiarite (`--lab`), due colonne da 760 px in su.
+
+**Nessuna chiave nuova**: legge `raffyca-pos`, `-anchor`, `-rec`, `-mob`,
+`-live`, `-active-wp`, `-active-track`, `-waypoints`, `-tracks`,
+`-profile`. Il vento non viene salvato: senza rete resta l'ultimo scaricato
+nella pagina aperta, altrimenti un trattino e il motivo.
+
+**Esce la schermata «Tracce e Waypoint» dell'hub** (`#screen-wp`, con il suo
+import/export GPX), già irraggiungibile: le stesse funzioni sono in Carta.
+Tolte anche le regole di tema delle tessere, rimaste senza elementi.
+
+### Corretto strada facendo: l'ingranaggio usciva dalla barra in alto
+
+Con la registrazione attiva, a 375 px, la barra in alto misurava 410 px e
+l'ingranaggio delle Impostazioni finiva fuori schermo. La causa era la zona
+di stato a `flex:none`, che non si restringeva. Ora si restringono lei e la
+scritta della polare, con i puntini.
+
+Service worker: **`dritta-hub-v26`, `anchor-v21`, `raffyca-meteo-v22`,
+`raffyca-rt-v28`, `xte-v14`**.
+
+### Verificato
+
+Nel browser, con dati d'esempio su un'origine di prova, poi cancellati:
+- tutte le righe «In corso»; «Registrazione traccia» apre il pannello in
+  alto; i link portano ai moduli giusti;
+- il riquadro MOB compare e scompare con `raffyca-mob`, anche da un'altra
+  scheda (evento `storage`);
+- stato vuoto e senza posizione: compare il bottone «Prendi la posizione dal
+  GPS»;
+- «modifica» riporta al benvenuto con i dati;
+- il vento arriva (Open-Meteo), marea e sole si calcolano;
+- a 375 px la barra in alto misura 375 px e l'ingranaggio sta a 365;
+- tablet a due colonne, tema Notte;
+- sintassi degli script inline con `jsc`.
+
+**Sul tablet**, con l'APK dal worktree e i dati veri di Sergio:
+- vento previsto 4 kt da NE, posizione di casa (Verona), alba, tramonto e
+  buio;
+- «Marea non disponibile qui»: giusto per un punto nell'entroterra.
+
+Lì si è visto anche che il tablet è largo **600 px CSS**: la soglia dei testi
+grandi è scesa da 760 a 560 px. Le due colonne restano da 760.
+
+Il primo avvio dopo l'installazione è rimasto nero con `process is bad`
+(stesso incastro della WebView del 21/09 e di stamattina). Riavviato il
+tablet via adb, si è ripreso. La seconda installazione è andata senza
+`am force-stop` prima dell'avvio, ed è partita subito: sembra la sequenza
+«installa, forza lo stop, riapri» a provocarlo, ma non è dimostrato.
+
+### Non verificato
+
+- Il bottone GPS dentro l'APK.
+- Il vento con la rete di bordo lenta. Dopo 12 s la richiesta si
+  interrompe e la pagina dice «Senza rete…»: il limite c'è, ma non l'ho
+  provato su una rete lenta vera.
+- Il vento letto dal gateway NMEA al posto della previsione: l'hub non
+  carica `rf-nmea.js`. Sarebbe il passo giusto quando a bordo c'è.
+
+Tolti su richiesta di Sergio, dopo averla vista sul tablet: «Non è una misura»
+nella nota del vento, e la spiegazione sotto «Niente in corso» (quali cose vi
+compaiono). Stessa linea della voce (3): meno testo nelle schermate.

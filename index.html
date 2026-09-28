@@ -11,7 +11,7 @@
 <style>
 :root{
   --bg:#060e18;--panel:#0e2036;--panel2:#0b1a2c;--line:#1a3248;
-  --ink:#deedf5;--sub:#5a7a94;--dim:#122030;
+  --ink:#deedf5;--sub:#5a7a94;--dim:#122030;--lab:#a3b8ca;
   --teal:#2BD9C4;--amber:#FFC24B;--coral:#FF6B6B;
   --mono:ui-monospace,"SF Mono","Roboto Mono",Menlo,Consolas,monospace;
   --sans:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",sans-serif;
@@ -81,47 +81,64 @@ body{background:var(--bg);color:var(--ink);display:flex;flex-direction:column;}
 }
 .profile-edit:hover{border-color:var(--teal);}
 
-/* elenco moduli: icona a sinistra, testo a destra.
-   La matrice 3 colonne non reggeva piu' con 14 voci: le tessere si
-   schiacciavano e i nomi andavano a capo. In elenco il nome ha tutta
-   la larghezza e la riga si legge in una passata dall'alto. */
-.tiles-wrap{flex:1;overflow-y:auto;padding:10px 12px 14px;}
-.tiles{display:flex;flex-direction:column;gap:7px;}
-
-.tile{
-  border-radius:12px;padding:11px 12px;cursor:pointer;position:relative;
-  background:var(--panel);border:1px solid var(--line);
-  display:grid;grid-template-columns:34px minmax(0,1fr) auto;
-  align-items:center;column-gap:12px;
-  transition:transform .13s,border-color .15s,box-shadow .15s;
-  -webkit-user-select:none;user-select:none;
+/* ═══ PAGINA DI STATO ═══
+   Dal 28/09/2026 l'hub non elenca piu' i moduli (ci pensa la barra in
+   basso di rf-topbar.js): dice com'e' la situazione adesso. Grande di
+   proposito, perche' si legge al sole e dal tablet montato in basso. */
+.st-wrap{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 18px;}
+.st-grid{max-width:980px;margin:0 auto;display:grid;gap:12px;}
+@media (min-width:760px){ .st-grid{grid-template-columns:1fr 1fr;align-items:start;} .st-span{grid-column:1 / -1;} }
+.st-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px 16px;
+  display:flex;flex-direction:column;gap:11px;min-width:0;}
+.st-h{font:700 12.5px/1.2 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--lab);}
+.st-nota{font-size:14px;color:var(--lab);line-height:1.45;}
+.st-vento{display:flex;align-items:center;gap:16px;text-decoration:none;color:var(--ink);}
+.st-freccia{width:64px;height:64px;flex:none;color:var(--teal);}
+.st-big{font:700 46px/1 var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em;}
+.st-big small{font-size:20px;font-weight:600;color:var(--lab);margin-left:5px;letter-spacing:0;}
+.st-dir{font-size:18px;font-weight:650;margin-top:6px;}
+.st-pos{font:600 18px/1.35 var(--mono);font-variant-numeric:tabular-nums;}
+.st-btn{min-height:52px;padding:0 18px;border-radius:12px;border:1.5px solid var(--teal);background:transparent;
+  color:var(--teal);font:700 16px var(--sans);cursor:pointer;align-self:flex-start;}
+.st-btn:active{transform:scale(.97);}
+.st-lista{display:flex;flex-direction:column;gap:8px;}
+.st-row{display:flex;align-items:center;gap:14px;min-height:64px;box-sizing:border-box;padding:10px 14px;
+  border-radius:12px;background:var(--panel2);border:1px solid var(--line);text-decoration:none;color:var(--ink);
+  cursor:pointer;font:inherit;width:100%;text-align:left;}
+.st-row:active{transform:scale(.99);}
+.st-row .ic{width:30px;height:30px;flex:none;color:var(--teal);}
+.st-row .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;}
+.st-row b{font-size:17px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.st-row .s{font-size:14.5px;color:var(--lab);font-variant-numeric:tabular-nums;}
+.st-row .fr{flex:none;color:var(--lab);font-size:24px;line-height:1;}
+.st-row.anc .ic{color:var(--amber);}
+.st-row.rec .ic{color:var(--coral);}
+.st-mob{display:flex;align-items:center;gap:14px;min-height:76px;padding:14px 18px;border-radius:14px;
+  background:#D01A00;color:#fff;text-decoration:none;font-weight:800;font-size:19px;letter-spacing:.02em;}
+.st-mob small{display:block;font-size:14.5px;font-weight:500;letter-spacing:0;opacity:.95;margin-top:3px;}
+.st-mob .sig{font:800 22px var(--mono);}
+.st-mob[hidden]{display:none;}
+.st-sole{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}
+.st-sole div{background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:10px 11px;
+  display:flex;flex-direction:column;gap:5px;min-width:0;}
+.st-sole .k{font-size:12.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--lab);font-weight:650;}
+.st-sole .v{font:700 24px/1 var(--mono);font-variant-numeric:tabular-nums;}
+.profile-card{padding:0;border:0;background:none;margin:0;}
+.profile-boat{font-size:19px;}
+.profile-zone{font-size:14.5px;color:var(--lab);}
+.profile-edit{font-size:14px;padding:10px 16px;min-height:44px;}
+/* tablet: si legge da piu' lontano. Soglia a 560 e non a 760: l'Active 8
+   Pro di bordo e' largo 600 px CSS, e a 760 non scattava (28/09/2026). */
+@media (min-width:560px){
+  .st-h{font-size:14px;} .st-nota{font-size:16px;}
+  .st-big{font-size:64px;} .st-big small{font-size:26px;} .st-dir{font-size:21px;}
+  .st-freccia{width:84px;height:84px;}
+  .st-pos{font-size:22px;}
+  .st-row{min-height:72px;} .st-row b{font-size:19.5px;} .st-row .s{font-size:16.5px;}
+  .st-sole .k{font-size:14px;} .st-sole .v{font-size:31px;}
+  .profile-boat{font-size:22px;} .profile-zone{font-size:16px;}
 }
-.tile:active{transform:scale(.985);}
-.tile.ready{border-color:#1a3d36;}
-.tile.ready:active{box-shadow:0 0 0 1px var(--teal);}
-.tile.almost{border-color:#3a2e10;}
-.tile.code{opacity:.72;}
 
-.tile-icon{width:34px;height:34px;display:flex;align-items:center;justify-content:center;grid-row:span 2;}
-.tile-icon svg{display:block;width:30px;height:30px;}
-
-.tile-name{font-size:14.5px;font-weight:700;color:var(--ink);line-height:1.25;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.tile-desc{font-size:11.5px;color:var(--sub);line-height:1.35;grid-column:2;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-
-.badge{
-  display:inline-flex;align-items:center;gap:4px;grid-column:3;grid-row:span 2;
-  font-size:9px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;
-  border-radius:5px;padding:3px 7px;width:fit-content;white-space:nowrap;
-}
-.badge.ready{background:rgba(43,217,196,.12);color:var(--teal);}
-.badge.almost{background:rgba(255,194,75,.12);color:var(--amber);}
-.badge.code{background:rgba(90,122,148,.1);color:var(--sub);}
-.badge::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor;}
-
-/* schermi larghi: due colonne di elenco, non una riga lunghissima */
-@media (min-width:760px){ .tiles{display:grid;grid-template-columns:1fr 1fr;} }
 
 /* footer firma */
 footer{padding:8px 16px;text-align:center;border-top:1px solid var(--line);background:#060e18;}
@@ -142,35 +159,6 @@ footer b{color:var(--teal);}
 .reset-link{font-size:10px;color:var(--sub);text-decoration:underline;cursor:pointer;
   text-align:center;padding:6px;letter-spacing:.06em;}
 
-/* ═══ SCHERMATA TRACCE/WAYPOINT ═══ */
-#screen-wp{flex:1;display:flex;flex-direction:column;overflow:hidden;}
-#screen-wp.off{display:none;}
-.wp-tabs{display:flex;gap:8px;padding:10px 12px 0;}
-.wp-tabs button{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:10px;
-  color:var(--sub);font-family:var(--sans);font-size:13px;font-weight:600;padding:9px;cursor:pointer;}
-.wp-tabs button.on{color:var(--teal);border-color:var(--teal);}
-.wp-tabs span{opacity:.7;font-variant-numeric:tabular-nums;}
-.wp-body{flex:1;overflow-y:auto;padding:12px;}
-.wp-list{display:none;flex-direction:column;gap:8px;}
-.wp-list.on{display:flex;}
-.wp-actions{display:flex;gap:8px;margin-bottom:4px;}
-.wp-btn{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:10px;
-  color:var(--ink);font-family:var(--sans);font-size:13px;padding:11px;cursor:pointer;transition:border-color .15s;}
-.wp-btn:hover{border-color:var(--teal);}
-.wp-btn.primary{background:var(--teal);color:#060e18;border-color:var(--teal);font-weight:700;}
-.wp-item{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:11px;
-  background:var(--panel);border:1px solid var(--line);}
-.wp-item.active{border-color:var(--teal);box-shadow:0 0 0 1px var(--teal) inset;}
-.wp-ic{width:20px;flex-shrink:0;color:var(--teal);}
-.wp-meta{flex:1;min-width:0;}
-.wp-nm{font-size:14px;color:var(--ink);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.wp-sub{font-size:11px;color:var(--sub);margin-top:2px;font-variant-numeric:tabular-nums;}
-.wp-act{background:none;border:0;cursor:pointer;font-size:12px;padding:6px 8px;border-radius:7px;
-  font-family:var(--sans);color:var(--sub);}
-.wp-act.on{color:var(--teal);}
-.wp-act.del{color:var(--coral);font-size:16px;line-height:1;}
-.wp-empty{text-align:center;color:var(--sub);font-size:12px;padding:26px 16px;line-height:1.6;}
-.wp-list.on .wp-empty[hidden]{display:none;}
 
 /* toggle tema */
 .theme-btn{
@@ -183,7 +171,7 @@ footer b{color:var(--teal);}
 /* ═══ MODALITÀ SOLE — alto contrasto, sfondo bianco (leggibile sotto il sole) ═══ */
 html.day{
   --bg:#ffffff; --panel:#ffffff; --panel2:#eef3f7; --line:#a7b6c2;
-  --ink:#050f19; --sub:#28414f; --dim:#dbe3ea;
+  --ink:#050f19; --sub:#28414f; --dim:#dbe3ea; --lab:#28414f;
   --teal:#05564c;   /* teal profondo: contrasto forte su bianco, resta "teal" */
   --amber:#8a4e00;  /* ambra → bronzo scuro leggibile */
   --coral:#c11f1f;  /* corallo → rosso pieno */
@@ -192,17 +180,9 @@ html.day{
 html.day .hub-head{background:linear-gradient(#ffffff,#eef3f7);}
 html.day #screen-on{background:radial-gradient(110% 80% at 50% -10%,#d9edf5 0%,#ffffff 65%);}
 html.day footer{background:#ffffff;}
-html.day .on-btn,html.day .wp-btn.primary{color:#ffffff;}
+html.day .on-btn{color:#ffffff;}
 html.day .on-btn{box-shadow:0 4px 16px rgba(6,118,106,.3);}
 html.day .toast{background:#0e2036;color:#eef3f7;}  /* toast scuro: massimo contrasto sul bianco */
-/* bordi stato tessere */
-html.day .tile.ready{border-color:#7fbcb2;}
-html.day .tile.almost{border-color:#d8b26a;}
-/* badge: tinte piene invece delle rgba tenui */
-html.day .tile.code{opacity:.92;}
-html.day .badge.ready{background:#d1eee7;color:#044c43;}
-html.day .badge.almost{background:#f5e6c8;color:#8a4d00;}
-html.day .badge.code{background:#e4ebf1;color:#42586a;}
 /* rimappa i colori inline degli SVG (loghi + icone tessere) senza toccare il markup */
 html.day [fill="#2BD9C4"]{fill:#05564c;}
 html.day [stroke="#2BD9C4"]{stroke:#05564c;}
@@ -215,19 +195,14 @@ html.day [fill="#5a7a94"]{fill:#28414f;}
 /* ---- TEMA NOTTE (rosso, visione notturna) ---- */
 html.night{
   --bg:#0a0202; --panel:#150404; --panel2:#0e0303; --line:#3a1010;
-  --ink:#ff5b5b; --sub:#b04040; --dim:#200707;
+  --ink:#ff5b5b; --sub:#b04040; --dim:#200707; --lab:#c85050;
   --teal:#ff4d4d; --amber:#ff7a45; --coral:#ff5555;
 }
 html.night .hub-head{background:linear-gradient(#150404,#0e0303);}
 html.night #screen-on{background:radial-gradient(110% 80% at 50% -10%,#1a0505 0%,#0a0202 65%);}
 html.night footer{background:#0a0202;}
-html.night .on-btn,html.night .wp-btn.primary{color:#0a0101;}
+html.night .on-btn{color:#0a0101;}
 html.night .toast{background:#150404;color:#ff6b6b;}
-html.night .tile.ready{border-color:#5a1a1a;}
-html.night .tile.almost{border-color:#5a2e1a;}
-html.night .badge.ready{background:#2a0a0a;color:#ff6b6b;}
-html.night .badge.almost{background:#2a1a0a;color:#ff8a5a;}
-html.night .badge.code{background:#1e0808;color:#c98080;}
 html.night [fill="#2BD9C4"]{fill:#ff4d4d;} html.night [stroke="#2BD9C4"]{stroke:#ff4d4d;}
 html.night [fill="#FFC24B"]{fill:#ff7a45;} html.night [stroke="#FFC24B"]{stroke:#ff7a45;}
 html.night [fill="#FF6B6B"]{fill:#ff5555;} html.night [stroke="#FF6B6B"]{stroke:#ff5555;}
@@ -293,336 +268,79 @@ html.night [fill="#5a7a94"]{fill:#b04040;} html.night [stroke="#5a7a94"]{stroke:
   </div>
 </div>
 
-<!-- ═══ HUB ═══ -->
+<!-- ═══ HUB: PAGINA DI STATO ═══ -->
 <div id="screen-hub" class="off">
   <div class="hub-head">
     <div class="hub-brand">
       <h2>Dritta</h2>
       <span>suite nautica</span>
     </div>
-    <div style="display:flex;align-items:center;gap:11px;">
-      <span class="hub-time" id="hubTime"></span>
-    </div>
+    <span class="hub-time" id="hubTime"></span>
   </div>
 
-  <div class="profile-card">
-    <div class="profile-info">
-      <div class="profile-boat" id="profBoat">Raffyca</div>
-      <div class="profile-zone" id="profZone">Salt 6.50 · 📍 Alto Adriatico</div>
-    </div>
-    <button class="profile-edit" id="btnEdit">modifica</button>
-  </div>
+  <div class="st-wrap"><div class="st-grid">
 
-  <div class="tiles-wrap">
-    <div class="tiles">
+    <a class="st-mob st-span" id="stMob" href="mob/" hidden>
+      <span class="sig">MOB</span><span>Emergenza in corso<small id="stMobDa"></small></span>
+    </a>
 
-      <!-- 1. Meteo -->
-      <div class="tile ready" data-href="meteo/" data-name="Il Nastro del Vento">
-        <div class="tile-icon">
-          <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
-            <path d="M6 16 Q14 10 22 16 Q30 22 38 16" stroke="#2BD9C4" stroke-width="2" stroke-linecap="round"/>
-            <path d="M6 22 Q14 16 22 22 Q30 28 38 22" stroke="#2BD9C4" stroke-width="2" stroke-linecap="round" opacity=".6"/>
-            <path d="M6 28 Q14 22 22 28 Q30 34 38 28" stroke="#2BD9C4" stroke-width="2" stroke-linecap="round" opacity=".3"/>
-          </svg>
-        </div>
-        <div class="tile-name">Meteo</div>
-        <div class="tile-desc">Tattico multi-modello</div>
-        <span class="badge ready">Pronto</span>
+    <section class="st-card" aria-labelledby="hAdesso">
+      <h2 class="st-h" id="hAdesso">Adesso</h2>
+      <a class="st-vento" href="meteo/" aria-label="Apri il Meteo">
+        <svg class="st-freccia" viewBox="0 0 64 64" aria-hidden="true">
+          <circle cx="32" cy="32" r="29" fill="none" stroke="currentColor" stroke-width="2" opacity=".35"/>
+          <g id="stFreccia"><path d="M32 8 L42 34 L32 29 L22 34 Z" fill="currentColor"/><path d="M32 29 L32 54" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></g>
+        </svg>
+        <div><div class="st-big" id="stVento">—</div><div class="st-dir" id="stDir"></div></div>
+      </a>
+      <p class="st-nota" id="stVentoNota">Cerco il vento previsto…</p>
+      <div class="st-pos" id="stPos">—</div>
+      <p class="st-nota" id="stPosNota"></p>
+      <button type="button" class="st-btn" id="stGps" hidden>Prendi la posizione dal GPS</button>
+    </section>
+
+    <section class="st-card" aria-labelledby="hCorso">
+      <h2 class="st-h" id="hCorso">In corso</h2>
+      <div class="st-lista" id="stCorso"></div>
+    </section>
+
+    <section class="st-card" aria-labelledby="hOggi">
+      <h2 class="st-h" id="hOggi">Oggi</h2>
+      <div class="st-sole">
+        <div><span class="k">Alba</span><span class="v" id="stAlba">—</span></div>
+        <div><span class="k">Tramonto</span><span class="v" id="stTram">—</span></div>
+        <div><span class="k">Buio</span><span class="v" id="stBuio">—</span></div>
       </div>
+      <a class="st-row" href="sole-luna/">
+        <svg class="ic" viewBox="0 0 30 30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 12c3-3 6-3 9 0s6 3 9 0 5-2 6-1M3 19c3-3 6-3 9 0s6 3 9 0 5-2 6-1"/></svg>
+        <span class="tx"><b id="stMarea">Marea</b><span class="s" id="stMareaSub">—</span></span>
+        <span class="fr" aria-hidden="true">›</span>
+      </a>
+    </section>
 
-      <!-- 2. Routing / Traversata -->
-      <div class="tile ready" data-href="routing/raffyca-traversata-map.html" data-name="Traversata">
-        <div class="tile-icon">
-          <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
-            <circle cx="8" cy="32" r="4" stroke="#FFC24B" stroke-width="2"/>
-            <circle cx="32" cy="8" r="4" stroke="#FFC24B" stroke-width="2"/>
-            <path d="M12 29 Q20 6 28 11" stroke="#FFC24B" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 3"/>
-            <polyline points="25,8 32,8 32,15" stroke="#FFC24B" stroke-width="2" stroke-linecap="round"/>
-          </svg>
+    <section class="st-card" aria-labelledby="hBarca">
+      <h2 class="st-h" id="hBarca">La barca</h2>
+      <div class="profile-card">
+        <div class="profile-info">
+          <div class="profile-boat" id="profBoat">Raffyca</div>
+          <div class="profile-zone" id="profZone"></div>
         </div>
-        <div class="tile-name">Traversata</div>
-        <div class="tile-desc">Routing A→B · isocrone</div>
-        <span class="badge ready">Pronto</span>
+        <button class="profile-edit" id="btnEdit">modifica</button>
       </div>
+    </section>
 
-      <!-- 3. Naviga XTE -->
-      <div class="tile ready" data-href="xte/" data-name="Naviga XTE">
-        <div class="tile-icon">
-          <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
-            <line x1="20" y1="4" x2="20" y2="36" stroke="#2BD9C4" stroke-width="2" opacity=".4"/>
-            <line x1="10" y1="4" x2="10" y2="36" stroke="#2BD9C4" stroke-width="1" stroke-dasharray="3 3" opacity=".25"/>
-            <line x1="30" y1="4" x2="30" y2="36" stroke="#2BD9C4" stroke-width="1" stroke-dasharray="3 3" opacity=".25"/>
-            <polygon points="26,20 14,15 14,25" fill="#2BD9C4"/>
-          </svg>
-        </div>
-        <div class="tile-name">Naviga XTE</div>
-        <div class="tile-desc">Canale stretto</div>
-        <span class="badge ready">Pronto</span>
-      </div>
-
-      <!-- 4. Performance -->
-      <div class="tile ready" data-href="performance/" data-name="Performance">
-        <div class="tile-icon">
-          <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
-            <polyline points="6,32 14,18 22,24 32,10" stroke="#5a7a94" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <circle cx="32" cy="10" r="3" fill="#5a7a94"/>
-            <path d="M32 10 L38 4" stroke="#2BD9C4" stroke-width="1.5" stroke-linecap="round"/>
-            <path d="M34 4 L38 4 L38 8" stroke="#2BD9C4" stroke-width="1.5" stroke-linecap="round"/>
-          </svg>
-        </div>
-        <div class="tile-name">Performance</div>
-        <div class="tile-desc">Velocità vs polare</div>
-        <span class="badge ready">Pronto</span>
-      </div>
-
-      <!-- 5. Cruscotto -->
-      <div class="tile ready" data-href="cruscotto/" data-name="Cruscotto">
-        <div class="tile-icon">
-          <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
-            <circle cx="20" cy="22" r="14" stroke="#5a7a94" stroke-width="2"/>
-            <path d="M9 29 A14 14 0 0 1 31 29" stroke="#1a3248" stroke-width="3" stroke-linecap="round"/>
-            <path d="M9 29 A14 14 0 0 1 24 10" stroke="#2BD9C4" stroke-width="3" stroke-linecap="round" opacity=".7"/>
-            <line x1="20" y1="22" x2="25" y2="12" stroke="#FFC24B" stroke-width="2" stroke-linecap="round"/>
-            <circle cx="20" cy="22" r="2.5" fill="#5a7a94"/>
-          </svg>
-        </div>
-        <div class="tile-name">Cruscotto</div>
-        <div class="tile-desc">Strumenti di bordo</div>
-        <span class="badge ready">Pronto</span>
-      </div>
-
-      <!-- 6. Partenza regata -->
-      <div class="tile ready" data-href="partenza/" data-name="Partenza Regata">
-        <div class="tile-icon">
-          <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
-            <rect x="4" y="6" width="14" height="10" rx="2" stroke="#5a7a94" stroke-width="2" fill="rgba(90,122,148,.12)"/>
-            <rect x="22" y="6" width="14" height="10" rx="2" stroke="#5a7a94" stroke-width="2" fill="rgba(90,122,148,.06)"/>
-            <line x1="4" y1="20" x2="36" y2="20" stroke="#5a7a94" stroke-width="2" stroke-dasharray="2 2"/>
-            <polygon points="20,30 12,38 28,38" stroke="#5a7a94" stroke-width="1.5" fill="none"/>
-            <line x1="16" y1="28" x2="16" y2="22" stroke="#5a7a94" stroke-width="1.5" stroke-linecap="round"/>
-          </svg>
-        </div>
-        <div class="tile-name">Partenza regata</div>
-        <div class="tile-desc">Linea · countdown</div>
-        <span class="badge ready">Pronto</span>
-      </div>
-
-      <!-- 6b. Percorso regata -->
-      <div class="tile ready" data-href="percorso/" data-name="Percorso regata">
-        <div class="tile-icon">
-          <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
-            <path d="M8 30 L20 10 L32 26" stroke="#5a7a94" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="3 3" fill="none"/>
-            <circle cx="8" cy="30" r="3.2" stroke="#5a7a94" stroke-width="2" fill="rgba(90,122,148,.12)"/>
-            <circle cx="20" cy="10" r="3.2" stroke="#5a7a94" stroke-width="2" fill="rgba(90,122,148,.12)"/>
-            <circle cx="32" cy="26" r="3.2" stroke="#5a7a94" stroke-width="2" fill="rgba(90,122,148,.12)"/>
-          </svg>
-        </div>
-        <div class="tile-name">Percorso regata</div>
-        <div class="tile-desc">Boe · giri · laylines</div>
-        <span class="badge ready">Pronto</span>
-      </div>
-
-      <!-- 7. Comunica posizione -->
-      <div class="tile ready" data-href="posizione/" data-name="Posizione Live">
-        <div class="tile-icon">
-          <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
-            <circle cx="20" cy="20" r="5" fill="#2BD9C4"/>
-            <circle cx="20" cy="20" r="10" stroke="#5a7a94" stroke-width="1.5" stroke-dasharray="4 4" opacity=".6"/>
-            <circle cx="20" cy="20" r="16" stroke="#5a7a94" stroke-width="1" stroke-dasharray="3 5" opacity=".3"/>
-          </svg>
-        </div>
-        <div class="tile-name">Posizione Live</div>
-        <div class="tile-desc">Broadcast a Famiglia</div>
-        <span class="badge ready">Pronto</span>
-      </div>
-
-      <!-- Ancoraggio -->
-      <div class="tile ready" data-href="anchor/" data-name="Ancoraggio">
-        <div class="tile-icon">
-          <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
-            <circle cx="20" cy="8" r="3.4" stroke="#2BD9C4" stroke-width="2"/>
-            <line x1="20" y1="11.4" x2="20" y2="33" stroke="#2BD9C4" stroke-width="2" stroke-linecap="round"/>
-            <line x1="13" y1="16" x2="27" y2="16" stroke="#2BD9C4" stroke-width="2" stroke-linecap="round"/>
-            <path d="M8 24 A12 12 0 0 0 32 24" stroke="#FFC24B" stroke-width="2" stroke-linecap="round" fill="none"/>
-            <path d="M8 24 l-2.5 1.5 M8 24 l1 3" stroke="#FFC24B" stroke-width="2" stroke-linecap="round"/>
-            <path d="M32 24 l2.5 1.5 M32 24 l-1 3" stroke="#FFC24B" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-        </div>
-        <div class="tile-name">Ancoraggio</div>
-        <div class="tile-desc">Veglia d'ancora · arare</div>
-        <span class="badge ready">Pronto</span>
-      </div>
-
-      <!-- 8. Tracce e Waypoint -->
-      <div class="tile" data-href="carta/" data-name="Carta Nautica">
-        <div class="tile-icon">
-          <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
-            <path d="M7 30 Q14 12 21 20 Q27 27 33 12" stroke="#2BD9C4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-            <circle cx="7" cy="30" r="2.6" fill="#2BD9C4"/>
-            <path d="M31 7 c-3.3 0-6 2.6-6 5.9 0 4.2 6 9.1 6 9.1s6-4.9 6-9.1C37 9.6 34.3 7 31 7z" stroke="#FFC24B" stroke-width="2" fill="none"/>
-            <circle cx="31" cy="13" r="1.9" fill="#FFC24B"/>
-          </svg>
-        </div>
-        <div class="tile-name">Carta Nautica</div>
-        <div class="tile-desc">Waypoint e tracce su carta</div>
-        <span class="badge ready" id="wpBadge">0 · 0</span>
-      </div>
-
-      <!-- Calcoli di bordo -->
-      <div class="tile ready" data-href="calcoli/" data-name="Calcoli di bordo">
-        <div class="tile-icon">
-          <svg width="30" height="30" viewBox="0 0 40 40" fill="none">
-            <rect x="8" y="5" width="24" height="30" rx="3.5" stroke="#2BD9C4" stroke-width="2"/>
-            <rect x="12" y="9.5" width="16" height="6" rx="1.5" stroke="#2BD9C4" stroke-width="1.6"/>
-            <circle cx="14.5" cy="21" r="1.5" fill="#2BD9C4"/>
-            <circle cx="20" cy="21" r="1.5" fill="#2BD9C4"/>
-            <circle cx="25.5" cy="21" r="1.5" fill="#FFC24B"/>
-            <circle cx="14.5" cy="26.5" r="1.5" fill="#2BD9C4"/>
-            <circle cx="20" cy="26.5" r="1.5" fill="#2BD9C4"/>
-            <circle cx="25.5" cy="26.5" r="1.5" fill="#FFC24B"/>
-            <circle cx="14.5" cy="31" r="1.5" fill="#2BD9C4"/>
-            <circle cx="20" cy="31" r="1.5" fill="#2BD9C4"/>
-          </svg>
-        </div>
-        <div class="tile-name">Calcoli di bordo</div>
-        <div class="tile-desc">Carichi, carteggio, maree, batteria, turni</div>
-        <span class="badge ready">Pronto</span>
-      </div>
-
-      <!-- Prontuario -->
-      <div class="tile ready" data-href="prontuario/" data-name="Prontuario di bordo">
-        <div class="tile-icon">
-          <svg width="34" height="34" viewBox="0 0 40 40" fill="none">
-            <line x1="11" y1="5" x2="11" y2="35" stroke="#2BD9C4" stroke-width="2" stroke-linecap="round"/>
-            <path d="M11 7 H30 L25 13 L30 19 H11 Z" fill="#2BD9C4" opacity=".85"/>
-            <circle cx="27.5" cy="28" r="3" fill="#FFC24B"/>
-            <path d="M32 24.5 A6.5 6.5 0 0 1 32 31.5" stroke="#FFC24B" stroke-width="1.8" stroke-linecap="round"/>
-            <path d="M23 31.5 A6.5 6.5 0 0 1 23 24.5" stroke="#FFC24B" stroke-width="1.8" stroke-linecap="round"/>
-          </svg>
-        </div>
-        <div class="tile-name">Prontuario</div>
-        <div class="tile-desc">Bandiere, fari, fonetico, VHF, conversioni</div>
-        <span class="badge ready">Pronto</span>
-      </div>
-
-      <!-- MOB -->
-      <div class="tile ready" data-href="mob/" data-name="MOB Uomo in mare">
-        <div class="tile-icon">
-          <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
-            <circle cx="20" cy="20" r="15.5" stroke="#FF6B6B" stroke-width="2"/>
-            <path d="M20 9 L28.6 29 L20 24.8 L11.4 29 Z" fill="#FF6B6B"/>
-          </svg>
-        </div>
-        <div class="tile-name">MOB</div>
-        <div class="tile-desc">Uomo in mare · punto, rotta, distanza</div>
-        <span class="badge ready">Pronto</span>
-      </div>
-
-      <!-- Strumenti di bordo (solo ramo capacitor: banco di prova NMEA) -->
-      <div class="tile ready" data-href="strumenti.html" data-name="Strumenti di bordo">
-        <div class="tile-icon">
-          <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
-            <circle cx="20" cy="20" r="14" stroke="#2BD9C4" stroke-width="2"/>
-            <path d="M20 20 L20 9" stroke="#FFC24B" stroke-width="2.4" stroke-linecap="round"/>
-            <path d="M20 20 L28 25" stroke="#2BD9C4" stroke-width="2" stroke-linecap="round"/>
-            <circle cx="20" cy="20" r="2.4" fill="#deedf5"/>
-          </svg>
-        </div>
-        <div class="tile-name">Strumenti</div>
-        <div class="tile-desc">Vento, profondità, log dal gateway</div>
-        <span class="badge ready">Prova</span>
-      </div>
-
-      <!-- Sole, Luna e maree -->
-      <div class="tile ready" data-href="sole-luna/" data-name="Sole, Luna e maree">
-        <div class="tile-icon">
-          <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
-            <circle cx="16" cy="20" r="9" stroke="#FFC24B" stroke-width="2"/>
-            <line x1="16" y1="4.5" x2="16" y2="8" stroke="#FFC24B" stroke-width="2" stroke-linecap="round"/>
-            <line x1="16" y1="32" x2="16" y2="35.5" stroke="#FFC24B" stroke-width="2" stroke-linecap="round"/>
-            <line x1="4.5" y1="20" x2="8" y2="20" stroke="#FFC24B" stroke-width="2" stroke-linecap="round"/>
-            <g transform="translate(18.3,1.3) scale(.89)">
-              <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" fill="#2BD9C4" opacity=".9"/>
-            </g>
-          </svg>
-        </div>
-        <div class="tile-name">Sole, Luna e maree</div>
-        <div class="tile-desc">Luce, crepuscoli, volta celeste, marea</div>
-        <span class="badge ready">Pronto</span>
-      </div>
-
-      <!-- Manutenzione -->
-      <div class="tile ready" data-href="manutenzione/" data-name="Manutenzione">
-        <div class="tile-icon">
-          <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
-            <path d="M33.95 11.55 a9.00 9.00 0 0 1 -11.38 11.38 l-10.38 10.38 a3.88 3.88 0 1 1 -5.50 -5.50 l10.38 -10.38 a9.00 9.00 0 0 1 11.38 -11.38 l-5.38 5.38 2.75 5.25 5.25 2.75 Z"
-              stroke="#2BD9C4" stroke-width="2" stroke-linejoin="round" fill="none"/>
-          </svg>
-        </div>
-        <div class="tile-name">Manutenzione</div>
-        <div class="tile-desc">Registro di bordo dei lavori</div>
-        <span class="badge ready">Pronto</span>
-      </div>
-
-      <!-- 9. Impostazioni (sempre ultima) -->
-      <div class="tile" data-href="impostazioni/" data-name="Impostazioni">
-        <div class="tile-icon">
-          <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
-            <circle cx="20" cy="20" r="5.5" stroke="#2BD9C4" stroke-width="2"/>
-            <path d="M20 5v4M20 31v4M5 20h4M31 20h4M9.4 9.4l2.8 2.8M27.8 27.8l2.8 2.8M30.6 9.4l-2.8 2.8M12.2 27.8l-2.8 2.8" stroke="#2BD9C4" stroke-width="2" stroke-linecap="round" opacity=".85"/>
-          </svg>
-        </div>
-        <div class="tile-name">Impostazioni</div>
-        <div class="tile-desc">Unità, tema, sorgente dati</div>
-        <span class="badge code">Sistema</span>
-      </div>
-
-    </div>
-  </div>
+  </div></div>
 
   <footer>
     <p>Svilup<b>PPA</b>ta da Sergio Moro</p>
   </footer>
 </div>
 
-<!-- ═══ TRACCE E WAYPOINT ═══ -->
-<div id="screen-wp" class="off">
-  <div class="hub-head">
-    <div class="hub-brand">
-      <h2>Tracce e Waypoint</h2>
-    </div>
-    <button class="profile-edit" id="btnWpBack">‹ Hub</button>
-  </div>
-
-  <div class="wp-tabs">
-    <button data-t="wpt" class="on">Waypoint <span id="cntWpt">0</span></button>
-    <button data-t="trk">Tracce <span id="cntTrk">0</span></button>
-  </div>
-
-  <div class="wp-body">
-    <!-- WAYPOINT -->
-    <div class="wp-list on" id="list-wpt">
-      <div class="wp-actions">
-        <button class="wp-btn primary" id="btnNewWpt">+ Nuovo waypoint</button>
-        <button class="wp-btn" id="btnImpWpt">Importa GPX</button>
-      </div>
-      <div id="wptItems"></div>
-      <div class="wp-empty" id="wptEmpty">Nessun waypoint. Creane uno o registralo dal Cruscotto.</div>
-    </div>
-    <!-- TRACCE -->
-    <div class="wp-list" id="list-trk">
-      <div class="wp-actions">
-        <button class="wp-btn" id="btnImpTrk">Importa GPX</button>
-      </div>
-      <div id="trkItems"></div>
-      <div class="wp-empty" id="trkEmpty">Nessuna traccia. Registrale dal Cruscotto (◉ Traccia).</div>
-    </div>
-  </div>
-</div>
-
-<input type="file" id="fileGpx" accept=".gpx,application/gpx+xml" hidden>
 
 <div class="toast" id="toast"></div>
+
+<script src="./rf-astro.js"></script>
+<script src="./rf-maree.js"></script>
 
 <script>
 "use strict";
@@ -645,7 +363,6 @@ function saveProfile(){localStorage.setItem('raffyca-profile',JSON.stringify(PRO
 
 function showHub(){
   $('screen-on').classList.add('off');
-  $('screen-wp').classList.add('off');
   $('screen-hub').classList.remove('off');
   $('profBoat').textContent=PROF.boat;
   $('profZone').textContent=(PROF.model?PROF.model+' · ':'')+'📍 '+PROF.zone;
@@ -670,157 +387,141 @@ $('btnSave').addEventListener('click',function(){
 });
 $('btnEdit').addEventListener('click',showOnboarding);
 
-/* ── tile click ── */
-document.querySelectorAll('.tile[data-view]').forEach(function(t){
-  t.addEventListener('click',function(){openWp();});
-});
-document.querySelectorAll('.tile[data-name]').forEach(function(t){
-  t.addEventListener('click',function(){
-    if(t.dataset.href){location.href=t.dataset.href;return;}
-    var n=t.dataset.name;
-    var code=t.classList.contains('code');
-    toast(code?n+' · in sviluppo…':'Apertura '+n+'…');
-  });
-});
+/* ══════ PAGINA DI STATO ══════
+   Legge soltanto: tutto quello che mostra lo scrivono gli altri moduli
+   (posizione, ancora, registrazione, waypoint, posizione live, MOB).
+   Nessuna chiave nuova. Il vento e' l'unica cosa presa dalla rete. */
+function leggi(k,d){try{var v=JSON.parse(localStorage.getItem(k)||'null');return v==null?d:v;}catch(e){return d;}}
+function due(n){return ('0'+n).slice(-2);}
+function ora(d){d=(d instanceof Date)?d:new Date(d);return isNaN(d)?'—':due(d.getHours())+':'+due(d.getMinutes());}
+function durata(ms){var m=Math.max(0,Math.round(ms/60000));if(m<1)return 'meno di un minuto';if(m<60)return m+' min';
+  var h=Math.floor(m/60);if(h<48)return h+' h'+(m%60?' '+(m%60)+' min':'');return Math.floor(h/24)+' giorni';}
+function fa(ts){var s=Math.round((Date.now()-ts)/1000);if(s<20)return 'adesso';if(s<60)return s+' s fa';return durata(s*1000)+' fa';}
+function gp(v,pos,neg,w){var h=v>=0?pos:neg;v=Math.abs(v);var g=Math.floor(v),m=(v-g)*60;
+  if(m>=59.995){g++;m=0;}return ('00'+g).slice(-w)+'°'+m.toFixed(2).replace('.',',')+'′ '+h;}
+function nm(a,b){return rfAstro.distNm({lat:a[0],lon:a[1]},{lat:b[0],lon:b[1]});}
+function brg(a,b){var r=Math.PI/180,y=Math.sin((b[1]-a[1])*r)*Math.cos(b[0]*r),
+  x=Math.cos(a[0]*r)*Math.sin(b[0]*r)-Math.sin(a[0]*r)*Math.cos(b[0]*r)*Math.cos((b[1]-a[1])*r);
+  return ('00'+Math.round((Math.atan2(y,x)/r+360)%360)%360).slice(-3);}
+function esc(x){return String(x).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
 
-/* ══════ ARCHIVIO TRACCE E WAYPOINT (condiviso via localStorage) ══════ */
-function lsGet(k){try{return JSON.parse(localStorage.getItem(k)||'[]');}catch(e){return [];}}
-function lsSet(k,v){localStorage.setItem(k,JSON.stringify(v));}
-function activeWp(){try{return localStorage.getItem('raffyca-active-wp')||'';}catch(e){return '';}}
-function setActiveWp(id){localStorage.setItem('raffyca-active-wp',id||'');renderWp();}
-
-var fmtCoord=function(lat,lon){
-  var f=function(v,pos,neg){var h=v>=0?pos:neg;v=Math.abs(v);var d=Math.floor(v);
-    var m=((v-d)*60).toFixed(1);return d+'° '+m+'\u2032 '+h;};
-  return f(lat,'N','S')+'  '+f(lon,'E','W');
+var ICO={
+  anc:'<path d="M15 5v20M9 10h12M5 17c0 5 5 8 10 8s10-3 10-8"/><circle cx="15" cy="4" r="2"/>',
+  rec:'<circle cx="15" cy="15" r="7" fill="currentColor" stroke="none"/><circle cx="15" cy="15" r="12"/>',
+  wp:'<path d="M15 3l8 12-8 12-8-12z"/><circle cx="15" cy="15" r="2.5" fill="currentColor"/>',
+  trk:'<path d="M4 22c4-10 8 2 11-7s8-6 11-10"/>',
+  live:'<circle cx="15" cy="15" r="3" fill="currentColor"/><path d="M8 8a10 10 0 0 0 0 14M22 8a10 10 0 0 1 0 14M4.5 4.5a15 15 0 0 0 0 21M25.5 4.5a15 15 0 0 1 0 21"/>'
 };
-function haversine(a,b){var R=6371000,toR=Math.PI/180;
-  var dLa=(b[0]-a[0])*toR,dLo=(b[1]-a[1])*toR;
-  var s=Math.sin(dLa/2)*Math.sin(dLa/2)+Math.cos(a[0]*toR)*Math.cos(b[0]*toR)*Math.sin(dLo/2)*Math.sin(dLo/2);
-  return 2*R*Math.asin(Math.sqrt(s));}
+function riga(cls,ico,titolo,sotto,href,dataAct){
+  var tag=href?'a':'button';
+  return '<'+tag+' class="st-row '+cls+'"'+(href?' href="'+href+'"':' type="button" data-act="'+dataAct+'"')+'>'+
+    '<svg class="ic" viewBox="0 0 30 30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+ICO[ico]+'</svg>'+
+    '<span class="tx"><b>'+esc(titolo)+'</b>'+(sotto?'<span class="s">'+esc(sotto)+'</span>':'')+'</span>'+
+    '<span class="fr" aria-hidden="true">›</span></'+tag+'>';
+}
 
-function openWp(){$('screen-hub').classList.add('off');$('screen-wp').classList.remove('off');renderWp();}
-$('btnWpBack').addEventListener('click',showHub);
+function posizione(){var p=leggi('raffyca-pos',null);return (p&&isFinite(p.lat)&&isFinite(p.lon))?p:null;}
 
-/* tab */
-document.querySelectorAll('.wp-tabs button').forEach(function(b){
-  b.addEventListener('click',function(){
-    document.querySelectorAll('.wp-tabs button').forEach(function(x){x.classList.toggle('on',x===b);});
-    $('list-wpt').classList.toggle('on',b.dataset.t==='wpt');
-    $('list-trk').classList.toggle('on',b.dataset.t==='trk');
-  });
+function dipingiPos(){
+  var p=posizione();
+  $('stGps').hidden=!!p;
+  if(!p){$('stPos').textContent='Posizione sconosciuta';
+    $('stPosNota').textContent='Senza una posizione non si calcolano vento, sole e marea.';return;}
+  $('stPos').textContent=gp(p.lat,'N','S',2)+'  '+gp(p.lon,'E','W',3);
+  var recente=p.ts&&Date.now()-p.ts<60000, t=p.ts?fa(p.ts):'';
+  var n=recente?'GPS '+t:(p.ts?'Ultima posizione nota, '+t:'Ultima posizione nota');
+  if(recente&&isFinite(p.sog))n+=' · '+p.sog.toFixed(1).replace('.',',')+' kt'+(isFinite(p.cog)?' · '+('00'+Math.round(p.cog)%360).slice(-3)+'°':'');
+  $('stPosNota').textContent=n;
+}
+
+function dipingiCorso(){
+  var h='', p=posizione(), now=Date.now();
+  var mob=leggi('raffyca-mob',null);
+  $('stMob').hidden=!(mob&&mob.on);
+  if(mob&&mob.on)$('stMobDa').textContent='segnata '+fa(mob.ts)+' · tocca per tornare alla schermata';
+  var a=leggi('raffyca-anchor',null);
+  if(a&&a.active&&a.drop)h+=riga('anc','anc','Ancora calata','raggio '+(a.rAlarm||'—')+' m · da '+durata(now-(a.drop.t||now)),'anchor/index.html');
+  var r=leggi('raffyca-rec',null);
+  if(r&&r.on)h+=riga('rec','rec','Registrazione traccia',durata(now-(r.since||now))+' · '+(function(n){return n===1?'1 punto':n+' punti';})((r.pts&&r.pts.length)||0),null,'rec');
+  var at=null,aw=null;try{at=localStorage.getItem('raffyca-active-track');aw=localStorage.getItem('raffyca-active-wp');}catch(e){}
+  if(at){var t=(leggi('raffyca-tracks',[])||[]).filter(function(x){return x.id===at;})[0];
+    if(t)h+=riga('','trk','Segui la traccia',t.name,'carta/index.html');}
+  else if(aw){var w=(leggi('raffyca-waypoints',[])||[]).filter(function(x){return x.id===aw;})[0];
+    if(w)h+=riga('','wp','Verso '+w.name,p?nm([p.lat,p.lon],[w.lat,w.lon]).toFixed(1).replace('.',',')+' NM · '+brg([p.lat,p.lon],[w.lat,w.lon])+'°':'','cruscotto/index.html');}
+  var l=leggi('raffyca-live',null);
+  if(l&&l.on)h+=riga('','live','Posizione live attiva','chi \u00e8 a terra ti vede · un invio ogni '+(l.freq||60)+' s','posizione/index.html');
+  $('stCorso').innerHTML=h||'<p class="st-nota">Niente in corso.</p>';
+}
+$('stCorso').addEventListener('click',function(e){
+  var b=e.target.closest('[data-act="rec"]');
+  if(b){var s=document.getElementById('rfStatus');if(s)s.click();}   /* il pannello della barra in alto ferma e salva */
 });
 
-function renderWp(){
-  var wpts=lsGet('raffyca-waypoints'), trks=lsGet('raffyca-tracks'), act=activeWp();
-  $('cntWpt').textContent=wpts.length; $('cntTrk').textContent=trks.length;
-  var badge=$('wpBadge'); if(badge)badge.textContent=wpts.length+' · '+trks.length;
+function dipingiSole(){
+  var p=posizione();
+  if(!p||!window.rfAstro){['stAlba','stTram','stBuio'].forEach(function(id){$(id).textContent='—';});return;}
+  try{var s=rfAstro.sunTimes(new Date(),p.lat,p.lon);
+    $('stAlba').textContent=s.official.rise?ora(s.official.rise):'—';
+    $('stTram').textContent=s.official.set?ora(s.official.set):'—';
+    $('stBuio').textContent=s.nautical.set?ora(s.nautical.set):'—';}catch(e){}
+}
 
-  /* waypoint */
-  var wc=$('wptItems'); wc.innerHTML='';
-  $('wptEmpty').hidden=wpts.length>0;
-  wpts.forEach(function(w){
-    var el=document.createElement('div');
-    el.className='wp-item'+(w.id===act?' active':'');
-    el.innerHTML='<span class="wp-ic">◈</span>'+
-      '<div class="wp-meta"><div class="wp-nm"></div><div class="wp-sub"></div></div>'+
-      '<button class="wp-act on2">'+(w.id===act?'attivo':'attiva')+'</button>'+
-      '<button class="wp-act del">×</button>';
-    el.querySelector('.wp-nm').textContent=w.name;
-    el.querySelector('.wp-sub').textContent=fmtCoord(w.lat,w.lon);
-    var aBtn=el.querySelector('.wp-act.on2'); if(w.id===act)aBtn.classList.add('on');
-    aBtn.addEventListener('click',function(){setActiveWp(w.id===act?'':w.id);
-      toast(w.id===act?'Waypoint disattivato':'Attivo: '+w.name);});
-    el.querySelector('.wp-act.del').addEventListener('click',function(){
-      if(!confirm('Eliminare "'+w.name+'"?'))return;
-      lsSet('raffyca-waypoints',wpts.filter(function(x){return x.id!==w.id;}));
-      if(w.id===act)localStorage.setItem('raffyca-active-wp','');renderWp();});
-    wc.appendChild(el);
-  });
+var mareaPronta=false;
+function dipingiMarea(){
+  var p=posizione();
+  if(!p){$('stMarea').textContent='Marea';$('stMareaSub').textContent='serve una posizione';return;}
+  if(!mareaPronta){$('stMarea').textContent='Marea';$('stMareaSub').textContent='calcolo…';return;}
+  try{var m=rfMaree.tide(p.lat,p.lon,new Date());
+    $('stMarea').textContent=m.trend==='stanca'?'Marea: stanca':('Marea '+m.trend);
+    var sub=m.next_slack?('prossima stanca alle '+ora(m.next_slack.timeUTC)+' · tra '+durata(m.minutes_to_slack*60000)):'';
+    if(m.confidence==='bassa')sub+=(sub?' · ':'')+'stima incerta qui';
+    $('stMareaSub').textContent=sub||'—';
+  }catch(e){$('stMarea').textContent='Marea';$('stMareaSub').textContent='non disponibile qui';}
+}
+try{rfMaree.carica('./maree/',function(err){mareaPronta=!err;if(err)$('stMareaSub').textContent='dati di marea non caricati';else dipingiMarea();});}catch(e){}
 
-  /* tracce */
-  var tc=$('trkItems'); tc.innerHTML='';
-  $('trkEmpty').hidden=trks.length>0;
-  trks.forEach(function(t){
-    var km=(t.dist/1000), dist=km>=1?km.toFixed(1)+' km':Math.round(t.dist)+' m';
-    var mins=Math.round((t.dur||0)/60000);
-    var el=document.createElement('div');
-    el.className='wp-item';
-    el.innerHTML='<span class="wp-ic" style="color:var(--amber)">〜</span>'+
-      '<div class="wp-meta"><div class="wp-nm"></div><div class="wp-sub"></div></div>'+
-      '<button class="wp-act">GPX</button>'+
-      '<button class="wp-act del">×</button>';
-    el.querySelector('.wp-nm').textContent=t.name;
-    el.querySelector('.wp-sub').textContent=(t.pts?t.pts.length:0)+' punti · '+dist+' · '+mins+' min';
-    el.querySelector('.wp-act:not(.del)').addEventListener('click',function(){exportGpx(t);});
-    el.querySelector('.wp-act.del').addEventListener('click',function(){
-      if(!confirm('Eliminare "'+t.name+'"?'))return;
-      lsSet('raffyca-tracks',trks.filter(function(x){return x.id!==t.id;}));renderWp();});
-    tc.appendChild(el);
+/* Vento: la previsione del modello per l'ora corrente, non una misura. */
+var ventoOk=0;
+function caricaVento(){
+  var p=posizione();
+  if(!p){$('stVento').textContent='—';$('stDir').textContent='';$('stVentoNota').textContent='Il vento previsto compare quando c’è una posizione.';return;}
+  var u='https://api.open-meteo.com/v1/forecast?latitude='+p.lat.toFixed(3)+'&longitude='+p.lon.toFixed(3)+
+    '&current=wind_speed_10m,wind_direction_10m,wind_gusts_10m&wind_speed_unit=kn&timezone=auto';
+  /* rete di bordo lenta: dopo 12 s si rinuncia e lo si dice, invece di lasciare «Cerco…» per minuti */
+  var ac=(typeof AbortController==='function')?new AbortController():null;
+  if(ac)setTimeout(function(){ac.abort();},12000);
+  fetch(u,ac?{signal:ac.signal}:undefined).then(function(r){if(!r.ok)throw new Error(r.status);return r.json();}).then(function(j){
+    var c=j&&j.current;if(!c||!isFinite(c.wind_speed_10m))throw new Error('vuoto');
+    var d=c.wind_direction_10m;
+    $('stVento').innerHTML=Math.round(c.wind_speed_10m)+'<small>kt</small>';
+    $('stDir').textContent='da '+rfAstro.cardDir(d)+' · '+('00'+Math.round(d)%360).slice(-3)+'°';
+    $('stFreccia').setAttribute('transform','rotate('+((d+180)%360)+' 32 32)');
+    $('stVentoNota').textContent='Previsione del modello per le '+(c.time?c.time.slice(11,16):ora(new Date()))+
+      (isFinite(c.wind_gusts_10m)?' · raffiche '+Math.round(c.wind_gusts_10m)+' kt':'');
+    ventoOk=Date.now();
+  }).catch(function(){
+    if(!ventoOk){$('stVento').textContent='—';$('stDir').textContent='';}
+    $('stVentoNota').textContent=ventoOk?'Senza rete: resta la previsione delle '+ora(ventoOk)+'.':'Senza rete il vento previsto non si scarica.';
   });
 }
 
-/* nuovo waypoint manuale */
-$('btnNewWpt').addEventListener('click',function(){
-  var name=prompt('Nome waypoint:','WP '+(lsGet('raffyca-waypoints').length+1)); if(!name)return;
-  var lat=parseFloat((prompt('Latitudine (gradi decimali, es. 45.6480):','45.6480')||'').replace(',','.'));
-  if(isNaN(lat)){toast('Latitudine non valida');return;}
-  var lon=parseFloat((prompt('Longitudine (gradi decimali, es. 13.7560):','13.7560')||'').replace(',','.'));
-  if(isNaN(lon)){toast('Longitudine non valida');return;}
-  var w=lsGet('raffyca-waypoints'); w.push({id:'w'+Date.now(),name:name.trim(),lat:lat,lon:lon,ts:Date.now()});
-  lsSet('raffyca-waypoints',w);renderWp();toast('Waypoint salvato');
+$('stGps').addEventListener('click',function(){
+  if(!navigator.geolocation){toast('GPS non disponibile');return;}
+  $('stGps').textContent='Cerco il segnale…';
+  navigator.geolocation.getCurrentPosition(function(g){
+    try{localStorage.setItem('raffyca-pos',JSON.stringify({lat:g.coords.latitude,lon:g.coords.longitude,ts:Date.now()}));}catch(e){}
+    $('stGps').textContent='Prendi la posizione dal GPS';tuttoStato();caricaVento();
+  },function(){$('stGps').textContent='Prendi la posizione dal GPS';toast('Posizione non disponibile');},
+  (window.rfGeo?rfGeo.opzioni({maximumAge:60000,timeout:30000}):{timeout:30000}));
 });
 
-/* export GPX di una traccia */
-function exportGpx(t){
-  var pts=(t.pts||[]).map(function(p){
-    return '  <trkpt lat="'+p[0].toFixed(6)+'" lon="'+p[1].toFixed(6)+'">'+
-      (p[2]?'<time>'+new Date(p[2]).toISOString()+'</time>':'')+'</trkpt>';}).join('\n');
-  var gpx='<?xml version="1.0" encoding="UTF-8"?>\n'+
-    '<gpx version="1.1" creator="Dritta" xmlns="http://www.topografix.com/GPX/1/1">\n'+
-    '<trk><name>'+t.name+'</name><trkseg>\n'+pts+'\n</trkseg></trk>\n</gpx>';
-  var url=URL.createObjectURL(new Blob([gpx],{type:'application/gpx+xml'}));
-  var a=document.createElement('a');a.href=url;a.download=t.name.replace(/[^\w\-]+/g,'_')+'.gpx';
-  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
-}
-
-/* import GPX (waypoint + tracce) */
-var impMode='wpt';
-$('btnImpWpt').addEventListener('click',function(){impMode='wpt';$('fileGpx').click();});
-$('btnImpTrk').addEventListener('click',function(){impMode='trk';$('fileGpx').click();});
-$('fileGpx').addEventListener('change',function(e){
-  var f=e.target.files[0]; if(!f)return;
-  var r=new FileReader();
-  r.onload=function(){importGpx(r.result);e.target.value='';};
-  r.readAsText(f);
-});
-function importGpx(txt){
-  var doc; try{doc=new DOMParser().parseFromString(txt,'application/xml');}catch(err){toast('GPX non valido');return;}
-  if(doc.querySelector('parsererror')){toast('GPX non valido');return;}
-  var addedW=0, addedT=0;
-  var wpts=lsGet('raffyca-waypoints');
-  doc.querySelectorAll('wpt').forEach(function(n){
-    var lat=parseFloat(n.getAttribute('lat')), lon=parseFloat(n.getAttribute('lon'));
-    if(isNaN(lat)||isNaN(lon))return;
-    var nm=(n.querySelector('name')&&n.querySelector('name').textContent)||('WP '+(wpts.length+1));
-    wpts.push({id:'w'+Date.now()+'_'+addedW,name:nm,lat:lat,lon:lon,ts:Date.now()});addedW++;
-  });
-  if(addedW)lsSet('raffyca-waypoints',wpts);
-  var trks=lsGet('raffyca-tracks');
-  doc.querySelectorAll('trk').forEach(function(tk){
-    var pts=[]; tk.querySelectorAll('trkpt').forEach(function(p){
-      var la=parseFloat(p.getAttribute('lat')),lo=parseFloat(p.getAttribute('lon'));
-      var tm=p.querySelector('time'); pts.push([la,lo,tm?Date.parse(tm.textContent):0]);});
-    if(!pts.length)return;
-    var dist=0; for(var i=1;i<pts.length;i++)dist+=haversine(pts[i-1],pts[i]);
-    var dur=(pts[pts.length-1][2]&&pts[0][2])?pts[pts.length-1][2]-pts[0][2]:0;
-    var nm=(tk.querySelector('name')&&tk.querySelector('name').textContent)||('Traccia '+(trks.length+1));
-    trks.push({id:'t'+Date.now()+'_'+addedT,name:nm,ts:Date.now(),dist:dist,dur:dur,pts:pts});addedT++;
-  });
-  if(addedT)lsSet('raffyca-tracks',trks);
-  renderWp();
-  toast(addedW+addedT?('Importati: '+addedW+' wp, '+addedT+' tracce'):'Nessun dato nel GPX');
-}
+function tuttoStato(){dipingiPos();dipingiCorso();dipingiSole();dipingiMarea();}
+tuttoStato();caricaVento();
+setInterval(function(){dipingiPos();dipingiCorso();},5000);
+setInterval(function(){dipingiSole();dipingiMarea();},60000);
+setInterval(caricaVento,10*60000);
+window.addEventListener('storage',function(e){if(!e.key||e.key.indexOf('raffyca-')===0)tuttoStato();});
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'){tuttoStato();if(Date.now()-ventoOk>10*60000)caricaVento();}});
 
 /* ── toast ── */
 var toastTimer;
@@ -833,7 +534,6 @@ function toast(msg){
    Selettore unico in Impostazioni (chiave raffyca-theme). */
 
 /* ── avvio ── */
-renderWp();
 if(loadProfile())showHub();else showOnboarding();
 
 /* ── difesa dati: snapshot automatico chiavi raffyca-* in IndexedDB (ultimi 5) + rilevamento perdita ── */

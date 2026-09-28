@@ -49,7 +49,7 @@ Ognuno è una cartella autonoma in radice, con il proprio service worker:
 
 | Cartella | Cosa fa |
 |---|---|
-| `index.html` | hub: onboarding, menu, vista tracce/WP legacy |
+| `index.html` | hub: onboarding e pagina di stato (vento, posizione, cose in corso, sole e marea) |
 | `meteo/` | previsioni multi-modello ("Il Nastro del Vento") |
 | `cruscotto/` | strumenti di bordo, registrazione traccia, regata |
 | `routing/` | traversata con polari ORC e maschere costa |

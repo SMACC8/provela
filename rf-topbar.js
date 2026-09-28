@@ -232,6 +232,11 @@
 '.rf-topbar a.rf-imp{display:flex;align-items:center;justify-content:center;width:30px;height:30px;flex:none;' +
 '  border-radius:8px;color:var(--sub,#5a7a94);text-decoration:none;}' +
 '.rf-topbar a.rf-imp:active{transform:scale(.92);}' +
+/* L'ingranaggio sta in fondo: sono stato e polare a doversi stringere,
+   non lui a uscire dalla barra. Con REC attivo, su 375 px, la barra era
+   larga 410 e l'ingranaggio finiva fuori schermo (28/09/2026). */
+'.rf-topbar .rf-status{flex:0 1 auto;min-width:0;}' +
+'.rf-topbar .rf-pol{flex:0 1 auto;min-width:0;}' +
 '.rf-topbar a.rf-imp[aria-current]{color:var(--teal,#2BD9C4);background:hsl(172 70% 51% / .12);}' +
 'html.night .rf-topbar a.rf-imp[aria-current]{background:rgba(255,77,77,.12);}' +
 
