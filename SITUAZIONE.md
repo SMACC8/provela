@@ -4962,3 +4962,196 @@ spento, voce e salvataggi nell'APK — che nel browser resta inerte dove
 serve `window.Capacitor`. La cartella `app/` finisce anche su GitHub Pages:
 sono sorgenti, nessuno la linka, `node_modules` e `www` non sono committati.
 
+
+---
+
+## 28/09/2026 (3) — La nuova organizzazione dell'interfaccia: decisa, non ancora fatta
+
+Sergio, confrontando Dritta con Vetta: l'interfaccia è disorganica. Sembrano
+app diverse (colori, caratteri, controlli nativi accanto a pulsanti
+stilizzati), ma soprattutto si usa male: troppe sezioni, troppo testo di
+spiegazione, e per passare da un modulo all'altro si torna sempre al menu.
+
+**Nessuna riga di codice cambiata.** Questa voce registra l'inventario e la
+struttura decisa, che è il punto di partenza del lavoro vero.
+
+### Cosa ha mostrato l'inventario
+
+Fatto leggendo il markup delle 18 pagine del menu e, per ogni chiave
+`raffyca-*`, chi la scrive e chi la legge. La mappa completa, con tabella per
+schermo, sta in un artifact privato di Sergio («Mappa di Dritta»).
+
+- **Tutto passa dal menu.** In tutta l'app i passaggi diretti fra schermi sono
+  cinque: Cruscotto ⇄ Carta (voce (2) di oggi), Partenza → Cruscotto,
+  Partenza → Percorso, Posizione → Impostazioni, Manutenzione → Impostazioni.
+- **Nei dati invece i moduli sono già collegati**: waypoint, tracce, polare,
+  posizione e passaggio di regata viaggiano già per `localStorage`. Il flusso
+  esiste, ma l'interfaccia non lo segue. Per esempio la Traversata salva la
+  rotta in Carta (`raffyca-tracks`), e poi per vederla bisogna passare dal
+  menu.
+- **Doppioni**: due «Traversate» (quella in linea retta dentro `meteo/`, con
+  località cercate per nome, e quella di `routing/`); `strumenti.html` accanto
+  al Cruscotto; sei viste geografiche separate (Leaflet in Carta, Traversata e
+  radar del Meteo; planimetrie proprie in Ancora, XTE e Percorso).
+- **Codice morto**: nell'hub, la schermata `#screen-wp` «Tracce e Waypoint».
+  La apre solo un riquadro con `data-view`, e nessun riquadro ce l'ha più.
+- **Stile condiviso solo a metà**: quasi tutti ricopiano gli stessi colori
+  (`#060e18`, turchese, ambra) invece di importarli; `raffyca.css` lo caricano
+  7 pagine su 18. Fanno eccezione la Traversata (`#0A1628`), XTE (`#0b0d10`) e
+  Impostazioni (variabili con nomi propri).
+
+### La struttura decisa
+
+Proposta di Sergio, con due correzioni concordate:
+
+- **Barra in basso, quattro voci**:
+  - **Preparazione**: Meteo, Traversata, Sole & Luna;
+  - **Navigazione**: Carta (con XTE come modalità), Cruscotto (con dentro i
+    dati di `strumenti.html`), Ancoraggio, Posizione live;
+  - **Regata**: Partenza, Percorso, Performance;
+  - **Barca**: Manutenzione, Prontuario, Calcoli.
+- **Barra in alto**, quella di oggi estesa: MOB (già attivo ovunque), GPS,
+  registrazione traccia, waypoint attivo, Posizione live come interruttore, e
+  l'icona delle Impostazioni.
+- **Esce** la schermata «Tracce e Waypoint» dell'hub.
+
+Scartato, e perché:
+
+- **Ripartire da zero con un'app nuova**: il valore di Dritta sta nei motori
+  (router, maschere, isobate, veglia, NMEA, offline) e nei difetti silenziosi
+  già scoperti. Si rifà l'involucro, non i motori.
+- **Prima la grafica, poi l'organizzazione**: uno stile uniforme applicato a
+  sezioni scollegate lascia sezioni scollegate. Prima la struttura.
+- **App a pagina unica**: non serve. Restano pagine separate con i loro
+  service worker; la barra in basso si carica come quella in alto, da un file
+  condiviso. L'APK la eredita.
+- **Nome «Bordo»** per la quarta sezione: ambiguo, in barca si è a bordo
+  sempre. Diventa «Barca».
+- **Strumenti dentro «Barca»**: `strumenti.html` legge dati vivi dal gateway,
+  quindi è navigazione. La configurazione del gateway va in Impostazioni.
+- **Impostazioni come quinta voce in basso**: si apre di rado, e un posto nella
+  barra in basso vale troppo, soprattutto coi guanti. Va in alto, come icona.
+- **Una sezione «Consulta» separata** per Prontuario e Calcoli: la barra
+  sarebbe salita a cinque o sei voci.
+
+### Aperti
+
+- Le due Traversate: fonderle in due passi della stessa schermata, oppure il
+  Meteo passa A e B al routing e la sua versione sparisce.
+- Cosa si apre all'avvio: l'ultima sezione usata, oppure una pagina di stato
+  (vento, waypoint attivo, ancora, marea).
+- Il rilevamento manuale di Performance: con il gateway NMEA potrebbe bastare
+  quello automatico.
+- Le maree stanno in Sole & Luna, ma la prossima stanca serve anche in Carta,
+  entrando in porto.
+- Da fare dopo la struttura: il foglio di stile unico, e i testi di
+  spiegazione tolti dalle schermate operative e spostati in un aiuto a
+  richiesta.
+
+---
+
+## 28/09/2026 (4) — La barra in basso: le quattro sezioni in ogni pagina
+
+Primo passo della struttura decisa nella voce (3). Sta tutta in
+`rf-topbar.js`, che ogni pagina carica già: nessuna pagina toccata.
+Lavorato sul ramo `barra-in-basso`, in un worktree separato (`../ProVela-barra`).
+
+### Cosa fa
+
+- **Barra in basso** con Preparazione, Navigazione, Regata, Barca. Un tocco
+  apre un foglio con i moduli della sezione, un secondo tocco ci entra: da
+  qualunque schermo a qualunque altro in due tocchi. La sezione della pagina
+  aperta è evidenziata, e nel foglio il modulo corrente porta «QUI».
+- XTE e Strumenti compaiono ancora come voci di Navigazione. Usciranno
+  quando diventeranno una modalità della Carta e una parte del Cruscotto.
+- **Ingranaggio delle Impostazioni** in fondo alla barra in alto.
+- **Non compare in `mob/`**: quella schermata è tutta per l'emergenza.
+- **Grande di proposito.** Sergio, a lavoro in corso: col sole, e col tablet
+  montato in basso, i testi piccoli non si leggono. Altezza 66 px su
+  telefono e 74 da 600 px in su; etichette da 12,5 px (15 sul tablet,
+  11,5 sotto i 360 px); righe del foglio da 64 px; grigi schiariti
+  (`#a3b8ca` su fondo scuro).
+- Nel tema Notte anche le evidenziazioni sono rosse (variabile `--tinta`):
+  alla prima prova il riquadro «QUI» era verdino.
+
+### Difetti silenziosi, per chi tocca la barra dopo
+
+- **z-index 19 da chiusa, di proposito.** La finestra più bassa dei moduli è
+  il foglio del Cruscotto, a 20: ogni finestra deve coprire la barra,
+  altrimenti i suoi bottoni in fondo ci finiscono sotto. A foglio aperto,
+  barra e foglio salgono a 8985/8984, sotto il pannello della barra in alto.
+- **Leaflet non chiude i suoi strati** (z-index 400-1000): scorrendo la
+  pagina, la mappa passava sopra la barra e ne prendeva i tocchi. Si
+  risolve con `isolation:isolate` su `.leaflet-container`.
+- **Gli elementi fissi in basso dei moduli** vanno alzati uno per uno:
+  `.toast`, `#toast`, `.fab`, `.rf-toast`, più i 92 px che Manutenzione
+  lascia per il suo bottone. L'elenco è nel CSS, fatto leggendo le pagine:
+  **chi aggiunge un elemento fisso in basso lo aggiunga lì.**
+- **`font:600 11px/1.1 inherit` non è CSS valido**, e il browser scarta la
+  regola intera senza dire niente: le etichette prendevano il carattere di
+  default e «Preparazione» diventava «Preparazio…». Scritto in proprietà
+  separate.
+
+### Corretto strada facendo: MOB e Carta dalla barra in alto, nell'APK
+
+`urlMob()` e `urlCarta()` attaccavano la cartella al link home. Nell'APK
+`prepara-sito.js` riscrive quel link in `../index.html`, quindi ne usciva
+`../index.htmlmob/`: il punto MOB veniva salvato, ma la schermata MOB non si
+apriva. Ora tutti i link passano da `radice()`, che toglie `index.html`, e
+portano `index.html` esplicito. Trovato rileggendo il codice: a bordo non è
+mai stato visto, e sull'APK la correzione non è ancora provata.
+
+Service worker (tutti precaricano `rf-topbar.js`): **`dritta-hub-v25`,
+`anchor-v20`, `raffyca-meteo-v21`, `raffyca-rt-v27`, `xte-v13`**.
+
+### Verificato
+
+Nel browser integrato, sulle 18 pagine del menu, a 375×812:
+- la barra c'è ovunque tranne in `mob/`;
+- la sezione evidenziata è quella giusta;
+- scorrendo la pagina all'inizio, a metà e in fondo, in 5 punti della barra
+  il tocco arriva alla barra e non alla pagina;
+- le etichette sono intere;
+- l'ingranaggio c'è, e in Impostazioni è evidenziato;
+- nessun errore JavaScript.
+
+Il fondo di ogni pagina resta raggiungibile sopra la barra. Percorso scorre
+nel suo contenitore, che ora finisce sopra la barra. Nella Traversata, in
+Calcoli e in Impostazioni c'è contenuto sotto il limite, ma sta dentro
+sezioni chiuse.
+
+Etichette misurate a 320, 360, 375, 412 e 800 px: stanno tutte. I link
+generati sono giusti sia con il link home `#` (hub) sia con `../index.html`
+(APK, simulato cambiando l'attributo). Guardati a occhio i temi Scuro,
+Giorno e Notte.
+
+**Sul tablet** (Ulefone Active 8 Pro, Android 13), con l'APK costruito dal
+worktree e installato con `-r`, quindi con i dati di Sergio intatti:
+- la barra sta sopra i tasti di Android senza sovrapporsi;
+- Navigazione apre il foglio, e «Cruscotto» porta al Cruscotto, che si
+  ridimensiona sopra la barra;
+- dal pannello della barra in alto, «Apri nella Carta» porta alla Carta. Con
+  il codice di prima il link sarebbe stato `../index.htmlcarta/`.
+
+Visto anche lì, a conferma degli aperti: i testi propri della Carta sul tablet
+sono piccoli.
+
+### Non verificato
+
+- **Telefono vero, Android 15**: niente. In particolare il margine di
+  sistema in basso, che nell'app scansa Android (niente `viewport-fit=cover`).
+- Il MOB dalla barra in alto, nell'APK, **non l'ho premuto**: avrebbe aperto
+  un'emergenza e scritto un waypoint nei dati di Sergio. Passa però dalla
+  stessa `radice()` di «Apri nella Carta», provata sul tablet (sotto).
+- Coi guanti e al sole.
+- XTE ha una sua barra a schede in fondo: ora sono due barre impilate.
+  Sparirà quando XTE diventerà una modalità della Carta.
+
+### Aperti
+
+- **Testi e comandi più grandi in tutta l'app.** È la richiesta di Sergio
+  per il sole e il tablet in basso, applicata per ora solo alla barra nuova.
+  Nelle pagine la base resta 11-13 px, con grigi a basso contrasto
+  (`--sub:#5a7a94`). Va fatto con il foglio di stile unico, non modulo per
+  modulo.
+- L'hub mostra la barra anche nella schermata di benvenuto del primo avvio.

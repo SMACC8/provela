@@ -73,6 +73,14 @@ i dispositivi continuano a servire la copia vecchia dalla cache. I service worke
 sono namespacati per modulo (`dritta-hub-v17`, `raffyca-meteo`, `xte`, …): si
 alza solo quello del modulo modificato.
 
+**Le due barre comuni stanno in `rf-topbar.js`.** Quella in alto ha il
+markup inline in ogni pagina; quella in basso (le quattro sezioni, dal
+28/09/2026) la crea il file da solo. La barra in basso copre il fondo dello
+schermo: **un elemento fisso in basso aggiunto a un modulo** (avviso, bottone
+flottante) va registrato nell'elenco in fondo al CSS di `rf-topbar.js`,
+altrimenti ci finisce sotto. Le finestre dei moduli devono stare a
+`z-index` 20 o più, per coprirla.
+
 **Contratto localStorage.** Tutte le chiavi hanno prefisso `raffyca-` e sono
 condivise fra moduli — `raffyca-polar` per esempio è scritta da `performance/`
 e letta altrove. L'elenco completo sta in `SITUAZIONE.md`. Non rinominare una

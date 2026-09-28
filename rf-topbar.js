@@ -228,11 +228,98 @@
 '.rf-topbar a.rf-salta:active{transform:scale(.95);background:hsl(172 70% 51% / .25);}' +
 '.rf-topbar.rf-con-salta .rf-pol{flex:0 1 auto;min-width:0;}' +
 '@media (max-width:420px){.rf-topbar.rf-con-salta .rf-pol{display:none;}}' +
-'@media (prefers-reduced-motion:reduce){.rf-panel,.rf-scrim,.rf-status .rf-chev{transition:none;}}' +
+/* ── ingranaggio delle Impostazioni, in fondo alla barra in alto ── */
+'.rf-topbar a.rf-imp{display:flex;align-items:center;justify-content:center;width:30px;height:30px;flex:none;' +
+'  border-radius:8px;color:var(--sub,#5a7a94);text-decoration:none;}' +
+'.rf-topbar a.rf-imp:active{transform:scale(.92);}' +
+'.rf-topbar a.rf-imp[aria-current]{color:var(--teal,#2BD9C4);background:hsl(172 70% 51% / .12);}' +
+'html.night .rf-topbar a.rf-imp[aria-current]{background:rgba(255,77,77,.12);}' +
+
+/* ── BARRA IN BASSO: le quattro sezioni ────────────────────────────────
+   Grande di proposito (Sergio, 28/09/2026: col sole, e col tablet montato
+   in basso, i testi piccoli non si leggono): 66px su telefono, 74 da 600px
+   in su, etichette da 12,5px e grigi schiariti per il contrasto.
+   --rf-sotto e' la sua altezza VERA, margine di sistema compreso, ed e'
+   quello che le pagine devono lasciare libero in fondo. Da chiusa sta a
+   z-index 19, SOTTO ogni finestra dei moduli (la piu' bassa e' il foglio
+   del Cruscotto, a 20): una finestra aperta deve coprirla, altrimenti i
+   suoi bottoni in fondo finiscono sotto la barra. Aperto il foglio delle
+   sezioni, barra e foglio salgono sopra la pagina (.su). */
+':root{--rf-sotto-sicuro:env(safe-area-inset-bottom,0px);--rf-sotto:calc(66px + var(--rf-sotto-sicuro));}' +
+'@media (min-width:600px){:root{--rf-sotto:calc(74px + var(--rf-sotto-sicuro));}}' +
+'html.rf-con-sotto body{padding-bottom:var(--rf-sotto)!important;}' +
+/* --tinta: il fondo delle evidenziazioni. Di notte deve restare rosso come
+   tutto il resto: un riquadro verdino al buio e' proprio quello che il
+   tema Notte esiste per evitare. */
+'.rf-sotto,.rf-sheet{--ink:#deedf5;--sub:#a3b8ca;--teal:#2BD9C4;--line:#1a3248;--fondo:#0a1826;--tinta:43,217,196;}' +
+'html.day .rf-sotto,html.day .rf-sheet{--ink:#0a1420;--sub:#2c3e50;--teal:#067d70;--line:#a7b5c2;--fondo:#ffffff;--tinta:6,125,112;}' +
+'html.night .rf-sotto,html.night .rf-sheet{--ink:#ff5b5b;--sub:#c85050;--teal:#ff4d4d;--line:#3a1010;--fondo:#120404;--tinta:255,77,77;}' +
+'.rf-sotto{position:fixed;left:0;right:0;bottom:0;z-index:19;height:var(--rf-sotto);box-sizing:border-box;' +
+'  padding:0 4px var(--rf-sotto-sicuro);display:flex;background:var(--fondo);border-top:1px solid var(--line);' +
+'  box-shadow:0 -2px 12px -6px rgba(0,0,0,.6);-webkit-user-select:none;user-select:none;' +
+'  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;}' +
+'.rf-sotto.su{z-index:8985;}' +
+'.rf-sotto button{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;' +
+'  gap:3px;background:none;border:0;padding:0 2px;margin:0;color:var(--sub);font-family:inherit;' +
+'  font-size:12.5px;font-weight:650;line-height:1.1;letter-spacing:0;cursor:pointer;position:relative;}' +
+'.rf-sotto button svg{width:27px;height:27px;flex:none;}' +
+'@media (max-width:360px){.rf-sotto{padding-left:0;padding-right:0;}.rf-sotto button{font-size:11.5px;padding:0;}}' +
+'@media (min-width:600px){.rf-sotto button{font-size:15px;gap:4px;}.rf-sotto button svg{width:31px;height:31px;}}' +
+'.rf-sotto button span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}' +
+'.rf-sotto button.qui{color:var(--teal);}' +
+'.rf-sotto button.qui::before{content:"";position:absolute;top:0;left:22%;right:22%;height:3px;' +
+'  border-radius:0 0 3px 3px;background:var(--teal);}' +
+'.rf-sotto button[aria-expanded="true"]{color:var(--ink);background:rgba(var(--tinta),.10);}' +
+'.rf-sotto button:active{background:rgba(var(--tinta),.18);}' +
+'.rf-sotto button:focus-visible{outline:2px solid var(--teal);outline-offset:-3px;border-radius:8px;}' +
+'.rf-sheet-scrim{position:fixed;left:0;right:0;top:0;bottom:var(--rf-sotto);z-index:8980;' +
+'  background:rgba(2,8,14,.5);opacity:0;pointer-events:none;transition:opacity .18s;}' +
+'.rf-sheet-scrim.on{opacity:1;pointer-events:auto;}' +
+'.rf-sheet{position:fixed;left:0;right:0;bottom:var(--rf-sotto);z-index:8984;max-width:560px;margin:0 auto;' +
+'  box-sizing:border-box;padding:8px 10px 10px;background:var(--fondo);border:1px solid var(--line);border-bottom:0;' +
+'  border-radius:16px 16px 0 0;box-shadow:0 -12px 30px -12px rgba(0,0,0,.7);color:var(--ink);' +
+'  max-height:calc(100dvh - var(--rf-sotto) - var(--rf-barra,40px) - 12px);overflow-y:auto;' +
+'  transform:translateY(calc(100% + var(--rf-sotto)));visibility:hidden;' +
+'  transition:transform .22s cubic-bezier(.32,.72,.3,1),visibility 0s .22s;' +
+'  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;}' +
+'.rf-sheet.on{transform:none;visibility:visible;transition:transform .22s cubic-bezier(.32,.72,.3,1);}' +
+'.rf-sheet h2{margin:4px 6px 8px;font:700 12.5px/1.2 ui-monospace,"SF Mono","Roboto Mono",Menlo,monospace;' +
+'  letter-spacing:.14em;text-transform:uppercase;color:var(--sub);}' +
+'.rf-sheet a{display:flex;align-items:center;gap:12px;min-height:64px;box-sizing:border-box;padding:9px 14px;' +
+'  border-radius:11px;text-decoration:none;color:var(--ink);}' +
+'.rf-sheet a+a{margin-top:2px;}' +
+'.rf-sheet a:active{background:rgba(var(--tinta),.16);}' +
+'.rf-sheet a:focus-visible{outline:2px solid var(--teal);outline-offset:-2px;}' +
+'.rf-sheet a .t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}' +
+'.rf-sheet a b{font-size:17.5px;font-weight:650;}' +
+'.rf-sheet a small{font-size:14.5px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}' +
+'.rf-sheet a .fr{flex:none;color:var(--sub);font-size:22px;}' +
+'@media (min-width:600px){.rf-sheet{max-width:640px;}.rf-sheet a{min-height:72px;}.rf-sheet a b{font-size:20px;}.rf-sheet a small{font-size:16px;}}' +
+'.rf-sheet a[aria-current]{background:rgba(var(--tinta),.10);box-shadow:inset 0 0 0 1px rgba(var(--tinta),.35);}' +
+'.rf-sheet a[aria-current] b{color:var(--teal);}' +
+'.rf-sheet a[aria-current] .fr{font:700 13px ui-monospace,monospace;letter-spacing:.06em;color:var(--teal);}' +
+/* Quello che nei moduli sta fisso in fondo allo schermo sale sopra la
+   barra. Si tocca solo `bottom`, e solo dove la barra c'e'. Elenco fatto
+   leggendo le pagine il 28/09/2026: chi aggiunge un elemento fisso in
+   basso lo aggiunga qui, altrimenti finisce sotto la barra. */
+'html.rf-con-sotto .rf-toast{bottom:calc(24px + var(--rf-sotto));}' +
+'html.rf-con-sotto .toast,html.rf-con-sotto #toast{bottom:calc(22px + var(--rf-sotto))!important;}' +
+'html.rf-con-sotto .fab{bottom:calc(20px + var(--rf-sotto))!important;}' +
+/* Manutenzione lascia 92px in fondo per il suo bottone «+ Intervento», e
+   il suo avviso stava sopra quel bottone: le due distanze restano. */
+'html.rf-con-sotto[data-rf-modulo="manutenzione"] body{padding-bottom:calc(92px + var(--rf-sotto))!important;}' +
+'html.rf-con-sotto[data-rf-modulo="manutenzione"] .toast{bottom:calc(96px + var(--rf-sotto))!important;}' +
+'html.rf-con-sotto[data-rf-modulo="impostazioni"] body{padding-bottom:calc(28px + var(--rf-sotto))!important;}' +
+/* Leaflet mette i suoi strati a z-index 400-1000 senza chiuderli nel
+   contenitore: scorrendo la pagina la mappa passerebbe SOPRA la barra, e
+   la barra smetterebbe di rispondere dove la mappa la copre. */
+'html.rf-con-sotto .leaflet-container{isolation:isolate;}' +
+'@media (prefers-reduced-motion:reduce){.rf-panel,.rf-scrim,.rf-status .rf-chev,.rf-sheet,.rf-sheet-scrim{transition:none;}}' +
 /* In stampa la barra non c'entra nulla, e il padding-top che riserva lo spazio
    lascerebbe una fascia vuota in cima al foglio. Sta qui e non nei moduli
    perche' e' la barra a introdurre quel padding. */
-'@media print{.rf-topbar,.rf-panel,.rf-scrim,.rf-toast{display:none!important;}body{padding-top:0!important;}}';
+'@media print{.rf-topbar,.rf-panel,.rf-scrim,.rf-toast,.rf-sotto,.rf-sheet,.rf-sheet-scrim{display:none!important;}' +
+'body{padding-top:0!important;}html.rf-con-sotto body{padding-bottom:0!important;}}';
 
   function iniettaCss() {
     if (document.getElementById("rf-topbar-css")) return;
@@ -508,12 +595,21 @@
     var m = Math.floor(s / 60);
     return m < 60 ? (m + " min") : (Math.floor(m / 60) + " h " + (m % 60) + " min");
   }
-  function urlMob() {
+  /* Radice del sito vista da questa pagina, ricavata dal link home che ogni
+     modulo porta gia' giusto: "#" nell'hub, "../" nei moduli. Nell'APK
+     prepara-sito.js lo riscrive in "../index.html", e prima di questa
+     funzione urlMob() e urlCarta() ci attaccavano la cartella dietro:
+     "../index.htmlmob/", cioe' il MOB della barra che nell'app non apriva
+     la sua schermata (trovato il 28/09/2026 rileggendo, mai visto a bordo).
+     I link che nascono qui portano sempre index.html esplicito: il server
+     di Capacitor non risolve le cartelle. */
+  function radice() {
     var a = document.querySelector(".rf-topbar a.rf-home");
-    var base = a ? a.getAttribute("href") : "../";
-    if (base === "#" || !base) base = "./";
-    return base + "mob/";
+    var base = a ? (a.getAttribute("href") || "") : "../";
+    if (base === "#" || base === "" || /^(\.\/)?index\.html$/.test(base)) return "./";
+    return base.replace(/index\.html$/, "");
   }
+  function urlMob() { return radice() + "mob/index.html"; }
   /* Segna il punto con l'ultima posizione nota e lo salva subito fra i
      waypoint: se il telefono si riavvia, il punto resta comunque. Senza
      nessun fix disponibile non si inventa niente, si apre il modulo e
@@ -557,6 +653,7 @@
 
   function togglePanel() { aperto ? chiudiPanel() : apriPanel(); }
   function apriPanel() {
+    chiudiSez();                 /* un foglio alla volta: quello delle sezioni scende */
     creaPanel(); dipPanel();
     aperto = true;
     elPanel.classList.add("on"); elScrim.classList.add("on");
@@ -667,12 +764,7 @@
   }
 
   /* percorso della Carta ricavato dal link home, che e' gia' giusto per ogni modulo */
-  function urlCarta() {
-    var a = document.querySelector(".rf-topbar a.rf-home");
-    var base = a ? a.getAttribute("href") : "../";
-    if (base === "#" || !base) base = "./";
-    return base + "carta/";
-  }
+  function urlCarta() { return radice() + "carta/index.html"; }
 
   function onPanelClick(e) {
     var b = e.target.closest("[data-act]");
@@ -762,10 +854,164 @@
     }, { passive: true });
   }
 
+  /* ═══════════════════════ barra in basso ═══════════════════════
+     Decisa il 28/09/2026 (vedi SITUAZIONE.md): quattro sezioni per momento
+     d'uso al posto del giro obbligato dal menu. Un tocco apre il foglio
+     con i moduli della sezione, un secondo tocco ci entra: da qualunque
+     schermo a qualunque altro in due tocchi, senza scorrere.
+     XTE e Strumenti stanno ancora qui come voci proprie: diventeranno una
+     modalita' della Carta e una parte del Cruscotto, e allora escono.
+     Non compare in mob/: quella schermata e' tutta per l'emergenza.
+     ══════════════════════════════════════════════════════════════ */
+  var ICONE = {
+    prep: '<path d="M3 8h10.5a3 3 0 1 0-3-3M3 12.5h15a3 3 0 1 1-3 3M3 17h7"/>',
+    nav:  '<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',
+    reg:  '<path d="M5.5 21V3.5M5.5 4.5h12l-2.5 4 2.5 4h-12"/>',
+    barca:'<path d="M12 3v12M12 4.5L6 14h6M3 17h18l-2.6 3.5H5.6z"/>'
+  };
+  var SEZIONI = [
+    { id: "prep", nome: "Preparazione", voci: [
+      { nome: "Meteo", sub: "Tattico multi-modello", url: "meteo/index.html" },
+      { nome: "Traversata", sub: "Routing A→B · isocrone", url: "routing/raffyca-traversata-map.html" },
+      { nome: "Sole & Luna", sub: "Luce, crepuscoli, volta celeste, marea", url: "sole-luna/index.html" } ] },
+    { id: "nav", nome: "Navigazione", voci: [
+      { nome: "Carta", sub: "Waypoint e tracce su carta", url: "carta/index.html" },
+      { nome: "Cruscotto", sub: "Strumenti di bordo", url: "cruscotto/index.html" },
+      { nome: "Ancoraggio", sub: "Veglia d'ancora · arare", url: "anchor/index.html" },
+      { nome: "Posizione live", sub: "Chi è a terra ti segue", url: "posizione/index.html" },
+      { nome: "XTE", sub: "Canale stretto", url: "xte/index.html" },
+      { nome: "Strumenti", sub: "Vento, profondità, log dal gateway", url: "strumenti.html" } ] },
+    { id: "reg", nome: "Regata", voci: [
+      { nome: "Partenza", sub: "Linea · countdown", url: "partenza/index.html" },
+      { nome: "Percorso", sub: "Boe · giri · laylines", url: "percorso/index.html" },
+      { nome: "Performance", sub: "Velocità vs polare", url: "performance/index.html" } ] },
+    { id: "barca", nome: "Barca", voci: [
+      { nome: "Manutenzione", sub: "Registro di bordo dei lavori", url: "manutenzione/index.html" },
+      { nome: "Prontuario", sub: "Bandiere, fari, fonetico, VHF", url: "prontuario/index.html" },
+      { nome: "Calcoli", sub: "Carichi, carteggio, maree, turni", url: "calcoli/index.html" } ] }
+  ];
+  /* pagine che non stanno in nessuna sezione ma che la barra deve riconoscere */
+  var ALTRE = ["impostazioni/index.html", "mob/index.html"];
+
+  function combacia(url) {
+    var p = location.pathname;
+    if (/\/index\.html$/.test(url)) {
+      var dir = url.slice(0, -"index.html".length);
+      return new RegExp("/" + dir.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(index\\.html)?$").test(p);
+    }
+    return p.slice(-(url.length + 1)) === "/" + url;
+  }
+  function chiave(url) { return url.split("/")[0].replace(/\.html$/, ""); }
+
+  /* dove sono: {mod, sez}. mod vale "" nell'hub. */
+  var QUI = (function () {
+    for (var i = 0; i < SEZIONI.length; i++)
+      for (var j = 0; j < SEZIONI[i].voci.length; j++)
+        if (combacia(SEZIONI[i].voci[j].url)) return { mod: chiave(SEZIONI[i].voci[j].url), sez: SEZIONI[i].id, url: SEZIONI[i].voci[j].url };
+    for (var k = 0; k < ALTRE.length; k++)
+      if (combacia(ALTRE[k])) return { mod: chiave(ALTRE[k]), sez: "", url: ALTRE[k] };
+    return { mod: "", sez: "", url: "" };
+  })();
+
+  var elSotto, elSheet, elSheetScrim, sezAperta = null;
+
+  function barraSotto() {
+    if (QUI.mod === "mob" || document.querySelector(".rf-sotto")) return;
+    var root = document.documentElement;
+    if (QUI.mod) root.setAttribute("data-rf-modulo", QUI.mod);
+    elSotto = document.createElement("nav");
+    elSotto.className = "rf-sotto";
+    elSotto.setAttribute("aria-label", "Sezioni di Dritta");
+    elSotto.innerHTML = SEZIONI.map(function (s) {
+      return '<button type="button" data-sez="' + s.id + '" aria-haspopup="dialog" aria-expanded="false"' +
+        (s.id === QUI.sez ? ' class="qui"' : '') + '>' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' +
+        'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONE[s.id] + '</svg>' +
+        '<span>' + s.nome + '</span></button>';
+    }).join("");
+    elSheetScrim = document.createElement("div");
+    elSheetScrim.className = "rf-sheet-scrim";
+    elSheet = document.createElement("div");
+    elSheet.className = "rf-sheet";
+    elSheet.setAttribute("role", "dialog");
+    elSotto.addEventListener("click", function (e) {
+      var b = e.target.closest("button[data-sez]");
+      if (!b) return;
+      var id = b.getAttribute("data-sez");
+      if (sezAperta === id) chiudiSez(); else apriSez(id);
+    });
+    elSheetScrim.addEventListener("click", chiudiSez);
+    elSheet.addEventListener("click", function (e) {
+      var a = e.target.closest("a");
+      if (a && a.hasAttribute("aria-current")) { e.preventDefault(); chiudiSez(); }
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && sezAperta) chiudiSez();
+    });
+    /* tornando indietro, il browser puo' restituire la pagina com'era: col foglio aperto */
+    window.addEventListener("pageshow", chiudiSez);
+    document.body.appendChild(elSheetScrim);
+    document.body.appendChild(elSheet);
+    document.body.appendChild(elSotto);
+    root.classList.add("rf-con-sotto");
+  }
+
+  function apriSez(id) {
+    var s = SEZIONI.filter(function (x) { return x.id === id; })[0];
+    if (!s) return;
+    if (aperto) chiudiPanel();
+    var base = radice();
+    elSheet.setAttribute("aria-label", s.nome);
+    elSheet.innerHTML = '<h2>' + s.nome + '</h2>' + s.voci.map(function (v) {
+      var qui = v.url === QUI.url;
+      return '<a href="' + base + v.url + '"' + (qui ? ' aria-current="page"' : '') + '>' +
+        '<span class="t"><b>' + esc(v.nome) + '</b><small>' + esc(v.sub) + '</small></span>' +
+        '<span class="fr" aria-hidden="true">' + (qui ? "QUI" : "›") + '</span></a>';
+    }).join("");
+    sezAperta = id;
+    elSheet.classList.add("on"); elSheetScrim.classList.add("on"); elSotto.classList.add("su");
+    Array.prototype.forEach.call(elSotto.querySelectorAll("button[data-sez]"), function (b) {
+      b.setAttribute("aria-expanded", b.getAttribute("data-sez") === id ? "true" : "false");
+    });
+  }
+  function chiudiSez() {
+    if (!elSheet) return;
+    sezAperta = null;
+    elSheet.classList.remove("on"); elSheetScrim.classList.remove("on"); elSotto.classList.remove("su");
+    Array.prototype.forEach.call(elSotto.querySelectorAll("button[data-sez]"), function (b) {
+      b.setAttribute("aria-expanded", "false");
+    });
+  }
+
+  /* Impostazioni: un'icona in fondo alla barra in alto, non una voce della
+     barra in basso — si apre di rado, e li' sotto ogni posto vale coi guanti. */
+  function ingranaggio() {
+    var barra = document.querySelector(".rf-topbar");
+    if (!barra || barra.querySelector(".rf-imp")) return;
+    var a = document.createElement("a");
+    a.className = "rf-imp";
+    a.href = radice() + "impostazioni/index.html";
+    a.setAttribute("aria-label", "Impostazioni");
+    a.title = "Impostazioni";
+    if (QUI.mod === "impostazioni") a.setAttribute("aria-current", "page");
+    var raggi = "";
+    for (var i = 0; i < 8; i++) {
+      var r = i * Math.PI / 4, c = Math.cos(r), s = Math.sin(r);
+      raggi += "M" + (12 + 6.4 * c).toFixed(2) + " " + (12 + 6.4 * s).toFixed(2) +
+               "L" + (12 + 9.2 * c).toFixed(2) + " " + (12 + 9.2 * s).toFixed(2);
+    }
+    a.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" ' +
+      'stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="6.2" stroke-width="1.8"/>' +
+      '<circle cx="12" cy="12" r="2.4" stroke-width="1.8"/><path d="' + raggi + '" stroke-width="2.6"/></svg>';
+    barra.appendChild(a);
+  }
+
   /* ──────────────────────────── avvio ──────────────────────────── */
   function avvia() {
     if (!aggancia()) return;      // pagina senza barra: resta solo il registratore
     scorciatoia();
+    ingranaggio();
+    barraSotto();
     dipingi();
     setInterval(dipingi, 1000);
     window.addEventListener("storage", function (e) {
