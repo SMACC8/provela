@@ -6371,3 +6371,71 @@ Verificato:
 Non verificato: **TTL con la barca che si avvicina**. Il GPS finto dà una
 posizione sola, e la Partenza ricava la COG da posizioni successive: TTL
 resta «non avvicini». Il formato l'ho provato a parte.
+
+---
+
+## 29/09/2026 (11) — Percorso: i comandi della gara sempre in vista
+
+Schizzo approvato da Sergio. Toccata solo la scheda **Regata**; Percorso
+(costruzione) e Analisi restano come erano, tranne titolo e viti.
+
+### Il difetto
+
+Nella scheda Regata **«▶ Avvia», «Boa passata» e «↩ Indietro» stavano
+sotto la planimetria**:
+- telefono, 375 px: a 1003 px dall'inizio di un'area che ne mostra 646;
+- tablet, 800 px: a 1375 su 1106, perché la planimetria era larga quanto lo
+  schermo (780 px).
+
+Per segnare una boa a mano, in gara, bisognava scorrere.
+
+### Com'è
+
+- **I tre comandi in fondo alla scheda, `position:sticky`**: restano in
+  vista dentro `.rf-main`, che è quello che scorre. Non sono un elemento
+  fisso, quindi non vanno nell'elenco di `rf-topbar.js`. Alti 56 px;
+  «Indietro» diventa un «↩» stretto (con `aria-label`), perché a 375 px
+  «Boa passata» andava a capo.
+- **Griglia a quattro blocchi**:
+  - sul telefono: prossima boa e valori, planimetria (al massimo 40vh),
+    vento e comandi secondari;
+  - da 600 px: la planimetria a destra (fino a 62vh), il resto a sinistra.
+    Sul tablet in verticale sta tutto senza scorrere.
+- **«Sposta boa qui» e «Fine registrazione»** su una riga, sotto il vento.
+- **Gli avvisi** salgono sopra la barra dei comandi, invece di coprirla, e
+  vanno a capo invece di uscire dallo schermo a destra.
+- **Via il titolo** «Percorso regata», che ripeteva la barra in alto. **Il
+  piede** entra nel contenuto che scorre, invece di occupare una riga
+  sempre visibile.
+- **Via viti e cornice sfumata**, come nel resto della suite. Scritto nella
+  pagina, non in `raffyca.css`, che è condiviso e precaricato.
+
+### Controlli sugli `id`
+
+- Un solo `id` sparito, `endRecRow`, il contenitore di «Fine
+  registrazione». Nessun codice lo usa (cercato).
+- Sei `id` riferiti dal JavaScript mancano nella pagina: `dialTwd`,
+  `dialTws`, `twdV`, `twsV`, `gpsDot`, `gpsTxt`. **Mancavano identici anche
+  prima** (confrontato con la versione in `main`): è il codice morto già
+  registrato il 04/09.
+
+Service worker: nessuno da alzare. `percorso/` non è nel precache, e l'HTML
+lo serve prima la rete.
+
+### Verificato
+
+Nel browser, con un percorso d'esempio (2 boe, 2 giri) e il simulatore, poi
+tutto cancellato:
+- **«Boa passata» in vista** a 375 px sia in cima sia in fondo alla scheda;
+  a 800 px senza scorrimento;
+- **comandi**: «Boa passata» porta a Boa 2, «↩» torna a Boa 1, fermando il
+  simulatore il bottone torna «▶ Avvia»;
+- **avvisi**: sopra la barra, dentro lo schermo;
+- **schede**: Percorso, Regata e Analisi si alternano;
+- **errori**: nessun errore JavaScript; sintassi con `jsc`.
+
+### Non verificato
+
+- **Una regata vera col GPS**: il passaggio boa automatico entro il raggio
+  non è stato toccato, ma non l'ho visto fuori dal simulatore.
+- **Sfogliare i valori col dito**, dentro la griglia nuova, sul tablet.

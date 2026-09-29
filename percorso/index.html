@@ -178,6 +178,36 @@ html.day #svPlot, html.night #svPlot{background:#040c14;}
 .wb-u{font-size:12px;color:var(--sub);width:18px;flex:none;}
 
 svg text{font-family:var(--mono);}
+
+/* ── 29/09/2026: scheda Regata riorganizzata (schizzo approvato da Sergio) ──
+   Avvia / Boa passata / Indietro stavano sotto la planimetria: a 1003 px su
+   646 visibili sul telefono, a 1375 su 1106 sul tablet. Per segnare una boa
+   bisognava scorrere in gara. Ora stanno in fondo alla scheda, «sticky»:
+   sempre in vista dentro .rf-main, che e' quello che scorre. Non e' un
+   elemento fisso, quindi non va nell'elenco di rf-topbar.js. */
+#viewRc.on{display:grid;grid-template-columns:minmax(0,1fr);gap:11px;
+  grid-template-areas:"a1" "b" "a2" "cmd";}
+.rc-a1{grid-area:a1;} .rc-b{grid-area:b;} .rc-a2{grid-area:a2;} .rc-cmd{grid-area:cmd;}
+.rc-a1,.rc-a2{display:flex;flex-direction:column;gap:11px;min-width:0;}
+.rc-b{min-width:0;}
+#plan{max-height:40vh;}
+@media (min-width:600px){
+  #viewRc.on{grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);grid-template-areas:"a1 b" "a2 b" "cmd cmd";align-items:start;}
+  #plan{max-height:62vh;}
+}
+.rc-cmd{position:sticky;bottom:0;z-index:5;margin:0 -12px -12px;padding:8px 12px 12px;
+  background:var(--bg);border-top:1px solid var(--line);}
+.rc-cmd .rf-btn{min-height:56px;font-size:16px;}
+.passbar.altro .rf-btn{min-height:46px;}
+/* «Indietro» stretto: si usa di rado, e a 375 px «Boa passata» andava a capo */
+.rc-cmd #undoBtn{flex:0 0 60px;font-size:20px;}
+.rc-cmd #raceBtn,.rc-cmd #passBtn{white-space:nowrap;}
+/* gli avvisi salgono sopra la barra dei comandi, invece di coprirla */
+html.rf-con-sotto #toast.rf-toast{bottom:calc(112px + var(--rf-sotto))!important;white-space:normal;text-align:center;}
+/* niente viti e niente cornice sfumata, come nel resto della suite */
+.rf-viti{display:none!important;}
+html:root .rf-instr{background:var(--dp);box-shadow:none;border:1px solid var(--line);}
+html:root .rf-instr .rf-dp{box-shadow:none;background:transparent;}
 </style>
 </head>
 <body class="rf-app">
@@ -197,10 +227,6 @@ svg text{font-family:var(--mono);}
 <script src="../rf-topbar.js" defer></script>
 <script src="../rf-live.js"></script>
 <!-- ===== /rf-topbar ===== -->
-
-<header class="pv-head">
-  <h1>Percorso regata</h1>
-</header>
 
 <main class="rf-main">
 
@@ -327,12 +353,14 @@ svg text{font-family:var(--mono);}
   <!-- ================= REGATA ================= -->
   <section id="viewRc" class="view">
 
+    <!-- 29/09/2026: quattro blocchi in una griglia. Sul telefono la
+         planimetria sta fra i valori e il vento; da 600 px va a destra.
+         I comandi della gara restano sempre in vista in fondo (sticky). -->
+    <div class="rc-a1">
     <div class="racetitle" id="raceTitle"></div>
     <div class="recbadge" id="recBadge" style="display:none">● REC</div>
-
     <div class="rf-instr">
       <div class="rf-dp">
-        <div class="rf-viti"><i></i><i></i><i></i><i></i></div>
         <div class="rf-lbl">Prossima boa <span class="rf-est" id="lapBadge" hidden></span></div>
         <div id="nextName">—</div>
         <div id="nextSub">—</div>
@@ -388,11 +416,15 @@ svg text{font-family:var(--mono);}
       </div>
       <div class="dots" id="dots"></div>
     </div>
+    </div>
 
+    <div class="rc-b">
     <div class="rf-instr planwrap"><div class="rf-dp" style="padding:6px">
       <svg id="plan" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg"></svg>
     </div></div>
+    </div>
 
+    <div class="rc-a2">
     <div class="rf-instr windbar"><div class="rf-dp">
       <div class="wb-hd">
         <span class="rf-lbl">Vento</span>
@@ -410,15 +442,8 @@ svg text{font-family:var(--mono);}
       </div>
     </div></div>
 
-    <div class="passbar">
-      <button class="rf-btn primary" id="raceBtn">▶ Avvia</button>
-      <button class="rf-btn go" id="passBtn" disabled>Boa passata</button>
-      <button class="rf-btn ghost" id="undoBtn" disabled>↩ Indietro</button>
-    </div>
-    <div class="passbar" style="margin-top:8px">
+    <div class="passbar altro">
       <button class="rf-btn go" id="hereBtn" disabled>◎ Sposta boa qui (GPS)</button>
-    </div>
-    <div class="passbar" id="endRecRow" style="margin-top:8px">
       <button class="rf-btn stop" id="endRecBtn" disabled>■ Fine registrazione</button>
     </div>
 
@@ -431,6 +456,13 @@ svg text{font-family:var(--mono);}
         </div>
       </div>
     </details>
+    </div>
+
+    <div class="passbar rc-cmd">
+      <button class="rf-btn primary" id="raceBtn">▶ Avvia</button>
+      <button class="rf-btn go" id="passBtn" disabled>Boa passata</button>
+      <button class="rf-btn ghost" id="undoBtn" disabled aria-label="Indietro di una boa" title="Indietro di una boa">↩</button>
+    </div>
 
   </section>
 
@@ -488,9 +520,9 @@ svg text{font-family:var(--mono);}
       <button class="rf-btn ghost" id="anDelete" style="margin-top:8px">Elimina questa registrazione</button>
     </div>
   </section>
+  <footer class="rf-footer"><b>Dritta</b> · Percorso di regata</footer>
 </main>
 
-<footer class="rf-footer"><b>Dritta</b> · Percorso di regata</footer>
 <div class="rf-toast" id="toast"></div>
 
 <script>
