@@ -187,7 +187,9 @@
   }
   function nomeBarca() {
     var p = leggi("raffyca-profile", {}) || {};
-    return p.boat || p.model || "Dritta";
+    /* senza nome nel profilo si manda «Barca»: «Dritta» e' il nome dell'app,
+       e chi segue lo leggerebbe come il nome della barca (30/09/2026) */
+    return p.boat || p.model || "Barca";
   }
   function payload() {
     if (!cur) return null;

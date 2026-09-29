@@ -6725,3 +6725,100 @@ schermo.
 - **Il GPS vero** in movimento: la soglia di 1 kn è provata solo con fix
   finti.
 - Tema notte: non guardato dopo le modifiche.
+
+---
+
+## 30/09/2026 — Posizione live: il QR in vista, e il nome che arriva a terra
+
+Primo modulo della sezione Navigazione rimasto fuori dal programma di
+riorganizzazione. Metodo solito: inventario, schizzo con la tabella «oggi →
+nello schizzo», approvazione di Sergio, elementi spostati tenendo gli `id`.
+La trasmissione vera (`rf-live.js`) non è stata toccata, salvo il nome
+della barca.
+
+### Cosa c'era
+
+Al tablet (600 px), con il localStorage vuoto:
+- **sei riquadri**, nell'ordine Trasmissione, Dati a bordo, Verso il WP,
+  Impostazioni invio, Link, Dove finisce la posizione: il QR, cioè la cosa
+  che si mostra a chi resta a terra, cominciava a 810 px, sotto la barra in
+  basso;
+- **quattro tipi di scritte sotto i 12 px** (etichette a 9,5, titoli a 11);
+- Copia link e Nuovo codice alti 35-37 px, la frequenza 37;
+- display con le righe da monitor vecchio e l'ombra incassata;
+- tre paragrafi di spiegazione, e un rimando a «Tracce & Waypoint», che
+  non esiste più.
+
+### Il nome della barca
+
+Aprendo la pagina senza profilo si trova, in `posizione/index.html`,
+`boatName()` che ripiega su **«Raffyca»**. Sembrava il nome che arriva a chi
+segue. Non lo era: `boatName()` e `buildPayload()` **non le chiamava nessuno**
+dal 22/08, quando la trasmissione è passata in `rf-live.js`. Il payload vero
+lo costruisce `nomeBarca()` in `rf-live.js`, che ripiegava su **«Dritta»**;
+e `segui.html`, se il nome mancava, mostrava «Raffyca».
+
+Tutti e due i ripieghi sono sbagliati: «Dritta» è il nome dell'app, e chi
+segue da terra lo legge come il nome della barca; «Raffyca» è una barca
+d'esempio. Scelta di Sergio: **«Barca»**, e un avviso nella pagina di bordo.
+
+- `rf-live.js`: il ripiego è «Barca»;
+- `segui.html`: il ripiego è «Barca»;
+- `posizione/index.html`: tolte `boatName()` e `buildPayload()`, codice morto;
+  nuova riga «Chi ti segue vede «Barca»: il nome della barca si mette in
+  Impostazioni», che compare solo se il profilo non ha né `boat` né `model`.
+
+Scartato: lasciare «Raffyca» (non era neanche lui a partire).
+
+### Fatto
+
+- **Trasmissione**: Avvia/Ferma e frequenza sulla stessa riga, alti
+  `--tocco`; sotto «Ultimo invio · prossimo fra»; lo stato; l'avviso del
+  database non configurato porta a Impostazioni. Il riquadro «Dove finisce la
+  posizione» è tolto: diceva la stessa cosa in un secondo posto.
+- **Cosa stai inviando** (erano «Dati a bordo» e «Verso il WP attivo»): SOG,
+  COG, età del fix, posizione, e il waypoint con distanza, TTG, ETA. Display
+  piatti. Senza waypoint: «attivalo dalla Carta».
+- **Link per chi ti segue**: QR da 190 px accanto al link e ai due bottoni;
+  una riga sola di testo. Da 900 px sta nella colonna di destra, in alto.
+- **Età del fix mai negativa**: con l'ora del GPS un po' avanti rispetto
+  all'orologio del dispositivo, usciva «−6s».
+- **Leggibilità**: collegato `raffyca.css`; niente scritte sotto i 12 px;
+  `--sub` schiarito nei tre temi.
+- **`segui.html`, solo leggibilità** (scelta di Sergio: è la pagina pubblica,
+  si tocca poco): display piatti, etichette da 12 px, testi da 13-15 px, la N
+  della bussola da 8 a 11 px, grigio schiarito. Niente spostato.
+
+Service worker: `rf-live.js` sta nel precache di cinque moduli, e sono stati
+alzati tutti e cinque — **`dritta-hub-v33`**, **`xte-v17`**,
+**`raffyca-rt-v33`**, **`raffyca-meteo-v27`**, **`anchor-v25`** —
+altrimenti metà suite avrebbe continuato a mandare «Dritta» dalla cache.
+`posizione/` e `segui.html` non sono in nessun precache.
+
+### Verificato
+
+Nel browser, dal worktree:
+- **localStorage vuoto a 600 px**: tutta la pagina nel primo schermo, QR a
+  608 px (era 810); avviso del database e del nome;
+- **trasmissione con GPS e database finti** (geolocalizzazione e `fetch`
+  sostituiti prima di premere Avvia): parte una `put_pos` con
+  **`b: "Barca"`**, posizione, COG, SOG 5,8, waypoint Pirano a 9,99 nm;
+  pagina in «LIVE», «Trasmissione attiva»;
+- **con il nome nel profilo** l'avviso sparisce;
+- **larghezze**: a 375, 600 e 1000 px niente sborda, nessuna scritta sotto i
+  12 px, nessun comando sotto i 44 px; a 1000 px due colonne;
+- **`segui.html`** a 375 px, con un dato passato a mano a `paint()`: «Barca»,
+  nessuna scritta sotto i 12 px fuori dalla mappa;
+- sintassi con `jsc`; ogni `id` riferito esiste.
+
+APK costruito dal worktree e installato sul tablet via adb, senza toccare lo
+schermo.
+
+### Non verificato
+
+- **Il giro vero**: trasmissione dal tablet e lettura di `segui.html` da un
+  altro telefono, con il progetto Supabase vero.
+- **La traccia attiva non arriva a chi segue**: il payload porta solo il
+  waypoint attivo, mentre gli altri moduli danno la precedenza alla traccia.
+  Non toccato: cambia il contratto del payload.
+- Temi giorno e notte non guardati dopo le modifiche.

@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Posizione Live · Dritta</title>
 <script>(function(){try{var t=localStorage.getItem('raffyca-theme');if(t==='sun')t='day';if(t==='day'||t==='night')document.documentElement.classList.add(t);if(t==='night'){var v=localStorage.getItem('raffyca-notte-velo');v=[0,.35,.55,.75][v==null?2:+v];if(v){document.documentElement.style.setProperty('--rf-velo',v);var s=document.createElement('style');s.textContent='html.night::after{content:"";position:fixed;inset:0;background:#000;opacity:var(--rf-velo,0);pointer-events:none;z-index:2147483000}';document.head.appendChild(s);}}}catch(e){}})();</script>
+<link rel="stylesheet" href="../raffyca.css">
 <style>
 :root{--bg:#060e18;--panel:#0e2036;--panel2:#0b1a2c;--dp:#040c14;--line:#1a3248;--dim:#122030;
   --ink:#deedf5;--sub:#5a7a94;--teal:#2BD9C4;--amber:#FFC24B;--coral:#FF6B6B;--green:#46d68a;
@@ -64,6 +65,40 @@ select,input.mono{font-family:var(--mono);font-size:13px;padding:9px 11px;border
 .muted{color:var(--sub);font-size:12px;}
 .err{color:var(--coral);font-size:12px;}
 a.link{color:var(--teal);word-break:break-all;font-size:12px;font-family:var(--mono);}
+
+/* ── 30/09/2026: leggibilita' e ordine (strato comune in raffyca.css) ──
+   Display piatti, niente scritte sotto i 12 px, comandi alti --tocco;
+   il link col QR sale al secondo posto, da 900 px due colonne. */
+:root{--sub:var(--lab)}
+html.day{--sub:#34495b} html.night{--sub:#c85050}
+body{padding:12px var(--margine) 28px;max-width:1200px;margin-inline:auto;width:100%}
+main.pz,.pz-colA,.pz-colB{display:flex;flex-direction:column;gap:11px}
+@media(min-width:900px){main.pz{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);align-items:start}}
+.card{display:flex;flex-direction:column;gap:9px}
+.card h3{font-size:var(--t-etichetta);letter-spacing:.06em;margin-bottom:0}
+.dp{background:var(--dp);box-shadow:none;border:1px solid var(--line)}
+.lbl{font-size:12px;letter-spacing:.06em;color:var(--sub)}
+.num.big{font-size:var(--t-grande)} .num.mid{font-size:var(--t-titolo)}
+.unit{font-size:13px}
+.muted,.err{font-size:var(--t-piccolo);line-height:1.45}
+.err a{color:inherit}
+.pill{font-size:13px;padding:4px 11px}
+.pill.live .d{width:9px;height:9px}
+button{font-size:var(--t-testo);min-height:var(--tocco)}
+button.primary{font-size:var(--t-testo)}
+button.ghost{font-size:var(--t-piccolo);color:var(--ink)}
+.pz-tx{display:flex;gap:8px}
+.pz-tx button{flex:2}
+.pz-tx select{flex:1;width:auto;min-width:0;min-height:var(--tocco);font-size:var(--t-piccolo)}
+.pz-invii{font-size:var(--t-piccolo);color:var(--sub)}
+.pz-invii b{color:var(--ink);font-weight:600}
+.pz-wp{display:flex;flex-direction:column;gap:9px;border-top:1px solid var(--line);padding-top:10px}
+#wpBox:not([hidden]){display:flex;flex-direction:column;gap:9px}
+.pz-share{display:flex;gap:14px;align-items:center}
+.pz-qr{width:190px;height:190px;flex:none;background:#fff;border-radius:10px;padding:8px;line-height:0}
+.pz-share-r{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
+a.link{font-size:13px}
+@media(max-width:430px){.pz-share{flex-direction:column}.pz-share-r{width:100%}}
 </style>
 </head>
 <body>
@@ -84,85 +119,68 @@ a.link{color:var(--teal);word-break:break-all;font-size:12px;font-family:var(--m
 <!-- ===== /rf-topbar ===== -->
 <script src="../rf-live.js"></script>
 
-<main style="display:flex;flex-direction:column;gap:11px;">
-
+<main class="pz">
+ <div class="pz-colA">
   <div class="card">
     <div class="row" style="justify-content:space-between">
       <h3 style="margin:0">Trasmissione</h3>
       <span class="pill" id="live">FERMA</span>
     </div>
-    <div style="height:10px"></div>
-    <button class="primary" id="btnTx">▶ Avvia trasmissione</button>
-    <div class="muted" id="txMsg" style="margin-top:9px">GPS non ancora attivo.</div>
-    <div class="muted" style="margin-top:7px">Una volta avviata, la trasmissione prosegue anche negli altri moduli di Dritta. Si ferma chiudendo l'app o premendo il tasto qui sopra.</div>
+    <div class="pz-tx">
+      <button class="primary" id="btnTx">▶ Avvia trasmissione</button>
+      <select id="freq" aria-label="Frequenza di trasmissione">
+        <option value="60">ogni 1 min</option>
+        <option value="120">ogni 2 min</option>
+        <option value="300">ogni 5 min</option>
+        <option value="600">ogni 10 min</option>
+        <option value="1800">ogni 30 min</option>
+        <option value="3600">ogni 60 min</option>
+      </select>
+    </div>
+    <div class="pz-invii">Ultimo invio <b class="num" id="lastSent">mai</b> · prossimo fra <b class="num" id="nextIn">—</b></div>
+    <div class="muted" id="txMsg">GPS non ancora attivo.</div>
+    <div class="err" id="nomeMsg" hidden>Chi ti segue vede «Barca»: il nome della barca si mette in <a href="../impostazioni/">Impostazioni</a>.</div>
+    <div class="muted">Continua anche negli altri moduli di Dritta.</div>
   </div>
 
   <div class="card">
-    <h3>Dati a bordo</h3>
+    <h3>Cosa stai inviando</h3>
     <div class="g3">
-      <div class="dp"><div class="lbl">SOG</div><span class="num" style="font-size:30px;color:var(--teal)" id="sog">—</span> <span class="unit">kn</span></div>
-      <div class="dp"><div class="lbl">COG</div><span class="num" style="font-size:30px" id="cog">—</span> <span class="unit">°</span></div>
-      <div class="dp"><div class="lbl">Fix</div><span class="num" style="font-size:18px;color:var(--amber)" id="age">—</span></div>
+      <div class="dp"><div class="lbl">SOG</div><span class="num big" style="color:var(--teal)" id="sog">—</span> <span class="unit">kn</span></div>
+      <div class="dp"><div class="lbl">COG</div><span class="num big" id="cog">—</span> <span class="unit">°</span></div>
+      <div class="dp"><div class="lbl">Fix</div><span class="num big" style="color:var(--amber)" id="age">—</span></div>
     </div>
-    <div class="dp" style="margin-top:9px"><div class="lbl">Posizione</div><span class="num" style="font-size:15px" id="pos">—</span></div>
-  </div>
-
-  <div class="card">
-    <h3>Verso il WP attivo</h3>
-    <div id="wpNone" class="muted">Nessun waypoint attivo. Attivane uno dal Cruscotto o da Tracce &amp; Waypoint.</div>
-    <div id="wpBox" hidden>
-      <div class="dp" style="margin-bottom:9px"><div class="lbl">Waypoint</div><span class="num" style="font-size:16px;color:var(--teal)" id="wpName">—</span></div>
-      <div class="g3">
-        <div class="dp"><div class="lbl">Distanza</div><span class="num" style="font-size:22px" id="rng">—</span> <span class="unit">NM</span></div>
-        <div class="dp"><div class="lbl">TTG</div><span class="num" style="font-size:18px;color:var(--green)" id="ttg">—</span></div>
-        <div class="dp"><div class="lbl">ETA</div><span class="num" style="font-size:18px;color:var(--green)" id="eta">—</span></div>
+    <div class="dp"><div class="lbl">Posizione</div><span class="num mid" id="pos">—</span></div>
+    <div class="pz-wp">
+      <div id="wpNone" class="muted">Nessun waypoint attivo: attivalo dalla Carta.</div>
+      <div id="wpBox" hidden>
+        <div class="dp"><div class="lbl">Verso il waypoint</div><span class="num mid" style="color:var(--teal)" id="wpName">—</span></div>
+        <div class="g3">
+          <div class="dp"><div class="lbl">Distanza</div><span class="num big" id="rng">—</span> <span class="unit">NM</span></div>
+          <div class="dp"><div class="lbl">TTG</div><span class="num mid" style="color:var(--green)" id="ttg">—</span></div>
+          <div class="dp"><div class="lbl">ETA</div><span class="num mid" style="color:var(--green)" id="eta">—</span></div>
+        </div>
+        <div class="muted" id="vmgNote"></div>
       </div>
-      <div class="muted" id="vmgNote" style="margin-top:8px"></div>
     </div>
   </div>
+ </div>
 
-  <div class="card">
-    <h3>Impostazioni invio</h3>
-    <div class="lbl" style="margin-bottom:5px">Frequenza di trasmissione</div>
-    <select id="freq">
-      <option value="60">ogni 1 minuto</option>
-      <option value="120">ogni 2 minuti</option>
-      <option value="300">ogni 5 minuti</option>
-      <option value="600">ogni 10 minuti</option>
-      <option value="1800">ogni 30 minuti</option>
-      <option value="3600">ogni 60 minuti</option>
-    </select>
-    <div class="row" style="justify-content:space-between;margin-top:11px">
-      <span class="muted">Ultimo invio</span><span class="num" style="font-size:13px" id="lastSent">mai</span>
-    </div>
-    <div class="row" style="justify-content:space-between;margin-top:5px">
-      <span class="muted">Prossimo tra</span><span class="num" style="font-size:13px;color:var(--amber)" id="nextIn">—</span>
-    </div>
-  </div>
-
+ <div class="pz-colB">
   <div class="card">
     <h3>Link per chi ti segue</h3>
-    <div class="muted" style="margin-bottom:8px">Chi apre questo link vede la tua posizione in sola lettura. Il codice sessione è la tua chiave: condividilo solo con chi vuoi.</div>
-    <a class="link" id="shareLink" href="#">—</a>
-    <div id="shareWarn" hidden style="margin-top:8px;font-size:12px;line-height:1.45;color:var(--coral)"></div>
-    <div class="row" style="margin-top:11px;gap:9px">
-      <button class="ghost" id="btnCopy" style="flex:1">⧉ Copia link</button>
-      <button class="ghost" id="btnNew">↻ Nuovo codice</button>
+    <div class="pz-share">
+      <div id="qr" class="pz-qr"></div>
+      <div class="pz-share-r">
+        <a class="link" id="shareLink" href="#">—</a>
+        <button class="ghost" id="btnCopy">⧉ Copia link</button>
+        <button class="ghost" id="btnNew">↻ Nuovo codice</button>
+      </div>
     </div>
-    <div style="margin-top:13px;display:flex;flex-direction:column;align-items:center;gap:7px">
-      <div id="qr" style="width:172px;height:172px;background:#fff;border-radius:10px;padding:8px;line-height:0"></div>
-      <div class="muted" style="font-size:11px;text-align:center">Inquadra il codice per aprire il link di sola lettura</div>
-    </div>
+    <div id="shareWarn" hidden class="err"></div>
+    <div class="muted">Sola lettura: dallo solo a chi vuoi.</div>
   </div>
-
-  <div class="card">
-    <h3>Dove finisce la posizione</h3>
-    <div class="muted" style="margin-bottom:8px">Sul tuo progetto Supabase, lo stesso di Manutenzione e Carta. Si configura una volta sola da Impostazioni; qui si vede soltanto se c'è. Non c'è più nessuna chiave da incollare: il codice di scrittura se lo genera Dritta, resta su questo dispositivo e non viaggia nel link.</div>
-    <div class="muted" id="dbMsg" style="margin-bottom:9px"></div>
-    <a class="link" href="../impostazioni/">Apri Impostazioni →</a>
-  </div>
-
-
+ </div>
 </main>
 
 <script>/* QR generator (qrcode-generator, MIT) — inline per uso offline a bordo */
@@ -220,24 +238,11 @@ function wpCalc(){
   return {wp:w,rng:rngNm,brg:bTo,ttg:ttg,eta:eta,vmg:vmg};
 }
 
-/* ---------- payload ---------- */
-function boatName(){try{var p=JSON.parse(localStorage.getItem("raffyca-profile")||"{}");return p.boat||p.model||"Raffyca";}catch(e){return "Dritta";}}
-function buildPayload(){
-  if(!cur)return null;
-  var c=wpCalc();
-  return {
-    b: boatName(),
-    lat:+cur.ll[0].toFixed(6), lon:+cur.ll[1].toFixed(6),
-    cog: cog!=null?Math.round(cog):null,
-    sog: sog!=null?+sog.toFixed(1):null,
-    wp: c.wp?{name:c.wp.name,lat:c.wp.lat,lon:c.wp.lon,
-              rng:c.rng!=null?+c.rng.toFixed(2):null,
-              ttg:c.ttg!=null?Math.round(c.ttg):null,
-              eta:c.eta||null}:null,
-    iv: (+$("freq").value||60),   // intervallo di trasmissione: chi segue lo usa per le soglie "connesso/perso"
-    t: cur.t
-  };
-}
+/* ---------- nome della barca ----------
+   Il payload lo costruisce rf-live.js; qui c'era una copia mai chiamata che
+   ripiegava su «Raffyca». Resta solo l'avviso: senza nome nel profilo, chi
+   segue vede «Barca». */
+function nomeMancante(){try{var p=JSON.parse(localStorage.getItem("raffyca-profile")||"{}");return !(p.boat||p.model);}catch(e){return true;}}
 
 /* ---------- sessione ---------- */
 function session(){
@@ -335,7 +340,7 @@ function syncTx(){
   $("lastSent").textContent=st.ultimoInvio?new Date(st.ultimoInvio)
     .toLocaleTimeString("it",{hour:"2-digit",minute:"2-digit",second:"2-digit"}):"mai";
   var m;
-  if(!st.haConfig) m='<span class="err">Database non configurato: apri Impostazioni e inserisci indirizzo e chiave del progetto Supabase. La trasmissione non parte.</span>';
+  if(!st.haConfig) m='<span class="err">Database non configurato: la trasmissione non parte. Indirizzo e chiave del progetto Supabase si mettono in <a href="../impostazioni/">Impostazioni</a>.</span>';
   else if(!st.on) m='<span class="muted">Trasmissione ferma.</span>';
   else if(st.esito==="ok") m='<span class="muted">Trasmissione attiva.</span>';
   else if(st.esito) m='<span class="err">'+st.esito+'</span>';
@@ -362,7 +367,8 @@ function render(){
   }else{$("wpNone").hidden=false;$("wpBox").hidden=true;}
 }
 function tickUi(){
-  if(cur){var a=Math.round((Date.now()-cur.t)/1000);$("age").textContent=a<60?a+"s":Math.floor(a/60)+"m";}
+  if(cur){var a=Math.max(0,Math.round((Date.now()-cur.t)/1000));   /* ora del GPS avanti rispetto all'orologio: niente «−6s» */
+  $("age").textContent=a<60?a+"s":Math.floor(a/60)+"m";}
   if(txOn&&nextAt){var n=Math.max(0,Math.round((nextAt-Date.now())/1000));$("nextIn").textContent=n+"s";}
 }
 
@@ -372,15 +378,6 @@ $("freq").addEventListener("change",()=>{if(window.rfLive){rfLive.frequenza(+$("
 $("btnCopy").addEventListener("click",async()=>{try{await navigator.clipboard.writeText(shareUrl());$("btnCopy").textContent="✓ Copiato";setTimeout(()=>$("btnCopy").textContent="⧉ Copia link",1500);}catch(e){}});
 $("btnNew").addEventListener("click",()=>{if(confirm("Generare un nuovo codice? Il link precedente smetterà di funzionare."))
   {localStorage.removeItem("raffyca-live-session");refreshShare();}});
-/* ---------- stato del database ----------
-   Un solo avviso, qui sotto. Lo stato in cima alla pagina, in #txMsg, dice
-   un'altra cosa: riguarda la trasmissione, non la configurazione. */
-function dbSync(){
-  var ha=window.rfLive&&rfLive.haConfig();
-  $("dbMsg").innerHTML=ha?'<span class="muted">Progetto configurato su questo dispositivo.</span>'
-                         :'<span class="err">Nessun progetto configurato: la trasmissione non parte.</span>';
-}
-
 /* ---------- avvio ---------- */
 if(window.rfLive){
   var st0=rfLive.stato();
@@ -388,7 +385,7 @@ if(window.rfLive){
   rfLive.onChange(syncTx);
   syncTx();
 }
-dbSync();
+$("nomeMsg").hidden=!nomeMancante();
 refreshShare();
 setInterval(tickUi,1000);
 </script>
