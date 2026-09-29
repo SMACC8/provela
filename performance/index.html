@@ -124,6 +124,43 @@ details.manuale[open]>summary::after{content:"\2212";}
 .empty h4{color:var(--ink);font-size:15px;margin:0 0 6px;}
 svg.polar{width:100%;max-width:330px;display:block;margin:0 auto;}
 .filerow{display:none;}
+
+/* ── 29/09/2026: leggibilita' e tablet (proposta approvata da Sergio) ──────
+   Prima: colonna di 560 px anche sul tablet, diagramma al massimo 330 px,
+   nomi degli indicatori a 9 px. Ora tutto lo schermo; da 700 px indicatori
+   a sinistra e grafico a destra; le scritte salgono di 2-3 px. Le etichette
+   dentro i grafici crescono con il grafico, che e' un SVG in viewBox. */
+.wrap{max-width:1100px;}
+.tab{font-size:15px;padding:13px 4px;}
+.kpi .k{font-size:12px;letter-spacing:.08em;}
+.kpi .v{font-size:24px;}
+.kpi .u{font-size:13px;}
+.kpi .s{font-size:12px;}
+.card h3{font-size:13px;}
+.grp .gh{font-size:12px;}
+.grp .gh .badge{font-size:10.5px;}
+.f label,.shared label{font-size:12px;}
+.hint{font-size:13px;}
+.leg{font-size:13px;}
+.scale{font-size:12px;}
+.rec .rec-vals{font-size:14px;}
+.rec .rec-meta{font-size:12px;}
+.rec .rec-note{font-size:13px;}
+.sess .row{font-size:14px;}
+.slider label{font-size:13px;}
+.live{font-size:16px;}
+svg.polar{max-width:560px;}
+/* il valore misto «40° TWA · 24° AWA» restava a 16 px scritto nel markup */
+#pane-polare .vmg + .vmg .kpi .v{font-size:19px!important;}
+@media (min-width:700px){
+  #pane-polare.on,#pane-traccia.on{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);column-gap:14px;align-items:start;}
+  #pane-polare>*,#pane-traccia>*{grid-column:1;}
+  #pane-polare>.card{grid-column:2;grid-row:1 / span 4;}
+  #pane-traccia>.card:last-child{grid-column:2;grid-row:1 / span 2;}
+  /* nella colonna stretta i tre indicatori stanno meglio su due righe */
+  #pane-polare>.kpis,#pane-traccia>.kpis{grid-template-columns:repeat(2,1fr)!important;}
+  #pane-polare>.kpis>.kpi:first-child,#pane-traccia>.kpis>.kpi:first-child{grid-column:1 / -1;}   /* quello col cursore, su tutta la riga */
+}
 </style>
 </head>
 <body>
@@ -519,21 +556,22 @@ function svgShared(pts,last,vbT,vlT){
 }
 
 /* ==== TRACCIA POLARE ==== */
-function vBoatDemo(twa,tws){var a=rad(twa);var base=Math.pow(Math.sin(a),0.8);
-  var up=Math.max(0,1-Math.abs(twa-45)/60)*0.15;var reach=Math.exp(-Math.pow(twa-110,2)/(2*35*35));
-  return Math.max(0.2,(0.55*base+0.65*reach+up)*(0.5+tws/24)*6.6);}
-function mulberry32(a){return function(){a|=0;a=(a+0x6D2B79F5)|0;var t=Math.imul(a^(a>>>15),1|a);
-  t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296;};}
 var FINALE=false;
-function sessions(){return LS_get('raffyca-polar-cloud',{sessions:[
-  {id:'s1',d:'27/07/26',z:'Golfo di Trieste',n:64,on:true},
-  {id:'s2',d:'20/07/26',z:'Alto Adriatico',n:51,on:true},
-  {id:'s3',d:'12/06/26',z:'Golfo di Trieste',n:45,on:false}]});}
+/* 29/09/2026 — LA TRACCIA POLARE ERA INVENTATA. Le tre «uscite» erano
+   esempi scritti qui (27/07 Golfo di Trieste, 20/07 Alto Adriatico, 12/06),
+   e la nuvola di punti veniva generata a caso da vBoatDemo, una barca
+   d'esempio. Peggio: «Salva come polare della suite» scriveva in
+   raffyca-polar una polare ricavata da quei punti, sopra la ORC vera che
+   usano Cruscotto e Traversata. Scelta di Sergio: svuotare e bloccare.
+   Contano solo le sessioni con punti veri (s.pts); le altre, comprese le
+   tre d'esempio e le «CSV importato» vuote che un dispositivo puo' aver
+   gia' salvato, non si mostrano e non generano niente. */
+function sessions(){var o=LS_get('raffyca-polar-cloud',{sessions:[]})||{};
+  return {sessions:(o.sessions||[]).filter(function(x){return x&&Array.isArray(x.pts)&&x.pts.length;})};}
 function saveSessions(o){LS_set('raffyca-polar-cloud',o);}
-function cloudFor(tws){var o=sessions();var n=o.sessions.filter(function(s){return s.on;}).reduce(function(a,s){return a+s.n;},0);
-  var rnd=mulberry32(7*Math.round(tws)+n),pts=[];
-  for(var i=0;i<n;i++){var twa=30+rnd()*140,side=rnd()<0.5?-1:1,cap=vBoatDemo(twa,tws);
-    pts.push({twa:twa,side:side,stw:cap*(0.62+0.36*Math.pow(rnd(),0.6))});}
+function cloudFor(tws){var pts=[];sessions().sessions.forEach(function(x){if(!x.on)return;
+  x.pts.forEach(function(p){if(p&&isFinite(p.twa)&&isFinite(p.stw)&&isFinite(p.tws)&&Math.abs(p.tws-tws)<=2)
+    pts.push({twa:Math.abs(p.twa),side:p.twa<0?-1:1,stw:p.stw});});});
   return pts;}
 function envelope(cloud){var step=7.5,b={};cloud.forEach(function(p){var k=Math.round(p.twa/step)*step;if(!b[k]||p.stw>b[k])b[k]=p.stw;});
   return Object.keys(b).map(Number).sort(function(x,y){return x-y;}).map(function(t){return {twa:t,stw:b[t]};});}
@@ -565,6 +603,11 @@ function renderTraccia(){
   $('#t-toggle').classList.toggle('primary',!FINALE);
   $('#t-csv').style.display=FINALE?'':'none';
   $('#t-savepol').style.display=FINALE?'':'none';
+  /* senza punti veri: niente curva «definitiva» da mostrare ne' da salvare */
+  if(!cloud.length){
+    $('#t-legenda').innerHTML='<span>Nessuna uscita registrata: la nuvola si riempir\u00e0 quando le uscite verranno registrate.</span>';
+    $('#t-toggle').style.display='none';$('#t-csv').style.display='none';$('#t-savepol').style.display='none';
+  } else $('#t-toggle').style.display='';
 }
 function svgPolar(cloud,env,def,ref){
   var cx=165,cy=170,R=140,VMAX=8,rr=function(v){return Math.min(v,VMAX)/VMAX*R;};
@@ -581,7 +624,9 @@ function svgPolar(cloud,env,def,ref){
     for(var i=0;i<P.length-1;i++){var p0=P[i-1]||P[i],p1=P[i],p2=P[i+1],p3=P[i+2]||p2;
       var c1x=p1[0]+(p2[0]-p0[0])/6,c1y=p1[1]+(p2[1]-p0[1])/6,c2x=p2[0]-(p3[0]-p1[0])/6,c2y=p2[1]-(p3[1]-p1[1])/6;
       d+=' C'+c1x.toFixed(1)+','+c1y.toFixed(1)+' '+c2x.toFixed(1)+','+c2y.toFixed(1)+' '+p2[0].toFixed(1)+','+p2[1].toFixed(1);}return d;}
-  if(ref){var refA=[];for(var t=30;t<=170;t+=5)refA.push({twa:t,stw:vBoatDemo(t,num(($('#t-twsr')||{}).value)||12)});
+  /* il riferimento e' la polare della suite (ORC o caricata), non piu' la barca d'esempio */
+  var PR=LS_get('raffyca-polar',null);if(PR&&!(PR.twa&&PR.tws&&PR.data))PR=null;
+  if(ref&&PR){var refA=[];for(var t=30;t<=170;t+=5)refA.push({twa:t,stw:polarTarget(PR,t,num(($('#t-twsr')||{}).value)||12)});
     s+='<path d="'+poly(refA,-1)+'" fill="none" stroke="var(--sub)" stroke-width="1.2" stroke-dasharray="4 4" opacity=".7"/>';
     s+='<path d="'+poly(refA,1)+'" fill="none" stroke="var(--sub)" stroke-width="1.2" stroke-dasharray="4 4" opacity=".7"/>';}
   if(cloud){cloud.forEach(function(p){var r=rr(p.stw),a=rad(p.twa),x=cx+p.side*r*Math.sin(a),y=cy-r*Math.cos(a);
@@ -599,7 +644,9 @@ $('#t-csv').addEventListener('click',function(){var tws=num($('#t-twsr').value)|
   var rows=[['TWA_deg','STW_kn','TWS_kn']].concat(def.map(function(p){return [p.twa,p.stw.toFixed(2),tws];}));
   dl('polare-definitiva-TWS'+tws+'.csv',rows.map(function(r){return r.join(',');}).join('\n'));});
 $('#t-savepol').addEventListener('click',function(){
-  var tws=num($('#t-twsr').value)||12;var def=definitiva(cloudFor(tws));
+  var tws=num($('#t-twsr').value)||12;var cl=cloudFor(tws);
+  if(!cl.length){$('#t-saved2').textContent='Nessun punto registrato: la polare della suite non viene toccata.';return;}
+  var def=definitiva(cl);
   if(!def.length){$('#t-saved2').textContent='Campione insufficiente per questa fascia.';return;}
   var store=LS_get('raffyca-polar-def',{});store[String(tws)]={twa:def.map(function(p){return p.twa;}),stw:def.map(function(p){return +p.stw.toFixed(2);})};
   LS_set('raffyca-polar-def',store);
@@ -615,12 +662,19 @@ $('#t-savepol').addEventListener('click',function(){
   LS_set('raffyca-polar',pol);
   $('#t-saved2').textContent='Salvata come polare della suite · '+fasce.length+' fascia/e ('+fasce.join(', ')+' kn).';
 });
-/* import CSV (v1: conteggio punti validi; aggancio nuvola reale col formato strumento definitivo) */
+/* import CSV: per ora si CONTANO soltanto i punti validi. Il caricamento
+   della nuvola aspetta un file vero degli strumenti di bordo, per fissarne il
+   formato. Fino al 29/09/2026 qui si creava una sessione «CSV importato» con
+   N punti dichiarati e nessun punto dentro, e il messaggio diceva «N punti
+   validi»: chi importava credeva di averli caricati. Ora non si crea niente e
+   il messaggio lo dice (scelta di Sergio: «messaggio onesto per ora»). */
 $('#t-import').addEventListener('click',function(){$('#t-file').click();});
 $('#t-file').addEventListener('change',function(ev){var file=ev.target.files[0];if(!file)return;
-  var rd=new FileReader();rd.onload=function(){var added=parseCSV(rd.result);
-    var o=sessions();o.sessions.unshift({id:'imp'+Date.now(),d:new Date().toLocaleDateString('it-IT'),z:'CSV importato',n:added,on:true});saveSessions(o);
-    $('#t-saved').textContent=added+' punti validi nel CSV.';renderTraccia();};rd.readAsText(file);ev.target.value='';});
+  var rd=new FileReader();rd.onload=function(){var n=parseCSV(rd.result);
+    $('#t-saved').textContent=n
+      ? 'Riconosciuti '+n+' punti validi, ma il caricamento della nuvola non c’è ancora: non sono stati aggiunti.'
+      : 'Nessun punto valido riconosciuto nel file.';
+    };rd.readAsText(file);ev.target.value='';});
 function parseCSV(txt){
   var lines=txt.split(/\r?\n/).filter(function(l){return l.trim();});if(!lines.length)return 0;
   var sep=lines[0].indexOf(';')>=0?';':',';var head=lines[0].split(sep).map(function(h){return h.trim().toLowerCase();});

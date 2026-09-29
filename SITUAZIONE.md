@@ -6439,3 +6439,108 @@ tutto cancellato:
 - **Una regata vera col GPS**: il passaggio boa automatico entro il raggio
   non è stato toccato, ma non l'ho visto fuori dal simulatore.
 - **Sfogliare i valori col dito**, dentro la griglia nuova, sul tablet.
+
+---
+
+## 29/09/2026 (12) — Performance leggibile, e la Traccia polare che era inventata
+
+Proposta approvata da Sergio; la Traccia polare è una scoperta fatta durante
+il lavoro, decisa con lui.
+
+### Leggibilità e tablet
+
+Chiude i punti rimasti aperti dalla voce 28/09 (6).
+- **Prima**:
+  - colonna di 560 px anche sul tablet;
+  - diagramma polare al massimo 330 px;
+  - nomi degli indicatori a 9 px, schede a 12, note a 10-11.
+- **Ora**:
+  - tutto lo schermo, fino a 1100 px;
+  - da 700 px, in Polare e Traccia polare, indicatori a sinistra (quello
+    col cursore su tutta la riga) e grafico a destra;
+  - diagramma fino a 560 px (393 sul tablet in verticale);
+  - scritte: indicatori 12 px, schede 15 px e alte 48, note 13.
+- Le etichette dentro i grafici crescono con il grafico, che è un SVG in
+  `viewBox`.
+
+### Importa CSV: il messaggio onesto
+
+`parseCSV` **conta** soltanto i punti validi. Prima si creava comunque una
+sessione «CSV importato» con N punti dichiarati e nessuno dentro, e il
+messaggio diceva «N punti validi». Ora:
+- non si crea niente;
+- il messaggio è «Riconosciuti N punti validi, ma il caricamento della
+  nuvola non c'è ancora: non sono stati aggiunti».
+
+Il caricamento vero aspetta un file degli strumenti di Sergio, per fissarne
+il formato (scelta sua: «messaggio onesto per ora»).
+
+### La Traccia polare era inventata — ed era pericolosa
+
+Guardando la scheda con il localStorage vuoto comparivano **tre uscite**:
+- 27/07 Golfo di Trieste, 64 pt;
+- 20/07 Alto Adriatico, 51 pt;
+- 12/06 Golfo di Trieste, 45 pt.
+
+Erano **scritte nel codice**, come valore predefinito di
+`raffyca-polar-cloud`. La nuvola di punti **non veniva da nessuna
+registrazione**: `cloudFor()` generava N punti a caso (`mulberry32`)
+attorno a `vBoatDemo`, una barca d'esempio. Anche «rif. ORC» era
+`vBoatDemo`, non la polare ORC.
+
+**Il pericolo**: «Traccia polare definitiva» → «Salva come polare della
+suite» scriveva in **`raffyca-polar`**, cioè sopra la polare ORC che usano il
+Cruscotto (% polare) e la Traversata (routing), una polare ricavata da punti
+inventati. Nessun avviso. Stessa famiglia del vento «Stima» del Cruscotto
+(voce 29/09 (4)): numeri d'esempio presentati come veri.
+
+Sul tablet di Sergio non è successo: la barra in alto dice «pol ORC» (dal suo
+screenshot di oggi).
+
+Strade proposte a Sergio:
+1. **svuotare e bloccare** (scelta sua);
+2. togliere la scheda;
+3. lasciarla con un'etichetta «esempio».
+
+Fatto:
+- **`sessions()` mostra solo sessioni con punti veri** (`pts`, elenco di
+  `{twa, tws, stw}`; `twa` con segno, negativo a sinistra). Le tre d'esempio
+  e le «CSV importato» vuote, se un dispositivo le ha già salvate, non si
+  vedono e non generano niente. Non vengono cancellate dal dispositivo: il
+  primo salvataggio della lista le toglie comunque.
+- **`cloudFor()` legge quei punti** (fascia TWS ±2 kn), non li inventa.
+  Tolte `vBoatDemo` e `mulberry32`, non più usate.
+- **Il riferimento è la polare della suite** (`polarTarget` su
+  `raffyca-polar`); senza polare, niente riferimento.
+- **Senza punti veri**:
+  - la scheda dice «Nessuna uscita registrata»;
+  - «Traccia polare definitiva» e «Salva come polare della suite» non
+    compaiono;
+  - il salvataggio, anche chiamato a mano, risponde «la polare della suite
+    non viene toccata».
+
+Il formato `pts` è nuovo e **nessuno lo scrive ancora**: è pronto per quando
+si registreranno le uscite, o per l'importazione CSV vera.
+
+Service worker: nessuno da alzare. `performance/` non è nel precache.
+
+### Verificato
+
+Nel browser, con una polare d'esempio poi cancellata:
+- **localStorage con le tre uscite d'esempio e una «CSV importato» vuota**
+  (come può essere su un dispositivo): 0 sessioni mostrate, 0 punti,
+  messaggio «Nessuna uscita registrata», bottoni nascosti;
+- **salvataggio forzato**: messaggio, e `raffyca-polar` identica a prima;
+- **riferimento**: disegnato dalla polare della suite;
+- **una sessione con 56 punti veri**: nuvola disegnata, curva definitiva e
+  «Salva» di nuovo disponibili;
+- **Importa CSV** (file di prova via `DataTransfer`): «Riconosciuti 2 punti
+  validi…», sessioni 3 prima e 3 dopo;
+- **larghezze**: le quattro schede a 375 e 800 px senza scorrimento
+  orizzontale;
+- **errori**: nessun errore JavaScript; sintassi dei 4 script con `jsc`.
+
+### Non verificato
+
+- **Il salvataggio vero della polare da punti reali**: il codice non è
+  cambiato, ma non ci sono ancora punti reali.
