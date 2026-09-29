@@ -218,6 +218,22 @@ main{flex:1;min-height:0;overflow:hidden;padding:10px;}
   transition:opacity .25s,transform .25s;pointer-events:none;white-space:nowrap;
   box-shadow:0 8px 24px -8px rgba(0,0,0,.8);}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ── 29/09/2026: niente scheumorfismo (Sergio: «cruscotto è l'unico che ha
+   elementi scheumorfici, rivetti e cornice. Togli»). Cornice metallica, righe
+   di scansione, viti, riflessi e sfumature diventano superfici piatte, come nel
+   resto della suite. Scritto con html:root davanti perche' vinca anche sulle
+   varianti html.day gia' presenti qui sopra, senza doverle cercare una a una. */
+:root{--piano:#0b1a2c;}
+html.day{--piano:#ffffff;}
+html.night{--piano:#120404;}
+.viti{display:none!important;}
+html:root .instr{background:var(--dp);padding:0;border:1px solid var(--dim);box-shadow:none;}
+html:root .dp{background:var(--dp);box-shadow:none;}
+html:root header,html:root .recbar,html:root .back,html:root .src,html:root .wind-src,html:root .seg,html:root .sheet-card,
+html:root .mbtn,html:root .stepper button,html:root .f-btn,html:root .rec-btn{background:var(--piano);box-shadow:none;text-shadow:none;}
+html:root .seg button.on{background:var(--teal);box-shadow:none;}
+html.day:root .f-btn.stop{background:#fbeaea;}
 </style>
 </head>
 <body>
@@ -765,7 +781,7 @@ function build(){
   if(COMPASS_LAYOUTS.includes(N)){
     const cs=document.createElement('div');
     cs.className='instr slot compass'; cs.dataset.compass='1';
-    cs.innerHTML='<div class="viti"><i></i><i></i><i></i><i></i></div><div class="cwrap"></div>';
+    cs.innerHTML='<div class="cwrap"></div>';
     cs.addEventListener('click',cycleCompassMode);
     g.appendChild(cs);
   }
@@ -775,7 +791,7 @@ function build(){
     slot.className='instr slot';
     slot._shape='';
     slot.dataset.idx=i;
-    slot.innerHTML='<div class="viti"><i></i><i></i><i></i><i></i></div>'+
+    slot.innerHTML=''+
       '<div class="dp"><div class="lbl"></div>'+
       '<div class="numrow"><span class="num"></span><span class="unit"></span></div></div>';
     longPress(slot,i);

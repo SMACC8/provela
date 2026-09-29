@@ -5521,3 +5521,151 @@ monospazio.
 - La cache offline di `raffyca.css`, sia prima sia dopo: il pannello del
   browser blocca i service worker.
 - I temi Giorno e Notte del Meteo convertito.
+
+---
+
+## 29/09/2026 (3) — La Traversata riorganizzata
+
+Sergio, dopo la voce (1): «Traversata non l'hai quasi toccata. È da
+riorganizzare pesantemente.» Aveva ragione: la ricerca per nome non cambiava
+la struttura, che era quella della sua prima schermata del 28/09.
+
+### Com'era
+
+Dall'alto:
+1. titolo e descrizione, «Carica vento reale», la pastiglia dei dati;
+2. **7 caselle** per gli strati;
+3. **9 comandi** per A e B;
+4. la mappa, con sotto una frase sullo zoom;
+5. Naviga, due caselle, Salva in Carta, GPX;
+6. **7 cursori e 3 interruttori** con tre frasi di spiegazione;
+7. il diario;
+8. la polare.
+
+La risposta (quando arrivo, quanto dura, che vento) era **una riga di testo**
+sopra il diario.
+
+### Com'è
+
+Proposta mostrata a Sergio con uno schizzo e approvata:
+
+- **In vista**: «Da» e «A» (nome o coordinate), «Partenza» (ora, con
+  «miglior orario»), la mappa, e il **riquadro della rotta**: arrivo e durata
+  in cifre grandi, distanza con la media, vento minimo e massimo. Sotto, la
+  luce all'arrivo, poi «Naviga» grande e il menu «⋯».
+- **Toccando «Da» o «A»** si apre un foglio con:
+  - la ricerca per nome;
+  - «Dove sono adesso», solo per A;
+  - «Tocca la carta»;
+  - i waypoint ordinati per distanza.
+- **Toccando «Partenza»**: il cursore dell'ora e «Trova il miglior orario».
+- **Gli strati**: nel pulsante con la lista a spunte, in alto a destra sulla
+  carta. Le basi di Leaflet scendono in basso a destra, perché due icone
+  uguali si confondevano.
+- **Il vento sulla carta**: una barra del tempo sopra la mappa, al posto del
+  cursore «Vento in carta adesso».
+- **Nel menu «⋯»**: Salva in Carta, GPX, Ricalcola, Area su A e B, Trascina
+  A e B, Punti di esempio, la zona.
+- **Sezioni chiuse con il riassunto a destra**:
+  - «Impostazioni del calcolo» (es. «senza motore · manovra 12 s»);
+  - «Diario di rotta» (grafico del vento, manovre, CSV e PDF);
+  - «Polare».
+- **Le opzioni di navigazione** («segui la barca», «ricalcola da dove sono»)
+  compaiono solo mentre si naviga.
+- **Tolte le frasi di spiegazione.** Nascosta la riga di testo della rotta,
+  che ripeteva il riquadro: la logica la scrive ancora. L'unico avviso che
+  aveva in più (rotta che non chiude per la distanza dalla costa) è passato
+  nella nota del riquadro.
+- **Tablet in orizzontale e schermi larghi (da 960 px)**: carta a sinistra
+  alta quanto lo schermo, tutto il resto a destra.
+
+### Come è fatto, e perché così
+
+**Gli elementi sono gli stessi, con gli stessi `id`: cambia solo dove
+stanno.** La logica li cerca per `id` in 70 punti, controllati con uno
+script prima di andare avanti. Mancavano solo `areaBtn` e `qarea`, che non
+esistevano già prima, e `wpPick`, protetto da un controllo.
+
+Il resto è **uno script nuovo, in fondo, che avvolge le funzioni esistenti
+invece di riscriverle**:
+- `setAB`: dimentica il nome quando il punto si sposta a mano, e chiude
+  «Tocca la carta» dopo un tocco;
+- `mettiAB`: ricorda il nome;
+- `updateReadout`: riempie il riquadro;
+- `saveUI`: salva i nomi in `raffyca-traversata-ui`, campi `nomeA` e `nomeB`,
+  **senza chiavi nuove**.
+
+Calcolo, salvataggio e navigazione non sono stati toccati.
+
+Scartato **riscrivere la pagina**: sono 1.800 righe con worker, maschere e
+diario, verificate in mare. Un errore lì sarebbe stato silenzioso, mentre uno
+spostamento di markup si vede subito.
+
+Le opzioni di navigazione seguono la classe di `#navBtn`, non di `#navp`:
+`#navp` si accende solo al primo fix GPS, e fino ad allora le opzioni
+sarebbero rimaste nascoste proprio quando servono.
+
+Usa lo strato comune di `raffyca.css` (scala dei caratteri, `--lab`,
+`--tocco`), aggiunto al precache del routing. Service worker:
+**`raffyca-rt-v30`**.
+
+### Verificato
+
+Nel browser, a 375, 600 e 1000 px, con waypoint d'esempio poi cancellati:
+- **larghezza**: la pagina sta nello schermo a 375 e 600 px; a 1000 va su due
+  colonne;
+- **riquadro della rotta**: si riempie con il vento reale;
+- **fogli**:
+  - il foglio di B non mostra il GPS ed elenca i waypoint per distanza;
+  - scelto un waypoint, B prende il nome, la rotta si ricalcola e il nome si
+    salva;
+  - «Tocca la carta» mette A al primo tocco, poi il trascinamento si
+    richiude da solo;
+- **strati, menu e partenza**: si aprono e si chiudono; il menu ha le sue 7
+  voci;
+- **errori**: nessun errore JavaScript; sintassi con `jsc`.
+
+### Non verificato
+
+- «Naviga» e le sue opzioni: il pannello del browser non ha GPS, e
+  `startNav()` si ferma prima. Da provare sul tablet.
+- Temi Giorno e Notte della disposizione nuova.
+
+### Dopo la prima prova di Sergio sul tablet
+
+- **Il foglio «Partenza A» finiva sotto la barra del tempo e il pulsante degli
+  strati.** Il riquadro della carta non chiudeva i livelli dei suoi figli
+  (640 e 1000), che scavalcavano i fogli (41). Risolto con
+  `isolation:isolate` sul riquadro, senza toccare i livelli interni. Poi
+  verificato con `elementFromPoint`: nei punti controllati sopra il foglio il
+  tocco arriva al foglio.
+- **I pulsanti della polare e del diario** avevano ancora lo stile vecchio
+  (`.go` a pillola, 13 px). Ora sono pieni, alti `--tocco`, con la scala
+  comune.
+- **Cruscotto senza scheumorfismo.** Sergio: «cruscotto è l'unico che ha
+  elementi scheumorfici (rivetti e cornice). Togli». Tolte:
+  - la cornice metallica sfumata (`.instr`);
+  - le righe di scansione e l'ombra interna del display (`.dp`);
+  - le quattro viti, sia il markup generato dal JavaScript (2 punti) sia lo
+    stile;
+  - sfumature e riflessi di intestazione, pulsanti, selettori e fogli.
+
+  Il blocco sta in fondo allo stile, con `html:root` davanti, perché vinca
+  anche sulle varianti `html.day`, senza cercarle una per una. Nessun service
+  worker da alzare: `cruscotto/` non è in nessun precache.
+- **Tolta la sezione Polare dalla Traversata.** Sergio: «la polare la
+  toglierei proprio da Traversata. Che senso ha?». Nessuno: era un doppione di
+  Impostazioni, che ha le stesse tre funzioni (ricerca nel DB ORC sullo
+  stesso `routing/orc_med.json`, CSV incollato o da file, ritorno alla
+  integrata). La Traversata usa comunque la polare condivisa
+  (`raffyca-polar`). Controllato prima di togliere.
+
+  Tolti il markup, i due ascoltatori (`polApply`, `polReset`), la ricerca ORC
+  (`orcSelect`, `orcRender`, `orcEnsure`), `saveSharedPolar` (non la usava
+  nessun altro) e il loro CSS. Restano `parsePolarText`, `applyPolar` e
+  `loadSharedPolar`, che caricano la polare condivisa.
+
+  Dentro «Impostazioni del calcolo» c'è ora la riga «Polare · *nome* ›», che
+  porta a `impostazioni/index.html?polar=1`. Usa l'`id` `polStatus`, quindi il
+  nome lo scrive la logica di sempre. Verificato: con una polare ORC salvata
+  la riga dice «Salt 6.50 · ORC», nessun errore.

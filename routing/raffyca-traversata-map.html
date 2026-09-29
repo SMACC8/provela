@@ -11,6 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="Dritta">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%230A1628'/%3E%3Cpath d='M262 92 L262 388 L150 388 Z' fill='%232BD9C4'/%3E%3Cpath d='M286 150 L378 388 L286 388 Z' fill='%23FFC24B'/%3E%3Crect x='140' y='388' width='250' height='24' rx='12' fill='%237B93AC'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<link rel="stylesheet" href="../raffyca.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
   :root{--bg:#0A1628;--bg2:#0E1F33;--ink:#E8EEF2;--sub:#7B93AC;--line:#1C3349;
@@ -141,29 +142,7 @@ html.day [fill="#46d68a"]{fill:#12894f;} html.night [fill="#46d68a"]{fill:#c23a3
   .navp .xte b{font-variant-numeric:tabular-nums;}
   .boat-pin{background:none;border:0;}
   .boatdot{width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:18px solid var(--teal);filter:drop-shadow(0 1px 2px #000);}
-  .polbox{margin:16px 0 0;border:1px solid var(--line);border-radius:14px;background:var(--panel2);overflow:hidden;}
-  .polbox>summary{padding:11px 14px;cursor:pointer;font-size:13.5px;color:var(--ink);font-weight:700;letter-spacing:.02em;list-style:none;}
-  .polbox>summary::-webkit-details-marker{display:none;}
-  .polbox>summary::before{content:'▸ ';color:var(--sub);}
-  .polbox[open]>summary::before{content:'▾ ';}
-  .polbox>summary span{color:var(--sub);font-weight:400;}
-  .polin{padding:0 14px 14px;}
-  .polin .hint{font-size:11px;color:var(--sub);line-height:1.55;margin:2px 0 9px;}
-  .polin code{background:var(--panel);padding:1px 5px;border-radius:5px;color:#9fd8ff;font-size:11px;}
-  .polin textarea{width:100%;box-sizing:border-box;min-height:120px;resize:vertical;background:var(--panel);border:1px solid var(--line);border-radius:10px;color:var(--ink);font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.5;padding:9px 11px;outline:none;}
-  .polin textarea:focus{border-color:var(--sub);}
-  .orcq{width:100%;box-sizing:border-box;background:var(--panel);border:1px solid var(--line);border-radius:10px;color:var(--ink);font-family:var(--mono);font-size:13.5px;padding:10px 12px;outline:none;}
-  .orcq:focus{border-color:var(--teal);}
-  .orcres{list-style:none;margin:8px 0 0;padding:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel);max-height:240px;overflow-y:auto;}
-  .orcres li{padding:9px 12px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;justify-content:space-between;gap:10px;align-items:baseline;}
-  .orcres li:last-child{border-bottom:0;}
-  .orcres li:hover{background:var(--panel2);}
-  .orcres b{color:var(--teal);font-weight:600;font-size:13px;}
-  .orcres .sub{color:var(--sub);font-size:11.5px;white-space:nowrap;}
-  .orcres .none{color:var(--sub);cursor:default;}
   .topo{background:none!important;border:0!important;width:auto!important;height:auto!important;}
-  .polbtns{display:flex;gap:8px;margin:9px 0 4px;}
-  #polPrev{margin-top:8px;}
   .scanbox{display:none;margin:10px 0 0;border:1px solid var(--line);border-radius:14px;background:var(--panel2);padding:10px 14px;}
   .scanbox.on{display:block;}
   .scan-h{font-size:12.5px;color:var(--ink);margin-bottom:4px;}
@@ -195,6 +174,129 @@ html.day [fill="#46d68a"]{fill:#12894f;} html.night [fill="#46d68a"]{fill:#c23a3
   .bar button,.busy span,.find .seg button,.find input[type=text],.find .go,
   .navbtn,.orcq{font-family:var(--sans);}
   .ctrl .v,.read b,.navp .ng b,.navp .xte b,.scan-h b,.diag-sum b{font-family:var(--mono);}
+
+  /* ═══ 29/09/2026: disposizione riorganizzata, sullo strato comune di raffyca.css ═══ */
+  body{padding:12px var(--margine) 24px;}
+  .wrap{max-width:1240px;}
+  .tv-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px;}
+  .tv-head h1{font:700 var(--t-titolo)/1.2 var(--sans);margin:0 auto 0 0;}
+  .tv-head .pill{font-size:var(--t-etichetta);}
+  .tv-mini{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--lab);font:600 var(--t-etichetta) var(--sans);
+    padding:6px 12px;border-radius:999px;cursor:pointer;}
+  .tv-grid{display:grid;gap:12px;grid-template-columns:minmax(0,1fr);}
+  .tv-punti{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .tv-punto{appearance:none;min-height:var(--tocco);text-align:left;padding:8px 12px;border-radius:12px;border:1.5px solid var(--line);
+    background:var(--panel);color:var(--ink);cursor:pointer;display:flex;flex-direction:column;gap:2px;font-family:var(--sans);min-width:0;}
+  .tv-punto:active{transform:scale(.98);}
+  .tv-punto .k{font-size:var(--t-etichetta);color:var(--lab);text-transform:uppercase;letter-spacing:.06em;font-weight:650;display:flex;align-items:center;gap:6px;}
+  .tv-punto .v{font-size:var(--t-testo);font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;}
+  .tv-punto .d{width:10px;height:10px;border-radius:50%;display:inline-block;}
+  .tv-punto .d.a{background:var(--teal);} .tv-punto .d.b{background:var(--coral);}
+  .tv-punto.parte{grid-column:1 / -1;flex-direction:row;align-items:center;justify-content:space-between;gap:10px;}
+  .tv-punto.parte>span:first-child{display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .tv-agg{font-size:var(--t-piccolo);color:var(--teal);white-space:nowrap;}
+  /* isolation: senza, la barra del tempo (640) e gli strati (1000) passavano
+     sopra i fogli (41), che sono fuori dalla carta. Dentro resta tutto uguale. */
+  .tv-mappa .mapwrap{margin:0;isolation:isolate;}
+  #map{height:clamp(300px,52vh,640px);}
+  .tv-strati-btn{position:absolute;top:10px;right:10px;z-index:1000;width:44px;height:44px;border-radius:10px;border:1px solid var(--line);
+    background:var(--panel);color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  .tv-strati-btn[aria-expanded="true"]{border-color:var(--teal);color:var(--teal);}
+  .tv-strati{position:absolute;top:60px;right:10px;z-index:1000;display:flex;flex-direction:column;gap:2px;padding:8px 10px;
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 30px -12px #000;}
+  .tv-strati[hidden]{display:none;}
+  .tv-strati label{display:flex;align-items:center;gap:10px;min-height:40px;font-size:var(--t-piccolo);color:var(--ink);cursor:pointer;white-space:nowrap;}
+  .tv-strati input{width:20px;height:20px;accent-color:var(--teal);}
+  .leaflet-top.leaflet-right{top:auto;bottom:64px;}   /* le basi della carta scendono: in alto a destra ci sono gli strati */
+  #isoLegend{bottom:auto!important;top:96px;}
+  .tv-tempo{position:absolute;left:8px;right:8px;bottom:8px;z-index:640;display:flex;align-items:center;gap:10px;padding:6px 12px;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;font-size:var(--t-piccolo);}
+  .tv-tempo .k{color:var(--lab);white-space:nowrap;}
+  .tv-tempo b{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .tv-tempo input{flex:1;min-width:60px;}
+  .tv-tempo .p{font-family:var(--mono);color:var(--lab);white-space:nowrap;}
+  @media (max-width:480px){.tv-tempo .p{display:none;}}
+  .tv-pannello{display:flex;flex-direction:column;gap:12px;min-width:0;}
+  .tv-rotta{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;padding:12px 14px;border-radius:14px;background:var(--panel);border:1px solid var(--line);}
+  .tv-rotta>div{display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .tv-rotta .k{font-size:var(--t-etichetta);color:var(--lab);text-transform:uppercase;letter-spacing:.06em;font-weight:650;}
+  .tv-rotta .n{font:700 var(--t-grande)/1.1 var(--mono);font-variant-numeric:tabular-nums;}
+  .tv-rotta .m{font:650 var(--t-testo)/1.3 var(--sans);font-variant-numeric:tabular-nums;}
+  .tv-nota{grid-column:1 / -1;margin:0;font-size:var(--t-piccolo);color:var(--amber);line-height:1.4;}
+  .read.luce{margin:0;font-size:var(--t-piccolo);}
+  .read.luce .disc{display:none;}
+  .tv-azioni{display:flex;gap:8px;align-items:stretch;}
+  .tv-azioni .navbtn{flex:1;min-height:var(--tocco);font:700 var(--t-testo) var(--sans);border-radius:12px;}
+  .tv-altro-wrap{position:relative;}
+  .tv-altro-btn{appearance:none;width:var(--tocco);height:100%;min-height:var(--tocco);border-radius:12px;border:1px solid var(--line);
+    background:var(--panel);color:var(--ink);font-size:24px;line-height:1;cursor:pointer;}
+  .tv-altro{position:absolute;right:0;bottom:calc(100% + 6px);z-index:1100;min-width:230px;display:flex;flex-direction:column;gap:2px;padding:6px;
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 30px -12px #000;}
+  .tv-altro[hidden]{display:none;}
+  .tv-altro .go{appearance:none;text-align:left;min-height:48px;padding:0 12px;border:0;border-radius:8px;background:none;color:var(--ink);
+    font:500 var(--t-piccolo) var(--sans);cursor:pointer;}
+  .tv-altro .go:active{background:var(--panel2);}
+  .tv-navopz{display:flex;gap:18px;flex-wrap:wrap;font-size:var(--t-piccolo);color:var(--ink);}
+  .tv-navopz[hidden]{display:none;}
+  .tv-navopz label{display:flex;align-items:center;gap:8px;min-height:40px;}
+  .tv-navopz input{width:20px;height:20px;accent-color:var(--teal);}
+  /* la riga di testo della rotta resta per la logica, ma il riquadro dice le stesse cose */
+  .tv-dett{display:none;}
+  .tv-sez{margin:0;border:1px solid var(--line);border-radius:14px;background:var(--panel2);overflow:hidden;}
+  .tv-sez>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:var(--tocco);
+    padding:0 14px;font:650 var(--t-testo) var(--sans);color:var(--ink);}
+  .tv-sez>summary::-webkit-details-marker{display:none;}
+  .tv-sez>summary::before{content:none!important;}
+  .tv-sez>summary>span{font:400 var(--t-piccolo) var(--sans);color:var(--lab);margin-left:auto;text-align:right;}
+  .tv-sez>summary::after{content:"\203A";font-size:22px;color:var(--lab);transition:transform .15s;}
+  .tv-sez[open]>summary::after{transform:rotate(90deg);}
+  .tv-sez .ctrls{margin:0;padding:4px 14px 14px;}
+  .tv-sez .ctrl .row{font-size:var(--t-piccolo);}
+  .tv-sez .togg{font-size:var(--t-piccolo);}
+  .tv-sez .wprof,.tv-sez .diag{margin:0;border-radius:0;border-left:0;border-right:0;border-bottom:0;}
+  .tv-sez .diag-h b,.tv-sez .drow,.tv-sez .drow .dt b{font-size:var(--t-piccolo);}
+  .tv-sez .diag-sum,.tv-sez .diag-leg,.tv-sez .dsub,.tv-sez .drow .dtag,.tv-sez .drow .dt i{font-size:var(--t-etichetta);}
+  .tv-sez .diag-h .go{padding:6px 12px;font-size:var(--t-etichetta);}
+  .foot{font-size:var(--t-etichetta);margin:0;}
+  /* fogli dal basso */
+  .tv-scrim{position:fixed;inset:0;z-index:40;background:rgba(2,8,14,.55);}
+  .tv-scrim[hidden],.tv-sheet[hidden]{display:none;}
+  .tv-sheet{position:fixed;left:0;right:0;bottom:0;z-index:41;max-width:600px;margin:0 auto;max-height:86dvh;overflow-y:auto;
+    padding:12px 14px calc(16px + env(safe-area-inset-bottom));background:var(--panel);border:1px solid var(--line);border-bottom:0;
+    border-radius:18px 18px 0 0;box-shadow:0 -12px 30px -12px #000;display:flex;flex-direction:column;gap:10px;font-family:var(--sans);}
+  .tv-sheet-h{display:flex;align-items:center;justify-content:space-between;}
+  .tv-sheet-h h2{margin:0;font:700 var(--t-titolo) var(--sans);}
+  .tv-chiudi{appearance:none;width:44px;height:44px;border:0;background:none;color:var(--lab);font-size:28px;cursor:pointer;}
+  .tv-sheet .find{margin:0;}
+  .tv-sheet .find .cerca input{font-size:var(--t-testo);min-height:var(--tocco);}
+  .tv-voce{appearance:none;display:flex;align-items:center;gap:10px;min-height:var(--tocco);padding:0 14px;border-radius:12px;
+    border:1px solid var(--line);background:var(--panel2);color:var(--ink);font:500 var(--t-testo) var(--sans);text-align:left;cursor:pointer;}
+  .tv-voce[hidden]{display:none;}
+  .tv-sottot{font-size:var(--t-etichetta);color:var(--lab);text-transform:uppercase;letter-spacing:.06em;font-weight:650;margin-top:4px;}
+  .tv-wp{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden;}
+  .tv-wp button{appearance:none;display:flex;justify-content:space-between;gap:12px;align-items:center;min-height:52px;padding:0 14px;border:0;
+    border-bottom:1px solid var(--line);background:none;color:var(--ink);font:500 var(--t-testo) var(--sans);text-align:left;cursor:pointer;}
+  .tv-wp button:last-child{border-bottom:0;}
+  .tv-wp button span{font-family:var(--mono);font-size:var(--t-piccolo);color:var(--lab);white-space:nowrap;}
+  .tv-wp .vuoto{padding:14px;font-size:var(--t-piccolo);color:var(--lab);}
+  .tv-grande{font-size:var(--t-grande)!important;}
+  .tv-link{display:flex;align-items:center;gap:10px;min-height:var(--tocco);margin:0 14px 4px;padding:0 12px;border-radius:12px;
+    border:1px solid var(--line);background:var(--panel);color:var(--ink);text-decoration:none;font:500 var(--t-piccolo) var(--sans);}
+  .tv-link #polStatus{margin-left:auto;color:var(--lab);text-align:right;}
+  .tv-link>span:last-child{color:var(--lab);font-size:20px;}
+  /* diario: i pulsanti vecchi (.go a pillola, 13 px mono) nello stile dei fogli */
+  .tv-sez .diag-h .go{appearance:none;min-height:var(--tocco);padding:0 16px;border-radius:12px;
+    border:1px solid var(--line);background:var(--panel);color:var(--ink);font:500 var(--t-piccolo) var(--sans);cursor:pointer;flex:1 1 auto;}
+  .tv-sez .diag-h .go{min-height:40px;flex:0 0 auto;}
+  .tv-sez .diag-h .go:active{background:var(--panel2);}
+  .tv-sheet .ctrl .row .k{font-size:var(--t-piccolo);}
+  .tv-sheet .scanbox{margin:0;}
+  /* tablet in orizzontale e schermi larghi: carta a sinistra, il resto a destra */
+  @media (min-width:960px){
+    .tv-grid{grid-template-columns:minmax(0,1.7fr) minmax(340px,1fr);grid-template-areas:"mappa punti" "mappa pannello";align-items:start;}
+    .tv-punti{grid-area:punti;} .tv-mappa{grid-area:mappa;position:sticky;top:calc(var(--rf-barra,40px) + 8px);} .tv-pannello{grid-area:pannello;}
+    #map{height:calc(100dvh - var(--rf-barra,40px) - var(--rf-sotto,0px) - 90px);min-height:420px;}
+  }
 </style></head>
 <body>
 <!-- ===== rf-topbar: markup canonico. CSS e logica stanno in ../rf-topbar.js
@@ -216,129 +318,154 @@ html.day [fill="#46d68a"]{fill:#12894f;} html.night [fill="#46d68a"]{fill:#c23a3
 <!-- ===== /rf-topbar ===== -->
 
 <div class="wrap">
-  <!-- niente link di ritorno qui: la vela della rf-topbar e' gia' l'uscita dal modulo,
-       e l'occhiello qui sotto dice gia' dove sei. -->
-  <div class="eyebrow">Dritta · Traversata</div>
-  <h1>Traversata</h1>
-  <p class="lede">Vento, isocrone e rotta sopra la carta <b>OpenSeaMap</b>.</p>
-
-  <div class="bar">
-    <button data-area="custom" id="customAreaBtn" style="display:none"></button>
-    <button id="loadBtn" class="load">⟳ Carica vento reale</button>
+  <!-- 29/09/2026: la Traversata riorganizzata. Gli elementi sono gli stessi di
+       prima, con gli stessi id (la logica li cerca per id): cambia dove stanno.
+       In vista restano da dove, a dove, quando, la mappa e la risposta; il resto
+       e' nel pulsante degli strati, nel menu «⋯» e nelle sezioni chiuse. -->
+  <div class="tv-head">
+    <h1>Traversata</h1>
     <span class="pill demo" id="pill">campo sintetico</span>
-  </div>
-  <div class="toggle">
-    <label><input type="checkbox" id="tSea" checked> OpenSeaMap</label>
-    <label><input type="checkbox" id="tCoast"> costa modello</label>
-    <label><input type="checkbox" id="tWind" checked> vento</label>
-    <label><input type="checkbox" id="tIso"> isocrone</label>
-    <label title="Mostra solo le isocrone dentro un corridoio attorno alla congiungente A-B: non cambia il calcolo, toglie dalla vista i fronti che riguardano mari dove non stai andando"><input type="checkbox" id="tIsoCorr"> solo isocrone della rotta</label>
-    <label><input type="checkbox" id="tNames" checked> toponimi</label>
-    <label><input type="checkbox" id="tBathy"> batimetria</label>
+    <button id="loadBtn" class="tv-mini" title="Scarica di nuovo il vento previsto">⟳ vento</button>
   </div>
 
-  <div class="find">
-    <div class="seg" role="group" aria-label="Imposta punto">
-      <button data-ab="A" class="on">Partenza A</button>
-      <button data-ab="B">Arrivo B</button>
+  <div class="tv-grid">
+    <div class="tv-punti">
+      <button type="button" class="tv-punto" id="tvA" data-punto="A"><span class="k"><i class="d a"></i>Da</span><span class="v" id="tvAv">—</span></button>
+      <button type="button" class="tv-punto" id="tvB" data-punto="B"><span class="k"><i class="d b"></i>A</span><span class="v" id="tvBv">—</span></button>
+      <button type="button" class="tv-punto parte" id="tvT"><span><span class="k">Partenza</span><span class="v" id="tvTv">—</span></span><span class="tv-agg">miglior orario ›</span></button>
     </div>
-    <select id="wpPick" title="Imposta A/B da un waypoint salvato" style="font:inherit;padding:8px 10px;border-radius:8px;border:1px solid var(--line,#1a3248);background:var(--panel2);color:var(--ink)"><option value="">— A/B da waypoint —</option></select>
+
+    <div class="tv-mappa">
+      <div class="mapwrap">
+        <div id="map"></div>
+        <svg id="rfOverlay" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div class="busy" id="busy" hidden><span id="busyTx">⏳ Preparo la costa (una volta sola)…</span></div>
+        <div id="isoLegend" style="display:none;position:absolute;left:8px;bottom:8px;z-index:650;pointer-events:none;background:rgba(6,14,24,.85);border:1px solid #1a3248;border-radius:8px;padding:6px 9px;font:600 10px ui-monospace,monospace;color:#cfe">
+          <div style="opacity:.65;margin-bottom:3px;letter-spacing:.5px">BATIMETRIA (m)</div>
+          <span style="color:#8fe3ff">━</span>5 <span style="color:var(--teal)">━</span>10 <span style="color:var(--green)">━</span>20 <span style="color:var(--amber)">━</span>50 <span style="color:var(--coral)">━</span>100 <span style="color:#c792ea">━</span>200 <span style="color:#f78fb3">━</span>500 <span style="color:#9aa7ff">━</span>1000
+        </div>
+        <button type="button" class="tv-strati-btn" id="tvStratiBtn" aria-label="Strati della carta" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7l1.5 1.5L8 6M4 13l1.5 1.5L8 12M4 19l1.5 1.5L8 18M11 7h9M11 13h9M11 19h9"/></svg>
+        </button>
+        <div class="tv-strati" id="tvStrati" hidden>
+          <label><input type="checkbox" id="tSea" checked> OpenSeaMap</label>
+          <label><input type="checkbox" id="tWind" checked> vento</label>
+          <label><input type="checkbox" id="tNames" checked> toponimi</label>
+          <label><input type="checkbox" id="tBathy"> batimetria</label>
+          <label><input type="checkbox" id="tIso"> isocrone</label>
+          <label><input type="checkbox" id="tIsoCorr"> solo quelle della rotta</label>
+          <label><input type="checkbox" id="tCoast"> costa del modello</label>
+        </div>
+        <div class="tv-tempo">
+          <span class="k">vento alle</span><b id="windHourLbl">—</b>
+          <input type="range" id="windHour" min="0" max="14" step="1" value="2" aria-label="Ora del vento sulla carta">
+          <span class="p" id="windPtLbl">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tv-pannello">
+      <div class="tv-rotta" id="tvRotta">
+        <div><span class="k">Arrivo</span><span class="n" id="rArr">—</span></div>
+        <div><span class="k">Durata</span><span class="n" id="rDur">—</span></div>
+        <div><span class="k">Rotta</span><span class="m" id="rDist">—</span></div>
+        <div><span class="k">Vento</span><span class="m" id="rVento">—</span></div>
+        <p class="tv-nota" id="rNota" hidden></p>
+      </div>
+      <div class="read luce" id="luceArr" style="display:none"></div>
+
+      <div class="tv-azioni">
+        <button class="navbtn" id="navBtn">▶ Naviga</button>
+        <div class="tv-altro-wrap">
+          <button type="button" class="tv-altro-btn" id="tvAltroBtn" aria-label="Altre azioni" aria-expanded="false">⋯</button>
+          <div class="tv-altro" id="tvAltro" hidden>
+            <button class="go" id="saveTrkBtn">⤓ Salva in Carta</button>
+            <button class="go" id="gpxBtn">⬇ Esporta GPX</button>
+            <button class="go" id="recalcBtn">↻ Ricalcola</button>
+            <button class="go" id="fitBtn">⤢ Area su A e B</button>
+            <button class="go" id="abMoveBtn">✥ Trascina A e B</button>
+            <button class="go" id="resetBtn">↺ Punti di esempio</button>
+            <button data-area="custom" id="customAreaBtn" class="go" style="display:none"></button>
+          </div>
+        </div>
+      </div>
+      <div class="tv-navopz" id="tvNavOpz" hidden>
+        <label><input type="checkbox" id="navFollow" checked> segui la barca</label>
+        <label><input type="checkbox" id="navReroute"> ricalcola da dove sono</label>
+      </div>
+      <div class="navp" id="navp"></div>
+
+      <div class="read tv-dett" id="read"></div>
+
+      <details class="tv-sez" id="tvCalc">
+        <summary>Impostazioni del calcolo<span id="calcSum"></span></summary>
+        <!-- la polare si sceglie in Impostazioni (ORC, CSV, integrata): qui solo quale e' attiva -->
+        <a class="tv-link" href="../impostazioni/index.html?polar=1"><span>Polare</span><span id="polStatus">integrata</span><span aria-hidden="true">›</span></a>
+        <div class="ctrls">
+          <div class="ctrl">
+            <label class="togg"><input type="checkbox" id="motorOn"> Motore disponibile</label>
+            <div class="row" style="margin-top:6px"><span class="k">Velocità motore</span><span class="v"><span id="motV">5.5</span> kt</span></div>
+            <input type="range" id="mot" min="3" max="8" step="0.5" value="5.5" disabled>
+          </div>
+          <div class="ctrl">
+            <div class="row"><span class="k">Perdita per manovra</span><span class="v"><span id="tackV">12</span> s</span></div>
+            <input type="range" id="tackPen" min="0" max="40" step="2" value="12">
+            <div class="row" style="margin-top:8px"><span class="k">Resa rispetto alla polare</span><span class="v"><span id="effV">100</span>%</span></div>
+            <input type="range" id="polarEff" min="50" max="100" step="5" value="100">
+          </div>
+          <div class="ctrl">
+            <label class="togg"><input type="checkbox" id="windCapOn"> Evita vento forte</label>
+            <div class="row" style="margin-top:6px"><span class="k">Oltre</span><span class="v"><span id="windCapV">25</span> kt</span></div>
+            <input type="range" id="windCap" min="12" max="40" step="1" value="25" disabled>
+          </div>
+          <div class="ctrl">
+            <label class="togg"><input type="checkbox" id="coastOn"> Stai lontano dalla costa</label>
+            <div class="row" style="margin-top:6px"><span class="k">Almeno</span><span class="v"><span id="coastV">2</span> NM</span></div>
+            <input type="range" id="coastBuf" min="0" max="7" step="1" value="3" disabled>
+          </div>
+        </div>
+      </details>
+
+      <details class="tv-sez" id="tvDiario">
+        <summary>Diario di rotta<span id="diagCount"></span></summary>
+        <div class="wprof" id="wprof"></div>
+        <div class="diag" id="diag">
+          <div class="diag-h"><b>Mure e rotazioni</b><span style="display:flex;gap:6px;align-items:center;margin-left:auto"><button class="go" id="diagCsv">CSV</button><button class="go" id="diagPdf">PDF</button></span></div>
+          <div class="diag-sum" id="diagSum"></div>
+          <div class="diag-body" id="diagBody"></div>
+          <div class="diag-leg"><b>virata</b> = cambio mure di prua · <b>strambata</b> = di poppa · <b>rifiuto</b> = vento contro · <b>alzata</b> = vento a favore.</div>
+        </div>
+      </details>
+
+
+      <p class="foot">© OSM · CARTO · OpenSeaMap · polari © ORC. Stime: validale in mare.</p>
+    </div>
+  </div>
+</div>
+
+<!-- fogli: punto A o B, e partenza -->
+<div class="tv-scrim" id="tvScrim" hidden></div>
+<div class="tv-sheet" id="tvSheetPunto" role="dialog" aria-labelledby="spTitolo" hidden>
+  <div class="tv-sheet-h"><h2 id="spTitolo">Partenza A</h2><button type="button" class="tv-chiudi" data-chiudi aria-label="Chiudi">×</button></div>
+  <div class="find">
     <div class="cerca" role="search">
-      <input id="abCerca" type="search" placeholder="Cerca località…" autocomplete="off" spellcheck="false" aria-label="Cerca una località per A o B">
+      <input id="abCerca" type="search" placeholder="Cerca località…" autocomplete="off" spellcheck="false" aria-label="Cerca una località">
       <div id="abRis" class="ris" hidden></div>
     </div>
-    <button class="go" id="aGpsBtn" title="Mette la partenza A dove sei adesso (GPS)">📍 A = qui</button>
-    <button class="go" id="abMoveBtn" title="Attiva lo spostamento di A e B: quando è attivo puoi trascinare i pin o toccare la carta. Evita spostamenti accidentali su touch.">✥ Muovi A/B</button>
-    <button class="go" id="resetBtn" title="Riporta A e B ai punti di esempio">↺ Reset</button>
-    <button class="go" id="fitBtn" title="Crea un'area di mare che racchiude A e B (es. Trieste↔Venezia)">⤢ Area su A↔B</button>
-    <button class="go" id="recalcBtn" title="Ricalcola la rotta">↻ Aggiorna</button>
   </div>
-
-  <div class="mapwrap">
-    <div id="map"></div>
-    <svg id="rfOverlay" xmlns="http://www.w3.org/2000/svg"></svg>
-    <div class="busy" id="busy" hidden><span id="busyTx">⏳ Preparo la costa (una volta sola)…</span></div>
-    <div id="isoLegend" style="display:none;position:absolute;left:8px;bottom:8px;z-index:650;pointer-events:none;background:rgba(6,14,24,.85);border:1px solid #1a3248;border-radius:8px;padding:6px 9px;font:600 10px ui-monospace,monospace;color:#cfe">
-      <div style="opacity:.65;margin-bottom:3px;letter-spacing:.5px">BATIMETRIA (m)</div>
-      <span style="color:#8fe3ff">━</span>5 <span style="color:var(--teal)">━</span>10 <span style="color:var(--green)">━</span>20 <span style="color:var(--amber)">━</span>50 <span style="color:var(--coral)">━</span>100 <span style="color:#c792ea">━</span>200 <span style="color:#f78fb3">━</span>500 <span style="color:#9aa7ff">━</span>1000
-    </div>
+  <button class="tv-voce" id="aGpsBtn">📍 A = qui</button>
+  <button type="button" class="tv-voce" id="spTocca">Tocca la carta</button>
+  <div class="tv-sottot">Waypoint</div>
+  <div class="tv-wp" id="spWp"></div>
+</div>
+<div class="tv-sheet" id="tvSheetPart" role="dialog" aria-labelledby="stTitolo" hidden>
+  <div class="tv-sheet-h"><h2 id="stTitolo">Partenza</h2><button type="button" class="tv-chiudi" data-chiudi aria-label="Chiudi">×</button></div>
+  <div class="ctrl">
+    <div class="row"><span class="k">Parti alle</span><span class="v tv-grande" id="depLbl">—</span></div>
+    <input type="range" id="dep" min="0" max="14" step="1" value="2" aria-label="Ora di partenza">
   </div>
-  <div class="hint" style="margin:6px 28px 0">Zoom mappa: tieni premuto ⌘/Ctrl (o Alt) e scorri. Su telefono: pizzica.</div>
-
-  <div class="navbar">
-    <button class="navbtn" id="navBtn">▶ Naviga</button>
-    <label><input type="checkbox" id="navFollow" checked> segui la barca</label>
-    <label title="In navigazione: rifà la rotta partendo dalla tua posizione GPS attuale (invece che da A)"><input type="checkbox" id="navReroute"> ricalcola da qui</label>
-    <button class="go" id="saveTrkBtn" style="margin-left:auto">⤓ Salva in Carta</button>
-    <button class="go" id="gpxBtn">⬇ Esporta GPX</button>
-  </div>
-  <div class="navp" id="navp"></div>
-
-  <div class="ctrls">
-    <div class="ctrl">
-      <div class="row"><span class="k">Partenza</span><span class="v" id="depLbl">—</span></div>
-      <input type="range" id="dep" min="0" max="14" step="1" value="2">
-      <div class="row" style="margin-top:8px"><span class="k">Vento in carta adesso</span><span class="v" id="windHourLbl">—</span></div>
-      <input type="range" id="windHour" min="0" max="14" step="1" value="2">
-      <div class="row" style="margin-top:6px"><span class="k">Vento nel punto</span><span class="v" id="windPtLbl">—</span></div>
-      <div class="hint">Trascina per vedere il vento a un'altra ora: il pallino mostra dove saresti.</div>
-      <button class="go" id="scanBtn" style="margin-top:8px;width:100%">Trova il miglior orario</button>
-    </div>
-    <div class="ctrl">
-      <label class="togg"><input type="checkbox" id="motorOn"> Motore disponibile</label>
-      <div class="row" style="margin-top:6px"><span class="k">Velocità motore</span><span class="v"><span id="motV">5.5</span> kt</span></div>
-      <input type="range" id="mot" min="3" max="8" step="0.5" value="5.5" disabled>
-      <div class="row" style="margin-top:8px"><span class="k">Perdita per manovra</span><span class="v"><span id="tackV">12</span> s</span></div>
-      <input type="range" id="tackPen" min="0" max="40" step="2" value="12">
-      <div class="row" style="margin-top:8px"><span class="k">Efficienza vela</span><span class="v"><span id="effV">100</span>%</span></div>
-      <input type="range" id="polarEff" min="50" max="100" step="5" value="100">
-      <div class="hint">Quanto rendi rispetto alla polare teorica.</div>
-    </div>
-    <div class="ctrl">
-      <label class="togg"><input type="checkbox" id="windCapOn"> Evita vento forte</label>
-      <div class="row" style="margin-top:6px"><span class="k">Soglia</span><span class="v">oltre <span id="windCapV">25</span> kt</span></div>
-      <input type="range" id="windCap" min="12" max="40" step="1" value="25" disabled>
-      <div class="hint">La rotta evita le zone oltre soglia.</div>
-    </div>
-    <div class="ctrl">
-      <label class="togg"><input type="checkbox" id="coastOn"> Non avvicinarti troppo alla costa</label>
-      <div class="row" style="margin-top:6px"><span class="k">Buffer</span><span class="v"><span id="coastV">2</span> NM</span></div>
-      <input type="range" id="coastBuf" min="0" max="7" step="1" value="3" disabled>
-      <div class="hint">Distanza minima dalla terra (un punto sottocosta può comunque uscire).</div>
-    </div>
-  </div>
+  <button class="go tv-voce" id="scanBtn">Trova il miglior orario</button>
   <div class="scanbox" id="scanRes"></div>
-
-  <div class="read" id="read"></div>
-  <div class="read luce" id="luceArr" style="display:none"></div>
-
-  <div class="wprof" id="wprof"></div>
-
-  <div class="diag" id="diag">
-    <div class="diag-h"><b>Diario di bordo · mure & rotazioni</b><span style="display:flex;gap:6px;align-items:center;margin-left:auto"><button class="go" id="diagCsv" style="padding:4px 9px;font-size:11px">CSV</button><button class="go" id="diagPdf" style="padding:4px 9px;font-size:11px">PDF</button><span id="diagCount"></span></span></div>
-    <div class="diag-sum" id="diagSum"></div>
-    <div class="diag-body" id="diagBody"></div>
-    <div class="diag-leg"><b>virata</b> = cambio mure di prua · <b>strambata</b> = di poppa · <b>rifiuto</b> = vento contro · <b>alzata</b> = vento a favore.</div>
-  </div>
-
-  <details class="polbox">
-    <summary>Polare della barca · <span id="polStatus">integrata</span></summary>
-    <div class="polin">
-      <input type="search" id="orcQ" class="orcq" autocomplete="off" placeholder="Cerca la barca nel DB ORC (es. First 36.7, Italia 9.98, Swan 42)">
-      <ul class="orcres" id="orcRes" hidden></ul>
-      <div class="polbtns">
-        <button class="go" id="polReset">Ripristina la polare integrata</button>
-        <button class="go" id="orcPasteBtn">Incolla CSV…</button>
-      </div>
-      <div id="polPasteWrap" hidden style="margin-top:6px">
-        <textarea id="polText" spellcheck="false" placeholder="twa/tws;6;8;10;12;14;16;20&#10;52;4.55;5.42;5.90;6.20;6.42;6.55;6.75&#10;60;4.85;5.70;6.15;6.45;6.66;6.80;7.05&#10;75;5.10;5.95;6.40;6.70;6.95;7.15;7.55&#10;90;5.05;5.96;6.50;6.90;7.20;7.55;8.10"></textarea>
-        <div class="polbtns"><button class="go" id="polApply">Applica polare</button></div>
-      </div>
-      <div id="polPrev"></div>
-    </div>
-  </details>
-
-  <p class="foot">© OSM · CARTO · OpenSeaMap · polari © ORC. Stime: validale in mare.</p>
 </div>
 <div id="toast"></div>
 
@@ -389,7 +516,6 @@ function parsePolarText(text){
   return {TWS:TWSv,TWA:TWAv,PV:grid,maxB:maxB};}
 function applyPolar(p){TWS=p.TWS;TWA=p.TWA;PV=p.PV;rebuildWorker();computeRoute();renderPolarPreview();}
 /* ---- polare condivisa nella suite (chiave raffyca-polar, forma Performance {twa,tws,data}) ---- */
-function saveSharedPolar(p,meta){try{localStorage.setItem('raffyca-polar',JSON.stringify({twa:p.TWA,tws:p.TWS,data:p.PV,meta:meta||{source:'traversata'},ts:Date.now()}));}catch(e){}}
 function sharedToCSV(s){var rows=['twa/tws;'+s.tws.join(';')];for(var i=0;i<s.twa.length;i++)rows.push(s.twa[i]+';'+((s.data[i]||[]).join(';')));return rows.join('\n');}
 function loadSharedPolar(){try{var s=JSON.parse(localStorage.getItem('raffyca-polar')||'null');
   if(!(s&&s.twa&&s.tws&&s.data&&s.twa.length&&s.tws.length&&s.data.length))return false;
@@ -1481,7 +1607,7 @@ function initMap(){if(typeof L==='undefined'){return;}
   namesLayer=buildNames();namesLayer.addTo(map);
   map.on('move zoom viewreset zoomend moveend resize',redraw);
   map.on('moveend zoomend',saveSharedView);
-  map.on('click',function(e){if(!AB_MOVE){toast('Tocca “Muovi A/B” per spostare i punti');return;}setAB(activeAB,e.latlng.lat,e.latlng.lng);});
+  map.on('click',function(e){if(!AB_MOVE){toast('Per spostare A o B tocca «Da» o «A» sopra la carta');return;}setAB(activeAB,e.latlng.lat,e.latlng.lng);});
   fitArea(FIELD.area);placeMarkers();redraw();}
 
 function setPill(){var p=document.getElementById('pill');if(FIELD.source==='live'){p.className='pill live';p.textContent='dati live · '+MODELN;}else{p.className='pill demo';p.textContent='campo sintetico';}}
@@ -1493,8 +1619,8 @@ function loadArea(area){var vt=depT();LIVE_SEQ++;resetAB(area);synthField(area);
   if(LIVE_AUTO&&navigator.onLine!==false)loadReal();}
 function loadReal(){var area=FIELD.area,b=document.getElementById('loadBtn');b.textContent='⟳ scarico…';
   var vt=depT(),seq=++LIVE_SEQ;
-  fetch(buildURL(area)).then(function(r){return r.json();}).then(function(j){if(seq!==LIVE_SEQ){b.textContent='⟳ Carica vento reale';return;}parseField(j,area);syncDep(vt);WIND_VIEW=null;setPill();computeRoute();b.textContent='⟳ Carica vento reale';})
-  .catch(function(){b.textContent='⟳ Carica vento reale';if(seq!==LIVE_SEQ)return;var p=document.getElementById('pill');p.className='pill demo';p.textContent='offline — campo sintetico';});}
+  fetch(buildURL(area)).then(function(r){return r.json();}).then(function(j){if(seq!==LIVE_SEQ){b.textContent='⟳ vento';return;}parseField(j,area);syncDep(vt);WIND_VIEW=null;setPill();computeRoute();b.textContent='⟳ vento';})
+  .catch(function(){b.textContent='⟳ vento';if(seq!==LIVE_SEQ)return;var p=document.getElementById('pill');p.className='pill demo';p.textContent='offline — campo sintetico';});}
 
 document.querySelectorAll('.bar button[data-area]').forEach(function(b){b.addEventListener('click',function(){document.querySelectorAll('.bar button[data-area]').forEach(function(x){x.classList.toggle('on',x===b);});loadArea(b.getAttribute('data-area'));});});
 document.querySelectorAll('.find .seg button').forEach(function(b){b.addEventListener('click',function(){activeAB=b.getAttribute('data-ab');document.querySelectorAll('.find .seg button').forEach(function(x){x.classList.toggle('on',x===b);});});});
@@ -1543,8 +1669,6 @@ document.getElementById('tCoast').addEventListener('change',redraw);
 document.getElementById('navBtn').addEventListener('click',function(){if(NAV.on)stopNav();else startNav();});
 document.getElementById('gpxBtn').addEventListener('click',downloadGPX);
 document.getElementById('saveTrkBtn').addEventListener('click',salvaInCarta);
-document.getElementById('polApply').addEventListener('click',function(){var r=parsePolarText(document.getElementById('polText').value);if(r.error){toast(r.error);return;}applyPolar(r);saveSharedPolar(r,{source:'csv'});toast('Polare applicata e condivisa · max '+r.maxB.toFixed(1)+' kt');});
-document.getElementById('polReset').addEventListener('click',function(){resetPolar();toast('Polare integrata ripristinata');});
 document.getElementById('navReroute').addEventListener('change',function(){if(NAV.on&&NAV.pos)navStartFrom(NAV.pos);});
 document.getElementById('navFollow').addEventListener('change',function(){if(NAV.on&&NAV.pos&&this.checked&&map)map.panTo([NAV.pos.lat,NAV.pos.lon],{animate:false});});
 document.getElementById('tIso').addEventListener('change',redraw);
@@ -1588,54 +1712,8 @@ function buildNames(){
 document.getElementById('tNames').addEventListener('change',function(){
   if(!map||!namesLayer)return;if(this.checked)namesLayer.addTo(map);else map.removeLayer(namesLayer);});
 
-/* ---------- ricerca barca nel DB ORC (orc_med.json) ---------- */
-var ORCDATA=null,ORCLOAD=false;
-function escH(s){return String(s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});}
-function orcVppToCSV(v){
-  var rows=['twa/tws;'+v.speeds.join(';')];
-  v.angles.forEach(function(a){rows.push(a+';'+(v[String(a)]||[]).join(';'));});
-  return rows.join('\n');
-}
-function orcSelect(b){
-  var r=parsePolarText(orcVppToCSV(b.vpp));
-  if(r.error){toast(r.error);return;}
-  applyPolar(r);
-  var nm=b.type||b.name;
-  document.getElementById('polStatus').textContent=nm+' · ORC';saveSharedPolar(r,{source:'ORC',boat:nm});
-  document.getElementById('orcRes').hidden=true;
-  document.getElementById('orcQ').value=nm;
-  toast('Polare '+nm+' · max '+r.maxB.toFixed(1)+' kt');
-}
-function orcRender(q){
-  var ul=document.getElementById('orcRes');
-  if(!ORCDATA){ul.hidden=false;ul.innerHTML='<li class="none">'+(ORCLOAD?'carico il DB…':'DB non disponibile')+'</li>';return;}
-  q=(q||'').trim().toLowerCase();
-  if(q.length<2){ul.hidden=true;ul.innerHTML='';return;}
-  var hits=[];
-  for(var i=0;i<ORCDATA.length&&hits.length<40;i++){var b=ORCDATA[i];
-    if((b.type||'').toLowerCase().indexOf(q)>=0||(b.name||'').toLowerCase().indexOf(q)>=0)hits.push(b);}
-  if(!hits.length){ul.hidden=false;ul.innerHTML='<li class="none">nessuna barca</li>';return;}
-  ul.hidden=false;
-  ul.innerHTML=hits.map(function(b){return '<li data-k="'+ORCDATA.indexOf(b)+'"><b>'+escH(b.type||b.name)+
-    '</b><span class="sub">'+escH(b.name||'')+' · '+(b.year||'')+' · '+(b.country||'')+'</span></li>';}).join('');
-}
-function orcEnsure(cb){
-  if(ORCDATA){cb&&cb();return;}
-  if(ORCLOAD)return;
-  ORCLOAD=true;
-  fetch('orc_med.json',{cache:'force-cache'}).then(function(r){return r.json();}).then(function(j){
-    ORCDATA=j;ORCLOAD=false;cb&&cb();
-  }).catch(function(){ORCLOAD=false;ORCDATA=null;toast('DB ORC non trovato — metti orc_med.json in routing/.');});
-}
-(function(){
-  var qel=document.getElementById('orcQ'),ul=document.getElementById('orcRes');
-  qel.addEventListener('focus',function(){orcEnsure(function(){orcRender(qel.value);});});
-  qel.addEventListener('input',function(){orcEnsure(function(){orcRender(qel.value);});orcRender(qel.value);});
-  ul.addEventListener('click',function(e){var li=e.target.closest('li[data-k]');if(li)orcSelect(ORCDATA[+li.getAttribute('data-k')]);});
-  document.getElementById('orcPasteBtn').addEventListener('click',function(){
-    var w=document.getElementById('polPasteWrap');w.hidden=!w.hidden;});
-})();
-
+/* La ricerca nel DB ORC e l'incolla-CSV stavano qui: dal 29/09/2026 la polare
+   si sceglie solo in Impostazioni, che ha le stesse funzioni. */
 
 /* ---------- persistenza delle scelte di pagina (chiave di modulo, NON condivisa) ---------- */
 var UIKEY='raffyca-traversata-ui',SAVED_UI=null,_uiReady=false;
@@ -1796,5 +1874,112 @@ function refreshIsobate(){
   fetch("./isobate/isobate_"+slug+".geojson").then(function(r){return r.json();}).then(function(j){ISO_CACHE[slug]=j;if(ISO_ON)isoDraw(j);}).catch(function(){toast("Batimetria non disponibile offline");});
 }
 
+</script>
+<script>
+/* ════════ Traversata riorganizzata (29/09/2026) ════════
+   Solo disposizione: si aggancia alle funzioni dello script principale
+   avvolgendole, senza toccare calcolo, salvataggio e navigazione. */
+(function(){
+  "use strict";
+  function $(id){return document.getElementById(id);}
+  var NOMI={A:'',B:''},TOCCA_1=false;
+  try{var u0=SAVED_UI||JSON.parse(localStorage.getItem(UIKEY)||'null');
+    if(u0){NOMI.A=u0.nomeA||'';NOMI.B=u0.nomeB||'';}}catch(e){}
+  if(typeof URL_A!=='undefined'&&URL_A)NOMI.A=URL_A.nome||'';
+
+  function coord(p){if(!p)return '—';
+    function g(v,a,b){var h=v>=0?a:b;v=Math.abs(v);var d=Math.floor(v),m=(v-d)*60;return d+'°'+m.toFixed(1).replace('.',',')+'′'+h;}
+    return g(p.lat,'N','S')+' '+g(p.lon,'E','W');}
+  function dipingiPunti(){$('tvAv').textContent=NOMI.A||coord(STATE.A);$('tvBv').textContent=NOMI.B||coord(STATE.B);
+    $('tvTv').textContent=(typeof windClock==='function')?windClock(STATE.dep):'—';}
+
+  /* il nome resta finche' il punto non viene spostato in un altro modo */
+  var _setAB=setAB;
+  setAB=function(w,lat,lon){_setAB(w,lat,lon);NOMI[w]='';
+    if(TOCCA_1){TOCCA_1=false;AB_MOVE=false;applyAbMove();}
+    dipingiPunti();};
+  var _mettiAB=mettiAB;
+  mettiAB=function(w,lat,lon,nome){_mettiAB(w,lat,lon,nome);NOMI[w]=nome||'';dipingiPunti();saveUI();};
+  var _saveUI=saveUI;
+  saveUI=function(){_saveUI();try{var u=JSON.parse(localStorage.getItem(UIKEY)||'null');
+    if(u){u.nomeA=NOMI.A;u.nomeB=NOMI.B;localStorage.setItem(UIKEY,JSON.stringify(u));}}catch(e){}};
+  $('resetBtn').addEventListener('click',function(){NOMI.A=NOMI.B='';dipingiPunti();});
+
+  /* ── riquadro della rotta ── */
+  function riassunto(){var R=R_CACHE;dipingiPunti();if(!R||!R.path)return;
+    var P=R.path,sailed=0;for(var k=1;k<P.length;k++)sailed+=dist(P[k-1],P[k]);
+    var dep=parseOraLocale(depT()),nota=[];
+    if(R.finished&&dep){var arr=new Date(dep.getTime()+R.eta*3600000),oggi=new Date();
+      var hh=('0'+arr.getHours()).slice(-2)+':'+('0'+arr.getMinutes()).slice(-2);
+      $('rArr').textContent=(arr.toDateString()===oggi.toDateString()?'':GG_SETT[arr.getDay()]+' ')+hh;
+      $('rDur').textContent=fmtH(R.eta).replace('h',' h ');}
+    else{$('rArr').textContent='—';$('rDur').textContent='—';nota.push(STATE.coastBuf>0?'La rotta non arriva a B: riduci «Stai lontano dalla costa» o allontana A e B dalla riva.':'La rotta non arriva a B: prova un’altra partenza o avvicina i punti.');}
+    var avg=R.eta>0?sailed/R.eta:0;
+    $('rDist').textContent=sailed.toFixed(1).replace('.',',')+' NM · '+avg.toFixed(1).replace('.',',')+' kt';
+    var s=R.summary;$('rVento').textContent=s?(s.wmin+'–'+s.wmax+' kt'):'—';
+    if(isLand(R.start.lat,R.start.lon))nota.push('A è a terra: spostala in mare.');
+    if(isLand(R.goal.lat,R.goal.lon))nota.push('B è a terra: spostalo in mare.');
+    var n=$('rNota');n.textContent=nota.join(' ');n.hidden=!nota.length;
+    riassuntoCalcolo();}
+  var _upd=updateReadout;
+  updateReadout=function(){_upd();try{riassunto();}catch(e){}};
+
+  function riassuntoCalcolo(){var t=[];
+    t.push($('motorOn').checked?('motore '+$('mot').value+' kt'):'senza motore');
+    t.push('manovra '+$('tackPen').value+' s');
+    if(+$('polarEff').value<100)t.push('resa '+$('polarEff').value+'%');
+    if($('windCapOn').checked)t.push('< '+$('windCap').value+' kt');
+    if($('coastOn').checked)t.push('costa ≥ '+$('coastV').textContent+' NM');
+    $('calcSum').textContent=t.join(' · ');}
+  ['motorOn','mot','tackPen','polarEff','windCapOn','windCap','coastOn','coastBuf'].forEach(function(id){
+    $(id).addEventListener('input',riassuntoCalcolo);$(id).addEventListener('change',riassuntoCalcolo);});
+
+  /* ── fogli ── */
+  var aperto=null;
+  function apri(el){chiudi();aperto=el;el.hidden=false;$('tvScrim').hidden=false;}
+  function chiudi(){if(aperto)aperto.hidden=true;aperto=null;$('tvScrim').hidden=true;
+    var r=$('abRis');if(r){r.hidden=true;r.innerHTML='';}var c=$('abCerca');if(c)c.value='';}
+  $('tvScrim').addEventListener('click',chiudi);
+  document.querySelectorAll('[data-chiudi]').forEach(function(b){b.addEventListener('click',chiudi);});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&aperto)chiudi();});
+
+  function wpDistanza(){var l=[];try{l=JSON.parse(localStorage.getItem('raffyca-waypoints')||'[]');}catch(e){}
+    var ref=STATE[activeAB]||STATE.A;
+    return l.filter(function(w){return isFinite(w.lat)&&isFinite(w.lon);})
+      .map(function(w){return{w:w,d:ref?dist({lat:ref.lat,lon:ref.lon},{lat:w.lat,lon:w.lon}):0};})
+      .sort(function(a,b){return a.d-b.d;});}
+  function apriPunto(w){activeAB=w;
+    $('spTitolo').textContent=w==='A'?'Partenza A':'Arrivo B';
+    $('aGpsBtn').hidden=(w!=='A');$('aGpsBtn').textContent='📍 Dove sono adesso';
+    var l=wpDistanza(),box=$('spWp');
+    if(!l.length)box.innerHTML='<div class="vuoto">Nessun waypoint salvato in Carta.</div>';
+    else box.innerHTML=l.slice(0,30).map(function(x,i){return '<button type="button" data-i="'+i+'">'+
+      String(x.w.name||('WP '+(i+1))).replace(/[<>&"]/g,'')+'<span>'+x.d.toFixed(1).replace('.',',')+' NM</span></button>';}).join('');
+    box._l=l;apri($('tvSheetPunto'));}
+  $('tvA').addEventListener('click',function(){apriPunto('A');});
+  $('tvB').addEventListener('click',function(){apriPunto('B');});
+  $('spWp').addEventListener('click',function(e){var b=e.target.closest('button[data-i]');if(!b)return;
+    var x=$('spWp')._l[+b.getAttribute('data-i')];if(!x)return;chiudi();mettiAB(activeAB,x.w.lat,x.w.lon,x.w.name);});
+  $('abRis').addEventListener('click',function(e){if(e.target.closest('button[data-i]'))setTimeout(chiudi,0);});
+  $('aGpsBtn').addEventListener('click',function(){setTimeout(chiudi,0);});
+  $('spTocca').addEventListener('click',function(){TOCCA_1=true;AB_MOVE=true;applyAbMove();chiudi();
+    toast('Tocca la carta dove vuoi '+(activeAB==='A'?'la partenza A':'l’arrivo B'));});
+  $('tvT').addEventListener('click',function(){apri($('tvSheetPart'));});
+
+  /* ── strati e menu ── */
+  function interruttore(btn,box){btn.addEventListener('click',function(e){e.stopPropagation();var on=box.hidden;box.hidden=!on;
+    btn.setAttribute('aria-expanded',on?'true':'false');});
+    document.addEventListener('click',function(e){if(!box.hidden&&!box.contains(e.target)&&e.target!==btn){box.hidden=true;btn.setAttribute('aria-expanded','false');}});}
+  interruttore($('tvStratiBtn'),$('tvStrati'));
+  interruttore($('tvAltroBtn'),$('tvAltro'));
+  $('tvAltro').addEventListener('click',function(e){if(e.target.closest('.go')){$('tvAltro').hidden=true;$('tvAltroBtn').setAttribute('aria-expanded','false');}});
+
+  /* ── opzioni di navigazione: si vedono solo navigando ── */
+  /* segue il pulsante, non #navp: #navp si accende solo al primo fix GPS */
+  var nb=$('navBtn');
+  new MutationObserver(function(){$('tvNavOpz').hidden=!nb.classList.contains('on');}).observe(nb,{attributes:true,attributeFilter:['class']});
+
+  dipingiPunti();riassuntoCalcolo();try{riassunto();}catch(e){}
+})();
 </script>
 </body></html>
