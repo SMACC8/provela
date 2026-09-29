@@ -6246,3 +6246,128 @@ Nel browser, a 375 px:
   carta su un tablet lento.
 - **«Luminosità extra ridotta» di Android**: non so se l'Ulefone la mostri.
   Se c'è, si somma al velo.
+
+---
+
+## 29/09/2026 (10) — La Partenza riorganizzata: PIN e RC dove servono
+
+Schizzo approvato da Sergio con una correzione: «procedi con il vento, con
+maggiore evidenza al vento in manuale». Solo spostamenti di elementi
+esistenti con i loro `id`: 57 riferiti dal JavaScript, tutti presenti. Lo
+script segnala un `cdState` doppio, ma è un falso allarme: il secondo sta
+dentro una stringa JavaScript che riscrive lo stesso elemento, ed era così
+anche prima.
+
+### Com'era
+
+Una colonna di 428 px anche sul tablet, alta 1400 px sul telefono. Dall'alto:
+- conto alla rovescia, poi Dist / TTL / TTK;
+- grafico della linea (420×290);
+- vento (due campi);
+- SOG e VMG in un riquadro loro;
+- definizione della linea, con dentro **i bottoni per prendere PIN e RC**;
+- archivio.
+
+**Nei minuti prima del via, i bottoni che servono stavano quasi in fondo.**
+
+### Com'è
+
+- **In cima** conto alla rovescia (26vw sul telefono, fino a 150 px), i tre
+  numeri e subito sotto **«PIN qui» / «RC qui»**, alti 58 px, ciascuno con il
+  suo distintivo «ok».
+- **Vento subito dopo**, con il manuale in evidenza:
+  - campi a 34 px;
+  - il distintivo della sorgente più grande, da toccare;
+  - «manuale» in acqua invece che in grigio.
+- **Grafico** limitato a 34vh sul telefono e 52vh sul tablet, con il
+  favorito sotto.
+- **SOG, VMG e COG** su una riga.
+- **Definizione della linea e archivio** in due fogli («Linea ›»,
+  «Archivio ›»): servono prima e dopo, non durante.
+- **Da 600 px, due colonne**: conto, numeri, PIN/RC e vento a sinistra;
+  grafico, SOG e fogli a destra. Sul tablet in verticale sta tutto in una
+  schermata.
+- **Via la cornice sfumata** (`.rf-instr`), come nel Cruscotto. In Notte
+  niente alone sulle cifre.
+
+### Il vento: la previsione scartata
+
+Lo schizzo proponeva il vento automatico da `rf-strumenti.js` (strumenti,
+altrimenti previsione), come in Ancora e Cruscotto. Leggendo il codice: **la
+Partenza ha già la sua sorgente automatica, ed è migliore.** Usa
+`rf-nmea.js` con la media circolare a 60 s, segna in giallo il TWD stimato
+dal COG, e torna in manuale appena si scrive nel campo.
+
+La previsione non è stata aggiunta. Per il lato favorito serve la direzione
+al grado; un modello orario sbaglia di dieci gradi e più, e darebbe un
+favorito dall'aria sicura senza esserlo. Il ripiego in Ancora e Cruscotto va
+bene perché lì basta l'ordine di grandezza. Qui no.
+
+### Difetto trovato e corretto
+
+**«Imposta qui (GPS)» senza fix non faceva nulla, in silenzio**:
+`pingHere()` usciva senza dirlo. Nel pre-partenza uno crede di aver preso
+l'estremo e non l'ha preso. Ora c'è un avviso, «Niente GPS: PIN non preso».
+Quando invece riesce: vibrazione e «PIN preso qui». L'avviso usa la classe
+`.toast`, che è già nell'elenco di `rf-topbar.js`, quindi sale sopra la barra
+in basso.
+
+Service worker: nessuno da alzare. `partenza/` non è nel precache, e l'HTML
+lo serve prima la rete (`dritta-hub`).
+
+### Verificato
+
+Nel browser, con una linea e un vento d'esempio poi cancellati:
+- **PIN senza GPS**: l'avviso compare;
+- **linea salvata**: «L 280 m · 76°», «favorito RC · 4° · +18 m»;
+- **vento a 10°**: il favorito si ricalcola, «RC · 24° · +113 m»;
+- **sorgente del vento**: «manuale» → «nessun dato» (strumenti non
+  collegati) → «manuale»;
+- **fogli**: Linea e Archivio si aprono e si chiudono, dal fondo e da
+  «Chiudi»; in «un estremo + direzione» la riga della direzione compare e
+  «RC qui» si disattiva;
+- **larghezze**: a 375, 600 e 1000 px niente sborda; sul telefono la pagina
+  passa da 1400 a 1180 px, sul tablet due colonne da 380 px;
+- **Notte**: velo al 55%, nessun alone;
+- **errori**: nessun errore JavaScript; sintassi con `jsc`.
+
+### Non verificato
+
+- **Conto alla rovescia vero, segnali audio, OCS e archivio con una partenza
+  registrata**: la logica non è stata toccata, ma senza GPS in movimento nel
+  pannello non si prova.
+- **I bottoni con i guanti**, sul tablet.
+
+### Dopo, dal tablet: la linea lontana spaginava la schermata
+
+Sergio, con uno screenshot del tablet: linea lunga 3,6 km, barca a 110 km
+(«caso limite»). La distanza era scritta **«109824 m»**. La prima casella dei
+tre numeri si allargava per il contenuto e spingeva TTL e TTK fuori dalla
+colonna, sopra il grafico; «time to kill» andava a capo su tre righe.
+
+Due difetti, e due correzioni, perché ognuna da sola non basta:
+- **Il formato.**
+  - La distanza è in metri fino a 999, poi in miglia: una cifra decimale
+    sotto le 100 NM, intere sopra (`fmtDist`).
+  - TTL e TTK passano a ore e minuti oltre l'ora («1h06»), e oltre le 99
+    ore scrivono «>99h» (`fmtTL`). Prima `fmtT` avrebbe dato «6100:00».
+    Il conto alla rovescia continua a usare `fmtT`.
+- **La griglia.**
+  - Le colonne sono `minmax(0,1fr)` e le caselle hanno `min-width:0`: un
+    numero non può più allargare la sua casella.
+  - Il numero viene rimpicciolito finché ci sta (`adatta()`, anche alla
+    rotazione).
+  - Le note sotto i numeri restano su una riga.
+
+Verificato:
+- **formati**: `fmtTL` e `fmtDist` provati con `jsc` su 17 casi, compresi
+  59:59 → 1h00, «>99h», 999 m → 0,5 NM, 109824 m → 59,3 NM, tutti giusti;
+- **larghezze**: con un GPS finto in una copia temporanea della pagina (poi
+  cancellata), linea e barca a 650 m, 2 km, 110 km e 400 km, a 375, 600, 800
+  e 1000 px: nessuna casella fuori dalla sua colonna, nessun numero tagliato;
+- **il caso di Sergio** a 800 × 1280: «54.7 NM» nella casella, TTL e TTK al
+  loro posto.
+
+Non verificato: **TTL con la barca che si avvicina**. Il GPS finto dà una
+posizione sola, e la Partenza ricava la COG da posizioni successive: TTL
+resta «non avvicini». Il formato l'ho provato a parte.

@@ -146,6 +146,77 @@ body{font-family:var(--sans);color:var(--ink);background:var(--bg);padding-top:4
 @keyframes blink{50%{opacity:.25}}
 .pulse{animation:pulse 1s steps(2,start) infinite;}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important;}}
+
+/* ── 29/09/2026: riorganizzazione (schizzo approvato da Sergio) ──────────
+   Prima una colonna di 428 px anche sul tablet, e i bottoni PIN/RC quasi in
+   fondo: nei minuti prima del via bisognava scorrere per trovarli. Ora conto,
+   numeri, PIN/RC e vento stanno in cima; definizione della linea e archivio,
+   che servono prima e dopo, in due fogli. Da 600 px, due colonne. Via anche
+   la cornice sfumata, come nel Cruscotto. */
+.pv{max-width:none;padding:6px 10px 16px;}
+.col{display:flex;flex-direction:column;gap:11px;}
+@media (min-width:600px){
+  .pv{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start;padding:10px 14px 16px;}
+  .pv .foot{grid-column:1 / -1;}
+}
+html:root .rf-instr{background:var(--dp);padding:0;border:1px solid var(--line);border-radius:10px;box-shadow:none;}
+html:root .rf-dp{box-shadow:none;}
+.rf-instr .cd-min,.rf-instr .cd-ctl{padding:0 10px;}
+.rf-instr .cd-ctl{padding-bottom:10px;}
+/* conto alla rovescia: 4 caratteri, la misura la decide la colonna */
+.rf-num.lg{font-size:clamp(84px,26vw,150px);}
+@media (min-width:600px){.rf-num.lg{font-size:min(18vw,150px);}}
+.cd-min button{width:52px;height:48px;}
+.cd-ctl .rf-btn{min-height:52px;font-size:16px;}
+/* Le colonne non si allargano per il contenuto: con «109824» la prima
+   spingeva TTL e TTK fuori dalla colonna, sopra il grafico (tablet di
+   Sergio, linea a 110 km). Ora un numero troppo lungo viene tagliato dentro
+   la sua casella, e il formato (miglia, ore) fa si' che non succeda. */
+.rf-g2,.rf-g3{grid-template-columns:repeat(var(--n,2),minmax(0,1fr));}
+.rf-g3{--n:3;}
+.rf-instr,.rf-card{min-width:0;}
+.rf-numrow{overflow:hidden;}
+.rf-g3 .rf-note{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* PIN / RC, per i guanti */
+.ping{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.ping .rf-btn{min-height:58px;font-size:17px;font-weight:600;gap:10px;}
+.ping .pill{font-size:11px;padding:2px 7px;}
+/* vento: il manuale in evidenza (Sergio), campi grandi e la sorgente ben toccabile */
+.rf-card h3{font-size:12px;}
+.numwrap input{font-size:34px;padding:6px 0;}
+.numwrap .u{font-size:16px;}
+.pill.sorg{font-size:11px;padding:6px 10px;}
+.pill.sorg.info{border-color:var(--teal);color:var(--teal);}
+/* grafico: piu' basso sul telefono, piu' alto nella colonna del tablet */
+#lineSvg{max-height:34vh;}
+@media (min-width:600px){#lineSvg{max-height:52vh;}}
+/* tablet: la meta' bassa restava vuota; i tre numeri e SOG/VMG crescono */
+@media (min-width:600px){.rf-num.md{font-size:clamp(40px,6.5vw,64px);}.sogrow .rf-num{font-size:40px;}.rf-note{font-size:12px;}.rf-lbl{font-size:12px;}}
+.fav{font-size:17px;}
+.sogrow{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;padding:10px 14px;
+  border:1px solid var(--line);border-radius:10px;background:var(--panel);}
+.sogrow>div{display:flex;align-items:baseline;gap:5px;}
+.sogrow .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);margin-right:3px;}
+.sogrow .rf-num{font-size:28px;}
+.sogrow .r{margin-left:auto;font-size:13px;color:var(--sub);font-family:var(--mono);}
+.apri{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.apri .rf-btn{min-height:50px;font-size:15px;}
+/* fogli: z-index 30, sopra la barra in basso (19) */
+.sheet{position:fixed;inset:0;z-index:30;display:none;}
+.sheet.on{display:block;}
+.sheet-bg{position:absolute;inset:0;background:rgba(2,7,14,.66);}
+.sheet-card{position:absolute;left:0;right:0;bottom:0;max-height:86%;overflow-y:auto;max-width:640px;margin:0 auto;
+  background:var(--bg);border:1px solid var(--line);border-bottom:0;border-radius:16px 16px 0 0;
+  padding:14px 12px calc(18px + env(safe-area-inset-bottom));}
+.sheet-h{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;
+  font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);font-weight:700;}
+/* avviso: la classe .toast e' gia' nell'elenco di rf-topbar.js, sale sopra la barra in basso */
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:40;opacity:0;pointer-events:none;
+  background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:10px 16px;
+  font-size:14px;transition:opacity .2s;max-width:90vw;text-align:center;}
+.toast.on{opacity:1;}
+/* Notte: niente alone intorno alle cifre, come nel Cruscotto */
+html.night .rf-num{text-shadow:none!important;}
 </style>
 </head>
 <body>
@@ -180,6 +251,7 @@ body{font-family:var(--sans);color:var(--ink);background:var(--bg);padding-top:4
 <div class="pv">
   <div class="pv-glow" id="pvGlow"></div>
 
+  <div class="col a">
   <!-- COUNTDOWN -->
   <div class="rf-instr">
     <div class="rf-dp" id="cdDp">
@@ -217,6 +289,27 @@ body{font-family:var(--sans);color:var(--ink);background:var(--bg);padding-top:4
     </div></div>
   </div>
 
+  <!-- PIN / RC: servono nei minuti prima del via, stanno sotto i numeri -->
+  <div class="ping">
+    <button class="rf-btn go" id="pinHere"><span>PIN qui</span><span class="pill unset" id="pinBadge">—</span></button>
+    <button class="rf-btn go" id="rcHere"><span>RC qui</span><span class="pill unset" id="rcBadge">—</span></button>
+  </div>
+
+  <!-- VENTO -->
+  <div class="rf-g2">
+    <div class="rf-card"><h3><span>Vento da</span><span class="pill info sorg" id="twdSorg" title="Tocca per passare da manuale a strumenti">manuale</span></h3>
+      <div class="numfield"><div class="numwrap"><input id="twdIn" type="number" inputmode="numeric" step="1"><span class="u">°</span></div></div>
+      <div class="sorgnota" id="twdNota"></div>
+    </div>
+    <div class="rf-card"><h3><span>Intensità</span><span class="pill info" id="twsSorg">info</span></h3>
+      <div class="numfield"><div class="numwrap"><input id="twsIn" type="number" inputmode="decimal" step="1"><span class="u">kn</span></div></div>
+      <div class="sorgnota" id="twsNota"></div>
+    </div>
+  </div>
+
+  </div>
+
+  <div class="col b">
   <!-- GRAFICO + FAVORITO -->
   <div class="rf-card">
     <h3><span>Linea</span><span class="r" id="lineHdr">incompleta</span></h3>
@@ -224,29 +317,27 @@ body{font-family:var(--sans);color:var(--ink);background:var(--bg);padding-top:4
     <div class="fav neu" id="favLine">linea incompleta</div>
   </div>
 
-  <!-- VENTO -->
-  <div class="rf-g2">
-    <div class="rf-card"><h3><span>Vento — direz.</span><span class="pill info sorg" id="twdSorg" title="Tocca per passare da manuale a strumenti">manuale</span></h3>
-      <div class="numfield"><div class="numwrap"><input id="twdIn" type="number" inputmode="numeric" step="1"><span class="u">°</span></div></div>
-      <div class="sorgnota" id="twdNota"></div>
-    </div>
-    <div class="rf-card"><h3><span>Vento — intens.</span><span class="pill info" id="twsSorg">info</span></h3>
-      <div class="numfield"><div class="numwrap"><input id="twsIn" type="number" inputmode="decimal" step="1"><span class="u">kn</span></div></div>
-      <div class="sorgnota" id="twsNota"></div>
-    </div>
+  <!-- SOG e VMG: una riga, non un riquadro -->
+  <div class="sogrow">
+    <div><span class="k">SOG</span><b class="rf-num" id="sogVal">—</b><span class="rf-unit">kn</span></div>
+    <div><span class="k">VMG linea</span><b class="rf-num sub" id="vmgVal">—</b><span class="rf-unit">kn</span></div>
+    <div class="r" id="cogHdr">COG —</div>
   </div>
 
-  <!-- SOG -->
-  <div class="rf-card"><h3><span>Velocità (SOG)</span><span class="r" id="cogHdr">COG —</span></h3>
-    <div class="rf-g2">
-      <div><div class="rf-numrow" style="justify-content:flex-start"><span class="rf-num md" id="sogVal">—</span><span class="rf-unit">kn</span></div><div class="rf-note l">al fondo</div></div>
-      <div><div class="rf-numrow" style="justify-content:flex-start"><span class="rf-num md sub" id="vmgVal">—</span><span class="rf-unit">kn</span></div><div class="rf-note l">verso la linea (VMG)</div></div>
-    </div>
+  <div class="apri">
+    <button class="rf-btn" id="btnLinea">Linea ›</button>
+    <button class="rf-btn" id="btnArch">Archivio ›</button>
   </div>
 
-  <!-- SETUP LINEA -->
+  </div>
+
+  <div class="foot">Dritta · Partenza regata — Svilup<b>PPA</b>ta da Sergio Moro</div>
+</div>
+
+<!-- foglio: definizione della linea (serve prima, non durante) -->
+<div class="sheet" id="lineSheet"><div class="sheet-bg" data-close></div><div class="sheet-card">
+  <div class="sheet-h"><span>Definizione linea</span><button class="rf-btn sm" data-close>Chiudi</button></div>
   <div class="rf-card">
-    <h3><span>Definizione linea</span></h3>
     <div class="seg" style="margin-bottom:10px">
       <button id="modeTwo" class="on">Due estremi</button>
       <button id="modeDir">Un estremo + direzione</button>
@@ -257,14 +348,12 @@ body{font-family:var(--sans);color:var(--ink);background:var(--bg);padding-top:4
     </div>
     <div class="rf-g2">
       <div class="field">
-        <label>PIN <span class="pill unset" id="pinBadge">—</span></label>
-        <button class="rf-btn go sm" style="width:100%" id="pinHere">Imposta qui (GPS)</button>
-        <input class="rf-input" style="margin-top:6px" id="pinTxt" placeholder="lat lon" spellcheck="false" autocomplete="off">
+        <label>PIN</label>
+        <input class="rf-input" id="pinTxt" placeholder="lat lon" spellcheck="false" autocomplete="off">
       </div>
       <div class="field">
-        <label>RC <span class="pill unset" id="rcBadge">—</span></label>
-        <button class="rf-btn go sm" style="width:100%" id="rcHere">Imposta qui (GPS)</button>
-        <input class="rf-input" style="margin-top:6px" id="rcTxt" placeholder="lat lon" spellcheck="false" autocomplete="off">
+        <label>RC</label>
+        <input class="rf-input" id="rcTxt" placeholder="lat lon" spellcheck="false" autocomplete="off">
       </div>
     </div>
     <div id="dirRow" style="margin-top:10px;display:none">
@@ -275,9 +364,13 @@ body{font-family:var(--sans);color:var(--ink);background:var(--bg);padding-top:4
     <div class="cd-ctl" style="margin-top:10px"><button class="rf-btn sm stop" style="flex:1" id="lineClear">Cancella linea</button></div>
   </div>
 
-  <!-- ARCHIVIO -->
+</div></div>
+
+<!-- foglio: archivio delle partenze -->
+<div class="sheet" id="archSheet"><div class="sheet-bg" data-close></div><div class="sheet-card">
+  <div class="sheet-h"><span>Archivio partenze</span><button class="rf-btn sm" data-close>Chiudi</button></div>
   <div class="rf-card">
-    <h3><span>Archivio partenze</span><button class="rf-btn sm stop" id="archClear" style="padding:4px 8px">Cancella tutte</button></h3>
+    <h3><span></span><button class="rf-btn sm stop" id="archClear" style="padding:4px 8px">Cancella tutte</button></h3>
     <ul class="arch" id="archList"></ul>
     <div id="archAn" hidden>
       <button class="rf-btn sm" id="anBack" style="padding:4px 10px;margin-bottom:6px">‹ archivio</button>
@@ -288,8 +381,10 @@ body{font-family:var(--sans);color:var(--ink);background:var(--bg);padding-top:4
     </div>
   </div>
 
-  <div class="foot">Dritta · Partenza regata — Svilup<b>PPA</b>ta da Sergio Moro</div>
-</div>
+</div></div>
+
+<div class="toast" id="ptoast"></div>
+
 
 <script>
 (function(){
@@ -466,6 +561,20 @@ function glowBg(zone){ if(!zone)return"transparent"; var c=HUE[zone];
 /* ---------- formattazione ---------- */
 function fmtT(s){ if(s==null||!isFinite(s))return"—"; var neg=s<0; s=Math.abs(Math.round(s));
   return (neg?"-":"")+Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); }
+/* TTL e TTK lontano dalla linea: fmtT darebbe «6100:00». Oltre l'ora, ore e
+   minuti; oltre le 99 ore non ha senso contare. (Sergio, sul tablet: con la
+   linea a 110 km la schermata si spaginava.) */
+function fmtTL(s){ if(s==null||!isFinite(s))return"—"; var a=Math.abs(s);
+  if(a<3600)return fmtT(s); if(a>=99*3600)return(s<0?"-":"")+">99h";
+  var m=Math.round(a/60); return (s<0?"-":"")+Math.floor(m/60)+"h"+String(m%60).padStart(2,"0"); }
+/* distanza: metri fino a 999, poi miglia (una cifra decimale sotto le 100) */
+function fmtDist(m){ m=Math.abs(m); if(m<999.5)return{v:String(Math.round(m)),u:"m"};
+  var nm=m/1852; return{v:nm<99.95?nm.toFixed(1):String(Math.round(nm)),u:"NM"}; }
+/* Il numero si adatta alla casella, non il contrario: si parte dalla misura
+   del foglio di stile e si scende finche' la riga ci sta. */
+function adatta(el){ if(!el)return; var r=el.parentNode; el.style.fontSize="";
+  var fs=parseFloat(getComputedStyle(el).fontSize);
+  for(var i=0;i<12&&r.scrollWidth>r.clientWidth&&fs>14;i++){ fs*=0.9; el.style.fontSize=fs+"px"; } }
 function xyLL(o){ return o?(o.lat.toFixed(5)+" "+o.lon.toFixed(5)):""; }
 function parseLL(str){ var m=String(str).trim().split(/[ ,]+/).map(Number);
   if(m.length<2||!isFinite(m[0])||!isFinite(m[1])||Math.abs(m[0])>90||Math.abs(m[1])>180)return null;
@@ -496,19 +605,21 @@ function render(){
 
   /* dist */
   var distEl=$("distVal");
-  if(nav.haveLine&&nav.haveBoat){ distEl.textContent=Math.abs(Math.round(nav.dist)); distEl.className="rf-num md "+(nav.ocs?"coral":""); }
-  else { distEl.textContent="—"; distEl.className="rf-num md sub"; }
+  var distU=distEl.nextElementSibling;
+  if(nav.haveLine&&nav.haveBoat){ var fd=fmtDist(nav.dist); distEl.textContent=fd.v; if(distU)distU.textContent=fd.u; distEl.className="rf-num md "+(nav.ocs?"coral":""); }
+  else { distEl.textContent="—"; if(distU)distU.textContent="m"; distEl.className="rf-num md sub"; }
   $("distNote").textContent=nav.ocs?"OLTRE":"alla linea";
   $("distDp").style.background=tintBg(zone,true);
 
   /* ttl / ttk */
-  $("ttlVal").textContent=(nav.haveLine&&isFinite(nav.ttl))?fmtT(nav.ttl):"—";
+  $("ttlVal").textContent=(nav.haveLine&&isFinite(nav.ttl))?fmtTL(nav.ttl):"—";
   $("ttlNote").textContent=(nav.haveLine&&nav.closing!=null&&isFinite(nav.ttl))?nav.closing.toFixed(1)+" kn":"non avvicini";
   var ttk=$("ttkVal");
   if(CD.running&&isFinite(nav.burn)){ var k=Math.abs(nav.burn)<=3?"green":(nav.burn>0?"amber":"coral");
-    ttk.textContent=fmtT(nav.burn); ttk.className="rf-num md "+k;
+    ttk.textContent=fmtTL(nav.burn); ttk.className="rf-num md "+k;
     $("ttkNote").textContent=Math.abs(nav.burn)<=3?"perfetto":(nav.burn>0?"in anticipo":"in ritardo"); }
   else { ttk.textContent="—"; ttk.className="rf-num md sub"; $("ttkNote").textContent=CD.running?"—":"time to kill"; }
+  adatta(distEl); adatta($("ttlVal")); adatta(ttk);
 
   /* sog */
   $("sogVal").textContent=GPS.lat!=null?GPS.sog.toFixed(1):"—";
@@ -841,11 +952,19 @@ function syncSetupUI(){
   $("rcBadge").className="pill "+(LINE.rc?"set":"unset"); $("rcBadge").textContent=LINE.rc?"ok":"—";
   $("dirHint").textContent="Ancora l'estremo "+(LINE.anchor==="pin"?"PIN":"RC")+"; lunghezza ignota → niente vantaggio in metri.";
 }
+/* Avviso breve. Prima «PIN qui» senza GPS non faceva nulla, in silenzio:
+   nei minuti prima del via uno crede di aver preso l'estremo e non e' cosi'. */
+var TT=null;
+function avviso(m){ var e=$("ptoast"); if(!e)return; e.textContent=m; e.classList.add("on");
+  clearTimeout(TT); TT=setTimeout(function(){e.classList.remove("on");},2600); }
 function pingHere(which){
-  if(GPS.lat==null){ return; }
+  var nome=which==="pin"?"PIN":"RC";
+  if(GPS.lat==null){ avviso("Niente GPS: "+nome+" non preso"); return; }
   var p={lat:GPS.lat,lon:GPS.lon};
   if(which==="pin"){ LINE.pin=p; $("pinTxt").value=xyLL(p); } else { LINE.rc=p; $("rcTxt").value=xyLL(p); }
   saveLine(); syncSetupUI(); render();
+  if(navigator.vibrate)navigator.vibrate(30);
+  avviso(nome+" preso qui");
 }
 
 document.addEventListener("DOMContentLoaded",function(){
@@ -977,6 +1096,13 @@ setInterval(ventoDaStrumenti,1000);
   $("dirIn").addEventListener("input",function(){ var n=Number(this.value); if(isFinite(n)){LINE.dir=((n%360)+360)%360;saveLine();render();} });
   $("lineClear").addEventListener("click",function(){ LINE.pin=null;LINE.rc=null; $("pinTxt").value="";$("rcTxt").value=""; saveLine();syncSetupUI();render(); });
 
+  /* fogli: definizione della linea e archivio */
+  function chiudiFogli(){ Array.prototype.forEach.call(document.querySelectorAll(".sheet"),function(x){x.classList.remove("on");}); }
+  $("btnLinea").addEventListener("click",function(){ $("lineSheet").classList.add("on"); });
+  $("btnArch").addEventListener("click",function(){ renderArchive(); $("archSheet").classList.add("on"); });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-close]"),function(x){ x.addEventListener("click",chiudiFogli); });
+  document.addEventListener("keydown",function(e){ if(e.key==="Escape")chiudiFogli(); });
+
   /* archivio (event delegation) */
   $("archList").addEventListener("click",function(e){
     var ex=e.target.getAttribute("data-ex"), del=e.target.getAttribute("data-del");
@@ -988,6 +1114,7 @@ setInterval(ventoDaStrumenti,1000);
   $("archClear").addEventListener("click",function(){ if(confirm("Cancellare tutte le partenze registrate?")){ writeJSON("raffyca-starts",[]); renderArchive(); } });
 
   syncSetupUI(); renderArchive(); render(); gpsStart();
+  window.addEventListener("resize",render);   /* rotazione del tablet: adatta() rimisura */
   window.addEventListener("storage",function(e){ if(e.key==="raffyca-theme"||e.key==="raffyca-settings")render(); });
   document.addEventListener("visibilitychange",function(){ if(!document.hidden)render(); });
 });
