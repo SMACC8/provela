@@ -6612,3 +6612,116 @@ Nel browser, con localStorage vuoto:
 - **Manutenzione con i dati veri**: senza il database, nel pannello si vede
   solo la schermata vuota. I dati di Sergio non li ho usati per provare.
   Da guardare sul tablet: elenco lavori, schede, Dossier.
+
+---
+
+## 29/09/2026 (14) — Sole & Luna: la marea in vista, e niente posizione di comodo
+
+Ultimo modulo della sezione Preparazione nel programma di riorganizzazione.
+Metodo solito: inventario, schizzo con la tabella «oggi → nello schizzo»,
+approvazione di Sergio («sì, ma mantieni i grafici»), elementi spostati
+tenendo gli `id`.
+
+### Cosa c'era
+
+Al tablet (600 px):
+- la **marea** cominciava a 1284 px, sotto il grafico delle altezze: fuori
+  dallo schermo;
+- **18 tipi di scritte sotto i 12 px** (etichette a 10,5, sigla del chip a
+  9,5, coordinate, didascalie);
+- «aggiorna» alto 28 px, la casella del bacino 18 px, i passi dell'arrivo
+  36 px;
+- tre fasce in alto (schede, barra della data, «Adesso»).
+
+E due dati non veri, trovati aprendo la pagina con il localStorage vuoto:
+- **Il punto di comodo.** Senza nessuna posizione (GPS mai acceso, nessuna
+  `raffyca-pos`), la pagina calcolava alba, luna e marea su un punto fisso,
+  `DEFAULT_POS` = 41,21 N 9,40 E (Bocche di Bonifacio), e il chip diceva
+  **«GPS · Posizione attuale»**. Stessa famiglia del vento «Stima» del
+  Cruscotto e della Traccia polare di Performance: un numero d'esempio
+  presentato come vero. In più, il primo fix non rimpiazzava il punto:
+  `onGeo` ridisegnava ma non ricalcolava il giorno, quindi si restava su
+  Bonifacio fino al primo tocco.
+- **La velocità all'ormeggio.** Il SOG stimato da due fix veniva preso
+  sempre, con un minimo di 0,1 kn: con la barca ferma l'arrivo finiva a
+  giorni di distanza. E anche qui un fix nuovo non ricalcolava l'arrivo.
+
+### Scelte di Sergio
+
+- Senza posizione: **dirlo e non calcolare niente** (scartato: tenere
+  Bonifacio con l'etichetta «predefinita»).
+- Velocità: **il GPS solo sopra 1 kn**; sotto resta quella a mano (5,5 kn di
+  partenza, o quella scelta con − e +). Scartato: sempre a mano.
+- I due grafici restano alla loro dimensione (li ha chiesti esplicitamente).
+
+### Fatto
+
+- **In alto** una riga sola: data (senza l'anno, se è quello corrente) e
+  «Adesso», poi Giorno / Volta celeste. Sotto, i luoghi: **«Qui»** se il fix
+  ha meno di 2 minuti, altrimenti «Qui · 3 min fa», «· 3 h fa»; il
+  waypoint, o la **fine della traccia attiva** (sigla TR), che prima non
+  era fra i luoghi.
+- **Senza posizione** un riquadro «Posizione sconosciuta: accendi il GPS,
+  oppure attiva un waypoint dalla Carta» e nient'altro. Il primo fix
+  ricalcola e fa comparire la pagina; una barca spostata di oltre un miglio
+  fa ricalcolare il giorno.
+- **Luce all'arrivo** (era «Che luce troverò all'arrivo»): prima l'ora
+  grande e la condizione di luce, poi «calcolato · 10,0 nm a 5,5 kn a
+  mano / dal GPS», poi tre comandi alti `--tocco` (ora, giorno, nodi). La
+  riga sulla nuvolosità è diventata «Non tiene conto delle nuvole.»
+- **Tre riquadri: Sole, Luna, Marea.** Quello della Marea dice se cala o
+  cresce e quando arriva la stanca; toccandolo si scende al dettaglio. Da
+  900 px il riassunto sparisce, perché la marea intera sta nella colonna
+  accanto.
+- **Da 900 px due colonne**: luce a sinistra (arrivo, Sole e Luna, grafico),
+  marea e crepuscoli a destra. Volta celeste: sfera a sinistra, comandi a
+  destra.
+- **Leggibilità**: collegato `raffyca.css` per `--t-*`, `--lab`, `--tocco`;
+  nessuna scritta sotto i 12 px; `--sub` e `--muted` schiariti nei tre temi;
+  righe della marea e dei crepuscoli alte 44 px; riga del bacino alta
+  `--tocco` con casella da 26 px; cursore del tempo con pomello da 30 px;
+  etichette degli assi dei due grafici da 10 a 12 px.
+
+La logica astronomica e quella della marea non sono state toccate.
+
+Service worker: **`dritta-hub-v32`** (`sole-luna/` è nel precache
+dell'hub; `raffyca.css` c'era già).
+
+Dopo l'approvazione, tre ritocchi chiesti da Sergio:
+- nel chip della posizione un **mirino** al posto della sigla «GPS», poi
+  anche senza «Qui» e senza cornice: resta solo il mirino (teal quando è
+  scelto) e, se il fix è vecchio, l'età («3 h fa»);
+- il pomello del cursore del tempo è **teal**, non più ambra: «sembra il
+  sole», e nel grafico accanto ambra è proprio il sole;
+- nella Volta celeste **sole e luna un po' più grandi**: disco del sole da
+  8,5 a 12 px (alone da 24 a 32), luna da 9 a 12.
+
+### Verificato
+
+Nel browser, dal worktree:
+- **localStorage vuoto**: riquadro «Posizione sconosciuta», niente data né
+  schede, nessun errore; passando a Volta celeste resta nascosto tutto;
+- **primo fix finto** (geolocalizzazione sostituita prima del caricamento):
+  la pagina compare, chip «GPS Qui», alba calcolata sul punto del fix;
+- **posizione di 3 ore prima**: chip «Qui · 3 h fa»;
+- **barca ferma** (due fix nello stesso punto): velocità resta 5,5 kn «a
+  mano», arrivo invariato; **in moto**: velocità «dal GPS», arrivo
+  ricalcolato; **+ a mano**: torna «a mano»;
+- **larghezze**: a 375, 600 e 1000 px niente sborda, **nessuna scritta sotto
+  i 12 px**, nessun comando sotto i 40 px (la casella del bacino è 26 px,
+  ma la sua riga intera è il bersaglio, alta 54);
+- al tablet (600 px) il riassunto della marea sta a 523 px, nel primo
+  schermo (la marea era a 1284);
+- tema giorno a 600 px;
+- sintassi con `jsc`; ogni `id` riferito esiste.
+
+APK costruito dal worktree e installato sul tablet via adb, senza toccare lo
+schermo.
+
+### Non verificato
+
+- **Sul tablet, al sole**: da guardare la riga in alto (data + schede) e i
+  tre riquadri a 600 px, che sono stretti (circa 180 px l'uno).
+- **Il GPS vero** in movimento: la soglia di 1 kn è provata solo con fix
+  finti.
+- Tema notte: non guardato dopo le modifiche.

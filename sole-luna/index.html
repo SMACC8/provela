@@ -11,6 +11,7 @@
 <title>Sole, Luna e maree · Dritta</title>
 <script>(function(){try{var t=localStorage.getItem('raffyca-theme');if(t==='sun')t='day';if(t==='day'||t==='night')document.documentElement.classList.add(t);if(t==='night'){var v=localStorage.getItem('raffyca-notte-velo');v=[0,.35,.55,.75][v==null?2:+v];if(v){document.documentElement.style.setProperty('--rf-velo',v);var s=document.createElement('style');s.textContent='html.night::after{content:"";position:fixed;inset:0;background:#000;opacity:var(--rf-velo,0);pointer-events:none;z-index:2147483000}';document.head.appendChild(s);}}}catch(e){}})();</script>
 <!-- manifest rimosso: il modulo vive dentro la PWA Dritta, non è un'app a sé -->
+<link rel="stylesheet" href="../raffyca.css">
 <style>
 /* Token in HEX come raffyca.css, il design system canonico (la rf-topbar
    consuma var(--panel,#hex) ecc.: con token mancanti o in HSL le sue
@@ -99,11 +100,7 @@ button:active{filter:brightness(1.35)}
   font-size:11px;line-height:1;cursor:pointer}
 .sl-arr-sync:active{border-color:var(--teal);color:var(--teal)}
 .sl-arr-sync.hot{border-color:var(--amber);color:var(--amber)}
-.sl-arr-when{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;
-  padding:9px 11px;background:var(--display);border:1px solid var(--line);border-radius:10px}
-.sl-when-block label{display:block;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .sl-when-val{font-size:16px;font-weight:600;margin-top:2px}
-.sl-steppers{display:flex;flex-direction:column;gap:6px}
 .sl-step{display:flex;align-items:center;gap:2px}
 .sl-step span{font-size:10px;color:var(--muted);width:42px;text-align:center}
 .sl-step button{width:40px;height:36px;border-radius:9px;background:var(--surface);
@@ -150,7 +147,7 @@ button:active{filter:brightness(1.35)}
 .sl-time{display:flex;flex-direction:column;gap:5px;margin-top:10px}
 .sl-time-head{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:24px}
 .sl-time .big{font-size:18px;font-weight:600}
-.sl-time input{display:block;width:100%;accent-color:var(--amber);height:26px;margin:0}
+.sl-time input{display:block;width:100%;accent-color:var(--teal);height:26px;margin:0}
 .sl-now-pill{font-size:10.5px;padding:3px 9px;border-radius:999px;
   border:1.5px solid var(--line);color:var(--sub);white-space:nowrap}
 
@@ -202,6 +199,109 @@ button:active{filter:brightness(1.35)}
   border-left:3px solid var(--amber);padding-left:9px}
 .sl-tide-err{font-size:12.5px;color:var(--coral);line-height:1.45}
 .off{display:none!important}
+
+/* ── 29/09/2026: leggibilita' e ordine (strato comune in raffyca.css) ──
+   Niente scritte sotto i 12 px, grigi schiariti, comandi alti --tocco.
+   La marea sale accanto a Sole e Luna; da 900 px due colonne. */
+:root{--sub:var(--lab);--muted:#8aa0b2}
+html.day{--sub:#34495b;--muted:#4d6272}
+html.night{--sub:#c85050;--muted:#a04838}
+body{padding:0 var(--margine) 28px;max-width:1280px;margin-inline:auto;width:100%}
+.sl-eyebrow{font-size:var(--t-etichetta);letter-spacing:.06em;font-weight:650;color:var(--lab)}
+.sl-eyebrow.strong{font-size:var(--t-etichetta);letter-spacing:.06em;font-weight:650}
+
+.sl-top{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.sl-top .sl-datebar{flex:1 1 290px}
+.sl-top .sl-tabs{flex:1 1 220px;margin-top:0}
+.sl-tabs button{font-size:var(--t-testo);min-height:var(--tocco)}
+.sl-datebar span{font-size:var(--t-testo);min-width:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sl-datebar button{min-height:var(--tocco)}
+.sl-datebar .today{font-size:var(--t-piccolo);min-height:calc(var(--tocco) - 8px)}
+.sl-chip{font-size:var(--t-piccolo);min-height:var(--tocco)}
+.sl-chip .tag{font-size:12px}
+.sl-chip .mir{width:22px;height:22px;flex:none;fill:none;stroke:var(--muted);stroke-width:2;stroke-linecap:round}
+.sl-chip .mir .pt{fill:var(--muted);stroke:none}
+.sl-chip.gps{border:none;background:none;padding:0 8px;min-width:var(--tocco);justify-content:center}
+.sl-chip.gps .mir{width:26px;height:26px}
+.sl-chip.on .mir{stroke:var(--teal)} .sl-chip.on .mir .pt{fill:var(--teal)}
+.sl-coord{font-size:13px}
+
+.sl-arr-where{font-size:var(--t-etichetta);font-weight:650;text-align:left}
+.sl-arr-top .sl-arr-where{text-align:left}
+.sl-arr-sync{height:44px;padding:0 14px;font-size:var(--t-piccolo)}
+.sl-arr-head{display:flex;align-items:flex-end;justify-content:space-between;gap:6px 14px;flex-wrap:wrap}
+.sl-arr-head .sl-when-val{font-size:var(--t-grande);line-height:1.05}
+.sl-arr-head .sl-arr-level{margin:0;font-size:var(--t-titolo);text-align:right}
+.sl-arr-info{font-size:var(--t-piccolo);color:var(--sub);margin-top:6px;line-height:1.45}
+.sl-arr-info label{display:inline;font-size:inherit;letter-spacing:0;text-transform:none;color:inherit}
+.sl-arr-info .spd{color:var(--ink)}
+.sl-arr-sub{font-size:var(--t-piccolo)}
+.sl-ctl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:10px}
+.sl-ctl .sl-step{justify-content:space-between;background:var(--display);border:1px solid var(--line);border-radius:10px;padding:3px}
+.sl-ctl .sl-step span{flex:1;width:auto;font-size:13px;color:var(--sub)}
+.sl-ctl .sl-step button{width:var(--tocco);height:calc(var(--tocco) - 6px);font-size:20px}
+.sl-ctl .sl-step span.spd{font-family:var(--mono);color:var(--ink);font-size:var(--t-piccolo);white-space:nowrap}
+.sl-arr-head .sl-when-val small{font-size:var(--t-piccolo);font-weight:500;color:var(--sub);margin-right:6px}
+.sl-arr-calc button.link{height:40px;font-size:var(--t-piccolo);margin:8px 0 0}
+.sl-arr-soglia{font-size:var(--t-piccolo)}
+.sl-arr-alert{font-size:var(--t-piccolo)}
+.sl-arr-disclaimer{font-size:12.5px}
+.sl-arr-empty{font-size:var(--t-piccolo)}
+@media(max-width:430px){.sl-ctl{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.sl-ctl .sl-step:last-child{grid-column:1/-1}}
+
+.sl-sum{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.sl-sum .sl-card-date{display:block;margin:-4px 0 6px}
+.sl-body.tide{border-left-color:var(--teal);cursor:pointer}
+@media(max-width:559px){.sl-sum{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.sl-sum .tide{grid-column:1/-1}}
+@media(max-width:430px){.sl-sum{grid-template-columns:minmax(0,1fr)}}
+.sl-pair label{font-size:12px;letter-spacing:.06em;color:var(--sub)}
+.sl-pair b{font-size:var(--t-grande)}
+@media(min-width:560px) and (max-width:899px){.sl-sum .sl-pair b{font-size:24px}}
+.sl-pair small{font-size:12.5px}
+.sl-foot{font-size:13px}
+.sl-card-date{font-size:12.5px}
+.sl-mini-trend{display:block;font-size:var(--t-grande);font-weight:600;letter-spacing:-.015em;line-height:1.15}
+.sl-mini-row{display:block;font-size:var(--t-piccolo);color:var(--sub);margin-top:4px}
+.sl-mini-row b{color:var(--ink);font-family:var(--mono)}
+
+.sl-legend2{font-size:13px}
+.sl-time .big{font-size:var(--t-titolo)}
+.sl-now-pill{font-size:13px;padding:4px 11px}
+.sl-time input{height:44px;-webkit-appearance:none;appearance:none;background:none}
+.sl-time input::-webkit-slider-runnable-track{height:8px;border-radius:4px;background:var(--line)}
+.sl-time input::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;margin-top:-11px;border-radius:50%;
+  background:var(--teal);border:3px solid var(--bg)}
+.sl-time input::-moz-range-track{height:8px;border-radius:4px;background:var(--line)}
+.sl-time input::-moz-range-thumb{width:26px;height:26px;border-radius:50%;background:var(--teal);border:3px solid var(--bg)}
+
+.sl-tide-conf{font-size:12.5px}
+.sl-tide-rate{font-size:var(--t-piccolo)}
+.sl-row{font-size:var(--t-piccolo);min-height:44px;align-items:center}
+.sl-row b{font-size:var(--t-testo)}
+.sl-tide-basin{min-height:var(--tocco);font-size:var(--t-piccolo)}
+.sl-tide-basin input{width:26px;height:26px;flex:none}
+.sl-tide-note,.sl-tide-warn,.sl-tide-err{font-size:13px}
+.sl-luce-grid{font-size:13px}
+
+.sl-readout{font-size:13px;padding:7px 10px}
+.sl-readout div{grid-template-columns:44px 52px 52px}
+.sl-readout .hd b{font-size:12px}
+.sl-reset{font-size:13px;min-height:44px}
+.sl-toggles button{font-size:var(--t-piccolo);min-height:var(--tocco)}
+.sl-key{font-size:13px}
+
+.sl-nopos{font-size:var(--t-testo);line-height:1.5}
+.sl-nopos b{display:block;font-size:var(--t-titolo);margin-bottom:4px}
+
+.sl-cols,.sl-colA,.sl-colB{display:flex;flex-direction:column;gap:10px}
+@media(min-width:900px){
+  .sl-cols{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);align-items:start}
+  #viewSfera{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.8fr);gap:14px;align-items:start}
+  #viewSfera.off{display:none}
+  /* la marea intera sta gia' nella colonna a destra: il riassunto non serve */
+  .sl-sum{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .sl-sum .tide{display:none}
+}
 </style>
 </head>
 <body>
@@ -224,16 +324,17 @@ button:active{filter:brightness(1.35)}
 <script src="../rf-astro.js"></script>
 <script src="../rf-maree.js"></script>
 
-<div class="sl-tabs">
-  <button id="tabGiorno" class="on">Giorno</button>
-  <button id="tabSfera">Volta celeste</button>
-</div>
-
-<div class="sl-datebar">
-  <button id="dbPrev" aria-label="giorno precedente">‹</button>
-  <span id="dbLabel" class="mono"></span>
-  <button id="dbNext" aria-label="giorno successivo">›</button>
-  <button id="dbNow" class="today">Adesso</button>
+<div class="sl-top">
+  <div class="sl-datebar">
+    <button id="dbPrev" aria-label="giorno precedente">‹</button>
+    <span id="dbLabel" class="mono"></span>
+    <button id="dbNext" aria-label="giorno successivo">›</button>
+    <button id="dbNow" class="today">Adesso</button>
+  </div>
+  <div class="sl-tabs">
+    <button id="tabGiorno" class="on">Giorno</button>
+    <button id="tabSfera">Volta celeste</button>
+  </div>
 </div>
 
 <div class="sl-bar">
@@ -241,63 +342,64 @@ button:active{filter:brightness(1.35)}
   <div class="sl-coord" id="srcCoord"></div>
 </div>
 
+<!-- senza nessuna posizione: si dice, e non si calcola su un punto di comodo -->
+<section class="sl-card sl-nopos off" id="noPos">
+  <b>Posizione sconosciuta</b>
+  Accendi il GPS, oppure attiva un waypoint dalla Carta: sole, luna e marea si calcolano lì.
+</section>
+
 <!-- ═══ VISTA GIORNO ═══ -->
-<div id="viewGiorno">
+<div id="viewGiorno" class="sl-cols">
+ <div class="sl-colA">
   <section class="sl-card sl-arrival" id="arrCard">
     <div class="sl-arr-top">
-      <span class="sl-eyebrow strong">Che luce troverò all'arrivo</span>
+      <span class="sl-eyebrow strong">Luce all'arrivo</span>
       <span class="sl-arr-where" id="arrWhere"></span>
       <button class="sl-arr-sync" id="arrSync" type="button" title="Rileggi waypoint o traccia attiva, posizione GPS e ricalcola l'orario di arrivo">&#x21BB; aggiorna</button>
     </div>
     <!-- stato "nessuna destinazione" -->
-    <div class="sl-arr-empty off" id="arrEmpty">Nessuna destinazione impostata. Attiva un waypoint o una traccia dalla Carta Nautica per vedere le condizioni di luce attese all'arrivo.</div>
+    <div class="sl-arr-empty off" id="arrEmpty">Nessuna destinazione: attiva un waypoint o una traccia dalla Carta.</div>
     <!-- stato normale: struttura FISSA, si aggiornano solo i valori. Ricostruire
          questo blocco a ogni tocco distruggerebbe i bottoni mentre sono premuti,
          e il rilascio non arriverebbe mai al nodo che ha avviato la ripetizione. -->
     <div id="arrFull">
-      <div class="sl-arr-when">
-        <div class="sl-when-block">
-          <label id="arrMode"></label>
-          <div class="sl-when-val mono" id="arrWhen"></div>
-        </div>
-        <div class="sl-steppers">
-          <div class="sl-step"><button data-eta="-86400000">‹</button><span>giorno</span><button data-eta="86400000">›</button></div>
-          <div class="sl-step"><button data-eta="-900000">−</button><span>ora</span><button data-eta="900000">+</button></div>
-        </div>
+      <div class="sl-arr-head">
+        <div class="sl-when-val mono" id="arrWhen"></div>
+        <div class="sl-arr-level" id="arrLevel"></div>
       </div>
-      <div class="sl-arr-calc">
-        <span class="mono" id="arrDist"></span><span class="sep" id="arrSep">a</span>
-        <button class="stp" id="spdMinus">−</button>
-        <span class="mono spd" id="spdVal"></span>
-        <button class="stp" id="spdPlus">+</button>
-        <button class="link off" id="etaRicalcola">ricalcola</button>
+      <div class="sl-arr-info">
+        <label id="arrMode"></label> · <span class="mono" id="arrDist"></span> <span class="sep" id="arrSep">a</span>
+        <span class="mono spd" id="spdInfo"></span>
       </div>
-      <div class="sl-arr-level" id="arrLevel"></div>
       <div class="sl-arr-sub" id="arrSub"></div>
+      <div class="sl-ctl">
+        <div class="sl-step"><button data-eta="-900000" aria-label="un quarto d'ora prima">−</button><span>ora</span><button data-eta="900000" aria-label="un quarto d'ora dopo">+</button></div>
+        <div class="sl-step"><button data-eta="-86400000" aria-label="giorno prima">‹</button><span>giorno</span><button data-eta="86400000" aria-label="giorno dopo">›</button></div>
+        <div class="sl-step"><button id="spdMinus" aria-label="meno veloce">−</button><span class="spd" id="spdVal"></span><button id="spdPlus" aria-label="più veloce">+</button></div>
+      </div>
+      <div class="sl-arr-calc"><button class="link off" id="etaRicalcola">ricalcola</button></div>
       <div class="sl-arr-soglia off" id="arrSoglia"></div>
       <div class="sl-arr-alert off" id="arrAlert">⚠ Arrivi al buio: l'orizzonte non si distingue più e la luna non aiuta.</div>
-      <div class="sl-arr-disclaimer">Il calcolo non tiene conto della nuvolosità, che può incidere molto sulla luce reale.</div>
+      <div class="sl-arr-disclaimer">Non tiene conto delle nuvole.</div>
     </div>
   </section>
 
-  <div class="sl-grid">
+  <div class="sl-sum">
     <section class="sl-card sl-body sun">
-      <div class="sl-card-head">
-        <span class="sl-eyebrow amber">Sole</span>
-        <span class="sl-card-date mono" id="sunDate"></span>
-      </div>
+      <span class="sl-eyebrow amber">Sole</span>
+      <span class="sl-card-date mono" id="sunDate"></span>
       <div class="sl-pair">
         <div><label>Alba</label><b class="mono" id="sunRise">—</b><small id="sunRiseAz"></small></div>
         <div><label>Tramonto</label><b class="mono" id="sunSet">—</b><small id="sunSetAz"></small></div>
       </div>
       <div class="sl-foot">
         <span>Transito <b class="mono" id="sunTransit">—</b></span>
-        <span>Durata giorno <b class="mono" id="sunDayLen">—</b></span>
+        <span>Giorno <b class="mono" id="sunDayLen">—</b></span>
       </div>
     </section>
 
     <section class="sl-card sl-body moon">
-      <div class="sl-card-head"><span class="sl-eyebrow moon">Luna</span></div>
+      <span class="sl-eyebrow moon">Luna</span>
       <div class="sl-pair">
         <div><label>Levata</label><b class="mono" id="moonRise">—</b><small id="moonRiseAz"></small></div>
         <div><label>Tramonto</label><b class="mono" id="moonSet">—</b><small id="moonSetAz"></small></div>
@@ -306,6 +408,13 @@ button:active{filter:brightness(1.35)}
         <span id="moonPhase">—</span>
         <span>Illuminata <b class="mono" id="moonFrac">—</b></span>
       </div>
+    </section>
+
+    <!-- riassunto della marea: il dettaglio (grafico, bacino) sta piu' sotto -->
+    <section class="sl-card sl-body tide" id="tideMini" role="button" tabindex="0" aria-label="vai al dettaglio della marea">
+      <span class="sl-eyebrow" style="color:var(--teal)">Marea</span>
+      <b class="sl-mini-trend" id="tideMiniTrend">—</b>
+      <span class="sl-mini-row" id="tideMiniSlack"></span>
     </section>
   </div>
 
@@ -324,6 +433,8 @@ button:active{filter:brightness(1.35)}
     </div>
   </section>
 
+ </div>
+ <div class="sl-colB">
   <!-- ═══ MAREA ═══
        Struttura fissa, come la card d'arrivo: qui sotto si aggiornano solo i
        valori. Il numero che conta non e' il livello ma la tendenza. -->
@@ -360,6 +471,7 @@ button:active{filter:brightness(1.35)}
       <div class="sl-luce-grid" id="luceGrid"></div>
     </div>
   </section>
+ </div>
 </div>
 
 <!-- ═══ VISTA SFERA ═══ -->
@@ -449,9 +561,9 @@ function LC(level) {
   return RFA.LUCE[level].col;
 }
 
-/* ---- posizione di casa, se non e' mai stata salvata una raffyca-pos
-   (barca target: Raffyca, acque di Sardegna) ---- */
-var DEFAULT_POS = { lat: 41.21, lon: 9.40 };
+/* Niente posizione di comodo: fino al 29/09/2026 qui c'era un punto fisso
+   (Bocche di Bonifacio) usato quando mancava ogni posizione, e la barra lo
+   chiamava «GPS · Posizione attuale». Ora senza posizione si dice. */
 
 /* ================= dati condivisi ================= */
 function readJSON(key, dflt) { try { var v = JSON.parse(localStorage.getItem(key) || 'null'); return v == null ? dflt : v; } catch (e) { return dflt; } }
@@ -508,7 +620,12 @@ function onGeo(pos) {
     }
   }
   try { localStorage.setItem('raffyca-pos', JSON.stringify({ lat: c.latitude, lon: c.longitude, ts: now })); } catch (e) {}
-  if (ST.speedAuto && GPS.sog != null) ST.speed = Math.max(0.1, +GPS.sog.toFixed(1));
+  /* sotto 1 kn la barca e' ferma (ormeggio, ancora): il SOG vale 0,1 e
+     l'arrivo finirebbe a giorni di distanza. Resta la velocita' a mano. */
+  if (ST.speedAuto && GPS.sog != null && GPS.sog >= 1) { ST.speed = +GPS.sog.toFixed(1); ST.speedGps = true; }
+  /* primo fix, o barca spostata di oltre un miglio: si ricalcola il giorno */
+  if (!CUR.site || (CUR.site.tag === 'GPS' && RFA.distNm(CUR.site, { lat: GPS.lat, lon: GPS.lon }) > 1)) { computeDay(); computeNow(); }
+  if (ST.etaMode === 'auto') computeArrival();
   scheduleRender();
 }
 /* Preferenza GPS condivisa (rf-topbar.js). Il ripiego serve perche' la
@@ -539,24 +656,32 @@ var ST = {
   showGrid: true, showYear: true,
   bacino: false,
   etaMode: 'auto', manualEta: null,
-  speed: 5.5, speedAuto: true
+  speed: 5.5, speedAuto: true, speedGps: false
 };
 
 /* ================= quadro corrente (ricalcolato a tocchi, non a ogni frame) ================= */
 var CUR = {};
 
 function currentSources() {
-  var gp = GPS.lat != null ? { lat: GPS.lat, lon: GPS.lon } : (readLastPos() || DEFAULT_POS);
-  var arr = [{ tag: 'GPS', name: 'Posizione attuale', lat: gp.lat, lon: gp.lon }];
-  var w = activeWp();
-  if (w) arr.push({ tag: 'WP', name: w.name || 'Waypoint attivo', lat: w.lat, lon: w.lon });
+  var arr = [];
+  if (GPS.lat != null) arr.push({ tag: 'GPS', name: nomeQui(), lat: GPS.lat, lon: GPS.lon });
+  var d = destPoint();
+  if (d) arr.push({ tag: d.kind === 'traccia' ? 'TR' : 'WP', name: d.name, lat: d.lat, lon: d.lon });
   return arr;
 }
 
+/* eta' della posizione: accanto al mirino solo se il fix non e' fresco */
+function nomeQui() {
+  if (!GPS.ts) return 'Ultima posizione';
+  var min = Math.round((Date.now() - GPS.ts) / 60000);
+  if (min < 2) return '';
+  return (min < 90 ? min + ' min fa' : min < 2880 ? Math.round(min / 60) + ' h fa' : Math.round(min / 1440) + ' giorni fa');
+}
 function computeDay() {
   CUR.SRC = currentSources();
   if (ST.srcIdx >= CUR.SRC.length) ST.srcIdx = 0;
-  CUR.site = CUR.SRC[ST.srcIdx];
+  CUR.site = CUR.SRC[ST.srcIdx] || null;
+  if (!CUR.site) return;
   var d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + ST.dayOff);
   CUR.date = d;
   var st = RFA.sunTimes(d, CUR.site.lat, CUR.site.lon);
@@ -575,6 +700,7 @@ function computeDay() {
   if (ST.minute > CUR.dayMin - 1) ST.minute = CUR.dayMin - 1;
 }
 function computeNow() {
+  if (!CUR.site) return;
   CUR.cursorDate = new Date(CUR.data.bounds.t0 + Math.min(ST.minute, CUR.dayMin - 1) * 60000);
   CUR.now = RFA.lightAt(CUR.cursorDate, CUR.site.lat, CUR.site.lon);
 }
@@ -640,11 +766,16 @@ function renderSourceBar() {
   var box = document.getElementById('srcChips'); box.innerHTML = '';
   CUR.SRC.forEach(function (s, i) {
     var b = document.createElement('button');
-    b.className = 'sl-chip' + (i === ST.srcIdx ? ' on' : '');
-    b.innerHTML = '<span class="tag">' + s.tag + '</span>' + s.name;
+    b.className = 'sl-chip' + (s.tag === 'GPS' ? ' gps' : '') + (i === ST.srcIdx ? ' on' : '');
+    if (s.tag === 'GPS') b.setAttribute('aria-label', 'posizione della barca');
+    /* la posizione della barca ha un mirino al posto della sigla GPS */
+    b.innerHTML = s.tag === 'GPS'
+      ? '<svg class="mir" viewBox="0 0 24 24" aria-label="GPS"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.2" class="pt"/><path d="M12 1.5v5M12 17.5v5M1.5 12h5M17.5 12h5"/></svg>' + nomeQui()
+      : '<span class="tag">' + s.tag + '</span>' + s.name;
     b.addEventListener('click', function () { ST.srcIdx = i; computeDay(); computeNow(); renderAll(); });
     box.appendChild(b);
   });
+  if (!CUR.site) { document.getElementById('srcCoord').textContent = ''; return; }
   var lat = CUR.site.lat, lon = CUR.site.lon;
   document.getElementById('srcCoord').textContent =
     Math.abs(lat).toFixed(3) + '° ' + (lat >= 0 ? 'N' : 'S') + ' · ' + Math.abs(lon).toFixed(3) + '° ' + (lon >= 0 ? 'E' : 'W');
@@ -652,7 +783,9 @@ function renderSourceBar() {
 
 /* ================= render: datebar ================= */
 function renderDatebar() {
-  document.getElementById('dbLabel').textContent = dLabelFull(CUR.date);
+  /* l'anno solo se non e' quello corrente: in una riga sola sul tablet */
+  document.getElementById('dbLabel').textContent = CUR.date.getFullYear() === new Date().getFullYear()
+    ? CUR.date.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'long' }) : dLabelFull(CUR.date);
   var nowClock = new Date();
   var isNow = ST.dayOff === 0 && Math.abs(ST.minute - (nowClock.getHours() * 60 + nowClock.getMinutes())) <= 1;
   var btn = document.getElementById('dbNow');
@@ -681,14 +814,15 @@ function renderArrival() {
   var eta = CUR.eta, col = LC(eta.level);
   card.style.borderLeftColor = col; card.style.borderRightColor = col;
 
-  document.getElementById('arrMode').textContent =
-    'Arrivo previsto · ' + (ST.etaMode === 'auto' ? 'calcolato' : 'corretto a mano');
-  document.getElementById('arrWhen').textContent = dShort(CUR.etaDate) + ' · ' + fT(CUR.etaDate);
+  document.getElementById('arrMode').textContent = ST.etaMode === 'auto' ? 'calcolato' : 'corretto a mano';
+  document.getElementById('arrWhen').innerHTML = '<small>' + dShort(CUR.etaDate) + '</small>' + fT(CUR.etaDate);
 
   var dist = document.getElementById('arrDist');
   if (CUR.distanza != null) { dist.textContent = CUR.distanza.toFixed(1) + ' nm'; dist.classList.add('mono'); }
   else { dist.textContent = 'posizione GPS non disponibile'; dist.classList.remove('mono'); }
   showIf('arrSep', CUR.distanza != null);
+  showIf('spdInfo', CUR.distanza != null);
+  document.getElementById('spdInfo').textContent = ST.speed.toFixed(1) + ' kn ' + (ST.speedGps ? 'dal GPS' : 'a mano');
   document.getElementById('spdVal').textContent = ST.speed.toFixed(1) + ' kn';
   showIf('etaRicalcola', ST.etaMode === 'manuale' && CUR.canAuto);
 
@@ -727,11 +861,11 @@ function bindArrival() {
     })(arr[i]);
   }
   bindHold(document.getElementById('spdMinus'), function () {
-    ST.speedAuto = false; ST.speed = Math.max(1, +(ST.speed - 0.5).toFixed(1));
+    ST.speedAuto = false; ST.speedGps = false; ST.speed = Math.max(1, +(ST.speed - 0.5).toFixed(1));
     computeArrival(); renderArrival();
   });
   bindHold(document.getElementById('spdPlus'), function () {
-    ST.speedAuto = false; ST.speed = Math.min(20, +(ST.speed + 0.5).toFixed(1));
+    ST.speedAuto = false; ST.speedGps = false; ST.speed = Math.min(20, +(ST.speed + 0.5).toFixed(1));
     computeArrival(); renderArrival();
   });
   document.getElementById('etaRicalcola').addEventListener('click', function () {
@@ -844,6 +978,7 @@ function project(v, yaw, pitch, cx, cy, R) {
 var DECL_SOLST = 23.4392911;
 
 function drawSphere() {
+  if (!CUR.site) return;
   var cv = document.getElementById('sphereCv'); if (!cv) return;
   var dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
   if (!w || !h) return;
@@ -944,11 +1079,11 @@ function drawSphere() {
   var sp = P(vecAltAz(now.sun.alt, now.sun.az));
   var mp = P(vecAltAz(now.moon.alt, now.moon.az));
   var drawMoon = function () {
-    var r = 9, k = Math.cos(2 * Math.PI * data.il.phase), waxing = data.il.phase < 0.5;
+    var r = 12, k = Math.cos(2 * Math.PI * data.il.phase), waxing = data.il.phase < 0.5;
     ctx.save(); ctx.globalAlpha = fade(now.moon.alt, 0.32);
     ctx.beginPath(); ctx.arc(mp.x, mp.y, r, 0, 7);
     ctx.fillStyle = pal.moonDark; ctx.fill();
-    ctx.strokeStyle = pal.moon; ctx.lineWidth = 1; ctx.stroke();
+    ctx.strokeStyle = pal.moon; ctx.lineWidth = 1.3; ctx.stroke();
     ctx.beginPath();
     ctx.arc(mp.x, mp.y, r, -Math.PI / 2, Math.PI / 2, !waxing);
     ctx.ellipse(mp.x, mp.y, Math.abs(k) * r, r, 0, Math.PI / 2, -Math.PI / 2, (k > 0) === waxing);
@@ -958,10 +1093,10 @@ function drawSphere() {
   var drawSun = function () {
     ctx.save(); ctx.globalAlpha = fade(now.sun.alt, 0.38);
     var th = curTheme(), halo = (th === 'scuro' || th === 'giorno') ? 0.7 : 0.28;
-    var gg = ctx.createRadialGradient(sp.x, sp.y, 1, sp.x, sp.y, 24);
+    var gg = ctx.createRadialGradient(sp.x, sp.y, 1, sp.x, sp.y, 32);
     gg.addColorStop(0, 'rgba(' + pal.sunRGB + ',' + halo + ')'); gg.addColorStop(1, 'rgba(' + pal.sunRGB + ',0)');
-    ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(sp.x, sp.y, 24, 0, 7); ctx.fill();
-    ctx.beginPath(); ctx.arc(sp.x, sp.y, 8.5, 0, 7); ctx.fillStyle = pal.sunDisc; ctx.fill();
+    ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(sp.x, sp.y, 32, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(sp.x, sp.y, 12, 0, 7); ctx.fillStyle = pal.sunDisc; ctx.fill();
     ctx.restore();
   };
   if (sp.depth > mp.depth) { drawSun(); drawMoon(); } else { drawMoon(); drawSun(); }
@@ -978,6 +1113,7 @@ function drawSphere() {
 /* ================= grafico altezza/tempo ================= */
 var Y_MIN = -30, Y_MAX = 90, PAD_L = 30, PAD_R = 8;
 function drawChart() {
+  if (!CUR.site) return;
   var cv = document.getElementById('chartCv'); if (!cv) return;
   var dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
   if (!w || !h) return;
@@ -1001,7 +1137,7 @@ function drawChart() {
   bands.forEach(function (b) { ctx.fillStyle = b[2]; ctx.fillRect(PAD_L, Y(b[1]), PW, Y(b[0]) - Y(b[1])); });
 
   ctx.strokeStyle = pal.chartGrid; ctx.lineWidth = 1;
-  ctx.font = '10px ui-monospace, Menlo, monospace'; ctx.fillStyle = pal.muted; ctx.textAlign = 'center';
+  ctx.font = '12px ui-monospace, Menlo, monospace'; ctx.fillStyle = pal.muted; ctx.textAlign = 'center';
   var hh, d0, tt2, x;
   for (hh = 0; hh <= 24; hh += 3) {
     d0 = new Date(t0); d0.setHours(hh, 0, 0, 0);
@@ -1088,8 +1224,11 @@ function fDur(min) {
 
 function renderTide() {
   var err = document.getElementById('tideErr'), body = document.getElementById('tideBody');
+  if (!CUR.site) return;
+  var miniT = document.getElementById('tideMiniTrend'), miniS = document.getElementById('tideMiniSlack');
   function guasto(msg) {
     err.textContent = msg; err.classList.remove('off'); body.classList.add('off');
+    miniT.textContent = '—'; miniT.style.color = ''; miniS.textContent = msg;
   }
   if (MAREE.stato === 'assente') return guasto('Motore di marea non caricato.');
   if (MAREE.stato === 'attesa') return guasto('Carico il pacchetto delle maree…');
@@ -1117,6 +1256,10 @@ function renderTide() {
     sl.textContent = (m.next_slack.type === 'AM' ? 'alta' : 'bassa') + ' ' +
       fT(m.next_slack.timeUTC) + ' · fra ' + fDur(m.minutes_to_slack);
   } else sl.textContent = '—';
+  miniT.textContent = tr.textContent; miniT.style.color = col;
+  miniS.innerHTML = m.next_slack
+    ? 'stanca di ' + (m.next_slack.type === 'AM' ? 'alta' : 'bassa') + ' <b>' + fT(m.next_slack.timeUTC) + '</b>'
+    : '';
 
   document.getElementById('tideH').textContent =
     (m.height_m > 0 ? '+' : '') + m.height_m.toFixed(2) + ' m';
@@ -1155,6 +1298,7 @@ function renderTide() {
 }
 
 function drawTide() {
+  if (!CUR.site) return;
   var cv = document.getElementById('tideCv'); if (!cv) return;
   if (MAREE.stato !== 'pronto') return;
   var dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
@@ -1176,7 +1320,7 @@ function drawTide() {
 
   /* griglia oraria, come il grafico delle altezze */
   ctx.strokeStyle = pal.chartGrid; ctx.lineWidth = 1;
-  ctx.font = '10px ui-monospace, Menlo, monospace'; ctx.fillStyle = pal.muted; ctx.textAlign = 'center';
+  ctx.font = '12px ui-monospace, Menlo, monospace'; ctx.fillStyle = pal.muted; ctx.textAlign = 'center';
   for (var hh = 0; hh <= 24; hh += 6) {
     var d0 = new Date(b.t0); d0.setHours(hh, 0, 0, 0);
     var tt = hh === 24 ? b.t1 : d0.getTime();
@@ -1216,7 +1360,14 @@ var rafPending = false;
 function scheduleRender() { if (rafPending) return; rafPending = true; requestAnimationFrame(function () { rafPending = false; renderAll(); }); }
 
 function renderAll() {
-  renderSourceBar(); renderDatebar(); renderArrival(); renderSunMoonCards(); renderCrepuscoli(); renderTime();
+  var nessuna = !CUR.site;
+  showIf('noPos', nessuna);
+  document.getElementById('viewGiorno').classList.toggle('off', nessuna || ST.view !== 'giorno');
+  document.getElementById('viewSfera').classList.toggle('off', nessuna || ST.view !== 'sfera');
+  document.querySelector('.sl-top').classList.toggle('off', nessuna);
+  renderSourceBar();
+  if (nessuna) return;
+  renderDatebar(); renderArrival(); renderSunMoonCards(); renderCrepuscoli(); renderTime();
   renderTide();
   if (ST.view === 'giorno') drawChart(); else drawSphere();
 }
@@ -1229,8 +1380,9 @@ function switchView(v) {
   ST.view = v;
   document.getElementById('tabGiorno').classList.toggle('on', v === 'giorno');
   document.getElementById('tabSfera').classList.toggle('on', v === 'sfera');
-  document.getElementById('viewGiorno').classList.toggle('off', v !== 'giorno');
-  document.getElementById('viewSfera').classList.toggle('off', v !== 'sfera');
+  document.getElementById('viewGiorno').classList.toggle('off', !CUR.site || v !== 'giorno');
+  document.getElementById('viewSfera').classList.toggle('off', !CUR.site || v !== 'sfera');
+  if (!CUR.site) return;
   if (v === 'giorno') drawChart(); else drawSphere();
 }
 
@@ -1305,6 +1457,14 @@ tideBasinEl.addEventListener('change', function () {
   try { localStorage.setItem('raffyca-marea-bacino', ST.bacino ? '1' : '0'); } catch (e) {}
   renderTide();
 });
+
+/* il riassunto della marea porta al dettaglio */
+(function () {
+  var mini = document.getElementById('tideMini');
+  function vai() { document.getElementById('tideCard').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  mini.addEventListener('click', vai);
+  mini.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); vai(); } });
+})();
 
 /* ================= avvio ================= */
 computeDay(); computeNow(); computeArrival(); bindArrival(); DEST_FIRMA = firmaDest(); renderAll();
