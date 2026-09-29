@@ -235,6 +235,45 @@ html:root header,html:root .recbar,html:root .back,html:root .src,html:root .win
 html:root .mbtn,html:root .stepper button,html:root .f-btn,html:root .rec-btn{background:var(--piano);box-shadow:none;text-shadow:none;}
 html:root .seg button.on{background:var(--teal);box-shadow:none;}
 html.day:root .f-btn.stop{background:#fbeaea;}
+
+/* ── 29/09/2026: riorganizzazione. Lo scopo e' uno solo: piu' altezza e piu'
+   larghezza ai numeri. Sopra i campi una riga sola (prima tre, ~180 px), i
+   comandi in fondo, l'unita' fuori dalla riga del numero. */
+.toolbar{justify-content:flex-start;gap:6px;padding:6px 8px;}
+.toolbar .wind-src,.toolbar .src,.lay-btn{min-height:44px;border-radius:10px;padding:0 12px;font-size:13px;}
+.toolbar .src{margin-left:auto;}
+.lay-btn{display:flex;align-items:center;gap:7px;cursor:pointer;font-family:var(--mono);
+  color:var(--ink);background:var(--piano);border:1px solid var(--dim);}
+.lay-btn .lay-ico{color:var(--teal);font-size:17px;line-height:1;}
+.lay-btn b{font-size:16px;}
+#lsheet .seg{display:flex;width:100%;border-radius:10px;}
+#lsheet .seg button{flex:1;padding:0;min-height:58px;font-size:22px;}
+.lay-note{font-family:var(--sans);font-size:12px;color:var(--sub);text-align:center;margin-top:10px;}
+
+.rec-wp{flex:none;padding:9px 12px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--dim);background:var(--dp);}
+.rec-wp:empty{display:none;}
+
+main{padding:6px;}
+.grid{gap:6px;}
+
+.recbar{border-bottom:0;border-top:1px solid var(--dim);padding:6px 8px;gap:6px;}
+.recbar .rec-btn{flex:1;justify-content:center;min-height:52px;font-size:14px;}
+.recbar .rec-btn.voice{flex:0 0 64px;}
+
+/* L'unita' va in alto a destra, accanto al nome: nella riga del numero
+   rubava larghezza, ed e' la larghezza che limita le cifre sul telefono.
+   !important perche' fit() le scrive la misura inline. */
+/* --lf e' la misura del nome, scritta da fit() in base alla casella */
+.slot .unit{position:absolute;top:9px;right:12px;font-size:calc(var(--lf,11px)*1.2)!important;line-height:1;}
+.slot .lbl{font-size:var(--lf,11px);padding-right:calc(var(--lf,11px)*4);}
+.grid.n8 .slot .lbl{font-size:var(--lf,11px);}
+.slot .est{font-size:calc(var(--lf,11px)*.85);}
+.slot .side-tag{font-size:calc(var(--lf,11px)*1.3);}
+/* decimale a due terzi, come sugli strumenti di bordo: l'intero si legge da
+   lontano, e il punto non ruba piu' una cifra intera di larghezza */
+.slot .num .dec{font-size:.70em;}   /* 0.66 / 0.94: fit() abbassa la parte intera del 6% */
+/* dato assente: trattino piccolo e spento, non una barra che sembra un valore */
+.slot .num.na{color:var(--sub);text-shadow:none;}
 </style>
 </head>
 <body>
@@ -257,33 +296,44 @@ html.day:root .f-btn.stop{background:#fbeaea;}
 <script src="../rf-live.js"></script>
 <!-- ===== /rf-topbar ===== -->
 
-<header>
-  <div class="hbrand">
-    <div class="hboat"><small id="profile">First 36.7 · polare ORC</small></div>
-  </div>
-  <button class="src" id="src">
-    <span class="led"></span><span class="wcap">Dati</span><span id="srcTx">Solo GPS</span><small id="srcSub"></small>
-  </button>
-</header>
-
+<!-- 29/09/2026: una riga sola sopra i campi (prima erano tre). Il nome della
+     polare lo mostra gia' la barra in alto (rfPol): #profile resta, nascosto,
+     perche' updateProfileSub() ci scrive. -->
+<small id="profile" hidden></small>
 <div class="toolbar">
-  <div class="seg" id="segLayout">
-    <button data-n="2">2</button><button data-n="3">3</button><button data-n="4" class="on">4</button><button data-n="5">5</button><button data-n="8">8</button>
-    <span class="cap">campi</span>
-  </div>
+  <button class="lay-btn" id="btnLayout" aria-label="Numero di campi"><span class="lay-ico" aria-hidden="true">▦</span><b id="layTx">4</b></button>
   <button class="wind-src" id="windSrc" data-w="estimate">
     <span class="led"></span><span class="wcap">Vento</span><b id="windTx">Auto</b>
   </button>
+  <button class="src" id="src">
+    <span class="led"></span><span id="srcTx">Solo GPS</span><small id="srcSub"></small>
+  </button>
 </div>
 
+<!-- WP o traccia attiva: la riga c'e' solo quando ha qualcosa da dire -->
+<div class="rec-wp" id="recWp"></div>
+
+<main><div class="grid n4" id="grid"></div></main>
+
+<!-- comandi in fondo, sotto il pollice -->
 <div class="recbar">
-  <div class="rec-wp" id="recWp" style="flex:1"></div>
   <button class="rec-btn voice" id="btnVoice" aria-pressed="false" title="Lettura vocale"><svg viewBox="0 0 24 24" width="23" height="23" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path id="voiceWave" d="M16 8.6a4 4 0 0 1 0 6.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
   <button class="rec-btn" id="btnWpt">＋ Waypoint</button>
   <button class="rec-btn trk" id="btnTrk"><span class="dot"></span><span id="trkTx">Traccia</span></button>
 </div>
 
-<main><div class="grid n4" id="grid"></div></main>
+<!-- foglio: quanti campi -->
+<div class="sheet" id="lsheet">
+  <div class="sheet-bg" data-close></div>
+  <div class="sheet-card">
+    <div class="sheet-grip"></div>
+    <div class="sheet-h">Quanti campi</div>
+    <div class="seg" id="segLayout">
+      <button data-n="2">2</button><button data-n="3">3</button><button data-n="4" class="on">4</button><button data-n="5">5</button><button data-n="8">8</button>
+    </div>
+    <div class="lay-note">3 e 5 hanno la bussola</div>
+  </div>
+</div>
 
 <!-- foglio: scelta grandezza -->
 <div class="sheet" id="pick">
@@ -439,6 +489,7 @@ const DEF={2:['sog','twa'],
 let N=4;
 let ASSIGN={2:DEF[2].slice(),3:DEF[3].slice(),4:DEF[4].slice(),5:DEF[5].slice(),8:DEF[8].slice()};
 let COMPASS_MODE='north'; // north | heading | wp | track
+let PICKED=false;         // ha gia' cambiato un campo: il suggerimento non serve piu'
 const COMPASS_LAYOUTS=[3,5];           // layout con bussola grande + campi configurabili
 const tileCount=n=>n===5?4:n===3?2:n;  // quanti campi configurabili per ogni layout
 function load(){
@@ -448,9 +499,10 @@ function load(){
     if(c.cmode)COMPASS_MODE=c.cmode;
     if(c.wind)WIND=c.wind;
     if(c.mw){MW.tws=c.mw.tws;MW.twd=c.mw.twd;}
+    if(c.picked)PICKED=true;
   }catch(e){}
 }
-function save(){localStorage.setItem('raffyca-dash',JSON.stringify({n:N,assign:ASSIGN,wind:WIND,mw:MW,cmode:COMPASS_MODE}));}
+function save(){localStorage.setItem('raffyca-dash',JSON.stringify({n:N,assign:ASSIGN,wind:WIND,mw:MW,cmode:COMPASS_MODE,picked:PICKED}));}
 
 /* ── polare condivisa (raffyca-polar): % polare reale ── */
 /* POL_DEMO tolta il 29/09/2026: senza una polare caricata la % polare resta
@@ -811,23 +863,49 @@ function fit(slot){
   const dp=slot.querySelector('.dp'), lbl=slot.querySelector('.lbl');
   const num=slot.querySelector('.num'), unit=slot.querySelector('.unit');
   const row=slot.querySelector('.numrow');
+  /* Nome, unita' e distintivi crescono con la casella: a 11 px fissi, sul
+     tablet con 2 campi, accanto a cifre di 400 px non si leggevano. Va
+     impostato PRIMA di misurare, perche' l'altezza del nome toglie spazio
+     al numero. 11 px sul telefono, fino a 22 nella casella grande. */
+  slot.style.setProperty('--lf',Math.max(11,Math.min(22,Math.min(dp.clientHeight*0.045,dp.clientWidth*0.035)))+'px');
   const availH=dp.clientHeight - lbl.offsetHeight - 22;
-  const availW=dp.clientWidth - 26;
+  /* Margine laterale in proporzione: con 26 px fissi, sul tablet le cifre
+     arrivavano a filo del bordo (Sergio: «COG su tablet pochissimo piu'
+     piccolo»). Sul telefono resta quasi lo stesso. */
+  const availW=dp.clientWidth - Math.max(26,dp.clientWidth*0.08);
   /* Misura che non vale niente: pagina nascosta, ripresa dallo stop del
      dispositivo, layout non ancora assestato. Non si tira a indovinare — si
      lascia il campo com'e' e si azzera _shape, cosi' il prossimo paint (o
      l'osservatore qui sotto) rimisura per davvero. */
   if(!(availH>8&&availW>8)){slot._shape='';return;}
-  const set=v=>{num.style.fontSize=v+'px';unit.style.fontSize=Math.max(11,v*0.26)+'px';};
-  let fs=Math.max(14,Math.min(availH*0.98,220));
+  const set=v=>{num.style.fontSize=v+'px';};
+  /* 1.12 e non 0.98: le cifre sono alte circa 0.73 em, quindi con la riga
+     alta quanto il corpo restava vuoto un quarto della casella. Tetto a 600
+     (era 220): sul tablet il layout a 2 campi lo toccava e restava a meta'
+     casella. Ora decidono l'altezza e, sotto, la larghezza. */
+  let fs=Math.max(14,Math.min(availH*1.12,600));
+  /* Con il decimale la parte intera si abbassa di un soffio (Sergio, sul
+     12.0: «ridurrei l'altezza, ma di pochissimo, la cifra intera»). Il
+     decimale resta com'era: .dec passa da 0.66 a 0.70 em per compensare. */
+  /* Si applica DOPO il ciclo sulla larghezza, qui sotto: il SOG e' limitato
+     dalla larghezza, e il ciclo ricalcolerebbe la misura annullandolo. */
+  const DEC_K=0.94, hasDec=!!num.querySelector('.dec');
+  /* Il trattino del dato assente non si ingrandisce come un numero: diventava
+     una barra spessa e colorata che sembrava un valore. */
+  if(num.textContent==='—'){set(Math.max(18,Math.min(fs*0.25,48)));return;}
   set(fs);
   /* Larghezza VERA, non stimata. Il conto a carattere (0.60 em l'uno) sbagliava
      di brutto sul trattino del dato assente, che di em ne occupa uno intero, e
      non contava ne' l'unita' ne' lo spazio fra le due. */
   for(let i=0;i<5&&fs>14;i++){
-    const w=row.scrollWidth; if(w<=availW)break;
-    fs=Math.max(14,fs*availW/w*0.995); set(fs);
+    /* Si misura il contenuto (numero piu' distintivo), non row.scrollWidth:
+       quello non scende mai sotto la larghezza della riga, e con il margine
+       proporzionale qui sopra il ciclo rimpiccioliva a ogni giro. */
+    const tg=row.querySelector('.side-tag');
+    const w=num.getBoundingClientRect().width+(tg?tg.getBoundingClientRect().width+5:0); if(w<=availW)break;
+    fs=Math.max(14,fs*availW/w*0.98); set(fs);   /* 0.995 finiva 1-2 px oltre con il distintivo ◄ Sx, che non scala */
   }
+  if(hasDec)set(Math.max(14,fs*DEC_K));
 }
 let FITTING=false;
 function fitAll(){
@@ -854,9 +932,11 @@ function paint(){
       m.lbl+(m.sub?' <span class="sub2">'+m.sub+'</span>':'')+
       (ch?' <span class="est '+ch.c+'">'+ch.t+'</span>':'');
     const num=slot.querySelector('.num');
-    num.textContent=m.fmt(E);
+    const txt=String(m.fmt(E)), dm=/^(-?\d+)(\.\d+)$/.exec(txt);
+    if(dm){num.textContent=dm[1];const d=document.createElement('span');d.className='dec';d.textContent=dm[2];num.appendChild(d);}
+    else num.textContent=txt;
     const col=m.color==='dyn'?(E.xte==null?'':(Math.abs(E.xte)<15?'teal':Math.abs(E.xte)<40?'amber':'coral')):m.color;
-    num.className='num'+(col?' '+col:'');
+    num.className='num'+(num.textContent==='—'?' na':(col?' '+col:''));
     slot.querySelector('.unit').textContent=unitOf(m);
     const old=slot.querySelector('.side-tag'); if(old)old.remove();
     if(m.tag){const tg=m.tag(E); if(tg){const sp=document.createElement('span');
@@ -891,7 +971,7 @@ function openPick(i){
     b.className='mbtn'+(m.id===cur?' on':'');
     b.innerHTML='<div class="mb-lbl">'+m.lbl+'</div><div class="mb-sub">'+
       (m.sub?m.sub+' · ':'')+unitOf(m)+'</div>';
-    b.addEventListener('click',()=>{ASSIGN[N][i]=m.id;save();build();closeSheets();});
+    b.addEventListener('click',()=>{ASSIGN[N][i]=m.id;PICKED=true;save();build();closeSheets();});
     mg.appendChild(b);
   });
   $('pick').classList.add('on');
@@ -937,9 +1017,11 @@ $('segLayout').querySelectorAll('button').forEach(b=>{
   b.addEventListener('click',()=>{
     N=+b.dataset.n;
     $('segLayout').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
-    save();build();
+    $('layTx').textContent=N;
+    save();closeSheets();build();
   });
 });
+$('btnLayout').addEventListener('click',()=>$('lsheet').classList.add('on'));
 
 /* ── fogli: chiusura ── */
 function closeSheets(){document.querySelectorAll('.sheet').forEach(s=>s.classList.remove('on'));}
@@ -1108,11 +1190,13 @@ load();
 loadPolar();
 gpsStart();
 $('segLayout').querySelectorAll('button').forEach(x=>x.classList.toggle('on',+x.dataset.n===N));
+$('layTx').textContent=N;
 $('windSrc').dataset.w=WIND; $('windTx').textContent=WLBL[WIND];
 build();
 followSync();
 refreshActiveWp();
-setTimeout(()=>toast('Tieni premuto un campo per cambiare grandezza'),700);
+/* Il suggerimento serve finche' non si e' cambiato un campo almeno una volta. */
+if(!PICKED)setTimeout(()=>toast('Tieni premuto un campo per cambiare grandezza'),700);
 datiBordo();
 setInterval(function(){datiBordo();paint();},1000);
 </script>

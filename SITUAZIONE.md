@@ -5981,3 +5981,174 @@ Nel browser, a 375 px, con fix d'esempio poi cancellato:
 - La veglia a schermo spento nell'APK dopo la riorganizzazione: la logica
   non è stata toccata, ma va rivista in rada.
 - Temi Giorno e Notte.
+
+---
+
+## 29/09/2026 (7) — Il Cruscotto riorganizzato: lo spazio va ai numeri
+
+Schizzo approvato da Sergio, con una priorità dichiarata: «guadagnare spazio
+per i campi, soprattutto per il 2, che deve avere i numeri più grandi
+possibile». Solo spostamenti di elementi esistenti con i loro `id` (30
+riferiti dal JavaScript, controllati con uno script: tutti presenti, nessun
+doppione).
+
+### Com'era
+
+Sopra i campi c'erano tre righe, circa 180 px:
+1. «nessuna polare» e il bottone «Dati»;
+2. il selettore «2 3 4 5 8 campi», con «campi» tagliato a 375 px, e
+   «Vento»;
+3. voce, «＋ Waypoint», «Traccia», più la riga del WP attivo, presente anche
+   quando era vuota.
+
+**Il dato assente sembrava un valore.** `fit()` ingrandiva il trattino «—»
+come un numero: a 375 px diventava una barra spessa, colorata come il campo.
+
+### Com'è
+
+- **Una riga sola sopra i campi**: «▦ 4», «Vento», «Solo GPS». Il numero di
+  campi si sceglie da un foglio (`lsheet`) che contiene lo stesso
+  `segLayout`, con gli stessi `data-n`.
+- **Il nome della polare** esce: lo mostra già la barra in alto (`rfPol`).
+  `#profile` resta nascosto, perché `updateProfileSub()` ci scrive.
+- **La riga del WP o della traccia** (`recWp`) compare solo quando ha
+  qualcosa da dire (`:empty`).
+- **Voce, Waypoint e Traccia in fondo**, alti 52 px, sopra la barra delle
+  sezioni.
+- **L'unità va in alto a destra della casella**, accanto al nome, come nella
+  striscia della Carta. Nella riga del numero rubava larghezza, ed è la
+  larghezza a limitare le cifre sul telefono.
+- **`fit()`**:
+  - altezza della cifra a 1,12 volte lo spazio (era 0,98: le cifre sono
+    alte circa 0,73 em, e restava vuoto un quarto della casella);
+  - tetto a 600 px (era 220, e sul tablet il layout a 2 campi lo toccava);
+  - il trattino del dato assente resta piccolo (al massimo 48 px) e grigio
+    (`.num.na`).
+- **Bordi e spazi fra le caselle** da 10 e 9 px a 6.
+- **Il suggerimento «Tieni premuto un campo…»** non compare più dopo il
+  primo cambio di campo: campo `picked` dentro `raffyca-dash`, nessuna
+  chiave nuova.
+
+### Misure, layout a 2 campi, prima e dopo
+
+Stessa pagina, stesso fix d'esempio (SOG 6,4), misurate nello stesso browser:
+
+| | 375 × 812 | 800 × 1280 |
+|---|---|---|
+| prima | corpo 156 px, cifre larghe 273 px | 220 px (il tetto), 384 px su 778 |
+| dopo | corpo 192 px, cifre larghe 335 px | 433 px, cifre quasi a tutta casella |
+
+### Difetto introdotto e trovato provando
+
+A 375 px con 4 campi, il TWA con il distintivo «◄ Sx» usciva di 1–2 px dalla
+casella. Il ciclo di `fit()` scalava di 0,995, e il distintivo, che non
+scala, lo lasciava sempre appena oltre il limite. Ora scala di 0,98. Dopo la
+correzione, con i layout 2, 3, 4, 5 e 8, nessuna riga di numero esce dalla
+casella.
+
+Service worker: nessuno da alzare. `cruscotto/` non è nel precache, e l'HTML
+lo serve prima la rete (`dritta-hub`).
+
+### Verificato
+
+Nel browser, con fix, vento manuale e WP d'esempio poi cancellati:
+- **layout 2, 3, 4, 5, 8** a 375, 600 e 1000 px: nessuna cifra tagliata,
+  nessuno scorrimento orizzontale, nome e unità mai sovrapposti (misurato sul
+  testo, non sul riquadro);
+- **nessuna cifra tagliata in altezza** nel layout 2, a 375 e a 800 px
+  (controllato a occhio sugli screenshot);
+- **foglio dei campi**: si apre, la scelta si applica, si chiude, «▦ N» si
+  aggiorna e resta dopo un ricaricamento;
+- **riga WP**: compare con un WP attivo, apre il suo foglio, e sparisce con
+  «Disattiva waypoint»;
+- **suggerimento**: dopo un cambio di campo e un ricaricamento non compare;
+- **errori**: nessun errore JavaScript; sintassi con `jsc`.
+
+### Non verificato
+
+- Sul tablet e con i guanti: altezza dei bottoni in fondo e del foglio dei
+  campi.
+- Temi Giorno e Notte della disposizione nuova: i colori sono le variabili di
+  sempre, ma non li ho guardati.
+- Bussola (layout 3 e 5): non toccata, ma non l'ho rivista col GPS vero.
+
+### Dopo, guardando il layout a 2 con Sergio
+
+Con SOG 12.0 e COG 332 si vedevano tre cose:
+- **Il 12.0 veniva più piccolo del 332**: il carattere dà al punto lo spazio
+  di una cifra, e con quattro caratteri comandava la larghezza.
+- **Nome, unità e «◄ Sx» restavano a 11–12 px** accanto a cifre di 400 px,
+  sul tablet.
+- **Il COG sul tablet arrivava a filo del bordo.** Sergio: «pochissimo più
+  piccolo».
+
+Strade valutate per il 12.0:
+- **punto stretto**, cioè il solo punto a metà larghezza: circa +12%;
+- **decimale a due terzi**, come sugli strumenti di bordo.
+
+Scelto il decimale ridotto (`.dec`, 0,66 em): la parte intera è quella che si
+legge da lontano. Vale per tutti i campi con decimali. La lettura vocale non
+cambia, perché legge da `fmt()` e non dalla pagina.
+
+Nome, unità, distintivi e «◄ Sx» ora seguono la casella, con la variabile
+`--lf` scritta da `fit()`: 11 px sul telefono, fino a 22 sul tablet, e il
+«◄ Sx» a 1,3 volte. Il margine laterale del numero diventa l'8% della
+casella, con un minimo di 26 px.
+
+**Difetto introdotto e trovato provando.** Con il margine in proporzione il
+COG sul tablet era sceso da 430 a 331 px invece che di poco. Il ciclo di
+`fit()` misurava `row.scrollWidth`, che non scende mai sotto la larghezza
+della riga. Finché il limite era la riga intera non si notava; con un limite
+più stretto il numero si rimpiccioliva a ogni giro. Ora si misurano il numero
+e il distintivo.
+
+Misure dopo la correzione:
+
+| | 375 × 812 | 800 × 1280 |
+|---|---|---|
+| SOG 12.0 | 143 → **170 px** | 322 → **369 px** |
+| COG 332 | 188 → **186 px** | 430 → **406 px** (−6%, con margine ai lati) |
+
+Controllo ripetuto sui layout 2, 3, 4, 5 e 8, a 375, 600 e 1000 px, con WP
+attivo, vento manuale e «◄ Sx»: nessun numero o distintivo fuori dalla
+casella, nome e unità mai sovrapposti, nessun errore JavaScript, sintassi con
+`jsc`.
+
+Ancora dopo, sul tablet: Sergio chiede la parte intera del SOG «pochissimo»
+più bassa. Il SOG è limitato dalla larghezza, quindi una riduzione applicata
+prima del ciclo sulla larghezza sarebbe stata ricalcolata e annullata. La
+riduzione (0,94, costante `DEC_K`) si applica **dopo** il ciclo, solo ai
+numeri con decimale. `.dec` passa da 0,66 a 0,70 em, così il decimale resta
+quasi invariato.
+
+Misure con SOG 12.0:
+- **telefono**: parte intera da 170 a 156 px, decimale da 112 a 109;
+- **tablet**: parte intera da 369 a 339 px, decimale da 244 a 237.
+
+---
+
+## 29/09/2026 (8) — La Notte è troppo luminosa: segnalazione, non ancora risolta
+
+Sergio, dall'uscita notturna: **anche con la luminosità dello schermo al
+minimo, la modalità Notte era troppo luminosa.** Registrato qui perché non si
+perda; nessuna correzione ancora.
+
+Cosa si sa, guardando il codice:
+- **Ogni modulo ha la sua tavolozza notte** (`html.night`, 18 file), tutta
+  su rossi accesi: `--ink:#ff5b5b`, `--teal:#ff4d4d`. Il rosso preserva
+  l'adattamento al buio, ma a quella intensità, su superfici grandi, illumina
+  comunque.
+- **Nel Cruscotto le cifre sono enormi** (fino a 400 px sul tablet) e hanno
+  un alone (`text-shadow`): in Notte sono la superficie accesa più grande
+  della suite.
+- **La Carta di notte non scurisce le mattonelle**: in `carta/index.html` non
+  c'è nessuna regola `html.night` sulla mappa. Mare azzurro e terra chiara
+  restano a piena luminosità, probabilmente la fonte peggiore.
+- **Tablet** (Active 8 Pro, Android 13): `screen_brightness` 110 su 255
+  quando l'ho letto, di giorno. Le impostazioni di sistema «Luminosità extra
+  ridotta» (`reduce_bright_colors_*`) risultano mai impostate: non so se
+  l'Ulefone le esponga nel menu.
+
+Da decidere con Sergio (proposta nel messaggio di oggi): un velo scuro unico,
+regolabile, in `rf-topbar.js`; mattonelle della Carta scurite in Notte; alone
+tolto dalle cifre in Notte.
