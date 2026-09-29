@@ -42,10 +42,15 @@
   --header-h:52px;
 }
 
-/* ---------- RESET ---------- */
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0;}
-html,body{height:100%;}
-body{
+/* ---------- RESET ----------
+   Vale solo nelle pagine che lo chiedono con <html class="rf-reset">: le sette
+   che collegavano questo file prima del 29/09/2026. Dentro :where() perche' la
+   specificita' resti quella di prima (un `*` che vince su `.card{padding}`
+   romperebbe le pagine). Le pagine che collegano il file solo per lo strato di
+   leggibilita' in fondo non vengono toccate. */
+:where(html.rf-reset) *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0;}
+:where(html.rf-reset),:where(html.rf-reset) body{height:100%;}
+:where(html.rf-reset) body{
   font-family:var(--sans);
   background:var(--bg);
   color:var(--ink);
@@ -224,3 +229,48 @@ body.sun .rf-dp{background:
   var(--dp);
   box-shadow:inset 0 2px 6px rgba(120,140,160,.35),inset 0 0 0 1px rgba(0,0,0,.04);}
 body.sun .rf-num.teal,body.sun .rf-num.amber,body.sun .rf-num.coral,body.sun .rf-num.green{text-shadow:none;}
+
+/* ============================================================
+   LEGGIBILITÀ — lo strato comune di Dritta (29/09/2026)
+
+   Perché: la suite si legge al sole e da un tablet montato in basso, e ogni
+   modulo aveva le sue misure (etichette da 9 px, grigi a basso contrasto,
+   colonne larghe da 428 px a tutto schermo). Qui stanno le misure comuni.
+
+   Regola d'uso: SOLO variabili e classi con prefisso rf-. Nessuna regola su
+   elementi, così una pagina può collegare questo file senza cambiare finché
+   non usa le classi o le variabili. I tre temi sono html.day e html.night,
+   come nel resto della suite (body.sun qui sopra è il vecchio modo).
+
+   Scala dei caratteri: sotto i 560 px (telefono) e sopra (tablet, dove si
+   legge da più lontano). Nessun testo sotto --t-etichetta.
+   ============================================================ */
+:root{
+  --t-etichetta:13px;   /* etichette maiuscole, unità, note brevi */
+  --t-piccolo:14px;     /* testo secondario */
+  --t-testo:16px;       /* testo corrente, pulsanti */
+  --t-titolo:20px;      /* titoli di scheda */
+  --t-grande:28px;      /* numeri in evidenza */
+  --t-enorme:44px;      /* il numero principale di una schermata */
+  --lab:#a3b8ca;        /* grigio leggibile al sole, al posto di --sub dove conta */
+  --colonna:720px;      /* larghezza massima delle pagine non operative */
+  --margine:14px;       /* margine laterale comune */
+  --tocco:48px;         /* altezza minima di un comando: si usa coi guanti */
+}
+@media (min-width:560px){
+  :root{
+    --t-etichetta:14px; --t-piccolo:15.5px; --t-testo:18px;
+    --t-titolo:23px; --t-grande:34px; --t-enorme:56px;
+    --margine:18px; --tocco:54px;
+  }
+}
+html.day{--lab:#28414f;}
+html.night{--lab:#c85050;}
+
+/* colonna comune delle pagine non operative (mappe e strumenti restano a tutto schermo) */
+.rf-colonna{max-width:var(--colonna);margin-inline:auto;padding-inline:var(--margine);box-sizing:border-box;width:100%;}
+/* etichetta maiuscola leggibile */
+.rf-etichetta{font-family:var(--sans);font-size:var(--t-etichetta);font-weight:650;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--lab);line-height:1.25;}
+/* cifre: il monospazio solo per i numeri, allineati */
+.rf-cifre{font-family:var(--mono);font-variant-numeric:tabular-nums;}

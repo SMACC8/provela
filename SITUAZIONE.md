@@ -5426,3 +5426,98 @@ riga senza andare a capo.
 C'è già in `main`: confrontato sulla versione prima di questa voce. Spiega
 una parte dei «testi piccoli» del Meteo. **È il primo punto del foglio di
 stile.**
+
+---
+
+## 29/09/2026 (2) — Il foglio di stile comune, e il Meteo che finalmente sta nello schermo
+
+Richiesta di Sergio (28/09): testi e comandi più grandi, perché al sole e dal
+tablet montato in basso non si leggono; e un'interfaccia che non sembri tre
+app diverse. Questa è la **prima fase**: lo strato comune, e il primo modulo
+che lo adotta.
+
+### Un file solo, e perché proprio quello
+
+`raffyca.css` era già nato come «design system condiviso della suite»
+(«caricalo in ogni app»), ma lo avevano adottato 7 pagine su 18: il resto
+ricopiava i colori a mano, ed è così che la suite si è divisa.
+
+Scartato un secondo file (`dritta.css`): avrebbe rifatto lo stesso errore, due
+sorgenti per le stesse misure. **Il foglio unico resta `raffyca.css`.**
+
+Due ostacoli, entrambi silenziosi:
+- **cominciava con un azzeramento globale** (`*{margin:0;padding:0}`,
+  `html,body{height:100%}`, sfondo e colore di `body`). Collegarlo a una pagina
+  nuova le cambiava margini e impaginazione ovunque. Ora quelle regole valgono
+  solo con `<html class="rf-reset">`, aggiunto alle 8 pagine che lo collegavano
+  già (le 7 del menu più `prova-bolina.html`). Sono dentro `:where()`, perché
+  la specificità resti identica: un `html.rf-reset *` avrebbe battuto
+  `.card{padding}` e rotto proprio quelle pagine;
+- **il suo tema Giorno è ancora `body.sun`**, il vecchio modo. Lo strato nuovo
+  usa `html.day` / `html.night` come il resto della suite. `body.sun` resta
+  per ora: nessuna pagina lo accende più, ma toglierlo è un lavoro a parte.
+
+### Lo strato di leggibilità
+
+In fondo a `raffyca.css`, solo variabili e classi `rf-`, nessuna regola sugli
+elementi: una pagina lo collega senza cambiare finché non lo usa.
+
+- **Scala dei caratteri** in variabili (`--t-etichetta`, `--t-piccolo`,
+  `--t-testo`, `--t-titolo`, `--t-grande`, `--t-enorme`): 13 / 14 / 16 / 20 /
+  28 / 44 px sul telefono, **14 / 15,5 / 18 / 23 / 34 / 56 da 560 px** in su
+  (l'Active 8 Pro è largo 600 px CSS). Un modulo che usa le variabili si
+  ingrandisce sul tablet senza scriverlo.
+- `--lab`: il grigio leggibile al sole, nei tre temi.
+- `--colonna` (720 px), `--margine`, `--tocco` (48 / 54 px, comandi da guanti).
+- Classi `rf-colonna`, `rf-etichetta`, `rf-cifre`.
+
+### Il Meteo, primo modulo
+
+- **Non si impagina più più largo del telefono.** A 375 px la pagina iniziale
+  misurava 634 px, e la vista di un'area 411. Tre colpevoli:
+  - la riga in cima alle schede delle aree (nome, grafichetto, tre
+    indicatori, freccia) non andava a capo. Sotto i 620 px ora va su due
+    righe: nome e freccia, poi grafichetto e indicatori;
+  - la riga in cima alla vista di un'area;
+  - il cursore delle ore, che spingeva fuori le date ai suoi lati.
+- **46 regole di carattere convertite**, selettore per selettore:
+  - il **monospazio resta solo sulle cifre** (velocità, direzioni, orari,
+    valori);
+  - titoli, nomi delle aree, etichette, pulsanti e note passano al
+    carattere normale;
+  - le misure sotto i 13 px (fino a 9 px) passano alle variabili comuni;
+  - velocità nelle fasce da 12,5 a 16 px, indicatori da 14 a 17;
+  - fasce e indicatori si allargano per starci.
+- `.rvTime` usava `var(--sub)` senza definirla: il colore ricadeva sul
+  bianco ereditato. Con il file comune sarebbe diventato il grigio scuro;
+  ora è `--lab`.
+
+### Difetto trovato strada facendo: `raffyca.css` non era in nessuna cache
+
+Non era nel precache di nessun service worker, e quello dell'hub non mette in
+cache quello che non ha già. Quindi le 7 pagine che lo usavano da mesi,
+**offline, molto probabilmente si aprivano senza il loro stile**. Non l'ho
+visto succedere: è dedotto leggendo il service worker. Ora è nel precache
+dell'hub e del Meteo.
+
+Service worker: **`dritta-hub-v27`** (anche per le pagine delle 7 con la
+classe nuova), **`raffyca-meteo-v24`**.
+
+### Verificato
+
+Nei riquadri di prova a 320, 375, 600 e 1000 px, sulla versione nuova:
+- larghezza della pagina uguale allo schermo nella pagina iniziale e in tutte
+  e quattro le viste di un'area (Nastro, Rosa, Temporali, Diagrammi);
+- nessun testo visibile sotto i 13 px (14 sul tablet).
+
+Sul tablet, con l'APK: il Meteo riempie lo schermo, in carattere normale e più
+grande, con le cifre in monospazio. Prima era rimpicciolito e tutto in
+monospazio.
+
+### Non verificato
+
+- Le 7 pagine con la classe `rf-reset` dopo la modifica: la specificità è
+  identica per costruzione, ma non le ho riaperte una per una.
+- La cache offline di `raffyca.css`, sia prima sia dopo: il pannello del
+  browser blocca i service worker.
+- I temi Giorno e Notte del Meteo convertito.
