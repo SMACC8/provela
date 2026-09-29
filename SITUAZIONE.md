@@ -6544,3 +6544,71 @@ Nel browser, con una polare d'esempio poi cancellata:
 
 - **Il salvataggio vero della polare da punti reali**: il codice non è
   cambiato, ma non ci sono ancora punti reali.
+
+---
+
+## 29/09/2026 (13) — Sezione Barca: un giro leggero di leggibilità
+
+Manutenzione, Prontuario e Calcoli si consultano in porto o all'ancora, non
+in manovra. L'inventario non ha trovato comandi nascosti né dati inventati:
+l'unico `Math.random` genera un identificativo. Quindi niente spostamenti,
+solo misure. Proposta approvata da Sergio, che ha mandato due screenshot di
+Manutenzione con i suoi dati dal tablet.
+
+### Cosa c'era
+
+| Modulo | Tablet | Scritte sotto i 12 px |
+|---|---|---|
+| Calcoli | colonna di 720 px | 55 su 170 (10,5 e 11 px: unità, formule sotto i risultati) |
+| Prontuario | colonna di 560 px, riquadri su 2 colonne | 7 nella pagina, più una ventina nelle sezioni (sigle, intestazioni, scale del simulatore fari) |
+| Manutenzione | colonna di 560 px | distintivi, conteggi, didascalie a 10,5-11 px |
+
+Il tablet di Sergio è largo 600 px CSS in verticale: lì le colonne di
+560-720 px occupano già quasi tutto. **Il guadagno vero sono le scritte**; le
+larghezze contano in orizzontale.
+
+Dagli screenshot di Manutenzione:
+- **«Elimina lavoro» stava attaccato sotto «Salva modifiche».** C'è già la
+  conferma («Elimina davvero»), ma il primo tocco non deve cadere lì per
+  sbaglio: ora c'è uno stacco di 18 px.
+- **Il nome della barca è diverso** fra la barra in alto («Te' Sailt cr»,
+  dal profilo di Impostazioni) e l'intestazione di Manutenzione («Proteus Tè
+  Salt · 2003», dal database). Segnalato a Sergio, non toccato: è un dato,
+  non il codice.
+
+### Fatto
+
+Tutto in blocchi di stile in fondo alle tre pagine, nessuna logica toccata:
+- **Calcoli**: fino a 900 px; unità, formule e intestazioni di tabella
+  almeno 12 px.
+- **Prontuario**:
+  - fino a 900 px, riquadri su 3 colonne da 760 px;
+  - righe dei riquadri 13 px;
+  - dentro le sezioni: scelte rapide (`.chip`) 13 px e più alte, sigle,
+    intestazioni, scala dei tempi del simulatore fari, sottotitoli dei
+    tre bottoni VHF almeno 12 px.
+- **Manutenzione**:
+  - stacco sopra «Elimina lavoro / intervento / componente»;
+  - distintivi e conteggi a 12 px;
+  - la tabella del Dossier resta a 9,5 pt, perché è il documento da
+    stampare.
+
+Service worker: **`dritta-hub-v31`**. Le tre pagine sono nel precache
+dell'hub.
+
+### Verificato
+
+Nel browser, con localStorage vuoto:
+- **Calcoli**, a 375 e 1000 px con tutte le sezioni aperte: 170 testi,
+  **nessuno sotto i 12 px** (erano 55), niente sborda;
+- **Prontuario**: pagina iniziale 0 sotto i 12 px (erano 7); aprendo una
+  per una le sette sezioni, 339 testi, **nessuno sotto i 12 px**, niente
+  sborda, a 375 e 1000 px;
+- **Manutenzione**: niente sborda, stacco di 18 px sopra «Elimina»;
+- **errori**: nessun errore JavaScript.
+
+### Non verificato
+
+- **Manutenzione con i dati veri**: senza il database, nel pannello si vede
+  solo la schermata vuota. I dati di Sergio non li ho usati per provare.
+  Da guardare sul tablet: elenco lavori, schede, Dossier.

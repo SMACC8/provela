@@ -264,6 +264,17 @@ html.day .danger-full{color:#fff}
   .doc tr{break-inside:avoid}
   @page{margin:14mm}
 }
+
+/* ── 29/09/2026: giro leggero della sezione Barca ──────────────────────
+   «Elimina lavoro» stava attaccato sotto «Salva modifiche» (screenshot di
+   Sergio): con un tocco storto si cancellava invece di salvare. C'e' la
+   conferma «Elimina davvero», ma il primo tocco non deve cadere li' per
+   sbaglio. Scritte piccole (distintivi, conteggi) portate ad almeno 12 px;
+   non la tabella del Dossier, che e' il documento da stampare. */
+#intElimina,#cpElimina{margin-top:18px;}
+.tabs .cnt,.nodo .tag,.sugg .ct{font-size:12px;}
+.pill,.docchip,.gal .cap .dd,.sugg .fl,.badge-arch{font-size:12px;}
+.gal .th .n{font-size:11.5px;}
 </style>
 </head>
 <body>

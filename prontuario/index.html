@@ -229,6 +229,27 @@ td.cv-n{white-space:normal;color:var(--muted)}
 .slot .loc{font:600 17px ui-monospace,Menlo,monospace;color:var(--teal);
            font-variant-numeric:tabular-nums}
 .slot .next{margin-left:auto;font-size:11px;color:var(--amber);font-weight:600}
+
+/* ── 29/09/2026: giro leggero della sezione Barca ──────────────────────
+   Nessuna scritta sotto i 12 px (le righe dei riquadri erano a 11, le
+   bandiere a 10), e sul tablet in orizzontale tutto lo schermo invece della
+   colonna di 560 px, con i riquadri su tre colonne. */
+.wrap{max-width:900px;}
+@media (min-width:760px){.tiles{grid-template-columns:repeat(3,1fr);}}
+.tile .ds{font-size:13px;}
+.lamp-name{font-size:12.5px;}
+.grp-n{font-size:13px;}
+.fl .mn{font-size:12px;}
+.sheet-in .rff-tx em{font-size:13px;}
+.slot .next{font-size:12.5px;}
+[data-u] span{font-size:12px!important;}
+/* dentro le sezioni: sigle, intestazioni di tabella, scale e scelte rapide */
+.chip{font-size:13px;padding:9px 13px;}
+label.lb{font-size:12px;}
+th{font-size:12px;}
+.lamp-ch{font-size:12.5px;}
+.decode .sec{font-size:12.5px;}
+.tl-scale span{font-size:12px;}
 </style>
 </head>
 <body>
