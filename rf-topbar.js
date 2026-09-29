@@ -220,14 +220,6 @@
 '  border-radius:9px;padding:9px 14px;font-size:12.5px;opacity:0;transition:.2s;pointer-events:none;' +
 '  max-width:88vw;font-family:system-ui,-apple-system,sans-serif;}' +
 '.rf-toast.on{opacity:1;transform:translateX(-50%) translateY(0);}' +
-/* scorciatoia Cruscotto <-> Carta: grande, perche' a bordo si tocca coi guanti */
-'.rf-topbar a.rf-salta{display:flex;align-items:center;gap:6px;flex:none;height:34px;min-width:88px;' +
-'  box-sizing:border-box;padding:0 12px;border-radius:9px;justify-content:center;text-decoration:none;' +
-'  border:1.5px solid var(--teal,#2BD9C4);color:var(--teal,#2BD9C4);background:hsl(172 70% 51% / .10);' +
-'  font:700 13px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:.2px;}' +
-'.rf-topbar a.rf-salta:active{transform:scale(.95);background:hsl(172 70% 51% / .25);}' +
-'.rf-topbar.rf-con-salta .rf-pol{flex:0 1 auto;min-width:0;}' +
-'@media (max-width:420px){.rf-topbar.rf-con-salta .rf-pol{display:none;}}' +
 /* ── ingranaggio delle Impostazioni, in fondo alla barra in alto ── */
 '.rf-topbar a.rf-imp{display:flex;align-items:center;justify-content:center;width:30px;height:30px;flex:none;' +
 '  border-radius:8px;color:var(--sub,#5a7a94);text-decoration:none;}' +
@@ -256,12 +248,15 @@
 /* --tinta: il fondo delle evidenziazioni. Di notte deve restare rosso come
    tutto il resto: un riquadro verdino al buio e' proprio quello che il
    tema Notte esiste per evitare. */
+'.rf-sotto{--confine:#4f7390;}' +
+'html.day .rf-sotto{--confine:#6b7f92;}' +
+'html.night .rf-sotto{--confine:#7a2424;}' +
 '.rf-sotto,.rf-sheet{--ink:#deedf5;--sub:#a3b8ca;--teal:#2BD9C4;--line:#1a3248;--fondo:#0a1826;--tinta:43,217,196;}' +
 'html.day .rf-sotto,html.day .rf-sheet{--ink:#0a1420;--sub:#2c3e50;--teal:#067d70;--line:#a7b5c2;--fondo:#ffffff;--tinta:6,125,112;}' +
 'html.night .rf-sotto,html.night .rf-sheet{--ink:#ff5b5b;--sub:#c85050;--teal:#ff4d4d;--line:#3a1010;--fondo:#120404;--tinta:255,77,77;}' +
 '.rf-sotto{position:fixed;left:0;right:0;bottom:0;z-index:19;height:var(--rf-sotto);box-sizing:border-box;' +
-'  padding:0 4px var(--rf-sotto-sicuro);display:flex;background:var(--fondo);border-top:1px solid var(--line);' +
-'  box-shadow:0 -2px 12px -6px rgba(0,0,0,.6);-webkit-user-select:none;user-select:none;' +
+'  padding:0 4px var(--rf-sotto-sicuro);display:flex;background:var(--fondo);border-top:2px solid var(--confine);' +
+'  box-shadow:0 -6px 16px -4px rgba(0,0,0,.55);-webkit-user-select:none;user-select:none;' +
 '  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;}' +
 '.rf-sotto.su{z-index:8985;}' +
 '.rf-sotto button{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;' +
@@ -817,47 +812,9 @@
     }
   }
 
-  /* ─────────────── scorciatoia Cruscotto <-> Carta ───────────────
-     Chiesta dopo l'uscita notturna del 27/09/2026: in navigazione si passa
-     di continuo fra le due, e tornare dal menu costa due tocchi e uno
-     scorrimento. Due strade per la stessa cosa:
-       - un BOTTONE in barra, il comando vero: grande (34x88 px) perche'
-         d'inverno si usa coi guanti, e un gesto su una striscia di 40 px coi
-         guanti non si fa;
-       - uno SCORRIMENTO orizzontale sulla barra, per chi lo conosce.
-     Il gesto sta solo sulla barra: sotto, la Carta usa trascinamento,
-     pizzico e pressione lunga, il Cruscotto la pressione lunga, e i bordi
-     dello schermo sono il «indietro» di Android.
-     Il link porta index.html esplicito: dentro l'APK il server di Capacitor
-     non risolve le cartelle (vedi prepara-sito.js), e questo link nasce in
-     JavaScript, dove la riscrittura degli href non arriva. */
-  function scorciatoia() {
-    var p = location.pathname, meta;
-    if (/\/cruscotto\/(index\.html)?$/.test(p)) meta = { url: "../carta/index.html", nome: "Carta" };
-    else if (/\/carta\/(index\.html)?$/.test(p)) meta = { url: "../cruscotto/index.html", nome: "Cruscotto" };
-    if (!meta) return;
-    var barra = document.querySelector(".rf-topbar");
-    if (!barra || barra.querySelector(".rf-salta")) return;
-    var a = document.createElement("a");
-    a.className = "rf-salta"; a.href = meta.url;
-    a.setAttribute("aria-label", "Vai a " + meta.nome);
-    a.title = "Vai a " + meta.nome + " (anche: scorri di lato sulla barra)";
-    a.innerHTML = '<span aria-hidden="true">\u21C4</span>' + meta.nome;
-    var dopo = barra.querySelector(".rf-gps") || barra.querySelector(".rf-boat");
-    if (dopo && dopo.nextSibling) barra.insertBefore(a, dopo.nextSibling); else barra.appendChild(a);
-    barra.classList.add("rf-con-salta");
-    var x0 = null, y0 = 0;
-    barra.addEventListener("touchstart", function (e) {
-      if (e.touches.length !== 1) { x0 = null; return; }
-      x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
-    }, { passive: true });
-    barra.addEventListener("touchend", function (e) {
-      if (x0 == null) return;
-      var t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
-      x0 = null;
-      if (Math.abs(dx) > 70 && Math.abs(dx) > 2 * Math.abs(dy)) location.href = meta.url;
-    }, { passive: true });
-  }
+  /* La scorciatoia Cruscotto <-> Carta (pulsante «⇄» e scorrimento sulla
+     barra, 28/09/2026) e' stata tolta il 29/09: ci sono la barra in basso e
+     la striscia degli strumenti in Carta, e Sergio l'ha chiesto. */
 
   /* ═══════════════════════ barra in basso ═══════════════════════
      Decisa il 28/09/2026 (vedi SITUAZIONE.md): quattro sezioni per momento
@@ -1014,7 +971,6 @@
   /* ──────────────────────────── avvio ──────────────────────────── */
   function avvia() {
     if (!aggancia()) return;      // pagina senza barra: resta solo il registratore
-    scorciatoia();
     ingranaggio();
     barraSotto();
     dipingi();

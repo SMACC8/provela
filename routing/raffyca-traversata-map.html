@@ -208,7 +208,7 @@ html.day [fill="#46d68a"]{fill:#12894f;} html.night [fill="#46d68a"]{fill:#c23a3
   .tv-strati label{display:flex;align-items:center;gap:10px;min-height:40px;font-size:var(--t-piccolo);color:var(--ink);cursor:pointer;white-space:nowrap;}
   .tv-strati input{width:20px;height:20px;accent-color:var(--teal);}
   .leaflet-top.leaflet-right{top:auto;bottom:64px;}   /* le basi della carta scendono: in alto a destra ci sono gli strati */
-  #isoLegend{bottom:auto!important;top:96px;}
+  #isoLegend{bottom:auto!important;top:180px;}
   .tv-tempo{position:absolute;left:8px;right:8px;bottom:8px;z-index:640;display:flex;align-items:center;gap:10px;padding:6px 12px;
     background:var(--panel);border:1px solid var(--line);border-radius:10px;font-size:var(--t-piccolo);}
   .tv-tempo .k{color:var(--lab);white-space:nowrap;}
@@ -297,6 +297,12 @@ html.day [fill="#46d68a"]{fill:#12894f;} html.night [fill="#46d68a"]{fill:#c23a3
     .tv-punti{grid-area:punti;} .tv-mappa{grid-area:mappa;position:sticky;top:calc(var(--rf-barra,40px) + 8px);} .tv-pannello{grid-area:pannello;}
     #map{height:calc(100dvh - var(--rf-barra,40px) - var(--rf-sotto,0px) - 90px);min-height:420px;}
   }
+
+/* pulsanti di Leaflet (zoom +/−, posizione ◎) a misura di dito: di serie sono
+   30 px e sul tablet si perdevano sulla carta (Sergio: «in Carta manca + e −»). */
+.leaflet-bar a,.leaflet-bar a:hover{width:48px!important;height:48px!important;line-height:48px!important;font-size:24px!important;}
+.leaflet-touch .leaflet-bar a{width:48px!important;height:48px!important;line-height:48px!important;}
+.leaflet-bar{border-radius:10px!important;overflow:hidden;}
 </style></head>
 <body>
 <!-- ===== rf-topbar: markup canonico. CSS e logica stanno in ../rf-topbar.js

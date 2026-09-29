@@ -193,6 +193,68 @@ select,button,input,textarea{font-family:var(--sans);color:var(--ink);}
 .strPick .l button{appearance:none;min-height:52px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel2,var(--panel));
   color:var(--ink);font:500 var(--t-piccolo) var(--sans);text-align:left;cursor:pointer;}
 .strPick .l button.on{border-color:var(--teal);color:var(--teal);}
+
+/* ═══ 29/09/2026: Carta riorganizzata, sullo strato comune di raffyca.css ═══ */
+.wrap.c-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;padding:10px var(--margine) 14px;}
+.c-mappa{position:relative;isolation:isolate;}
+/* la carta prende tutto lo spazio fino a striscia e comandi, che restano in vista */
+#map{height:calc(100dvh - var(--rf-barra,40px) - var(--rf-sotto,0px) - 196px);min-height:260px;}
+.c-strati-btn{position:absolute;top:70px;right:10px;z-index:1000;width:44px;height:44px;border-radius:10px;border:1px solid var(--line);
+  background:var(--panel);color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.c-strati-btn[aria-expanded="true"]{border-color:var(--teal);color:var(--teal);}
+.c-strati{position:absolute;top:120px;right:10px;z-index:1000;display:flex;flex-direction:column;gap:4px;padding:8px;min-width:210px;
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 30px -12px #000;}
+.c-strati[hidden]{display:none;}
+.c-strati .tool,.c-attrezzi .tool{display:flex;align-items:center;gap:10px;justify-content:flex-start;min-height:48px;padding:0 12px;
+  font:500 var(--t-piccolo) var(--sans);color:var(--ink);background:var(--panel2);border-radius:10px;}
+.c-strati .tool::before{content:"";width:18px;height:18px;border-radius:5px;border:2px solid var(--lab);flex:none;}
+.c-strati .tool.on::before{background:var(--teal);border-color:var(--teal);}
+.c-attivo{position:absolute;left:8px;right:8px;bottom:8px;z-index:900;display:flex;flex-direction:column;gap:6px;pointer-events:none;}
+.c-attivo .bar{pointer-events:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px;
+  box-shadow:0 8px 24px -10px #000;}
+.c-attivo .readout{font-size:var(--t-piccolo);}
+.c-attivo .btn.sm,.c-attivo .tool{min-height:40px;font-size:var(--t-piccolo);}
+.c-lato{display:flex;flex-direction:column;gap:10px;min-width:0;}
+.c-azioni{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;}
+.c-azione{appearance:none;min-height:var(--tocco);border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);
+  font:600 var(--t-testo) var(--sans);cursor:pointer;}
+.c-azione:active{transform:scale(.98);}
+.c-altro-wrap{position:relative;}
+.c-altro-btn{appearance:none;width:var(--tocco);height:100%;min-height:var(--tocco);border-radius:12px;border:1px solid var(--line);
+  background:var(--panel);color:var(--ink);font-size:24px;line-height:1;cursor:pointer;}
+.c-altro{position:absolute;right:0;bottom:calc(100% + 6px);z-index:1100;min-width:240px;display:flex;flex-direction:column;gap:2px;padding:6px;
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 30px -12px #000;}
+.c-altro[hidden]{display:none;}
+.c-altro .btn{min-height:48px;width:100%;justify-content:flex-start;border:0;background:none;font-size:var(--t-piccolo);}
+.c-filtro{align-self:flex-start;min-height:40px;font:var(--t-piccolo) var(--sans);}
+.tabs button{font:600 var(--t-piccolo) var(--sans);min-height:44px;}
+.it-name{font-family:var(--sans);font-size:var(--t-testo);}
+.it-sub,.it-note{font-size:var(--t-etichetta);}
+.c-scrim{position:fixed;inset:0;z-index:9400;background:rgba(2,8,14,.55);}
+.c-scrim[hidden],.c-sheet[hidden]{display:none;}
+.c-sheet{position:fixed;left:0;right:0;bottom:0;z-index:9401;max-width:600px;margin:0 auto;max-height:86dvh;overflow-y:auto;
+  padding:12px 14px calc(16px + env(safe-area-inset-bottom));background:var(--panel);border:1px solid var(--line);border-bottom:0;
+  border-radius:18px 18px 0 0;box-shadow:0 -12px 30px -12px #000;display:flex;flex-direction:column;gap:10px;}
+.c-sheet-h{display:flex;align-items:center;justify-content:space-between;}
+.c-sheet-h h2{margin:0;font:700 var(--t-titolo) var(--sans);color:var(--ink);}
+.c-chiudi{appearance:none;width:44px;height:44px;border:0;background:none;color:var(--lab);font-size:28px;cursor:pointer;}
+.c-voce{appearance:none;display:flex;align-items:center;min-height:var(--tocco);padding:0 14px;border-radius:12px;border:1px solid var(--line);
+  background:var(--panel2);color:var(--ink);font:500 var(--t-testo) var(--sans);text-align:left;cursor:pointer;}
+.c-attrezzi{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.c-attrezzi .tool{min-height:64px;font-size:var(--t-testo);}
+/* tablet in orizzontale e schermi larghi: carta a sinistra alta quanto lo schermo, il resto a destra */
+@media (min-width:960px){
+  .wrap.c-grid{grid-template-columns:minmax(0,1.7fr) minmax(320px,1fr);align-items:start;}
+  .c-mappa{position:sticky;top:calc(var(--rf-barra,40px) + 10px);}
+  #map{height:calc(100dvh - var(--rf-barra,40px) - var(--rf-sotto,0px) - 24px);}
+  .c-lato .striscia{grid-template-columns:repeat(3,minmax(0,1fr));}
+}
+
+/* pulsanti di Leaflet (zoom +/−, posizione ◎) a misura di dito: di serie sono
+   30 px e sul tablet si perdevano sulla carta (Sergio: «in Carta manca + e −»). */
+.leaflet-bar a,.leaflet-bar a:hover{width:48px!important;height:48px!important;line-height:48px!important;font-size:24px!important;}
+.leaflet-touch .leaflet-bar a{width:48px!important;height:48px!important;line-height:48px!important;}
+.leaflet-bar{border-radius:10px!important;overflow:hidden;}
 </style>
 </head>
 <body>
@@ -216,68 +278,102 @@ select,button,input,textarea{font-family:var(--sans);color:var(--ink);}
 <script src="../rf-strumenti.js"></script>
 <!-- ===== /rf-topbar ===== -->
 
-<div class="wrap">
-  <div class="bar">
-    <h1>Carta Nautica</h1>
-    <select class="sel" id="filter" title="Filtro visualizzazione"><option value="all">Tutte</option><option value="active">Solo attivo</option></select>
+<div class="wrap c-grid">
+  <!-- 29/09/2026: la Carta riorganizzata, come la Traversata. Gli elementi e gli
+       id sono quelli di prima: cambia dove stanno. Strati (cose da vedere) nel
+       pannello sulla carta; attrezzi (cose da fare) nel foglio «Attrezzi», con
+       la loro barra sopra la carta mentre sono attivi. -->
+  <div class="c-mappa">
+    <div id="map"></div>
+    <div id="isoLegend" style="display:none;position:absolute;left:8px;top:180px;z-index:650;background:rgba(6,14,24,.85);border:1px solid #1a3248;border-radius:8px;padding:6px 9px;font:600 10px ui-monospace,monospace;color:#cfe">
+<div style="opacity:.65;margin-bottom:3px;letter-spacing:.5px">BATIMETRIA (m)</div>
+<span style="color:#8fe3ff">━</span>5 <span style="color:#2BD9C4">━</span>10 <span style="color:#46d68a">━</span>20 <span style="color:#FFC24B">━</span>50 <span style="color:#FF6B6B">━</span>100 <span style="color:#c792ea">━</span>200 <span style="color:#f78fb3">━</span>500 <span style="color:#9aa7ff">━</span>1000
+</div>
+    <button type="button" class="c-strati-btn" id="cStratiBtn" aria-label="Strati della carta" aria-expanded="false">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7l1.5 1.5L8 6M4 13l1.5 1.5L8 12M4 19l1.5 1.5L8 18M11 7h9M11 13h9M11 19h9"/></svg>
+    </button>
+    <div class="c-strati" id="cStrati" hidden>
+      <button class="tool" id="tGrid">Griglia</button>
+      <button class="tool" id="tZone">Zone venti</button>
+      <button class="tool" id="tBathy">Batimetria</button>
+      <button class="tool" id="tFari">Settori dei fari</button>
+    </div>
+    <div class="c-attivo">
+      <div class="bar" id="drawCtl" style="display:none">
+        <span class="readout" id="drawInfo">Tocca la carta per aggiungere punti.</span>
+        <button class="btn sm" id="drawUndo">↶ Punto</button>
+        <button class="btn sm" id="drawCancel">Annulla</button>
+        <button class="btn go sm" id="drawDone">✓ Salva</button>
+      </div>
+      <div class="bar" id="measCtl" style="display:none">
+        <span class="readout" id="measInfo">Tocca due punti sulla carta.</span>
+        <button class="btn sm" id="measCancel">Chiudi</button>
+      </div>
+      <div class="bar" id="rasterCtl" style="display:none">
+        <select class="sel" id="rSel" style="flex:1;min-width:120px"></select>
+        <button class="btn sm go" id="rNew">＋ Carta</button>
+        <button class="btn sm" id="rCal">Calibra</button>
+        <button class="btn sm" id="rDel">Elimina</button>
+      </div>
+      <div class="bar" id="rasterOp" style="display:none">
+        <span class="hint" style="flex:0 0 auto">Trasparenza</span>
+        <input type="range" id="rOp" min="20" max="100" step="5" value="100" style="flex:1">
+        <span class="hint" id="rInfo" style="flex:0 0 auto">—</span>
+      </div>
+      <div class="bar" id="fariCtl" style="display:none">
+        <span class="readout" id="fariInfo">Fari: —</span>
+        <button class="tool" id="fariModeSett">Settori</button>
+        <button class="tool" id="fariModeVedo">Cosa vedo</button>
+      </div>
+    </div>
   </div>
 
-  <div id="map"></div>
-  <!-- striscia degli strumenti (29/09/2026): i numeri del Cruscotto sotto la carta.
-       4 campi sul telefono, 6 da 600 px; si tocca un campo per cambiarlo. -->
-  <div class="striscia" id="striscia" aria-label="Strumenti"></div>
+  <div class="c-lato">
+    <!-- striscia degli strumenti (29/09/2026): i numeri del Cruscotto sotto la carta.
+         4 campi sul telefono, 6 da 600 px; si tocca un campo per cambiarlo. -->
+    <div class="striscia" id="striscia" aria-label="Strumenti"></div>
 
-  <div class="bar">
-    <button class="btn go" id="addHere">＋ WP qui (GPS)</button>
-    <button class="btn sm" id="addCoord">＋ per coordinate</button>
-    <button class="btn sm" id="impGpx">↧ Importa GPX</button>
-    <button class="btn sm" id="expSel">↥ Esporta selezionati</button>
-  </div>
-  <div class="bar" id="toolbar">
-    <button class="tool" id="tGrid" title="Griglia meridiani/paralleli (1°)">▦ Griglia</button>
-    <button class="tool" id="tZone" title="Quadri d'unione zone venti (Traversata)">▭ Zone venti</button>
-    <button class="tool" id="tBathy" title="Isobate batimetriche EMODnet (per zona)">≈ Batimetria</button>
-    <button class="tool" id="tFari" title="Fari: spicchi di settore e 'cosa vedo da qui'">✦ Fari</button>
-    <button class="tool" id="tDraw" title="Disegna una traccia sulla carta">✎ Traccia</button>
-    <button class="tool" id="tMeas" title="Misura distanza e rotta tra due punti">📐 Misura</button>
-    <button class="tool" id="tRaster" title="Carta raster propria, georeferenziata su punti noti">🗺 Raster</button>
-  </div>
-  <div class="bar" id="drawCtl" style="display:none">
-    <span class="readout" id="drawInfo">Tocca la carta per aggiungere punti.</span>
-    <button class="btn sm" id="drawUndo">↶ Punto</button>
-    <button class="btn sm" id="drawCancel">Annulla</button>
-    <button class="btn go sm" id="drawDone">✓ Salva</button>
-  </div>
-  <div class="bar" id="measCtl" style="display:none">
-    <span class="readout" id="measInfo">Tocca due punti sulla carta.</span>
-    <button class="btn sm" id="measCancel">Chiudi</button>
-  </div>
-  <div class="bar" id="rasterCtl" style="display:none">
-    <select class="sel" id="rSel" style="flex:1;min-width:120px"></select>
-    <button class="btn sm go" id="rNew">＋ Carta</button>
-    <button class="btn sm" id="rCal">Calibra</button>
-    <button class="btn sm" id="rDel">Elimina</button>
-  </div>
-  <div class="bar" id="rasterOp" style="display:none">
-    <span class="hint" style="flex:0 0 auto">Trasparenza</span>
-    <input type="range" id="rOp" min="20" max="100" step="5" value="100" style="flex:1">
-    <span class="hint" id="rInfo" style="flex:0 0 auto">—</span>
-  </div>
-  <div class="bar" id="fariCtl" style="display:none">
-    <span class="readout" id="fariInfo">Fari: —</span>
-    <button class="tool" id="fariModeSett">◑ Settori</button>
-    <button class="tool" id="fariModeVedo">👁 Cosa vedo</button>
-  </div>
-  <div class="hint" id="posInfo">posizione: —</div>
+    <div class="c-azioni">
+      <button type="button" class="c-azione" id="cWpBtn">＋ Waypoint</button>
+      <button type="button" class="c-azione" id="cAttrBtn">Attrezzi</button>
+      <div class="c-altro-wrap">
+        <button type="button" class="c-altro-btn" id="cAltroBtn" aria-label="Altre azioni" aria-expanded="false">⋯</button>
+        <div class="c-altro" id="cAltro" hidden>
+          <button class="btn sm" id="impGpx">↧ Importa GPX</button>
+          <button class="btn sm" id="expSel">↥ Esporta selezionati</button>
+        </div>
+      </div>
+    </div>
+    <div class="hint" id="posInfo" hidden>posizione: —</div>
   <input type="file" id="fileGpx" accept=".gpx" hidden>
   <input type="file" id="fileRaster" accept="image/*" hidden>
 
   <div class="tabs">
     <button data-t="wpt" class="on" id="tabWpt">Waypoint <span id="nW">0</span></button>
     <button data-t="trk" id="tabTrk">Tracce <span id="nT">0</span></button>
-    <button id="newFolder" title="Nuova cartella" style="margin-left:auto;flex:none">🗂＋</button>
+    <button id="newFolder" title="Nuova cartella" aria-label="Nuova cartella" style="margin-left:auto;flex:none">🗂＋</button>
   </div>
+  <select class="sel c-filtro" id="filter" aria-label="Quali mostrare"><option value="all">Tutte</option><option value="active">Solo attivo</option></select>
   <div class="list" id="list"></div>
+  </div>
+</div>
+
+<!-- fogli: nuovo waypoint e attrezzi -->
+<div class="c-scrim" id="cScrim" hidden></div>
+<div class="c-sheet" id="cSheetWp" role="dialog" aria-labelledby="cWpTit" hidden>
+  <div class="c-sheet-h"><h2 id="cWpTit">Nuovo waypoint</h2><button type="button" class="c-chiudi" data-chiudi aria-label="Chiudi">×</button></div>
+  <button class="c-voce" id="addHere">Qui, dove sono (GPS)</button>
+  <button class="c-voce" id="addCoord">Per coordinate</button>
+  <button type="button" class="c-voce" id="cWpTocca">Tocca la carta</button>
+</div>
+<div class="c-sheet" id="cSheetAttr" role="dialog" aria-labelledby="cAttrTit" hidden>
+  <div class="c-sheet-h"><h2 id="cAttrTit">Attrezzi</h2><button type="button" class="c-chiudi" data-chiudi aria-label="Chiudi">×</button></div>
+  <div class="c-attrezzi">
+    <button class="tool" id="tMeas">Misura</button>
+    <button class="tool" id="tDraw">Disegna traccia</button>
+    <button type="button" class="tool" id="cFariVedo">Fari: cosa vedo</button>
+    <button class="tool" id="tRaster">Carta raster</button>
+  </div>
 </div>
 
 <div class="ov" id="ov">
@@ -1905,9 +2001,38 @@ setTimeout(function(){map.invalidateSize();if(POS&&!VIEW0)map.setView(POS,12);},
   dipingi();setInterval(dipingi,1000);
 })();
 </script>
-<div id="isoLegend" style="display:none;position:absolute;left:8px;bottom:26px;z-index:650;background:rgba(6,14,24,.85);border:1px solid #1a3248;border-radius:8px;padding:6px 9px;font:600 10px ui-monospace,monospace;color:#cfe">
-<div style="opacity:.65;margin-bottom:3px;letter-spacing:.5px">BATIMETRIA (m)</div>
-<span style="color:#8fe3ff">━</span>5 <span style="color:#2BD9C4">━</span>10 <span style="color:#46d68a">━</span>20 <span style="color:#FFC24B">━</span>50 <span style="color:#FF6B6B">━</span>100 <span style="color:#c792ea">━</span>200 <span style="color:#f78fb3">━</span>500 <span style="color:#9aa7ff">━</span>1000
-</div>
+<script>
+/* ════════ Carta riorganizzata (29/09/2026): solo disposizione ════════
+   I gestori degli strumenti sono quelli di sempre, sugli stessi id; qui
+   solo fogli, pannello degli strati, menu, e la scelta settori / cosa vedo. */
+(function(){
+  "use strict";
+  function $$(id){return document.getElementById(id);}
+  function avviso(m){try{if(typeof toastRaster==='function')toastRaster(m);}catch(e){}}
+  var aperto=null;
+  function apri(el){chiudi();aperto=el;el.hidden=false;$$('cScrim').hidden=false;}
+  function chiudi(){if(aperto)aperto.hidden=true;aperto=null;$$('cScrim').hidden=true;}
+  $$('cScrim').addEventListener('click',chiudi);
+  document.querySelectorAll('.c-sheet [data-chiudi]').forEach(function(b){b.addEventListener('click',chiudi);});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&aperto)chiudi();});
+  $$('cWpBtn').addEventListener('click',function(){apri($$('cSheetWp'));});
+  $$('cAttrBtn').addEventListener('click',function(){apri($$('cSheetAttr'));});
+  /* le voci dei fogli: il gestore originale gira, poi il foglio si chiude */
+  ['addHere','addCoord','tMeas','tDraw','tRaster'].forEach(function(id){$$(id).addEventListener('click',chiudi);});
+  $$('cWpTocca').addEventListener('click',function(){chiudi();avviso('Tieni premuto sulla carta dove vuoi il waypoint');});
+  /* Fari: negli strati i settori, negli attrezzi «cosa vedo». Il gestore di
+     tFari (proprieta' onclick) gira prima di questo, quindi fariOn e' gia' aggiornato. */
+  $$('tFari').addEventListener('click',function(){if(fariOn)$$('fariModeSett').click();});
+  $$('cFariVedo').addEventListener('click',function(){chiudi();if(!fariOn)$$('tFari').click();$$('fariModeVedo').click();});
+  function interruttore(btn,box){btn.addEventListener('click',function(e){e.stopPropagation();var on=box.hidden;box.hidden=!on;
+    btn.setAttribute('aria-expanded',on?'true':'false');});
+    document.addEventListener('click',function(e){if(!box.hidden&&!box.contains(e.target)&&e.target!==btn){box.hidden=true;btn.setAttribute('aria-expanded','false');}});}
+  interruttore($$('cStratiBtn'),$$('cStrati'));
+  interruttore($$('cAltroBtn'),$$('cAltro'));
+  $$('cAltro').addEventListener('click',function(e){if(e.target.closest('.btn')){$$('cAltro').hidden=true;$$('cAltroBtn').setAttribute('aria-expanded','false');}});
+  /* la carta cambia altezza con lo schermo: Leaflet va avvisato */
+  window.addEventListener('resize',function(){try{map.invalidateSize();}catch(e){}});
+})();
+</script>
 </body>
 </html>

@@ -5805,3 +5805,102 @@ Nel browser, con fix, waypoint e polare d'esempio poi cancellati:
   60. In una prova il primo tentativo al caricamento è fallito (intoppo di
   rete, ripreso da solo al giro dopo) e il vento è rimasto «n/d» per un
   minuto intero.
+
+---
+
+## 29/09/2026 (5) — La Carta riorganizzata
+
+Stesso metodo della Traversata: prima un inventario e uno schizzo approvati
+da Sergio, poi solo spostamenti di elementi esistenti con i loro `id`.
+
+### Com'era
+
+Dall'alto:
+1. titolo con il filtro;
+2. la mappa (46% dello schermo) e la striscia;
+3. 4 pulsanti per waypoint e GPX;
+4. **7 strumenti in fila**, metà strati da vedere (griglia, zone venti,
+   batimetria, fari) e metà modalità di lavoro (traccia, misura, raster),
+   mescolati;
+5. le barre di controllo degli strumenti, **sotto** la carta, lontano da dove
+   si tocca;
+6. la riga «posizione: —»;
+7. l'elenco.
+
+### Com'è
+
+- **La mappa riempie lo spazio** fino alla striscia e ai comandi, che restano
+  sempre in vista. Misurato a 375 px: dal 54% al **72%** dello spazio utile
+  tra le due barre.
+- **Strati** nel pannello con la lista a spunte, sulla carta (sotto le basi
+  di Leaflet): griglia, zone venti, batimetria, settori dei fari.
+- **Attrezzi** in un foglio: misura, disegna traccia, «Fari: cosa vedo»,
+  carta raster. La loro barra di controllo compare **sopra la carta, in
+  basso**, solo mentre sono attivi.
+- **I fari si dividono**, come chiesto da Sergio:
+  - negli strati i settori (il gestore di `tFari` gira prima, poi si forza
+    la modalità «sett»);
+  - negli attrezzi «cosa vedo», che accende i fari se sono spenti e passa a
+    «vedo».
+- **Il foglio «Waypoint»** raccoglie «Qui, dove sono (GPS)», «Per coordinate»
+  e «Tocca la carta»: quest'ultimo ricorda la pressione lunga, che resta.
+- **Il menu «⋯»** contiene Importa ed Esporta GPX.
+- **Tolti** il titolo e la riga della posizione. La riga resta nascosta,
+  perché `updatePosInfo()` ci scrive ancora.
+- **Il filtro** è sopra l'elenco. L'elenco resta visibile sotto: Sergio ha
+  chiesto quanto avrebbe guadagnato la mappa a chiuderlo. Misurato:
+  **niente**, perché l'altezza della mappa non dipendeva dall'elenco ma era
+  fissa (`46vh`). Il guadagno viene dal togliere quello che stava attorno
+  alla mappa.
+- **Da 960 px** (tablet in orizzontale) la carta va a sinistra alta quanto lo
+  schermo, e a destra la striscia su tre colonne, i comandi e l'elenco.
+
+### Difetto trovato: la legenda della batimetria
+
+Stava in fondo alla pagina, fuori dalla carta, posizionata rispetto allo
+**schermo** (`bottom:26px`, livello 650). Con la barra in basso le finiva
+sopra e la copriva. Ora sta dentro il riquadro della carta, in alto a
+sinistra sotto lo zoom.
+
+### Verificato
+
+Nel browser, con dati d'esempio poi cancellati:
+- **`id`**: i 76 riferiti dal JavaScript esistono tutti, senza doppioni
+  (controllo con uno script);
+- **fogli**: quello dei waypoint e quello degli attrezzi si aprono e si
+  chiudono;
+- **attrezzi**: Misura chiude il foglio, accende la sua barra dentro la carta
+  e si richiude;
+- **strati e fari**: la griglia si accende dagli strati; i fari dagli strati
+  vanno in «sett», da «Cosa vedo» in «vedo», e si spengono;
+- **menu**: ha le due voci GPX;
+- **larghezza**: la pagina sta nei 375 px; a 1000×600 vanno le due colonne
+  (carta 601×462);
+- **errori**: nessun errore JavaScript; sintassi con `jsc`.
+
+### Non verificato
+
+- Disegno di una traccia e carta raster fino in fondo: ho provato solo che si
+  aprono dai loro nuovi posti.
+- Temi Giorno e Notte.
+
+### Dopo la prova di Sergio sul tablet
+
+- **Zoom «+ / −» e posizione «◎» a 48 px**, in Carta e in Traversata. Erano i
+  pulsanti di serie di Leaflet, da 30 px. Sergio li aveva dati per mancanti,
+  poi sono comparsi (la carta stava ancora caricando). Sul tablet però erano
+  davvero piccoli, e si usano coi guanti. Il pulsante degli strati e la
+  legenda della batimetria scendono di conseguenza, senza sovrapporsi.
+- **Via la scorciatoia «⇄ Carta / ⇄ Cruscotto»** dalla barra in alto (voce
+  28/09 (2)), compreso lo scorrimento sulla barra: ora ci sono la barra in
+  basso e la striscia. Tolti `scorciatoia()` e il suo CSS da `rf-topbar.js`.
+- **Separatore della barra in basso.** Sergio: «usandola di fretta non si
+  capisce dove finisce la pagina e dove cominciano Preparazione,
+  Navigazione…». Nello screenshot del tablet si vedeva il bordo delle
+  linguette dell'elenco spuntare a ridosso della barra. Ora la barra ha una
+  **linea continua di 2 px** in un colore contrastato nei tre temi
+  (`--confine`: `#4f7390` scuro, `#6b7f92` giorno, `#7a2424` notte) e
+  un'ombra più marcata verso l'alto.
+
+Service worker (tutti precaricano `rf-topbar.js`): **`dritta-hub-v29`,
+`anchor-v22`, `raffyca-meteo-v25`, `raffyca-rt-v31`, `xte-v15`**.
