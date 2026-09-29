@@ -5324,3 +5324,105 @@ lavoro del foglio di stile unico, non di questa voce.
   conteggio punti validi; aggancio nuvola reale col formato strumento
   definitivo»). Chi importa un CSV vede «N punti validi» e pensa di averli
   caricati.
+
+---
+
+## 29/09/2026 — Una Traversata sola, con la ricerca per nome
+
+Decisione della voce (5): una Traversata sola, nel routing, con la ricerca
+delle località; dal Meteo un tasto porta lì.
+
+### Cosa si è trovato aprendo i due file
+
+- **La Traversata del Meteo non si apriva più**: `openPassage()` esisteva, ma
+  niente la chiamava. Circa 90 righe irraggiungibili, con il loro markup e
+  37 regole CSS.
+- **Anche la ricerca per nome del routing era morta**: `geocode()` cercava
+  `#q` e `#findBtn`, che nella pagina non ci sono più. Oggi quindi nessuna
+  delle due Traversate cercava per nome.
+
+### Cosa cambia
+
+**Meteo.** Tolta la Traversata in linea retta: funzioni, markup, ascoltatori
+e le 37 regole CSS, di cui 8 in parte, cioè solo la metà morta dei selettori
+raggruppati. Tolte anche quattro funzioni rimaste senza chiamate
+(`haversineNM`, `bearingDeg`, `fmtClock`, `dayWord`).
+
+Tre ascoltatori (`pBack`, `pDep`/`pSpd`, `pFromQ`/`pToQ`) avrebbero lanciato un
+errore al caricamento, perché cercano elementi tolti: trovati con uno script
+sui nomi, non a occhio (lezione del Prontuario).
+
+Nella vista di un'area c'è **«Pianifica la traversata da qui»**, che apre il
+routing con `?a=lat,lon&n=nome`.
+
+**Routing.**
+- **Campo «Cerca località…»** accanto a «A/B da waypoint»: Open-Meteo
+  geocoding, lo stesso servizio del Meteo, in italiano. Imposta A o B, secondo
+  quale dei due è selezionato.
+- **`mettiAB()`** porta il punto dentro l'area di calcolo e, se cade a terra,
+  lo sposta sul mare più vicino con `findSea()`. L'avviso lo dice («B →
+  Chioggia · spostato in mare»).
+- **`?a=` applicato due volte**: al boot e in `activateZoneCustom()`. Per le
+  zone con la maschera OSM l'area si attiva dopo il boot e riporta A e B ai
+  valori salvati: applicandolo solo al boot, la partenza dal Meteo veniva
+  sovrascritta.
+- Tolti `geocode()` e la frase di spiegazione sotto i pulsanti.
+
+Scartati:
+- **`findOpenSea()` per spostare in mare il punto**: cerca mare *aperto*, e
+  da un porto sposterebbe la partenza di miglia. `findSea()`, il mare più
+  vicino, è fatta proprio per «scostare un punto finito a terra».
+- **Nominatim**, che era la fonte del vecchio `geocode()`: dà un risultato
+  solo, richiede un User-Agent riconoscibile, e il Meteo usava già Open-Meteo.
+- **Mostrare anche le località fuori area, spente.** Provato: per «Pir»
+  l'elenco si riempiva di Stati Uniti, Romania e Iran. Ora se ne chiedono 30
+  e si mostrano solo quelle dentro l'area, al massimo 8. Se non ce n'è
+  nessuna, lo si dice.
+- Open-Meteo dà spesso **lo stesso posto due volte** (città e comune):
+  stesso nome a meno di circa 5 km conta una volta sola.
+
+Service worker: **`raffyca-meteo-v23`, `raffyca-rt-v29`**.
+
+### Verificato
+
+Nel browser, a 375 px, profilo Alto Adriatico (dati di prova poi cancellati):
+- Meteo: il tasto c'è e porta a `?a=45.7000,13.7200&n=Golfo di Trieste`;
+- il routing, dopo l'attivazione della zona, ha A lì, spostata di poco in
+  mare, con l'avviso;
+- «Chioggia» come B finisce nel mare davanti a Sottomarina, e la scelta
+  viene salvata in `raffyca-traversata-ui`;
+- «Piran» trova Pirano, «Rovigno» Rovigno; «Pir» e «Napoli» dicono che
+  nell'area non c'è niente; «Grado» va come A; Esc chiude l'elenco;
+- nessun errore JavaScript; sintassi con `jsc`.
+
+**Sul tablet**, con l'APK: Preparazione → Meteo → Golfo di Trieste →
+«Pianifica la traversata da qui» apre la Traversata con A nel golfo. Quindi
+il parametro `?a=` arriva anche con le pagine servite da Capacitor. Nota: la
+prova ha sostituito la partenza A salvata sul tablet di Sergio.
+
+### Trovato e non toccato: le larghezze dei moduli
+
+Sergio, guardando sul tablet: alcuni moduli occupano tutto lo schermo, altri
+sono colonne strette. Misurato il 29/09, contenuto visibile a 600 px (tablet
+in verticale) e a 1000 px:
+- **a tutto schermo**: hub, Meteo, Cruscotto, Carta, Ancora, Manutenzione,
+  Sole-Luna, Posizione, Percorso, XTE;
+- **colonne fisse**: Performance 526, Prontuario 536, Impostazioni 538-541,
+  Strumenti 572-612, Calcoli 561-696, **Partenza 428** (due terzi del tablet),
+  MOB 320 (voluto).
+
+Proposta, da fare con il foglio di stile unico:
+- schermate operative a tutto schermo;
+- tutte le altre sulla stessa colonna, per esempio fino a 720 px, con gli
+  stessi margini;
+- sotto i 720 px tutte a tutta larghezza.
+
+**Il Meteo è più largo del telefono.** A 375 px la pagina iniziale si
+impagina a **634 px** e la vista di un'area a 404: il browser rimpicciolisce
+tutto di circa il 40%. Colpevoli sono le schede delle aree, che mettono
+nome, grafichetto, vento, confidenza, temperatura e freccia su una sola
+riga senza andare a capo.
+
+C'è già in `main`: confrontato sulla versione prima di questa voce. Spiega
+una parte dei «testi piccoli» del Meteo. **È il primo punto del foglio di
+stile.**

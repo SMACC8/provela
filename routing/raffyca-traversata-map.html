@@ -101,7 +101,17 @@ html.day [fill="#46d68a"]{fill:#12894f;} html.night [fill="#46d68a"]{fill:#c23a3
   .find .go{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--sub);font-family:var(--mono);font-size:13px;padding:8px 12px;border-radius:999px;cursor:pointer;transition:.15s;}
   .find .go:hover{border-color:var(--sub);color:var(--ink);}
   .find .go:disabled{opacity:.4;cursor:not-allowed;}
-  .find .hintab{flex-basis:100%;font-size:12px;color:var(--sub);line-height:1.5;margin-top:-2px;}
+  /* ricerca località (28/09/2026): stessa fonte del Meteo, Open-Meteo geocoding */
+  .find .cerca{position:relative;flex:1 1 220px;min-width:180px;}
+  .find .cerca input{width:100%;box-sizing:border-box;font:inherit;font-size:15px;padding:9px 12px;border-radius:8px;
+    border:1px solid var(--line,#1a3248);background:var(--panel2);color:var(--ink);}
+  .find .ris{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:1200;max-height:320px;overflow-y:auto;
+    background:var(--panel2);border:1px solid var(--line,#1a3248);border-radius:10px;box-shadow:0 12px 30px -10px rgba(0,0,0,.7);}
+  .find .ris button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;min-height:52px;padding:8px 12px;
+    background:none;border:0;border-bottom:1px solid var(--line,#1a3248);color:var(--ink);font:inherit;font-size:15px;text-align:left;cursor:pointer;}
+  .find .ris button:last-child{border-bottom:0;}
+  .find .ris button small{font-size:12.5px;color:var(--sub);}
+  .find .ris .vuoto{padding:12px;font-size:14px;color:var(--sub);}
   .find .seglbl{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--sub);padding:0 2px;}
   /* pin A/B sulla mappa */
   .ab-pin{background:none;border:0;}
@@ -233,12 +243,15 @@ html.day [fill="#46d68a"]{fill:#12894f;} html.night [fill="#46d68a"]{fill:#c23a3
       <button data-ab="B">Arrivo B</button>
     </div>
     <select id="wpPick" title="Imposta A/B da un waypoint salvato" style="font:inherit;padding:8px 10px;border-radius:8px;border:1px solid var(--line,#1a3248);background:var(--panel2);color:var(--ink)"><option value="">— A/B da waypoint —</option></select>
+    <div class="cerca" role="search">
+      <input id="abCerca" type="search" placeholder="Cerca località…" autocomplete="off" spellcheck="false" aria-label="Cerca una località per A o B">
+      <div id="abRis" class="ris" hidden></div>
+    </div>
     <button class="go" id="aGpsBtn" title="Mette la partenza A dove sei adesso (GPS)">📍 A = qui</button>
     <button class="go" id="abMoveBtn" title="Attiva lo spostamento di A e B: quando è attivo puoi trascinare i pin o toccare la carta. Evita spostamenti accidentali su touch.">✥ Muovi A/B</button>
     <button class="go" id="resetBtn" title="Riporta A e B ai punti di esempio">↺ Reset</button>
     <button class="go" id="fitBtn" title="Crea un'area di mare che racchiude A e B (es. Trieste↔Venezia)">⤢ Area su A↔B</button>
     <button class="go" id="recalcBtn" title="Ricalcola la rotta">↻ Aggiorna</button>
-    <div class="hintab">Scegli <b>A</b> o <b>B</b>, poi tocca la carta o pesca un <b>waypoint</b> salvato in Carta Nautica. <b>⤢ Area su A↔B</b> copre entrambi i punti.</div>
   </div>
 
   <div class="mapwrap">
@@ -1172,14 +1185,17 @@ function setAB(which,lat,lon){var c=clampToArea(FIELD.area,lat,lon);STATE[which]
   if(which==='A'&&markA)markA.setLatLng([c.lat,c.lon]);if(which==='B'&&markB)markB.setLatLng([c.lat,c.lon]);
   computeRoute();
   if(isLand(c.lat,c.lon))toast(which+' è a terra — trascinalo in mare');}
-function geocode(){var q=document.getElementById('q').value.trim();if(!q)return;
-  var a=AREAS[FIELD.area],vb=a.lonW+','+a.latN+','+a.lonE+','+a.latS,btn=document.getElementById('findBtn');btn.textContent='…';
-  fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&bounded=1&viewbox='+vb+'&q='+encodeURIComponent(q),{headers:{'Accept':'application/json'}})
-   .then(function(r){return r.json();}).then(function(res){btn.textContent='Cerca';
-     if(!res||!res.length){toast('Località non trovata in '+a.name);return;}
-     var lat=+res[0].lat,lon=+res[0].lon;setAB(activeAB,lat,lon);if(map)map.panTo([lat,lon]);
-     toast(activeAB+' → '+String(res[0].display_name||q).split(',')[0]);})
-   .catch(function(){btn.textContent='Cerca';toast('Ricerca offline — trascina i pin o tocca la mappa');});}
+/* Mette A o B su un punto scelto per nome o arrivato dal Meteo. Il punto
+   viene portato dentro l'area di calcolo e, se cade a terra (un porto, un
+   paese), spostato sul mare piu' vicino con findSea(): per chi parte da un
+   porto e' quello giusto, non il mare aperto di findOpenSea(). */
+function mettiAB(which,lat,lon,nome){
+  var c=clampToArea(FIELD.area,lat,lon),fuori=(Math.abs(c.lat-lat)>1e-6||Math.abs(c.lon-lon)>1e-6);
+  var m=(typeof MED_MASKS!=='undefined')&&MED_MASKS[FIELD.area],p=c,mosso=false;
+  if(m){try{p=findSea(m,c.lat,c.lon);mosso=(p.lat!==c.lat||p.lon!==c.lon);}catch(e){p=c;}}
+  setAB(which,p.lat,p.lon);if(map)map.panTo([p.lat,p.lon]);
+  toast(which+' \u2192 '+(nome||'punto')+(fuori?' \u00b7 portato dentro l\u2019area':'')+(mosso?' \u00b7 spostato in mare':''));
+}
 /* aggancio zona (raffyca-profile.zone): l'area di calcolo segue la zona scelta.
    Riquadri larghi e SOVRAPPOSTI, costa ritagliata on-device. Alto Adriatico incluso. */
 var ZONE_BOX={
@@ -1209,6 +1225,7 @@ function activateZoneCustom(name,box){
   document.querySelectorAll(".bar button[data-area]").forEach(function(x){x.classList.toggle("on",x===b);});
   loadArea("custom"); if(map)map.panTo([(box.latN+box.latS)/2,(box.lonW+box.lonE)/2]);
   if(typeof applySavedAB==='function')applySavedAB();
+  if(typeof applyUrlA==='function')applyUrlA();
 }
 function loadZoneMaskOSM(name,box,cb){
   var slug=ZONE_SLUG[name];
@@ -1682,6 +1699,14 @@ function applySavedAB(){var u=SAVED_UI;if(!u||!u.A||!u.B)return;
   if(markA)markA.setLatLng([a.lat,a.lon]);if(markB)markB.setLatLng([b.lat,b.lon]);
   computeRoute();}
 
+/* Partenza passata dal Meteo («Pianifica la traversata da qui»): ?a=lat,lon.
+   Va riapplicata anche quando la zona si attiva, perche' activateZoneCustom
+   ricarica l'area e riporta A e B ai valori salvati. */
+var URL_A=(function(){try{var m=/[?&]a=(-?[\d.]+),(-?[\d.]+)/.exec(location.search);
+  var n=/[?&]n=([^&]*)/.exec(location.search);
+  if(m&&isFinite(+m[1])&&isFinite(+m[2]))return{lat:+m[1],lon:+m[2],nome:n?decodeURIComponent(n[1].replace(/\+/g,' ')):''};}catch(e){}return null;})();
+function applyUrlA(){if(!URL_A)return;mettiAB('A',URL_A.lat,URL_A.lon,URL_A.nome||'dal Meteo');}
+
 // ---- boot ----
 loadSavedUI();
 resetAB('adriatico');synthField('adriatico');setPill();
@@ -1689,7 +1714,7 @@ restoreSettings();
 syncDep(SAVED_UI&&SAVED_UI.depT);
 computeRoute();renderPolarPreview();loadSharedPolar();
 loadCoast();
-if(typeof L!=='undefined'){initMap();applySavedAB();applyRestoredToggles();
+if(typeof L!=='undefined'){initMap();applySavedAB();applyUrlA();applyRestoredToggles();
   /* dopo applySavedAB: la guardia su A/B ha senso solo con A/B definitivi */
   try{applySharedView();}catch(e){}}
 initWorker();
@@ -1704,6 +1729,35 @@ if(navigator.onLine!==false){try{loadReal();}catch(e){}}
 document.addEventListener('change',function(e){var id=e.target&&e.target.id;
   if(id&&/^navFollow$/.test(id))saveUI();});
 // PWA: registra il service worker (offline). Network-first sulla navigazione evita la trappola della cache vecchia.
+/* ricerca località per nome: Open-Meteo geocoding, come il Meteo.
+   Si mostrano solo le località dentro l'area di calcolo: le omonime nel resto
+   del mondo (per «Pir» Iran e Romania) erano solo rumore. */
+(function(){var inp=document.getElementById('abCerca'),box=document.getElementById('abRis');if(!inp||!box)return;
+  var t=null,giro=0;
+  function chiudi(){box.hidden=true;box.innerHTML='';}
+  function dentro(r){var a=AREAS[FIELD.area];return r.latitude<=a.latN&&r.latitude>=a.latS&&r.longitude>=a.lonW&&r.longitude<=a.lonE;}
+  function esc(x){return String(x==null?'':x).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function cerca(q){var mio=++giro;box.hidden=false;box.innerHTML='<div class="vuoto">Cerco\u2026</div>';
+    fetch('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(q)+'&count=30&language=it&format=json')
+      .then(function(r){return r.json();}).then(function(j){if(mio!==giro)return;
+        var l=(j&&j.results)||[];if(!l.length){box.innerHTML='<div class="vuoto">Nessuna localit\u00e0 trovata</div>';return;}
+        /* Open-Meteo da' spesso lo stesso posto due volte (la citta' e il comune):
+           stesso nome a meno di 5 km conta una volta sola */
+        l=l.filter(function(r,i){return !l.slice(0,i).some(function(q){return q.name===r.name&&
+          Math.abs(q.latitude-r.latitude)<0.045&&Math.abs(q.longitude-r.longitude)<0.065;});});
+        l=l.filter(dentro).slice(0,8);
+        if(!l.length){box.innerHTML='<div class="vuoto">Nessuna localit\u00e0 con questo nome nell\u2019area di calcolo</div>';return;}
+        box.innerHTML=l.map(function(r,i){
+          return '<button type="button" data-i="'+i+'">'+esc(r.name)+
+            '<small>'+esc([r.admin1,r.country].filter(Boolean).join(', '))+'</small></button>';}).join('');
+        box._l=l;})
+      .catch(function(){if(mio===giro)box.innerHTML='<div class="vuoto">Senza rete la ricerca non funziona: tocca la carta o usa un waypoint</div>';});}
+  inp.addEventListener('input',function(){var q=inp.value.trim();clearTimeout(t);if(q.length<2){chiudi();return;}t=setTimeout(function(){cerca(q);},350);});
+  box.addEventListener('click',function(e){var b=e.target.closest('button[data-i]');if(!b)return;
+    var r=box._l[+b.getAttribute('data-i')];if(!r)return;mettiAB(activeAB,r.latitude,r.longitude,r.name);inp.value='';chiudi();inp.blur();});
+  document.addEventListener('click',function(e){if(!e.target.closest('.cerca'))chiudi();});
+  inp.addEventListener('keydown',function(e){if(e.key==='Escape'){inp.value='';chiudi();}});
+})();
 /* picker A/B da lista waypoint (Carta Nautica) */
 (function(){var sel=document.getElementById('wpPick');if(!sel)return;
   function wps(){try{return JSON.parse(localStorage.getItem('raffyca-waypoints')||'[]');}catch(e){return[];}}
