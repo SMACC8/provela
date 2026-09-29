@@ -5904,3 +5904,80 @@ Nel browser, con dati d'esempio poi cancellati:
 
 Service worker (tutti precaricano `rf-topbar.js`): **`dritta-hub-v29`,
 `anchor-v22`, `raffyca-meteo-v25`, `raffyca-rt-v31`, `xte-v15`**.
+
+---
+
+## 29/09/2026 (6) — L'Ancoraggio riorganizzato, con il vento del cono automatico
+
+Stesso metodo: inventario e schizzo approvati da Sergio, poi solo spostamenti
+di elementi esistenti con i loro `id` (40 riferiti dal JavaScript, controllati
+con uno script, nessun doppione).
+
+### Com'era
+
+Dall'alto:
+1. un avviso di tre righe sui limiti del browser, o di quattro nell'APK;
+2. la planimetria;
+3. lo stato;
+4. quattro indicatori: distanza, deriva, alba, tramonto;
+5. due indicatori: catena/fondo, rischio di toccare;
+6. **«⚓ Cala ancora», il comando principale, per ultimo**;
+7. le sezioni Parametri e Pericoli, con **il vento del cono da scrivere a
+   mano**.
+
+### Com'è
+
+- **Prima di calare**: la planimetria, lo stato con una riga «GPS 4 m · fondo
+  8 m · catena 30 m», e subito «⚓ Cala ancora» grande. Gli indicatori sono
+  nascosti (`html:not(.a-attiva)`): prima di calare non dicono niente.
+- **All'ancora**:
+  - la distanza dal centro in grande, «14 m su 40»;
+  - deriva, catena/fondo e vento;
+  - «Tocca con la bassa marea», solo quando è calcolabile;
+  - Tacita e Salpa.
+- **Alba e tramonto** escono (Sergio: «togli pure»): stanno nella pagina di
+  stato. Gli elementi restano nascosti perché `updateUI()` ci scrive.
+- **Il vento del cono è automatico** (Sergio: «va bene»), da `rf-strumenti.js`:
+  strumenti, altrimenti previsione. Il campo manuale resta nei parametri:
+  «vuoto = automatico». Il riassunto dei parametri dice «vento auto» o
+  «vento manuale».
+- **Gli avvisi** diventano una riga piccola in fondo, «ⓘ Solo a schermo
+  acceso» o nell'APK «ⓘ Veglia anche a schermo spento», che si apre per
+  leggerli per intero.
+- **Da 960 px** la planimetria va a sinistra e il resto a destra.
+
+### Il punto delicato: il vento automatico non entra nello stato
+
+Il cono si disegna da `S.fcast`, che `save()` scrive in `raffyca-anchor`, e
+che all'avvio torna nel campo manuale (`inFcast`). Mettere lì il vento
+automatico l'avrebbe fatto diventare «manuale» al primo riavvio, fermo per
+sempre.
+
+Quindi `draw()` è avvolta: se il campo manuale è vuoto, `S.fcast` prende il
+vento automatico **solo per la durata del disegno** e torna subito `null`.
+Verificato:
+- all'ancora il cono è disegnato dal vento previsto (da NE, barca a SO);
+- `S.fcast` resta `null`;
+- anche il salvato in `raffyca-anchor` resta `null`.
+
+Service worker: **`anchor-v23`**, con `raffyca.css`, `rf-nmea.js` e
+`rf-strumenti.js` nel precache.
+
+### Verificato
+
+Nel browser, a 375 px, con fix d'esempio poi cancellato:
+- **prima di calare**: la riga GPS/fondo/catena, niente indicatori, riassunto
+  «raggio 40 m · vento auto»;
+- **dopo «Cala ancora»**: «IN AREA», 14 m su 40, vento «10 kt NE prev.» (su
+  due righe, prima andava a capo su tre), il rischio di toccare nascosto
+  finché non si può calcolare, «Salpa» visibile;
+- **dopo un ricaricamento** la veglia resta attiva;
+- **errori**: nessun errore JavaScript; sintassi con `jsc`.
+
+### Non verificato
+
+- «Salpa» fino in fondo: chiede conferma, e nel pannello del browser le
+  conferme rispondono sempre di no. Il comportamento è quello di prima.
+- La veglia a schermo spento nell'APK dopo la riorganizzazione: la logica
+  non è stata toccata, ma va rivista in rada.
+- Temi Giorno e Notte.

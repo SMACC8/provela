@@ -8,6 +8,7 @@
 <meta name="theme-color" content="#060e18">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="assets/boat-icon-256.png">
+<link rel="stylesheet" href="../raffyca.css">
 <style>
 :root{--bg:#060e18;--panel:#0e2036;--panel2:#0b1a2c;--dp:#040c14;--line:#1a3248;--dim:#122030;
   --ink:#deedf5;--sub:#5a7a94;--teal:#2BD9C4;--amber:#FFC24B;--coral:#FF6B6B;--green:#46d68a;
@@ -120,6 +121,39 @@ input.mono,select{font-family:var(--mono);font-size:14px;padding:9px 10px;border
 .handle{width:44px;height:5px;border-radius:3px;background:#3a4a5a;margin:0 auto 12px;}
 html.day #sheet .inner{background:#f3f6f9;}
 html.day .handle{background:#c2ccd6;}
+
+/* ═══ 29/09/2026: Ancoraggio riorganizzato, sullo strato comune di raffyca.css ═══ */
+.a-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;}
+.a-lato{display:flex;flex-direction:column;gap:10px;min-width:0;}
+#status .big{font-size:var(--t-titolo);}
+#status .sub{font-size:var(--t-piccolo);color:var(--lab);}
+.a-metr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;}
+.a-metr .metric .lbl{font-size:var(--t-etichetta);color:var(--lab);}
+.a-metr .metric .num{font-size:var(--t-grande);}
+.a-metr .metric .unit{font-size:var(--t-etichetta);color:var(--lab);}
+#mVentoDa{display:block;margin-left:0;white-space:nowrap;}
+.a-metr .a-dist{grid-column:1 / -1;}
+.a-metr .a-dist .num{font-size:var(--t-enorme);line-height:1;}
+.a-metr .a-dist .unit{font-size:var(--t-testo);margin-left:6px;}
+.a-metr .a-tocco{grid-column:1 / -1;}
+.a-metr .a-tocco[hidden]{display:none;}
+/* prima di calare gli indicatori non dicono niente: si vede solo il comando */
+html:not(.a-attiva) .a-metr{display:none;}
+.rowbtn{display:flex;gap:8px;}
+.rowbtn button{flex:1;min-height:var(--tocco);font-size:var(--t-testo);border-radius:12px;}
+.rowbtn #btnDrop{min-height:64px;font-size:var(--t-titolo);}
+.collap .hd{min-height:var(--tocco);align-items:center;}
+.collap .hd h3{font-size:var(--t-testo);}
+.a-riass{margin-left:auto;margin-right:10px;font-size:var(--t-piccolo);color:var(--lab);text-align:right;}
+.a-info{font-size:var(--t-piccolo);color:var(--lab);}
+.a-info>summary{list-style:none;cursor:pointer;min-height:40px;display:flex;align-items:center;gap:8px;}
+.a-info>summary::-webkit-details-marker{display:none;}
+.a-info>summary::before{content:"\24D8";font-size:18px;}
+.a-info .disc{margin-top:6px;}
+@media (min-width:960px){
+  .a-grid{grid-template-columns:minmax(0,1.3fr) minmax(340px,1fr);align-items:start;}
+  .a-plan{position:sticky;top:calc(var(--rf-barra,40px) + 10px);}
+}
 </style>
 </head>
 <body>
@@ -139,8 +173,86 @@ html.day .handle{background:#c2ccd6;}
 <script src="../rf-topbar.js" defer></script>
 <script src="../rf-live.js"></script>
 <script src="../rf-veglia.js"></script>
+<script src="../rf-nmea.js"></script>
+<script src="../rf-strumenti.js"></script>
 <!-- ===== /rf-topbar ===== -->
 
+<div class="a-grid">
+  <!-- 29/09/2026: Ancoraggio riorganizzato. Stessi elementi e stessi id: il
+       comando principale sale sotto la planimetria, gli indicatori compaiono
+       solo all'ancora, alba e tramonto escono (sono nella pagina di stato),
+       gli avvisi diventano una riga che si apre. -->
+  <div class="a-plan">
+    <div id="wrap" class="card" style="padding:0;overflow:hidden;">
+      <canvas id="cv"></canvas>
+      <div class="ovl tl" id="ovlClock">—</div>
+      <div class="ovl tr" id="ovlFix">no fix</div>
+    </div>
+  </div>
+
+  <div class="a-lato">
+    <div id="status" class="idle ok">
+      <div class="big" id="stBig">ANCORA NON CALATA</div>
+      <div class="sub" id="stSub">Premi «Cala ancora» quando l'ancora tocca il fondo.</div>
+    </div>
+
+    <div class="a-metr">
+      <div class="dp metric a-dist"><div class="lbl">Distanza dal centro</div><span class="num" id="mDist">—</span><span class="unit">m su <span id="aRagg">40</span></span></div>
+      <div class="dp metric"><div class="lbl">Deriva</div><span class="num" id="mDrift">—</span><span class="unit">m/h</span></div>
+      <div class="dp metric"><div class="lbl">Catena / fondo</div><span class="num" id="mScope">—</span></div>
+      <div class="dp metric"><div class="lbl">Vento</div><span class="num" id="mVento">—</span><span class="unit" id="mVentoDa"></span></div>
+      <div class="dp metric a-tocco"><div class="lbl">Tocca con la bassa marea</div><span class="num" id="mTouch">—</span></div>
+    </div>
+    <div hidden><span id="mSunR"></span><span id="mSunS"></span></div>
+
+    <div class="rowbtn">
+      <button id="btnDrop" class="primary">⚓ Cala ancora</button>
+      <button id="btnWeigh" class="ghost" style="display:none">Salpa</button>
+      <button id="btnSilence" class="warn" style="display:none">🔇 Tacita 5 min</button>
+    </div>
+
+<!-- Parametri -->
+<div class="card collap closed" id="parCard">
+  <div class="hd" onclick="this.parentNode.classList.toggle('closed')">
+    <h3 style="margin:0">Parametri</h3><span class="a-riass" id="aParSum"></span><span class="chev">▾</span>
+  </div>
+  <div class="body">
+    <div class="field">
+      <div class="lbl">Raggio d'allarme (manuale) — governa l'allarme</div>
+      <div class="stepr"><button data-step="rAlarm:-5">−</button><span class="v"><span id="vAlarm">40</span> m</span><button data-step="rAlarm:5">+</button></div>
+      <div class="warnb" id="rSuggest" style="margin-top:5px">consiglio: —</div>
+    </div>
+    <div class="grid2">
+      <div class="field"><div class="lbl">Catena filata (m)</div><input class="mono" id="inChain" inputmode="numeric" placeholder="30"></div>
+      <div class="field"><div class="lbl">Fondo (m)</div><input class="mono" id="inDepth" inputmode="decimal" placeholder="8"></div>
+      <div class="field"><div class="lbl">Pescaggio (m)</div><input class="mono" id="inDraft" inputmode="decimal" placeholder="1.8"></div>
+      <div class="field"><div class="lbl">Escursione bassa marea (m)</div><input class="mono" id="inTide" inputmode="decimal" placeholder="0.4"></div>
+    </div>
+    <div class="field">
+      <div class="lbl">Vento per il cono — provenienza (° da nord)</div>
+      <input class="mono" id="inFcast" inputmode="numeric" placeholder="vuoto = automatico (strumenti o previsione)">
+    </div>
+    <div class="field" style="display:flex;align-items:center;justify-content:space-between">
+      <div class="lbl" style="margin:0">Mostra costa (GeoJSON, se vicina)</div>
+      <button id="tgCoast" class="ghost">off</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pericoli -->
+<div class="card collap closed" id="hzCard">
+  <div class="hd" onclick="this.parentNode.classList.toggle('closed')">
+    <h3 style="margin:0">Pericoli</h3><span class="a-riass" id="hzCount">(0)</span><span class="chev">▾</span>
+  </div>
+  <div class="body">
+    <div id="hzList"></div>
+    <button id="btnAddHz" style="width:100%;margin-top:10px">+ Aggiungi pericolo</button>
+  </div>
+</div>
+
+
+    <details class="a-info">
+      <summary id="aInfoSum">Solo a schermo acceso</summary>
 <div class="disc" id="disc">
   <b>Veglia attiva, non allarme in background.</b> In una pagina web l'allarme suona solo con
   <b>app in primo piano e schermo acceso</b>: il browser sospende timer e audio quando esci o blocchi il telefono.
@@ -157,75 +269,9 @@ html.day .handle{background:#c2ccd6;}
   tablet: tienilo alto.
 </div>
 
-<div id="wrap" class="card" style="padding:0;overflow:hidden;">
-  <canvas id="cv"></canvas>
-  <div class="ovl tl" id="ovlClock">—</div>
-  <div class="ovl tr" id="ovlFix">no fix</div>
-</div>
-
-<div id="status" class="idle ok">
-  <div class="big" id="stBig">ANCORA NON CALATA</div>
-  <div class="sub" id="stSub">Premi «Cala ancora» quando l'ancora tocca il fondo.</div>
-</div>
-
-<div class="grid4">
-  <div class="dp metric"><div class="lbl">Distanza</div><span class="num" id="mDist">—</span><span class="unit">m</span></div>
-  <div class="dp metric"><div class="lbl">Deriva ancora</div><span class="num" id="mDrift">—</span><span class="unit">m/h</span></div>
-  <div class="dp metric"><div class="lbl">Alba</div><span class="num" id="mSunR" style="font-size:17px">—</span></div>
-  <div class="dp metric"><div class="lbl">Tramonto</div><span class="num" id="mSunS" style="font-size:17px">—</span></div>
-</div>
-
-<div class="grid2">
-  <div class="dp"><div class="lbl">Catena / Fondo</div><span class="num" id="mScope" style="font-size:17px">—</span></div>
-  <div class="dp"><div class="lbl">Rischio tocco (bassa marea)</div><span class="num" id="mTouch" style="font-size:15px">—</span></div>
-</div>
-
-<div class="rowbtn">
-  <button id="btnDrop" class="primary">⚓ Cala ancora</button>
-  <button id="btnWeigh" class="ghost" style="display:none">Salpa</button>
-  <button id="btnSilence" class="warn" style="display:none">🔇 Tacita 5 min</button>
-</div>
-
-<!-- Parametri -->
-<div class="card collap closed" id="parCard">
-  <div class="hd" onclick="this.parentNode.classList.toggle('closed')">
-    <h3 style="margin:0">Parametri</h3><span class="chev">▾</span>
-  </div>
-  <div class="body">
-    <div class="field">
-      <div class="lbl">Raggio d'allarme (manuale) — governa l'allarme</div>
-      <div class="stepr"><button data-step="rAlarm:-5">−</button><span class="v"><span id="vAlarm">40</span> m</span><button data-step="rAlarm:5">+</button></div>
-      <div class="warnb" id="rSuggest" style="margin-top:5px">consiglio: —</div>
-    </div>
-    <div class="grid2">
-      <div class="field"><div class="lbl">Catena filata (m)</div><input class="mono" id="inChain" inputmode="numeric" placeholder="30"></div>
-      <div class="field"><div class="lbl">Fondo (m)</div><input class="mono" id="inDepth" inputmode="decimal" placeholder="8"></div>
-      <div class="field"><div class="lbl">Pescaggio (m)</div><input class="mono" id="inDraft" inputmode="decimal" placeholder="1.8"></div>
-      <div class="field"><div class="lbl">Escursione bassa marea (m)</div><input class="mono" id="inTide" inputmode="decimal" placeholder="0.4"></div>
-    </div>
-    <div class="field">
-      <div class="lbl">Vento previsto — provenienza (° da nord), per il cono</div>
-      <input class="mono" id="inFcast" inputmode="numeric" placeholder="es. 315 (NW) — vuoto = nessun cono">
-    </div>
-    <div class="field" style="display:flex;align-items:center;justify-content:space-between">
-      <div class="lbl" style="margin:0">Mostra costa (GeoJSON, se vicina)</div>
-      <button id="tgCoast" class="ghost">off</button>
-    </div>
+    </details>
   </div>
 </div>
-
-<!-- Pericoli -->
-<div class="card collap closed" id="hzCard">
-  <div class="hd" onclick="this.parentNode.classList.toggle('closed')">
-    <h3 style="margin:0">Pericoli <span id="hzCount" style="color:var(--sub)">(0)</span></h3><span class="chev">▾</span>
-  </div>
-  <div class="body">
-    <div id="hzList"></div>
-    <button id="btnAddHz" style="width:100%;margin-top:10px">+ Aggiungi pericolo</button>
-  </div>
-</div>
-
-<div style="height:6px"></div>
 
 <!-- editor pericolo -->
 <div id="sheet"><div class="inner">
@@ -834,6 +880,44 @@ boot();
 
 /* PWA */
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}
+</script>
+<script>
+/* ════════ Ancoraggio riorganizzato (29/09/2026): solo disposizione ════════
+   updateUI() e draw() sono quelle di sempre, avvolte. Il vento automatico
+   (rf-strumenti.js: strumenti, altrimenti previsione) serve SOLO al disegno
+   del cono e all'indicatore: non entra in S.fcast, altrimenti save() lo
+   scriverebbe e al riavvio il campo manuale risulterebbe compilato. */
+(function(){
+  "use strict";
+  function $$(id){return document.getElementById(id);}
+  var AUTO=null;
+  var DIR=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSO','SO','OSO','O','ONO','NO','NNO'];
+  function pos(){try{if(typeof posOrDefault==='function')return posOrDefault();}catch(e){}return null;}
+  var _upd=updateUI;
+  updateUI=function(){_upd();try{
+    document.documentElement.classList.toggle('a-attiva',!!S.active);
+    $$('aRagg').textContent=S.rAlarm;
+    if(!S.active){var t=[];
+      if(cur&&cur.acc!=null)t.push('GPS '+Math.round(cur.acc)+' m');else t.push('in attesa del GPS');
+      if(S.depth)t.push('fondo '+S.depth+' m');
+      if(S.chain)t.push('catena '+S.chain+' m');
+      $$('stSub').textContent=t.join(' · ');}
+    var V=window.rfStrumenti?rfStrumenti.vento(pos()):null;
+    AUTO=(V&&V.twd!=null)?Math.round(V.twd):null;
+    var ok=V&&V.tws!=null&&V.twd!=null;
+    $$('mVento').textContent=ok?String(Math.round(V.tws)):'—';
+    $$('mVentoDa').textContent=ok?('kt '+DIR[Math.round(((V.twd%360)+360)%360/22.5)%16]+(V.da==='previsione'?' prev.':V.da==='manuale'?' man.':'')):'';
+    var toc=$$('mTouch').parentNode;toc.hidden=($$('mTouch').textContent==='—');
+    var man=$$('inFcast').value.trim()!=='';
+    $$('aParSum').textContent='raggio '+S.rAlarm+' m · vento '+(man?'manuale':'auto');
+  }catch(e){}};
+  var _draw=draw;
+  draw=function(){var man=S.fcast;if(man==null&&AUTO!=null)S.fcast=AUTO;try{_draw();}finally{S.fcast=man;}};
+  /* la riga degli avvisi dice la cosa giusta: nel browser o nell'APK */
+  function riga(){$$('aInfoSum').textContent=$$('discApp').hidden?'Solo a schermo acceso':'Veglia anche a schermo spento';}
+  riga();setTimeout(riga,1500);
+  window.addEventListener('resize',function(){try{fitCanvas();draw();}catch(e){}});
+})();
 </script>
 </body>
 </html>
