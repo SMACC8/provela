@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0a1420">
-<script>(function(){try{var t=localStorage.getItem('raffyca-theme');if(t==='sun')t='day';if(t==='day'||t==='night')document.documentElement.classList.add(t);}catch(e){}})();</script>
+<script>(function(){try{var t=localStorage.getItem('raffyca-theme');if(t==='sun')t='day';if(t==='day'||t==='night')document.documentElement.classList.add(t);if(t==='night'){var v=localStorage.getItem('raffyca-notte-velo');v=[0,.35,.55,.75][v==null?2:+v];if(v){document.documentElement.style.setProperty('--rf-velo',v);var s=document.createElement('style');s.textContent='html.night::after{content:"";position:fixed;inset:0;background:#000;opacity:var(--rf-velo,0);pointer-events:none;z-index:2147483000}';document.head.appendChild(s);}}}catch(e){}})();</script>
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -391,6 +391,21 @@ select.rf-sel{color:hsl(var(--ink));text-align:left;appearance:none;padding-righ
           <button type="button" id="themeDark" aria-pressed="true">Scuro</button>
           <button type="button" id="themeDay" aria-pressed="false">Giorno</button>
           <button type="button" id="themeNight" aria-pressed="false">Notte</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="lbl">
+        <div class="k">Oscuramento notte</div>
+        <div class="h">Scurisce tutto in Notte, sotto il minimo dello schermo. Anche dal ☾ in alto</div>
+      </div>
+      <div class="ctl">
+        <div class="seg" data-accent="amber" role="group" aria-label="Oscuramento notte" id="veloSeg">
+          <button type="button" data-v="0" aria-pressed="false">No</button>
+          <button type="button" data-v="1" aria-pressed="false">35%</button>
+          <button type="button" data-v="2" aria-pressed="false">55%</button>
+          <button type="button" data-v="3" aria-pressed="false">75%</button>
         </div>
       </div>
     </div>
@@ -1111,6 +1126,21 @@ select.rf-sel{color:hsl(var(--ink));text-align:left;appearance:none;padding-righ
     $("themeNight").addEventListener("click", function(){
       localStorage.setItem(K_THEME, "night"); applyTheme("night"); toast("Tema: notte");
     });
+    /* oscuramento: la logica sta in rf-topbar.js (rfVelo), qui solo la scelta */
+    function veloSeg(){
+      var n = window.rfVelo ? rfVelo.livello() : 2;
+      Array.prototype.forEach.call($("veloSeg").querySelectorAll("button"), function(b){
+        b.setAttribute("aria-pressed", String(+b.getAttribute("data-v") === n));
+      });
+    }
+    $("veloSeg").addEventListener("click", function(e){
+      var b = e.target.closest("button[data-v]"); if(!b || !window.rfVelo) return;
+      var n = +b.getAttribute("data-v"); rfVelo.imposta(n); veloSeg();
+      toast(n ? "Oscuramento notte " + b.textContent : "Oscuramento notte spento");
+    });
+    /* rf-topbar.js e' defer: puo' arrivare dopo questo script */
+    if(window.rfVelo) veloSeg(); else document.addEventListener("DOMContentLoaded", veloSeg);
+    window.addEventListener("storage", function(e){ if(e.key === "raffyca-notte-velo") veloSeg(); });
 
     // --- unità ---
     $("unitKn").addEventListener("click", function(){

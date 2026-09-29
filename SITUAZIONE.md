@@ -24,6 +24,7 @@ raffyca-tags {colore:nome} (NEW) · raffyca-settings (merge-safe) · raffyca-the
 raffyca-pos {lat,lon} · raffyca-polar {twa,tws,data,meta?} (polare condivisa) · raffyca-live-session
 raffyca-supabase {url,key,bucket} (NEW, scritta da Impostazioni) · raffyca-supabase-sess {access_token,refresh_token,exp,email} (NEW, sessione Supabase) · raffyca-manut-schema {firma,sch} (NEW, mappa colonne risolta) · raffyca-manut-cache (NEW, copia di lettura del registro)
 raffyca-carta-view {c:[lat,lon],z,base,sea,grid,zones,bathy,fari,fariMode,ais} (NEW, Carta-privata) · raffyca-race-handoff {from,ts,auto?,line,wind} (transiente)
+raffyca-notte-velo "0".."3" (29/09/2026, stringa semplice, non JSON: la legge lo script di avvio in <head>; assente = 2) · raffyca-dash {…,picked} (29/09/2026: picked = il suggerimento del Cruscotto non serve piu')
 [IndexedDB] DB 'raffyca-backup' store 'snaps' {ts,n,data:{chiavi raffyca-*}} — snapshot automatici (ultimi 5), FUORI dal localStorage per resistere a un suo azzeramento (NEW)
 
 - [FATTO 14/07 Cruscotto] +grandezze AWA/AWS/ETA/TTG/Data-ora/Coordinate/Alba-Tramonto; brg rietichettato Rotta WP; frecce TWA P/S -> Sx/Dx (mure); cifre centrate. Regata: ritardo 2.2s a fine countdown (non taglia la tromba).
@@ -6152,3 +6153,96 @@ Cosa si sa, guardando il codice:
 Da decidere con Sergio (proposta nel messaggio di oggi): un velo scuro unico,
 regolabile, in `rf-topbar.js`; mattonelle della Carta scurite in Notte; alone
 tolto dalle cifre in Notte.
+
+---
+
+## 29/09/2026 (9) — Il velo della Notte, e le carte scurite
+
+Chiude la segnalazione della voce (8): «anche con la luminosità dello schermo
+al minimo, la modalità Notte era troppo luminosa». Proposta approvata da
+Sergio.
+
+### Strade valutate
+
+- **Scurire le 18 tavolozze `html.night`, una per una.** Scartata: 18 file,
+  ciascuno con i suoi rossi, e il rischio di dimenticarne uno. Non avrebbe
+  scurito comunque le mattonelle delle carte.
+- **Abbassare la retroilluminazione dall'APK**, con un plugin che imposta
+  `screenBrightness`. Scartata per ora: il minimo del pannello è quello che
+  Sergio aveva già, e nella PWA non esiste.
+- **Scelto: un velo nero unico sopra tutto** (`html.night::after`, opacità
+  `--rf-velo`, `pointer-events:none`), in `rf-topbar.js`. Scende sotto il
+  minimo dello schermo perché spegne i colori, non la luce del pannello. Il
+  nero puro non migliora; migliora tutto ciò che è acceso.
+
+### Com'è fatto
+
+- **Quattro livelli**: 0, 35, 55 e 75%. **Il default è 55%**: la segnalazione
+  era proprio che «niente» era troppo luminoso.
+- **Il livello sta in `raffyca-notte-velo`**, come stringa semplice.
+- **Si sceglie in due posti**:
+  - Impostazioni, «Oscuramento notte», sotto il Tema;
+  - il **☾** nella barra in alto, visibile solo in Notte: ogni tocco passa al
+    livello successivo, con un avviso che dice la percentuale.
+- **Niente lampo a ogni cambio di pagina.** `rf-topbar.js` è caricato con
+  `defer`: se il velo nascesse solo lì, ogni pagina apparirebbe per un
+  istante a piena luce. Per questo lo script di avvio del tema, già presente
+  in `<head>` in 18 pagine e identico in tutte (controllato con un hash), ora
+  in Notte scrive `--rf-velo` e una regola di stile prima del primo disegno.
+  Modificato con uno script che pretendeva una sola occorrenza per file: 18
+  su 18. **I livelli stanno quindi in due posti**, lo script di avvio e
+  `VELI` in `rf-topbar.js`: il commento lo dice in tutti e due.
+- **MOB non riceve mai il velo**: una schermata d'emergenza non si scurisce.
+  Il suo script di avvio è diverso e non è stato toccato, e `applicaVelo()`
+  lo salta.
+- **Carte Leaflet**, in tutti i moduli: le mattonelle in Notte vengono
+  invertite, virate al rosso e scurite. Mare rosso scuro, terra quasi nera,
+  come le carte notturne dei plotter. Anche i bottoni di zoom e i crediti,
+  che erano riquadri bianchi, diventano scuri.
+- **Cruscotto**: in Notte niente alone attorno alle cifre.
+
+### Difetti trovati provando
+
+1. **Filtro sullo strato sbagliato.** Filtrando `.leaflet-tile-pane` la
+   Carta restava a colori: tiene la base in uno strato suo,
+   `leaflet-base-pane`, e quello standard contiene solo i segnali di
+   OpenSeaMap. Ora il filtro va sulle mattonelle (`img.leaflet-tile`),
+   qualunque sia lo strato.
+2. **Virare al rosso non basta.** Senza invertire, la carta (quasi tutta
+   chiara) diventava rosa salmone, **più luminosa** di prima. Visto sullo
+   screenshot. Ora prima si inverte.
+
+Service worker, tutti quelli che precaricano `rf-topbar.js` o una pagina
+toccata: **`dritta-hub-v30`, `anchor-v24`, `raffyca-meteo-v26`,
+`raffyca-rt-v32`, `xte-v16`**.
+
+### Verificato
+
+Nel browser, a 375 px:
+- **18 pagine in Notte** (hub, Meteo, Cruscotto, Traversata, Carta, Ancora,
+  XTE, Posizione, Manutenzione, Impostazioni, Performance, Partenza, Sole e
+  Luna, Percorso, Calcoli, Prontuario, Strumenti): velo al 55% già dallo
+  script di avvio, ☾ presente, nessun errore JavaScript;
+- **MOB**: velo 0, nessun ☾;
+- **i tocchi attraversano il velo**: `elementFromPoint` restituisce il
+  bottone sotto, e il foglio dei campi del Cruscotto si apre;
+- **il ☾ gira** su 3 → 0 → 1 → 2, e l'opacità segue;
+- **Impostazioni** mostra il livello, lo cambia, e resta in accordo con il ☾;
+- **in Giorno** il velo non c'è, e il ☾ è nascosto;
+- **la barra in alto** con il ☾ e la registrazione attiva sta nei 375 px, e
+  l'ingranaggio resta dentro;
+- **Carta**: tutte le mattonelle filtrate, controllato a occhio sugli
+  screenshot;
+- **sintassi** di `rf-topbar.js` con `jsc`.
+
+### Non verificato
+
+- **Al buio, sul tablet**: è l'unica prova che conta. Da vedere se il 55% è
+  il livello giusto e se al 75% i numeri si leggono ancora.
+- **Le carte raster proprie e la vista Satellite in Notte**. Le prime escono
+  in negativo come la carta, e dovrebbe andar bene; la seconda diventa un
+  negativo, di notte comunque inutile.
+- **Il costo del filtro sulle mattonelle** con molte mattonelle, spostando la
+  carta su un tablet lento.
+- **«Luminosità extra ridotta» di Android**: non so se l'Ulefone la mostri.
+  Se c'è, si somma al velo.

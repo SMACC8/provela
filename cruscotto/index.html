@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Cruscotto · Dritta</title>
-<script>(function(){try{var t=localStorage.getItem('raffyca-theme');if(t==='sun')t='day';if(t==='day'||t==='night')document.documentElement.classList.add(t);}catch(e){}})();</script>
+<script>(function(){try{var t=localStorage.getItem('raffyca-theme');if(t==='sun')t='day';if(t==='day'||t==='night')document.documentElement.classList.add(t);if(t==='night'){var v=localStorage.getItem('raffyca-notte-velo');v=[0,.35,.55,.75][v==null?2:+v];if(v){document.documentElement.style.setProperty('--rf-velo',v);var s=document.createElement('style');s.textContent='html.night::after{content:"";position:fixed;inset:0;background:#000;opacity:var(--rf-velo,0);pointer-events:none;z-index:2147483000}';document.head.appendChild(s);}}}catch(e){}})();</script>
 <style>
 :root{
   --bg:#060e18; --bezel-hi:#2c4256; --bezel-lo:#0c1b28;
@@ -274,6 +274,9 @@ main{padding:6px;}
 .slot .num .dec{font-size:.70em;}   /* 0.66 / 0.94: fit() abbassa la parte intera del 6% */
 /* dato assente: trattino piccolo e spento, non una barra che sembra un valore */
 .slot .num.na{color:var(--sub);text-shadow:none;}
+/* Notte: niente alone. Su cifre di 400 px l'alone rosso era luce in piu'
+   intorno alla superficie gia' piu' accesa della suite. */
+html.night .slot .num{text-shadow:none;}
 </style>
 </head>
 <body>

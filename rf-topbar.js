@@ -232,6 +232,38 @@
 '.rf-topbar a.rf-imp[aria-current]{color:var(--teal,#2BD9C4);background:hsl(172 70% 51% / .12);}' +
 'html.night .rf-topbar a.rf-imp[aria-current]{background:rgba(255,77,77,.12);}' +
 
+/* ── VELO DELLA NOTTE (29/09/2026) ─────────────────────────────────────
+   Sergio, dopo un'uscita notturna: anche con lo schermo al minimo la Notte
+   era troppo luminosa. Il minimo del sistema e' il minimo della
+   retroilluminazione; da li' in giu' si puo' solo spegnere i colori. Un velo
+   nero sopra tutto lo fa in un posto solo, per ogni modulo, carta compresa,
+   senza toccare 18 tavolozze. I tocchi lo attraversano (pointer-events).
+   --rf-velo lo scrive lo script di avvio di ogni pagina (niente lampo di
+   luce piena a ogni cambio di pagina) e poi applicaVelo() qui sotto. MOB non
+   lo riceve mai: una schermata d'emergenza non si scurisce. */
+'html.night::after{content:"";position:fixed;inset:0;background:#000;opacity:var(--rf-velo,0);' +
+'  pointer-events:none;z-index:2147483000;}' +
+/* Le mattonelle delle carte erano a piena luce anche in Notte: mare azzurro
+   e terra chiara, la superficie piu' luminosa della suite. Virate al rosso e
+   scurite, in ogni modulo con Leaflet; le carte raster proprie (immagini
+   nello strato delle sovrapposizioni) con loro. Il filtro va sulle
+   mattonelle e non su .leaflet-tile-pane: la Carta tiene la base in uno
+   strato suo (leaflet-base-pane), e filtrando lo strato standard si
+   scurivano solo i segnali di OpenSeaMap.
+   Prima si INVERTE: la carta e' quasi tutta chiara, e virata al rosso senza
+   invertirla diventava rosa salmone, piu' luminosa di prima (provato). Come
+   le carte notturne dei plotter: mare rosso scuro, terra quasi nera. La vista
+   satellite invertita diventa un negativo: di notte non serve comunque. */
+'html.night img.leaflet-tile,html.night .leaflet-overlay-pane img{filter:invert(1) grayscale(1) brightness(.45) sepia(1) saturate(5) hue-rotate(-50deg) contrast(1.3);}' +
+/* zoom e crediti di Leaflet: riquadri bianchi, gli ultimi rimasti accesi */
+'html.night .leaflet-bar a,html.night .leaflet-control-attribution{background:#1a0606!important;color:#b04040!important;border-color:#3a1010!important;}' +
+'html.night .leaflet-control-attribution a{color:#c85050!important;}' +
+'.rf-topbar button.rf-luna{display:none;align-items:center;gap:3px;height:30px;padding:0 7px;flex:none;' +
+'  border-radius:8px;background:none;border:1px solid var(--sub,#5a7a94);color:var(--ink,#deedf5);' +
+'  font:inherit;font-size:12px;cursor:pointer;}' +
+'html.night .rf-topbar button.rf-luna{display:flex;}' +
+'.rf-topbar button.rf-luna:active{transform:scale(.92);}' +
+
 /* ── BARRA IN BASSO: le quattro sezioni ────────────────────────────────
    Grande di proposito (Sergio, 28/09/2026: col sole, e col tablet montato
    in basso, i testi piccoli non si leggono): 66px su telefono, 74 da 600px
@@ -968,15 +1000,65 @@
     barra.appendChild(a);
   }
 
+  /* ─────────────────────── velo della notte ───────────────────────
+     raffyca-notte-velo = "0".."3", stringa semplice perche' la legge anche lo
+     script di avvio in <head> di ogni pagina. Assente = 2: la segnalazione
+     era proprio che il default, cioe' niente, era troppo luminoso.
+     I LIVELLI STANNO ANCHE nello script di avvio delle pagine: chi li cambia
+     qui li cambi anche li' (sono 18 copie identiche, si fa con uno script). */
+  var K_VELO = "raffyca-notte-velo", VELI = [0, .35, .55, .75];
+  function livelloVelo() {
+    try {
+      var v = localStorage.getItem(K_VELO), n = v == null ? 2 : parseInt(v, 10);
+      return (n >= 0 && n < VELI.length) ? n : 2;
+    } catch (e) { return 2; }
+  }
+  function applicaVelo() {
+    var root = document.documentElement;
+    if (QUI.mod === "mob") root.style.removeProperty("--rf-velo");
+    else root.style.setProperty("--rf-velo", String(VELI[livelloVelo()]));
+    var b = document.querySelector(".rf-topbar .rf-luna b");
+    if (b) b.textContent = livelloVelo();
+  }
+  window.rfVelo = {
+    livelli: VELI,
+    livello: livelloVelo,
+    imposta: function (n) {
+      try { localStorage.setItem(K_VELO, String(n)); } catch (e) {}
+      applicaVelo();
+    }
+  };
+  /* Il ☾ in barra c'e' solo in Notte (CSS): un tocco passa al livello dopo,
+     in pozzetto, senza andare in Impostazioni. */
+  function luna() {
+    var barra = document.querySelector(".rf-topbar");
+    if (!barra || barra.querySelector(".rf-luna") || QUI.mod === "mob") return;
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "rf-luna";
+    b.setAttribute("aria-label", "Oscuramento notte");
+    b.innerHTML = '<span aria-hidden="true">☾</span><b></b>';
+    b.addEventListener("click", function () {
+      var n = (livelloVelo() + 1) % VELI.length;
+      window.rfVelo.imposta(n);
+      toast(n ? "Oscuramento " + Math.round(VELI[n] * 100) + "%" : "Oscuramento spento");
+    });
+    var imp = barra.querySelector(".rf-imp");
+    barra.insertBefore(b, imp || null);
+  }
+
   /* ──────────────────────────── avvio ──────────────────────────── */
   function avvia() {
+    applicaVelo();
     if (!aggancia()) return;      // pagina senza barra: resta solo il registratore
     ingranaggio();
+    luna();
+    applicaVelo();
     barraSotto();
     dipingi();
     setInterval(dipingi, 1000);
     window.addEventListener("storage", function (e) {
-      if (!e.key || e.key.indexOf("raffyca-") === 0) { dipingi(); sincronizza(); }
+      if (!e.key || e.key.indexOf("raffyca-") === 0) { dipingi(); sincronizza(); applicaVelo(); }
     });
     document.addEventListener("visibilitychange", function () {
       if (document.visibilityState === "visible") { sincronizza(); dipingi(); }
