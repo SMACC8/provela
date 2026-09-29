@@ -5669,3 +5669,139 @@ Nel browser, a 375, 600 e 1000 px, con waypoint d'esempio poi cancellati:
   porta a `impostazioni/index.html?polar=1`. Usa l'`id` `polStatus`, quindi il
   nome lo scrive la logica di sempre. Verificato: con una polare ORC salvata
   la riga dice «Salt 6.50 · ORC», nessun errore.
+
+---
+
+## 29/09/2026 (4) — Il vento del Cruscotto era inventato; nasce rf-strumenti.js, e la Carta ha la sua striscia
+
+Richiesta di Sergio: al posto del salto Cruscotto ⇄ Carta, o in aggiunta,
+una striscia di campi nella Carta, «almeno 4». Scelta, dopo averne parlato:
+**striscia in Carta, niente nuova vista nel Cruscotto**. Una vista «carta
+con strumenti» nel Cruscotto sarebbe stata la settima mappa della suite,
+proprio mentre le stiamo riducendo. Il salto ⇄ resta, per gli strumenti a
+tutto schermo.
+
+### Il difetto trovato leggendo il Cruscotto per estrarne i calcoli
+
+**Il vento «Stima» non veniva da nessuna previsione.** Era `S`, un oggetto
+di valori d'esempio (14,2 kt da 158°), fatto oscillare a caso ogni 1,2 s da
+`drift()`. Nel Cruscotto non c'era nessuna chiamata a un servizio meteo.
+L'interfaccia lo presentava come «Dati: Stima · GPS + meteo» e «Vento:
+Stima».
+
+Quindi **TWS, TWD, TWA, VMG, % polare e vento apparente erano inventati**,
+ogni volta che il vento non era impostato a mano. Nel registro non ce n'era
+traccia come cosa nota.
+
+C'era di più: **il Cruscotto non caricava `rf-nmea.js`**. La modalità
+«Signal K» commutava solo l'etichetta («Signal K / WebSocket NMEA») mentre
+vento, STW, profondità e temperatura restavano quelli simulati, anche
+nell'APK collegato al gateway.
+
+### `rf-strumenti.js`: i numeri di bordo calcolati in un posto solo
+
+Stessa forma di `rf-nmea.js`: ES5, niente DOM. Lo usano Cruscotto e Carta.
+
+- **Vento**, in quest'ordine:
+  1. manuale, se scelto nel Cruscotto (`raffyca-dash`);
+  2. strumenti di bordo, se `rf-nmea.js` ha TWS e TWD vivi;
+  3. previsione Open-Meteo per posizione e ora, al massimo ogni 10 minuti
+     o dopo 5 NM.
+
+  Ogni valore porta `ventoDa`. Senza rete e senza strumenti il vento è
+  `null`, e i campi mostrano «—».
+- **STW, profondità, temperatura, AWS e AWA** dal gateway, quando ci sono.
+- **% polare** dalla polare condivisa. Senza polare, niente % (nessun
+  ripiego su una polare d'esempio).
+- **Waypoint attivo**: distanza, rilevamento, tempo e ETA.
+- **Catalogo dei 17 campi** con nome, unità e valore già formattato, più la
+  nota della fonte (`prev.`, `man.`, lato `sx`/`dx`).
+
+**Difetto introdotto e trovato provando.** `isFinite(null)` è `true`,
+perché `null` diventa 0. Il Cruscotto, al caricamento, chiama il calcolo
+senza fix (`lat: null`): il controllo lo lasciava passare, `null.toFixed()`
+lanciava un'eccezione **dopo** aver segnato la richiesta come «in corso», e
+quel segno restava acceso per tutta la sessione. Risultato: **la previsione
+non arrivava mai**. Non c'era nessun errore in console, perché la funzione
+era chiamata dentro il ciclo di disegno.
+
+Trovato con una funzione di sola lettura, `rfStrumenti._previsione()`,
+rimasta per la diagnosi. Ora:
+- le coordinate si controllano con `typeof === "number"`;
+- il segno «in corso» si accende solo dopo che l'indirizzo è stato
+  costruito;
+- lo stesso controllo vale per il vento manuale e per le coordinate del
+  waypoint.
+
+### Il Cruscotto
+
+- `eff()` prende vento, STW, profondità e temperatura da `rf-strumenti`.
+  Via `drift()` e il suo intervallo.
+- **Pulsante del vento**, stessi tre stati con un significato vero:
+  - «Auto»: strumenti se ci sono, altrimenti previsione;
+  - «Strumenti»: solo il gateway, altrimenti vuoto;
+  - «Manuale».
+- **Distintivi**: «prev.» sulla previsione, «man» sul manuale, «n/d» quando
+  il dato manca. Prima «stima» copriva i numeri simulati.
+- **Il pulsante «Dati»** da interruttore finto diventa un indicatore:
+  «Strumenti · gateway» se arrivano dati, «Solo GPS» altrimenti. Toccandolo,
+  un avviso dice dove si configura il gateway.
+- `fmt` di TWS e TWD protetti: facevano `.toFixed()` sul vento senza
+  controllo, e con il vento assente (offline) si sarebbero rotti.
+
+### La striscia della Carta
+
+- **4 campi sul telefono, 6 da 600 px**, sotto la carta. Di serie: SOG, COG,
+  distanza WP, vento, TWA, polare.
+- **Si tocca un campo per cambiarlo**, da un foglio con i 17 campi.
+- **La scelta sta in `raffyca-carta-view`, campo `striscia`**, aggiunto
+  dentro `saveView()`: quella funzione riscrive la chiave da capo, e la
+  scelta sarebbe sparita al primo spostamento della carta. Nessuna chiave
+  nuova.
+- Il fix è quello della Carta (`POS`, `SOG`, `COG`).
+- **Misure**:
+  - cifra proporzionale alla casella (19–28 px sul telefono, 22–34 sul
+    tablet);
+  - unità accanto al nome del campo, perché a 320 e 600 px cifra e unità
+    insieme non ci stavano;
+  - nomi accorciati («WP», «Polare», «Fondo»).
+
+  Misurato a 320, 375, 600 e 1000 px: nessuna cifra e nessuna etichetta
+  tagliata.
+
+Service worker: **`dritta-hub-v28`**, con `rf-nmea.js` e `rf-strumenti.js`
+nel precache (Carta e Cruscotto stanno sotto l'hub).
+
+### Verificato
+
+Nel browser, con fix, waypoint e polare d'esempio poi cancellati:
+- **striscia**: SOG 5,2, COG 200°, WP 11,8 NM, vento 6,1 kt «prev.»; la
+  scelta di un campo si applica e resta dopo lo spostamento della carta;
+- **Cruscotto**: vento previsto 6,2 kt «prev.», TWA e % polare calcolati da
+  lì; «Solo GPS»; senza fix nessun numero inventato, solo «n/d»;
+- **errori**: nessun errore JavaScript; sintassi con `jsc`.
+
+### Non verificato
+
+- **Il gateway vero**: la strada «strumenti» è scritta sul contratto di
+  `rf-nmea.js` (`dati()`), ma non l'ho vista con dati reali.
+- **La striscia con il GPS del telefono**: nel pannello i valori di SOG e
+  COG li ho dati a mano.
+- **La polare d'esempio del Cruscotto** (`POL_DEMO`) è ancora il ripiego del
+  suo % polare quando non c'è una polare caricata: l'intestazione dice
+  «polare demo», ma il numero resta fatto su una barca che non è la tua.
+  Da decidere se toglierlo come in `rf-strumenti`.
+
+### Dopo, su indicazione di Sergio
+
+- **Tolta la polare demo del Cruscotto** (`POL_DEMO`). Senza una polare
+  caricata `POL` resta vuota, `polarTarget()` restituisce 0 ed `eff()` lo
+  trasforma in `null`, non più in «0 %»: il campo mostra «—». L'intestazione
+  dice «nessuna polare». Verificato nel browser.
+- **Riquadri del Cruscotto squadrati** (`.instr`, `.dp` a raggio 0). Ho
+  interpretato così «gli angoli arrotondati dei box di cruscotto», nello
+  stesso spirito delle viti tolte: da confermare.
+- **Previsione dopo un errore di rete: nuovo tentativo dopo 20 s**, non più
+  60. In una prova il primo tentativo al caricamento è fallito (intoppo di
+  rete, ripreso da solo al giro dopo) e il vento è rimasto «n/d» per un
+  minuto intero.
