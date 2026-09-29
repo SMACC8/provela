@@ -5255,3 +5255,72 @@ tablet via adb, si è ripreso. La seconda installazione è andata senza
 Tolti su richiesta di Sergio, dopo averla vista sul tablet: «Non è una misura»
 nella nota del vento, e la spiegazione sotto «Niente in corso» (quali cose vi
 compaiono). Stessa linea della voce (3): meno testo nelle schermate.
+
+---
+
+## 28/09/2026 (6) — Performance: prima l'analisi, l'inserimento a mano chiuso
+
+### Il presupposto sbagliato
+
+Nella voce (5) la decisione era «confronto automatico in primo piano,
+inserimento a mano chiuso». Leggendo il modulo è venuto fuori che
+**Performance non ha nessun confronto automatico**: tutti i numeri vengono dai
+rilevamenti inseriti a mano, e il pulsante «Collega NMEA» della Traccia polare
+non aveva nessun gestore. Il confronto dal vivo esiste, ma sta nel
+**Cruscotto** (campi «% polare» e «VMG», da SOG o STW e dal vento del gateway,
+stimato o manuale). La proposta era mia e partiva da una cosa non verificata:
+rimessa a Sergio con i fatti giusti.
+
+Scelto da Sergio: **Performance diventa il posto dell'analisi**. Scartati:
+- **registrazione automatica** dei punti mentre si naviga: il lavoro più
+  lungo, e serve davvero solo con il gateway a bordo;
+- **sola pulizia**, senza cambiare l'ordine delle schede.
+
+### Cosa cambia
+
+- Si apre sulla **Polare** (prima si apriva su Inserimento). In cima c'è un
+  rimando «% polare e VMG dal vivo · Cruscotto». Il calcolo dal vivo non
+  viene duplicato qui.
+- Schede in quest'ordine: Polare, Traccia polare, **Rilevamenti** (ex
+  Inserimento), Converti.
+- In Rilevamenti l'elenco è in vista, con «Esporta CSV» (spostato fuori dal
+  modulo) e «Cancella tutti». L'inserimento a mano sta in un `<details>`
+  chiuso, «Nuovo rilevamento a mano». Tolte le due frasi di spiegazione del
+  modulo: i pulsanti dicono già SOG/STW e reale/apparente.
+- Tolto il pulsante morto «Collega NMEA».
+
+### Ritirato `build_perf.py`
+
+Assemblava `performance/index.html` riusando barra e tema dal Cruscotto. Ma la
+pagina era stata corretta a mano il 22/09 (`viewport-fit=cover`) e lo script
+no, e il suo `ROOT` puntava a `/home/claude/work/provela`, un'altra
+macchina. Tenerli entrambi voleva dire che la prima rigenerazione avrebbe
+cancellato le correzioni. Ora **la pagina è il sorgente**; lo script resta
+nella storia di git. `CLAUDE.md` aggiornato.
+
+Nessun service worker da alzare: `performance/` non è nel precache di nessuno
+(la serve l'hub dalla rete, con la copia in cache solo di riserva).
+
+### Verificato
+
+Nel browser, a 375 px, con una polare d'esempio poi cancellata:
+- si apre sulla Polare con il diagramma disegnato;
+- il modulo manuale parte chiuso, si apre, e il rilevamento si salva: elenco,
+  contatore e indicatori (VMG, target, perf) si aggiornano;
+- la Polare mostra l'ultimo punto;
+- Traccia polare si disegna, senza più «Collega NMEA»;
+- Converti calcola;
+- nessun errore JavaScript; sintassi degli script con `jsc`.
+
+**Sul tablet**, con l'APK: da Regata → Performance si apre sulla Polare, con
+la polare ORC e l'ultimo rilevamento veri di Sergio (55° / 5,0 kn). Lì le
+etichette delle schede e degli indicatori restano piccole (9-12 px): è il
+lavoro del foglio di stile unico, non di questa voce.
+
+### Trovato e non toccato
+
+- **L'importazione CSV della Traccia polare conta soltanto i punti** validi
+  e crea una sessione vuota; non carica la nuvola. Il codice lo dice («v1:
+  conteggio punti validi; aggancio nuvola reale col formato strumento
+  definitivo»). Chi importa un CSV vede «N punti validi» e pensa di averli
+  caricati.

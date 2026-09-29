@@ -164,11 +164,10 @@ difetti silenziosi: quelli che non si vedono rileggendo il codice.
 ## Limiti noti
 
 - `performance/` e `partenza/` **non sono più build React** — lo erano, e questa
-  riga diceva di non toccarli. Oggi sono vanilla e leggibili: `partenza/` è
-  scritto a mano, `performance/` lo assembla `build_perf.py` riusando boot-tema
-  e topbar da `cruscotto/` (attenzione: il `ROOT` dentro lo script punta a un
-  percorso di un'altra macchina, va corretto prima di rieseguirlo). Verificato
-  il 21/09/2026: zero occorrenze di React o webpack in entrambi.
+  riga diceva di non toccarli. Oggi sono vanilla, scritti a mano e si
+  modificano direttamente. `performance/` era assemblato da `build_perf.py`,
+  ritirato il 28/09/2026: la pagina era già stata corretta a mano e lo script
+  no, quindi rieseguirlo avrebbe cancellato quelle correzioni.
 - L'allarme di `anchor/` è dichiaratamente foreground-only: i browser non
   permettono audio affidabile in background.
 - Le etichette della vista Satellite (Esri) sono in inglese: localizzarle

@@ -83,6 +83,17 @@ input[type=range]{-webkit-appearance:none;width:100%;height:6px;background:var(-
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--teal);cursor:pointer;}
 input[type=range]::-moz-range-thumb{width:18px;height:18px;border:0;border-radius:50%;background:var(--teal);cursor:pointer;}
 .scale{display:flex;justify-content:space-between;font-size:10px;color:var(--sub);margin-top:6px;}
+/* rimando al Cruscotto e modulo manuale chiuso (28/09/2026) */
+.live{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:56px;padding:10px 14px;margin-bottom:12px;
+  border-radius:12px;border:1px solid var(--teal);background:var(--pf-panel);color:var(--ink);text-decoration:none;font:600 15px var(--sans);}
+.live b{color:var(--teal);white-space:nowrap;}
+.live:active{transform:scale(.99);}
+details.manuale>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;min-height:44px;
+  font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--teal);font-weight:700;}
+details.manuale>summary::-webkit-details-marker{display:none;}
+details.manuale>summary::after{content:"+";font-size:22px;line-height:1;font-weight:400;}
+details.manuale[open]>summary{margin-bottom:14px;}
+details.manuale[open]>summary::after{content:"\2212";}
 .hint{font-size:11px;color:var(--sub);line-height:1.5;margin-top:10px;}
 .hint code{font-family:var(--mono);color:var(--ink);font-size:10.5px;}
 .rec-list{display:flex;flex-direction:column;}
@@ -143,14 +154,14 @@ svg.polar{width:100%;max-width:330px;display:block;margin:0 auto;}
 
 <div class="wrap">
   <div class="tabs">
-    <button class="tab on" data-t="ins">Inserimento</button>
-    <button class="tab" data-t="polare">Polare</button>
+    <button class="tab on" data-t="polare">Polare</button>
     <button class="tab" data-t="traccia">Traccia polare</button>
+    <button class="tab" data-t="ins">Rilevamenti</button>
     <button class="tab" data-t="conv">Converti</button>
   </div>
 
-  <!-- INSERIMENTO -->
-  <section id="pane-ins" class="pane on">
+  <!-- RILEVAMENTI (ex Inserimento): elenco in vista, inserimento a mano chiuso -->
+  <section id="pane-ins" class="pane">
     <div class="kpis">
       <div class="kpi"><div class="k">VMG</div><div class="v tl"><span id="k-vmg">—</span><span class="u"> kn</span></div></div>
       <div class="kpi"><div class="k"><span id="k-sog-lab">SOG</span></div><div class="v tl"><span id="k-sog">—</span><span class="u"> kn</span></div></div>
@@ -158,8 +169,20 @@ svg.polar{width:100%;max-width:330px;display:block;margin:0 auto;}
       <div class="kpi"><div class="k">Perf</div><div class="v"><span id="k-perf">—</span><span class="u"> %</span></div></div>
       <div class="kpi"><div class="k">Record</div><div class="v" id="i-count">0</div></div>
     </div>
+    <!-- I record erano salvati ma non mostrati da nessuna parte: si vedeva
+         solo il contatore. Qui l'elenco vero, con cancellazione. -->
     <div class="card">
-      <h3>Nuovo rilevamento</h3>
+      <h3>Record salvati</h3>
+      <div id="rec-empty" class="hint" style="margin-top:0">Nessun rilevamento salvato.</div>
+      <div id="rec-list" class="rec-list"></div>
+      <div id="rec-acts" class="rec-foot" style="display:none">
+        <span class="hint" id="rec-tot" style="margin:0"></span>
+        <button id="i-csv" class="btn">Esporta CSV</button>
+        <button id="rec-clear" class="btn warn">Cancella tutti</button>
+      </div>
+    </div>
+    <details class="card manuale">
+      <summary>Nuovo rilevamento a mano</summary>
       <div class="seg"><button id="seg-re" class="on re">Inserisco il REALE</button><button id="seg-ap">Inserisco l'APPARENTE</button></div>
       <div class="groups">
         <div id="grp-re" class="grp re src">
@@ -174,31 +197,20 @@ svg.polar{width:100%;max-width:330px;display:block;margin:0 auto;}
         </div>
       </div>
       <div class="seg" style="margin-bottom:8px"><button id="src-sog" class="on re">SOG · GPS</button><button id="src-stw">STW · log</button></div>
-      <div class="shared">
+      <div class="shared" style="margin-bottom:12px">
         <div><label>Velocità barca (kn)</label><input id="i-stw" class="in" inputmode="decimal" placeholder="0.0"></div>
         <div><label>Mura</label><select id="i-mura" class="sel"><option value="dx">Dritta (Dx)</option><option value="sx">Sinistra (Sx)</option></select></div>
       </div>
-      <div class="hint" style="margin-top:0;margin-bottom:12px">Senza solcometro usa <b>SOG</b> (GPS): funziona subito. Con log a bordo scegli <b>STW</b> — più preciso, esclude la corrente.</div>
       <textarea id="i-note" class="note" placeholder="Condizioni, vele, regolazioni…"></textarea>
-      <div class="acts"><button id="i-save" class="btn primary">Salva record</button><button id="i-reset" class="btn">Svuota campi</button><button id="i-csv" class="btn">Esporta CSV</button></div>
-      <div class="hint">Scegli se ragionare per <b style="color:var(--teal)">reale</b> o per <b style="color:var(--amber)">apparente</b>: l'app riempie l'altra coppia usando STW e Mura.</div>
-    </div>
-
-    <!-- I record erano salvati ma non mostrati da nessuna parte: si vedeva
-         solo il contatore. Qui l'elenco vero, con cancellazione. -->
-    <div class="card">
-      <h3>Record salvati</h3>
-      <div id="rec-empty" class="hint" style="margin-top:0">Nessun record salvato. Compila il rilevamento qui sopra e premi <b>Salva record</b>.</div>
-      <div id="rec-list" class="rec-list"></div>
-      <div id="rec-acts" class="rec-foot" style="display:none">
-        <span class="hint" id="rec-tot" style="margin:0"></span>
-        <button id="rec-clear" class="btn warn">Cancella tutti</button>
-      </div>
-    </div>
+      <div class="acts" style="grid-template-columns:1.4fr 1fr"><button id="i-save" class="btn primary">Salva record</button><button id="i-reset" class="btn">Svuota campi</button></div>
+    </details>
   </section>
 
   <!-- POLARE -->
-  <section id="pane-polare" class="pane">
+  <section id="pane-polare" class="pane on">
+    <!-- Il confronto dal vivo con la polare sta nel Cruscotto (campi
+         «% polare» e «VMG»): qui non si ricalcola, si rimanda. 28/09/2026 -->
+    <a class="live" href="../cruscotto/"><span>% polare e VMG dal vivo</span><b>Cruscotto ›</b></a>
     <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
       <div class="kpi"><div class="k">TWS curva</div><div class="v tl"><span id="p-tws">12.0</span><span class="u"> kn</span></div>
         <input id="p-twsr" type="range" min="4" max="30" step="1" value="12" style="margin-top:8px"></div>
@@ -222,7 +234,7 @@ svg.polar{width:100%;max-width:330px;display:block;margin:0 auto;}
   <section id="pane-traccia" class="pane">
     <div class="card">
       <h3>Sorgenti dati</h3>
-      <div class="acts" style="grid-template-columns:1fr 1fr"><button id="t-import" class="btn">Importa CSV</button><button class="btn">Collega NMEA</button></div>
+      <div class="acts" style="grid-template-columns:1fr"><button id="t-import" class="btn">Importa CSV</button></div>
       <input id="t-file" type="file" accept=".csv,text/csv" class="filerow">
       <div class="hint" style="margin-bottom:8px">Sessioni accumulate:</div>
       <div id="t-sess" class="sess"></div>
@@ -620,8 +632,9 @@ function parseCSV(txt){
 function dl(name,txt){try{var url=URL.createObjectURL(new Blob([txt],{type:'text/csv'}));
   var a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},500);}catch(e){}}
 
-/* init */
+/* init: si apre sulla scheda Polare */
 insRender();
+drawSharedPolar();
 window.__perf={realeToApp:realeToApp,appToReale:appToReale,percentile:percentile,definitiva:definitiva,polarTarget:polarTarget,cloudFor:cloudFor};
 })();
 
