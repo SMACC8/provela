@@ -6894,3 +6894,74 @@ schermo.
   controllata leggendo.
 - In Diagnostica, a collegamento spento, la prua dice «nessuna bussola sul
   bus»: vero solo a collegamento acceso. Non toccato.
+
+---
+
+## 30/09/2026 (4) — L'hub: il vento dallo stesso motore del Cruscotto
+
+Ultimo pezzo del programma di riorganizzazione. L'hub era già stato rifatto
+il 28/09 (voce (5)) come pagina di stato: a 600 px sta tutto in una
+schermata, nessun comando sotto i 44 px. L'inventario ha trovato tre cose,
+proposte a Sergio e approvate tutte e tre.
+
+### Il vento
+
+L'hub scaricava **sempre** la previsione di Open-Meteo con una sua `fetch`,
+anche col gateway collegato: il Cruscotto mostrava il vento degli strumenti,
+l'hub quello del modello, senza che la differenza si vedesse. Era l'aperto
+lasciato nella voce del 28/09 («l'hub non carica `rf-nmea.js`»).
+
+Ora l'hub carica `rf-nmea.js` e `rf-strumenti.js` e chiede il vento a
+`rfStrumenti.vento()`, lo stesso ordine del Cruscotto e della Carta:
+manuale se scelto nel Cruscotto, poi strumenti di bordo, poi previsione.
+La nota sotto il numero dice sempre da dove viene: «Dagli strumenti di
+bordo», «Vento manuale, impostato nel Cruscotto», «Previsione del modello
+per le hh:mm · raffiche N kt». La `fetch` propria dell'hub è tolta: un posto
+solo che scarica la previsione.
+
+Il vento si rilegge ogni 5 s (la previsione `rf-strumenti` la scarica al
+massimo ogni 10 minuti o dopo 5 NM) e a ogni cambiamento del gateway; due
+riletture ravvicinate all'avvio, perché la prima risposta della previsione
+arriva dopo.
+
+Perso rispetto a prima: il **limite di 12 s** sulla richiesta. In
+`rf-strumenti.js` la `fetch` non ha un timeout; su una rete lenta la nota
+resta «Cerco il vento…» finché la richiesta non si chiude. Non toccato qui:
+riguarda anche Cruscotto e Carta, e cambiarlo vuol dire alzare cinque
+service worker.
+
+### Le due scritte
+
+- Marea: «stima incerta qui» → «da verificare le condizioni locali», come
+  in Sole & Luna (voce 20/09 (2): «incerta» si legge come «sbagliata»).
+- «suite nautica» sotto il nome: da 10 a 12 px. Il piede con lo slogan non
+  è stato toccato: è allineato con gli altri tre.
+
+Service worker: **`dritta-hub-v35`** (`index.html` è nel precache;
+`rf-nmea.js` e `rf-strumenti.js` c'erano già).
+
+### Verificato
+
+Nel browser, dal worktree, a 600 px:
+- **previsione**: «2 kt, da ESE · 114°, Previsione del modello per le 07:15 ·
+  raffiche 7 kt» (Open-Meteo vero);
+- **strumenti** (`rfNmea.dati` sostituita con TWS 18,3 e TWD 245°): «18 kt,
+  da WSW · 245°, Dagli strumenti di bordo»; tolti gli strumenti torna la
+  previsione;
+- **manuale** (`raffyca-dash` con `wind: manual`): «10 kt, da E · 090°, Vento
+  manuale, impostato nel Cruscotto»;
+- **senza posizione**: «Il vento compare quando c'è una posizione»;
+- marea con la dicitura nuova; sintassi degli script con `jsc`.
+
+APK costruito dal worktree e installato sul tablet via adb, senza toccare lo
+schermo.
+
+### Non verificato
+
+- Il gateway vero: provato sostituendo la funzione che legge i dati.
+- La rete lenta (vedi sopra, il limite di 12 s perso).
+
+### Dove è arrivato il programma
+
+Fatti tutti i moduli della lista del 28/09, tranne **XTE**, sospeso con la
+grafica non approvata (ramo `xte`, voce 30/09 (2)).
