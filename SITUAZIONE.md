@@ -6832,7 +6832,7 @@ Applicata la parte della struttura decisa il 28/09 (voce (3)) che riguarda
 configurazione del gateway va in Impostazioni».
 
 XTE, che veniva prima nel programma, è **sospeso**: Sergio ha visto la vista
-a corridoio (voce 30/09 (2), ramo `xte`, non unito) e ha scritto «la grafica
+a corridoio (ramo `xte`, non unito; storia nella voce 30/09 (5)) e ha scritto «la grafica
 non mi convince, per adesso saltiamo». Il ramo resta come parcheggio.
 
 ### Cosa c'era
@@ -6964,4 +6964,131 @@ schermo.
 ### Dove è arrivato il programma
 
 Fatti tutti i moduli della lista del 28/09, tranne **XTE**, sospeso con la
-grafica non approvata (ramo `xte`, voce 30/09 (2)).
+grafica non approvata (ramo `xte`). Ripreso subito dopo con lo schema di
+Sergio: voce 30/09 (5).
+
+---
+
+## 30/09/2026 (5) — XTE: lo schema di Sergio, e l'aggancio che sbagliava segmento
+
+XTE era ancora il modulo upstream «non reskinnato»: palette propria
+(`#0b0d10`), sfera lucida con ombre, e una sua barra a schede impilata sopra
+quella di Dritta. Questa voce raccoglie due giri: una prima grafica bocciata,
+e quella disegnata da Sergio.
+
+### Cosa c'era
+
+Al tablet (600 px), con il localStorage vuoto:
+- **«Avvia GPS» stava nella scheda Impostazioni**: il comando da usare in
+  navigazione non era nella schermata di navigazione (stesso schema trovato
+  in Partenza e Percorso).
+- **Il pallone al centro copriva la traccia** (segnalato da Sergio), e la
+  freccia orizzontale copriva il resto.
+
+E tre dati non veri:
+- **La rotta di comodo.** `EMBEDDED`, 73 punti di un canale a Porto Levante
+  scritti nel codice, era la rotta di partenza: senza rotta scelta, acceso il
+  GPS, XTE avrebbe dato uno scarto in metri da un canale mai scelto.
+- **Non si ricordava niente**: soglie, set, cambio automatico, Audio, Inversa
+  e il GPX caricato si perdevano a ogni riapertura, e si tornava a Levante.
+- **La traccia attiva della Carta non si caricava da sola.**
+
+Trovato provando, e più grave di tutti: **l'aggancio sbagliava segmento.**
+`updateXTE` cerca il segmento più vicino solo fra l'ultimo usato e i sei
+successivi, e all'accensione partiva dall'inizio della rotta. Acceso il GPS a
+metà canale (prova: barca 15 m a destra del segmento 20 di 60), XTE si
+agganciava al segmento 7 e diceva **«34 m, correggi a destra»**: numero e
+lato sbagliati. Il Cruscotto non ha il difetto perché al primo fix cerca su
+tutta la traccia (`followSeed`, voce 26/07).
+
+### Il primo giro: bocciato
+
+Scelte chiuse da Sergio con «accetto tue proposte»: XTE resta una pagina a sé
+(la modalità della Carta decisa il 28/09 è rinviata, non scartata); senza
+rotta si usa la traccia attiva, se no «Nessuna rotta»; si ricordano soglie,
+set, GPX e interruttori.
+
+La grafica proposta era una **vista a corridoio**: rotta con tre fasce
+trasparenti larghe quanto le soglie, anello esterno colorato, freccia sul
+bordo. Sergio: «la grafica non mi convince, per adesso saltiamo». Le fasce
+sovrapposte si leggevano male.
+
+### Lo schema di Sergio
+
+Disegnato da lui: la **traccia schematizzata col verso**, un **cerchio** per
+il fuoco, la **barca** come pallino alla sua distanza dalla traccia, e **due
+triangoli** fuori dal cerchio, a sinistra e a destra, col vertice verso il
+cerchio: si accende quello dal lato in cui si è, e punta dove si deve andare.
+
+Aggiunte concordate:
+- il triangolo acceso prende il **colore della zona**: giallo, arancio e,
+  nell'ultima, **magenta al posto del rosso**. Sergio: in navigazione verde è
+  dritta e rosso è sinistra, e un triangolo rosso su un lato si legge come
+  un lato. Il verde resta solo per «in rotta», quando i triangoli sono spenti;
+  il pallino delle soglie «aranc.» e il resto della pagina non usano il rosso
+  per le zone;
+- il numero dei metri resta sopra il cerchio, con «correggi a sinistra /
+  a destra»;
+- **rotta in alto** (il tratto in corso punta sempre verso l'alto: sinistra e
+  destra del disegno sono quelle della barca). Scartato: nord in alto, che
+  con rotta a sud inverte i lati;
+- **il bordo del cerchio è la soglia arancio del set attivo** (25 m in Largo,
+  10 in Stretto; sotto il disegno «cerchio 25 m»): se il pallino tocca il
+  bordo si è in zona rossa. Scartate: scala fissa e scala automatica.
+
+### Fatto
+
+- **Indicatore**: viewBox 480×400, cerchio al centro, triangoli ai lati, fuori
+  dal cerchio; la traccia parte dal piede della barca sul tratto in corso e
+  va in avanti e all'indietro fino al bordo del riquadro, con la punta del
+  verso dove esce in avanti. Senza posizione: la rotta intera dentro il
+  cerchio, nord in alto, col verso.
+- **Aggancio**: al primo fix dopo il caricamento della rotta o
+  l'accensione del GPS si cerca su tutta la rotta; e di nuovo se lo scarto
+  supera tre volte la soglia arancio del set Largo.
+- **Avvia GPS e Audio in fondo alla schermata**, alti `--tocco`.
+- **In alto la riga della rotta** («◎ nome · N punti», «GPX · nome») e ⚙; senza
+  rotta, in ambra, «Nessuna rotta: attiva una traccia dalla Carta, o carica
+  un GPX dal ⚙».
+- **Impostazioni in un foglio** dal ⚙, sotto la barra in alto; tolta la
+  seconda barra a schede.
+- **Tolta `EMBEDDED`**.
+- **Memoria**: chiave nuova del contratto **`raffyca-xte`** — `{sets,
+  setMode, triggerIdx, audio, inverted, src, trackId, name, gpx}`. Il GPX si
+  tiene coi suoi punti; la traccia attiva si rilegge dalla Carta all'apertura
+  e al rientro nella pagina. Inversa e cambio automatico valgono solo per la
+  rotta su cui erano stati scelti.
+- **Piatto sui token della suite**: collegato `raffyca.css`, niente sfere,
+  gradienti né ombre; i colori delle zone restano fissi nei tre temi.
+
+Il calcolo dello scarto (`crossTrack`), le soglie, l'audio e il cambio
+automatico non sono stati toccati.
+
+Service worker: **`xte-v19`** (la v18 è già uscita con la voce (3)), con
+`../raffyca.css` nel precache.
+
+### Verificato
+
+Nel browser, dal worktree, con GPS finto e una traccia a S di 61 punti:
+- **localStorage vuoto**: «Nessuna rotta», nessun numero, nessuna barca;
+- **traccia attiva**: caricata da sola; senza fix, la rotta intera col verso;
+- **barca 15 m a destra** del tratto 20, al primo fix: segmento 21/60,
+  «15 m, ◀ correggi a sinistra», triangolo destro acceso in arancio (a 30 m: magenta), traccia
+  a sinistra della barca con la punta in alto;
+- **8 m a sinistra**: triangolo sinistro acceso, «correggi a destra ▶»;
+  **1 m**: «in rotta», triangoli spenti;
+- **memoria** (primo giro): set, soglie, Audio e un GPX restano dopo la
+  riapertura, il GPX anche con una traccia attiva nella Carta;
+- larghezze 375, 600 e 1000 px (primo giro); sintassi con `jsc`; ogni `id`
+  riferito esiste.
+
+APK costruito dal worktree e installato sul tablet via adb, senza toccare lo
+schermo.
+
+### Non verificato
+
+- **In barca**: con un GPS che salta di 4-5 m, nel set Stretto (cerchio da
+  10 m) il pallino può ballare molto.
+- **Il cambio di tratto** con la vista che ruota di colpo sulle curve strette.
+- **L'audio**: codice non toccato, non ascoltato.
+- Il nuovo indicatore nei temi giorno e notte e a 1000 px in orizzontale.
