@@ -873,8 +873,7 @@
       { nome: "Cruscotto", sub: "Strumenti di bordo", url: "cruscotto/index.html" },
       { nome: "Ancoraggio", sub: "Veglia d'ancora · arare", url: "anchor/index.html" },
       { nome: "Posizione live", sub: "Chi è a terra ti segue", url: "posizione/index.html" },
-      { nome: "XTE", sub: "Canale stretto", url: "xte/index.html" },
-      { nome: "Strumenti", sub: "Vento, profondità, log dal gateway", url: "strumenti.html" } ] },
+      { nome: "XTE", sub: "Canale stretto", url: "xte/index.html" } ] },
     { id: "reg", nome: "Regata", voci: [
       { nome: "Partenza", sub: "Linea · countdown", url: "partenza/index.html" },
       { nome: "Percorso", sub: "Boe · giri · laylines", url: "percorso/index.html" },

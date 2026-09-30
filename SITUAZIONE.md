@@ -6822,3 +6822,75 @@ schermo.
   waypoint attivo, mentre gli altri moduli danno la precedenza alla traccia.
   Non toccato: cambia il contratto del payload.
 - Temi giorno e notte non guardati dopo le modifiche.
+
+---
+
+## 30/09/2026 (3) — Strumenti esce da Navigazione: il gateway va in Impostazioni
+
+Applicata la parte della struttura decisa il 28/09 (voce (3)) che riguarda
+`strumenti.html`: «Cruscotto con dentro i dati di strumenti.html» e «la
+configurazione del gateway va in Impostazioni».
+
+XTE, che veniva prima nel programma, è **sospeso**: Sergio ha visto la vista
+a corridoio (voce 30/09 (2), ramo `xte`, non unito) e ha scritto «la grafica
+non mi convince, per adesso saltiamo». Il ramo resta come parcheggio.
+
+### Cosa c'era
+
+`strumenti.html` è un banco di prova del lettore NMEA: otto riquadri
+(vento reale e apparente, STW, profondità, prua, COG/SOG, temperatura), la
+provenienza di ogni valore, le ultime frasi grezze, e la casella
+dell'indirizzo. Tutti gli otto valori sono già riquadri del **Cruscotto**, che
+li legge dallo stesso `rf-nmea.js` via `rf-strumenti.js` dal 29/09: come voce
+di Navigazione era un doppione. L'indirizzo del gateway invece si poteva
+impostare **solo** lì.
+
+### Fatto (proposta approvata da Sergio)
+
+- **Menu**: «Strumenti» tolto dalla sezione Navigazione (`rf-topbar.js`).
+- **Impostazioni**: riquadro nuovo «Strumenti di bordo (NMEA)», dopo lo Stato
+  GPS: indirizzo (nell'app il **gateway**, nel browser il **ponte**
+  WebSocket, stessa logica della casella che c'era), stato del collegamento
+  con il pallino, Salva, e «Diagnostica» che apre `strumenti.html`.
+  Impostazioni ora carica `rf-nmea.js`: nell'app si collega al gateway anche
+  da lì, come fanno già le altre pagine che lo caricano.
+- **`strumenti.html` diventa «Diagnostica strumenti»**: stessi valori, stesse
+  note sulla provenienza, stesse frasi grezze; l'indirizzo si mostra in sola
+  lettura con «si cambia in Impostazioni» (un posto solo per cambiarlo).
+  Scritte da 12 px in su, grigi schiariti.
+- **Cruscotto, riquadro Alba / Tramonto**: senza posizione calcolava su
+  Trieste (45,65 N 13,77 E) senza dirlo — stessa famiglia di Bonifacio in
+  Sole & Luna (voce 29/09 (14)). Ora senza posizione «—». Scelta di Sergio.
+
+Service worker: `rf-topbar.js` sta nel precache di cinque moduli, alzati
+tutti e cinque — **`dritta-hub-v34`**, **`xte-v18`**, **`raffyca-rt-v34`**,
+**`raffyca-meteo-v28`**, **`anchor-v26`**. `impostazioni/`, `cruscotto/` e
+`strumenti.html` non sono in nessun precache.
+
+**Attenzione per il ramo `xte` parcheggiato**: usa anche lui `xte-v18`. Se
+un giorno si unisce, va portato almeno a `xte-v19`, altrimenti i dispositivi
+che hanno già la v18 di questa voce non scaricano l'XTE nuovo.
+
+### Verificato
+
+Nel browser, dal worktree, a 600 px:
+- **Impostazioni**: etichetta «Ponte» (browser), Salva scrive
+  l'indirizzo in `rf-nmea` («✓ Salvato»), senza ponte acceso lo stato passa
+  a «caduto» con il pallino rosso;
+- **Diagnostica**: «Ponte ws://127.0.0.1:1460 · si cambia in Impostazioni»,
+  nessuna scritta sotto i 12 px, niente sborda;
+- **menu Navigazione**: Carta, Cruscotto, Ancoraggio, Posizione live, XTE;
+- sintassi con `jsc` di tutti gli script toccati; ogni `id` riferito esiste.
+
+APK costruito dal worktree e installato sul tablet via adb, senza toccare lo
+schermo.
+
+### Non verificato
+
+- **Il gateway vero dall'app**: salvare l'indirizzo da Impostazioni e vedere
+  i valori nel Cruscotto. La logica è la stessa della casella di prima, ma
+  da questa pagina non è stata provata.
+- Il riquadro Alba / Tramonto non l'ho visto a schermo: modifica di una riga,
+  controllata leggendo.
+- In Diagnostica, a collegamento spento, la prua dice «nessuna bussola sul
+  bus»: vero solo a collegamento acceso. Non toccato.

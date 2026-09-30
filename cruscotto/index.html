@@ -479,7 +479,7 @@ const METRICS=[
     tag:E=>!HEEL.ready?null:(HEEL.val<0?{t:'\u25c4 Sx',c:'p'}:{t:'Dx \u25ba',c:'s'})},
   {id:'clk',lbl:'Data e ora',sub:'',     unit:'',  color:'', fmt:E=>{var d=new Date();return ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+' '+fmtClk(d);}},
   {id:'pos',lbl:'Coordinate',sub:'gradi decimali',unit:'',color:'',fmt:E=>{var p=cruPos();return p?fmtDM(p.lat,['N','S'])+' '+fmtDM(p.lon,['E','W']):'\u2014';}},
-  {id:'sun',lbl:'Alba / Tramonto',sub:'', unit:'', color:'amber',fmt:E=>{var p=cruPos()||{lat:45.65,lon:13.77};var st=sunTimes(new Date(),p.lat,p.lon);return (st.rise?fmtClk(st.rise):'\u2014')+'/'+(st.set?fmtClk(st.set):'\u2014');}},
+  {id:'sun',lbl:'Alba / Tramonto',sub:'', unit:'', color:'amber',fmt:E=>{var p=cruPos();if(!p)return '\u2014';var st=sunTimes(new Date(),p.lat,p.lon);return (st.rise?fmtClk(st.rise):'\u2014')+'/'+(st.set?fmtClk(st.set):'\u2014');}},
 ];
 const M_BY={}; METRICS.forEach(m=>M_BY[m.id]=m);
 

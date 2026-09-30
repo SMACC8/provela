@@ -250,6 +250,7 @@ select.rf-sel{color:hsl(var(--ink));text-align:left;appearance:none;padding-righ
 .btn:hover{border-color:hsl(var(--teal) / .5)}
 .btn:focus-visible{outline:2px solid hsl(var(--teal));outline-offset:2px}
 .btn.teal{color:hsl(var(--teal));border-color:hsl(var(--teal) / .4)}
+a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
 .btn.coral{color:hsl(var(--coral));border-color:hsl(var(--coral) / .4)}
 .btn.coral:hover{border-color:hsl(var(--coral) / .7)}
 
@@ -692,6 +693,29 @@ select.rf-sel{color:hsl(var(--ink));text-align:left;appearance:none;padding-righ
         <div class="gps-cell"><div class="c-k">Rotta (COG)</div><div class="c-v" id="gpsHdg">\u2014</div></div>
         <div class="gps-cell"><div class="c-k">Sorgente</div><div class="c-v" id="gpsSrc">\u2014</div></div>
       </div>
+    </div>
+  </section>
+
+  <!-- STRUMENTI DI BORDO (30/09/2026): l'indirizzo del gateway stava solo in
+       strumenti.html, che era una voce di Navigazione. I valori li mostra gia'
+       il Cruscotto; qui resta la configurazione, e la diagnostica a richiesta. -->
+  <section class="rf-instr rf-viti" data-accent="teal">
+    <span class="rf-viti-b"></span>
+    <div class="rf-title">Strumenti di bordo (NMEA)</div>
+    <div class="field">
+      <div class="lbl"><div class="k" id="nmeaEtich">Gateway</div>
+        <div class="h" id="nmeaAiuto">Indirizzo e porta del gateway sulla rete di bordo.</div></div>
+      <div class="ctl rf-dp dp-txt">
+        <input class="rf-txt" id="nmeaVal" type="text" inputmode="url" autocomplete="off" spellcheck="false">
+      </div>
+    </div>
+    <div class="field">
+      <div class="lbl"><div class="k">Stato</div>
+        <div class="h"><span class="gps-dot" id="nmeaDot" style="display:inline-block;vertical-align:-1px"></span> <span id="nmeaStato">—</span></div></div>
+    </div>
+    <div class="actions" style="margin-top:6px">
+      <button class="btn teal" id="nmeaSalva">Salva</button>
+      <a class="btn" href="../strumenti.html">Diagnostica</a>
     </div>
   </section>
 
@@ -1768,6 +1792,31 @@ window.rfBackup=(function(){
     uUrl.value=''; uKey.value=''; uBk.value='';
     carica(); statoAccesso(); anaCarica(); toast('Configurazione rimossa.');
   });
+})();
+</script>
+<script src="../rf-nmea.js"></script>
+<script>
+/* Strumenti di bordo: nell'app si imposta il GATEWAY (la socket la apre il
+   nativo), nel browser il PONTE WebSocket. Stessa casella, come in
+   strumenti.html fino al 30/09/2026. */
+(function(){
+  if(!window.rfNmea) return;
+  var $=function(id){return document.getElementById(id);};
+  var nativo=rfNmea.nativo();
+  $("nmeaEtich").textContent=nativo?"Gateway":"Ponte";
+  $("nmeaAiuto").textContent=nativo?"Indirizzo e porta del gateway sulla rete di bordo (es. 192.168.4.1:1456).":"Nel browser si passa da un ponte WebSocket (es. ws://127.0.0.1:1460).";
+  $("nmeaVal").value=nativo?rfNmea.gateway():(rfNmea.ponte()||"");
+  $("nmeaSalva").addEventListener("click",function(){
+    var v=$("nmeaVal").value.trim();
+    if(nativo) rfNmea.gateway(v); else rfNmea.ponte(v);
+    var b=this; b.textContent="✓ Salvato"; setTimeout(function(){b.textContent="Salva";},1200);
+  });
+  function stato(){
+    var s=rfNmea.stato();
+    $("nmeaStato").textContent=s==="collegato"?(nativo?"gateway collegato":"ponte collegato"):s;
+    $("nmeaDot").className="gps-dot"+(s==="collegato"?" ok":(s==="fermo"?"":" err"));
+  }
+  rfNmea.onChange(stato); setInterval(stato,2000); stato();
 })();
 </script>
 </body>

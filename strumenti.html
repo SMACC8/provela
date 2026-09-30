@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Strumenti di bordo · Dritta</title>
+<title>Diagnostica strumenti · Dritta</title>
 <script>(function(){try{var t=localStorage.getItem('raffyca-theme');if(t==='sun')t='day';if(t==='day'||t==='night')document.documentElement.classList.add(t);if(t==='night'){var v=localStorage.getItem('raffyca-notte-velo');v=[0,.35,.55,.75][v==null?2:+v];if(v){document.documentElement.style.setProperty('--rf-velo',v);var s=document.createElement('style');s.textContent='html.night::after{content:"";position:fixed;inset:0;background:#000;opacity:var(--rf-velo,0);pointer-events:none;z-index:2147483000}';document.head.appendChild(s);}}}catch(e){}})();</script>
 <style>
 :root{--bg:#060e18;--panel:#0e2036;--dp:#040c14;--line:#1a3248;--ink:#deedf5;--sub:#5a7a94;
@@ -40,6 +40,21 @@ h1{font-size:17px;font-weight:600;margin:6px 0 3px}
 .crudo{margin-top:16px}
 .crudo pre{background:var(--dp);border:1px solid var(--line);border-radius:10px;padding:10px;
   font:11px/1.45 var(--mono);color:var(--sub);overflow:auto;max-height:190px;white-space:pre-wrap}
+/* 30/09/2026: diagnostica aperta da Impostazioni (non piu' voce di
+   Navigazione: i valori li mostra il Cruscotto). Scritte da 12 px in su,
+   grigi schiariti, indirizzo in sola lettura: si cambia in Impostazioni. */
+:root{--sub:#a3b8ca;--muted:#8aa0b2} html.day{--sub:#34495b;--muted:#4d6272}
+body{font-size:15px;max-width:900px}
+h1{font-size:20px}
+.sub{font-size:14px}
+.stato{font-size:13px;padding:7px 14px}
+.k{font-size:12px;letter-spacing:.06em}
+.v{font-size:28px}
+.n{font-size:13px}
+.crudo pre{font-size:12.5px;max-height:260px}
+.conf{font-size:14px;color:var(--sub);display:block}
+.conf b{color:var(--ink);font-family:var(--mono)}
+.conf a{color:var(--teal)}
 </style>
 </head>
 <body>
@@ -61,14 +76,10 @@ h1{font-size:17px;font-weight:600;margin:6px 0 3px}
 <script src="./rf-topbar.js" defer></script>
 <!-- ===== /rf-topbar ===== -->
 
-<h1>Strumenti di bordo</h1>
-<div class="sub">Banco di prova del lettore NMEA. Con il ponte acceso mostra quello che mostrerà a bordo.</div>
+<h1>Diagnostica strumenti</h1>
+<div class="sub">Cosa arriva dal lettore NMEA, da dove viene ogni valore, e le frasi grezze.</div>
 <div class="stato"><span class="dot" id="dot"></span><span id="statoTxt">—</span></div>
-<div class="conf">
-  <label id="confEtichetta">Gateway</label>
-  <input id="confVal" type="text" inputmode="url" autocomplete="off" spellcheck="false">
-  <button id="confSalva">Salva</button>
-</div>
+<div class="conf"><span id="confEtichetta">Gateway</span> <b id="confVal">—</b> · si cambia in <a href="impostazioni/">Impostazioni</a></div>
 
 <div class="griglia">
   <div class="cella vento" id="c_twd"><div class="k">Vento reale da</div><div class="v" id="twd">—</div><div class="n" id="twdN"></div></div>
@@ -152,12 +163,7 @@ h1{font-size:17px;font-weight:600;margin:6px 0 3px}
      mondi: l'etichetta dice quale dei due si sta impostando. */
   var native = rfNmea.nativo();
   $("confEtichetta").textContent = native ? "Gateway" : "Ponte";
-  $("confVal").value = native ? rfNmea.gateway() : (rfNmea.ponte() || ("ws://"+(location.hostname||"127.0.0.1")+":1460"));
-  $("confSalva").addEventListener("click",function(){
-    var v=$("confVal").value.trim();
-    if(native) rfNmea.gateway(v); else rfNmea.ponte(v);
-    this.textContent="✓"; var b=this; setTimeout(function(){b.textContent="Salva";},1200);
-  });
+  $("confVal").textContent = native ? rfNmea.gateway() : (rfNmea.ponte() || ("ws://"+(location.hostname||"127.0.0.1")+":1460 (predefinito)"));
 
   rfNmea.onChange(dipingi);
   if(!native && !rfNmea.ponte()) rfNmea.collega("ws://"+(location.hostname||"127.0.0.1")+":1460");
