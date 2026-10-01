@@ -68,9 +68,9 @@
 
   #indicator{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:4px var(--margine);}
   #indSvg{width:100%;height:100%;display:block;}
-  #indSvg .disc{fill:var(--dp);stroke:var(--muted);stroke-width:2}
+  #indSvg .disc{fill:var(--dp);stroke:var(--muted);stroke-width:3.5}
   #indSvg .boatDot{fill:var(--dp);stroke:var(--ink);stroke-width:3}
-  #indSvg .tri{fill:none;stroke:var(--muted);stroke-width:2.5;stroke-linejoin:round;opacity:.55}
+  #indSvg .tri{fill:none;stroke:var(--muted);stroke-width:4;stroke-linejoin:round;opacity:.6}
   #indSvg .tri.on{stroke:none;opacity:1}
   #indSvg .traccia{fill:none;stroke:var(--ink);stroke-width:3.5;stroke-linejoin:round;stroke-linecap:round}
   #indSvg .versoPunta{fill:var(--ink)}
@@ -166,8 +166,9 @@
         </defs>
         <circle id="ringBase" cx="240" cy="200" r="140" class="disc"/>
         <g id="trackMini"></g>
-        <polygon id="triSx" points="42,148 42,252 102,200" class="tri"/>
-        <polygon id="triDx" points="438,148 438,252 378,200" class="tri"/>
+        <!-- 01/10/2026: la punta si ferma 10 px prima del cerchio (bordo a x=100 e 380) -->
+        <polygon id="triSx" points="30,148 30,252 88,200" class="tri"/>
+        <polygon id="triDx" points="450,148 450,252 392,200" class="tri"/>
         <g id="boatMark" opacity="0"><circle cx="240" cy="200" r="10" class="boatDot"/></g>
         <text id="scaleTxt" x="240" y="392" text-anchor="middle"></text>
       </svg>

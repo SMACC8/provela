@@ -765,8 +765,12 @@ function setMode(m){
 /* --- disegno traccia --- */
 var drawPts=[], drawLine=null, drawDots=L.layerGroup().addTo(map);
 function refreshDraw(){if(drawLine){map.removeLayer(drawLine);drawLine=null;}drawDots.clearLayers();
-  if(drawPts.length){drawLine=L.polyline(drawPts,{color:'#2BD9C4',weight:3,dashArray:'6 4'}).addTo(map);
-    drawPts.forEach(function(p){L.circleMarker(p,{radius:3,color:'#fff',weight:1,fillColor:'#2BD9C4',fillOpacity:1}).addTo(drawDots);});}
+  /* 01/10/2026: punti piu' visibili mentre si disegna (erano da 3 px, si
+     perdevano sulla carta): 7 px con bordo bianco spesso, e l'ultimo piu'
+     grande in ambra, per vedere da dove riparte il prossimo tocco. */
+  if(drawPts.length){drawLine=L.polyline(drawPts,{color:'#2BD9C4',weight:4,dashArray:'8 5'}).addTo(map);
+    drawPts.forEach(function(p,i){var ult=i===drawPts.length-1;
+      L.circleMarker(p,{radius:ult?10:7,color:'#fff',weight:3,fillColor:ult?'#FFC24B':'#2BD9C4',fillOpacity:1}).addTo(drawDots);});}
   var d=0;for(var i=1;i<drawPts.length;i++)d+=hav(drawPts[i-1],drawPts[i]);
   $('drawInfo').textContent=drawPts.length+' punti · '+(d/1852).toFixed(2)+' NM';}
 function startDraw(){drawPts=[];refreshDraw();setMode('draw');}

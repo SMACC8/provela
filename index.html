@@ -503,6 +503,7 @@ function caricaVento(){
   $('stDir').textContent='da '+rfAstro.cardDir(d)+' · '+('00'+Math.round(d)%360).slice(-3)+'°';
   $('stFreccia').setAttribute('transform','rotate('+((d+180)%360)+' 32 32)');
   $('stVentoNota').textContent=V.da==='strumenti'?'Dagli strumenti di bordo':
+    V.da==='misto'?'Intensità dagli strumenti, direzione prevista':
     V.da==='manuale'?'Vento manuale, impostato nel Cruscotto':
     'Previsione del modello per le '+(V.ora?V.ora.slice(11,16):ora(new Date()))+(isFinite(V.raff)?' · raffiche '+Math.round(V.raff)+' kt':'');
   ventoOk=Date.now();

@@ -288,6 +288,7 @@ th{font-size:12px;}
       <button class="tile" data-go="fonetico"><span class="ic">&#128172;</span><span class="nm">Alfabeto fonetico</span><span class="ds">lettere, numeri, pronuncia</span></button>
       <button class="tile" data-go="vhf"><span class="ic">&#128225;</span><span class="nm">Messaggio VHF</span><span class="ds">testo pronto, e la voce lo legge</span></button>
       <button class="tile" data-go="legenda"><span class="ic">&#128506;</span><span class="nm">Legenda carta</span><span class="ds">sigle e abbreviazioni</span></button>
+      <button class="tile" data-go="sigle"><span class="ic">&#128208;</span><span class="nm">Sigle degli strumenti</span><span class="ds">SOG, TWA, VMG, XTE&#8230;</span></button>
       <button class="tile" data-go="bollettini"><span class="ic">&#128251;</span><span class="nm">Bollettini</span><span class="ds">orari Meteomar e canali</span></button>
       <button class="tile" data-go="conversioni"><span class="ic">&#128207;</span><span class="nm">Conversioni</span><span class="ds">unit&#224; di misura e coordinate</span></button>
     </div>
@@ -425,6 +426,17 @@ th{font-size:12px;}
     </div>
   </div>
 
+  <!-- ============ SIGLE DEGLI STRUMENTI ============
+       01/10/2026: erano le «Abbreviazioni» della Guida in Impostazioni. -->
+  <div id="v-sigle" hidden>
+    <div class="vhead"><button class="bk" data-back>&#8249;</button><div><h1>Sigle degli strumenti</h1><div class="sub">Quelle che compaiono in Cruscotto, Carta, Partenza e XTE</div></div></div>
+    <div class="card">
+      <div class="tbl-wrap" style="max-height:none">
+        <table><thead><tr><th>Sigla</th><th>Significato</th></tr></thead><tbody><tr><td><b>SOG</b></td><td>velocit&agrave; al fondo (Speed Over Ground)</td></tr><tr><td><b>COG</b></td><td>rotta al fondo (Course Over Ground)</td></tr><tr><td><b>STW</b></td><td>velocit&agrave; sull&apos;acqua (Speed Through Water)</td></tr><tr><td><b>BRG</b></td><td>rilevamento a un punto (Bearing)</td></tr><tr><td><b>TWD / TWS</b></td><td>direzione e intensit&agrave; del vento reale</td></tr><tr><td><b>TWA</b></td><td>angolo del vento reale rispetto alla prua</td></tr><tr><td><b>AWA / AWS</b></td><td>angolo e intensit&agrave; del vento apparente</td></tr><tr><td><b>VMG</b></td><td>velocit&agrave; utile / Velocity Made Good (verso il vento o la linea)</td></tr><tr><td><b>XTE</b></td><td>scarto di rotta (Cross-Track Error)</td></tr><tr><td><b>DTW / TTG</b></td><td>distanza e tempo al waypoint</td></tr><tr><td><b>ETA</b></td><td>orario stimato d&apos;arrivo</td></tr><tr><td><b>RC</b></td><td>barca comitato, estremit&agrave; destra della linea di partenza</td></tr><tr><td><b>PIN</b></td><td>boa di partenza, estremit&agrave; sinistra della linea</td></tr><tr><td><b>OCS</b></td><td>oltre la linea prima del via (On Course Side)</td></tr><tr><td><b>TTL</b></td><td>tempo alla linea alla velocit&agrave; attuale (Time To Line)</td></tr><tr><td><b>TTK</b></td><td>tempo da bruciare prima del via (Time To Kill)</td></tr></tbody></table>
+      </div>
+    </div>
+  </div>
+
   <!-- ============ BOLLETTINI ============ -->
   <div id="v-bollettini" hidden>
     <div class="vhead"><button class="bk" data-back>&#8249;</button><div><h1>Bollettini</h1><div class="sub">Meteomar &#8212; emissione e ascolto</div></div></div>
@@ -524,7 +536,7 @@ var RM = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce
    Deep link: ?v=fari&ch=Fl(2)%20W%2010s&n=Cap%20Pertusato
    (usato dalla Carta per "Come si vede" su un faro)
    ============================================================ */
-var VIEWS = ["menu","fari","bandiere","fonetico","vhf","legenda","bollettini","conversioni"];
+var VIEWS = ["menu","fari","bandiere","fonetico","vhf","legenda","sigle","bollettini","conversioni"];
 function show(v){
   if (VIEWS.indexOf(v) < 0) v = "menu";
   VIEWS.forEach(function(k){ $("v-" + k).hidden = (k !== v); });

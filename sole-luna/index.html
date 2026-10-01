@@ -142,7 +142,7 @@ button:active{filter:brightness(1.35)}
 .sl-legend2{display:flex;align-items:center;gap:4px;font-size:10.5px;color:var(--sub)}
 .sl-legend2 i{width:13px;height:2.5px;border-radius:2px;display:inline-block;margin-left:8px}
 .sl-chart-wrap{margin-top:8px}
-.sl-chart-wrap canvas{width:100%;aspect-ratio:16/9;display:block;touch-action:none}
+.sl-chart-wrap canvas{width:100%;aspect-ratio:16/9;display:block;touch-action:auto}
 
 .sl-time{display:flex;flex-direction:column;gap:5px;margin-top:10px}
 .sl-time-head{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:24px}
@@ -1397,21 +1397,9 @@ function onSlider(v) { ST.minute = +v; computeNow(); renderTime(); renderTide();
 document.getElementById('chSlider').addEventListener('input', function (e) { onSlider(e.target.value); });
 document.getElementById('chSlider2').addEventListener('input', function (e) { onSlider(e.target.value); });
 
-var chartDrag = false;
-function chartSeek(e) {
-  var cv = document.getElementById('chartCv'); if (!cv) return;
-  var p = e.touches ? e.touches[0] : e;
-  var r = cv.getBoundingClientRect();
-  var frac = (p.clientX - r.left - PAD_L) / (r.width - PAD_L - PAD_R);
-  onSlider(Math.max(0, Math.min(CUR.dayMin - 1, Math.round(frac * CUR.dayMin))));
-  document.getElementById('chSlider').value = ST.minute;
-  if (e.cancelable) e.preventDefault();
-}
-var chartCv = document.getElementById('chartCv');
-chartCv.addEventListener('mousedown', function (e) { chartDrag = true; chartSeek(e); });
-chartCv.addEventListener('mousemove', function (e) { if (chartDrag) chartSeek(e); });
-window.addEventListener('mouseup', function () { chartDrag = false; });
-chartCv.addEventListener('touchstart', chartSeek); chartCv.addEventListener('touchmove', chartSeek);
+/* 01/10/2026: il grafico non si trascina piu' (Sergio: «lasciare solo lo
+   slider»). Toccarlo spostava il cursore del tempo mentre si voleva solo
+   scorrere la pagina; ora il dito sul grafico scorre la pagina. */
 
 var sphereCv = document.getElementById('sphereCv'), drag = null;
 function sphereDown(e) { var p = e.touches ? e.touches[0] : e; drag = { x: p.clientX, y: p.clientY, yaw: ST.yaw, pitch: ST.pitch }; }

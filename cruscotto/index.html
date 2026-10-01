@@ -673,7 +673,7 @@ function eff(){
   E.dep = X? X.dep : null;
   E.tmp = X? X.tmp : null;
   if(WIND==='manual'){E.tws=MW.tws;E.twd=MW.twd;E.ventoDa='manuale';}
-  else if(X&&(WIND!=='signalk'||X.ventoDa==='strumenti')){E.tws=X.tws;E.twd=X.twd;E.ventoDa=X.ventoDa;}
+  else if(X&&(WIND!=='signalk'||X.ventoDa==='strumenti'||X.ventoDa==='misto')){E.tws=X.tws;E.twd=X.twd;E.ventoDa=X.ventoDa;}
   else {E.tws=null;E.twd=null;E.ventoDa=null;}
   var spd=(E.stw!=null)?E.stw:E.sog;      /* velocità per VMG/AWA: STW se c'è, altrimenti SOG */
   if(E.cog!=null&&E.twd!=null&&E.tws!=null){
@@ -729,7 +729,8 @@ function chip(id,E){
   if(id==='dep'||id==='tmp'||id==='stw') return (E&&E[id]==null)?{t:'n/d',c:'na'}:null;
   if(id==='hdg') return {t:'≈COG',c:''};
   if(['tws','twd','twa','vmg','pol'].includes(id))
-    return !E||E.ventoDa==null?{t:'n/d',c:'na'}:E.ventoDa==='previsione'?{t:'prev.',c:''}:E.ventoDa==='manuale'?{t:'man',c:'man'}:null;
+    return !E||E.ventoDa==null?{t:'n/d',c:'na'}:E.ventoDa==='previsione'?{t:'previsto',c:''}:E.ventoDa==='manuale'?{t:'manuale',c:'man'}:
+      (E.ventoDa==='misto'&&id!=='tws')?{t:'dir. prevista',c:''}:null;
   return null;
 }
 

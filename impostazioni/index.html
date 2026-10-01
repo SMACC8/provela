@@ -868,26 +868,7 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
       </div>
     </div>
 
-    <details class="gd">
-      <summary>Gli strumenti</summary>
-      <div class="gd-b">
-        <div class="gd-r"><b>Meteo</b><span>previsione tattica multi-modello, con l&apos;incertezza resa visibile</span></div>
-        <div class="gd-r"><b>Cruscotto</b><span>pannello strumenti configurabile (vento, rotta, velocit&agrave;, XTE&hellip;)</span></div>
-        <div class="gd-r"><b>Naviga XTE</b><span>navigazione verso un waypoint con scarto di rotta</span></div>
-        <div class="gd-r"><b>Performance</b><span>velocit&agrave; reale contro polare della barca</span></div>
-        <div class="gd-r"><b>Partenza</b><span>timer di partenza, bias della linea e analisi delle partenze</span></div>
-        <div class="gd-r"><b>Percorso regata</b><span>boe, lati e registrazione della regata</span></div>
-        <div class="gd-r"><b>Traversata</b><span>routing meteo sulla previsione vento</span></div>
-        <div class="gd-r"><b>Ancoraggio</b><span>veglia d&apos;ancora con allarme di sforamento e di deriva</span></div>
-        <div class="gd-r"><b>Posizione Live</b><span>trasmetti la tua posizione a chi ti segue da terra</span></div>
-        <div class="gd-r"><b>Carta Nautica</b><span>waypoint, tracce, batimetria e fari a settori</span></div>
-        <div class="gd-r"><b>Manutenzione</b><span>albero della barca, interventi, scadenze e dossier di bordo</span></div>
-        <div class="gd-r"><b>Calcoli di bordo</b><span>conversioni e conti ricorrenti di navigazione</span></div>
-        <div class="gd-r"><b>Sole, Luna e maree</b><span>luce all'arrivo, crepuscoli, orari di sole e luna, volta celeste, tendenza della marea</span></div>
-      </div>
-    </details>
-
-    <details class="gd">
+        <details class="gd">
       <summary>Sole, Luna e maree</summary>
       <div class="gd-b">
         <p style="margin:0 0 10px;font-size:12.5px;color:hsl(var(--muted));line-height:1.5">Serve a sapere <b>che luce troverai, dove e quando</b>. Funziona del tutto offline: i calcoli avvengono sul dispositivo, senza rete.</p>
@@ -911,29 +892,7 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
       </div>
     </details>
 
-    <details class="gd">
-      <summary>Abbreviazioni</summary>
-      <div class="gd-b">
-        <div class="gd-r"><b>SOG</b><span>velocit&agrave; al fondo (Speed Over Ground)</span></div>
-        <div class="gd-r"><b>COG</b><span>rotta al fondo (Course Over Ground)</span></div>
-        <div class="gd-r"><b>STW</b><span>velocit&agrave; sull&apos;acqua (Speed Through Water)</span></div>
-        <div class="gd-r"><b>BRG</b><span>rilevamento a un punto (Bearing)</span></div>
-        <div class="gd-r"><b>TWD / TWS</b><span>direzione e intensit&agrave; del vento reale</span></div>
-        <div class="gd-r"><b>TWA</b><span>angolo del vento reale rispetto alla prua</span></div>
-        <div class="gd-r"><b>AWA / AWS</b><span>angolo e intensit&agrave; del vento apparente</span></div>
-        <div class="gd-r"><b>VMG</b><span>velocit&agrave; utile / Velocity Made Good (verso il vento o la linea)</span></div>
-        <div class="gd-r"><b>XTE</b><span>scarto di rotta (Cross-Track Error)</span></div>
-        <div class="gd-r"><b>DTW / TTG</b><span>distanza e tempo al waypoint</span></div>
-        <div class="gd-r"><b>ETA</b><span>orario stimato d&apos;arrivo</span></div>
-        <div class="gd-r"><b>RC</b><span>barca comitato, estremit&agrave; destra della linea di partenza</span></div>
-        <div class="gd-r"><b>PIN</b><span>boa di partenza, estremit&agrave; sinistra della linea</span></div>
-        <div class="gd-r"><b>OCS</b><span>oltre la linea prima del via (On Course Side)</span></div>
-        <div class="gd-r"><b>TTL</b><span>tempo alla linea alla velocit&agrave; attuale (Time To Line)</span></div>
-        <div class="gd-r"><b>TTK</b><span>tempo da bruciare prima del via (Time To Kill)</span></div>
-      </div>
-    </details>
-
-    <details class="gd">
+        <details class="gd">
       <summary>Come sono fatti i dati</summary>
       <div class="gd-b">
         <p style="margin:0;font-size:12.5px;color:hsl(var(--muted));line-height:1.5">Profilo, waypoint e tracce vivono sul tuo dispositivo e sono condivisi tra gli strumenti. Due eccezioni, entrambe volute: la <b>Posizione Live</b>, che se la attivi tu trasmette la sola posizione a chi ha il link, in sola lettura e finch&eacute; la tieni accesa; e la <b>Manutenzione</b>, che tiene il registro su un database tuo (Supabase) perch&eacute; deve durare negli anni e reggere gli allegati.</p>
@@ -951,6 +910,8 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
     <dl class="info-grid">
       <dt>Modulo</dt><dd>Impostazioni</dd>
       <dt>Versione</dt><dd>v1.0</dd>
+      <dt>Build</dt><dd id="infoBuild">—</dd>
+      <dt>Gira come</dt><dd id="infoDove">—</dd>
       <dt>Suite</dt><dd>Dritta</dd>
     </dl>
   </section>
@@ -1792,6 +1753,21 @@ window.rfBackup=(function(){
     uUrl.value=''; uKey.value=''; uBk.value='';
     carica(); statoAccesso(); anaCarica(); toast('Configurazione rimossa.');
   });
+})();
+</script>
+<script>
+/* Info (01/10/2026): «Versione» e' quella che avra' l'uscita; «Build» e' il
+   codice che gira davvero, cioe' la versione del service worker dell'hub,
+   che si alza a ogni consegna. Si legge da sw.js, che sta in cache: funziona
+   anche senza rete. Utile quando si riferisce un difetto. */
+(function(){
+  var dove=(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform())?'app Android':
+    (window.matchMedia&&matchMedia('(display-mode: standalone)').matches?'app installata (PWA)':'browser');
+  document.getElementById('infoDove').textContent=dove;
+  fetch('../sw.js').then(function(r){return r.text();}).then(function(t){
+    var m=t.match(/VERSION\s*=\s*'([^']+)'/);
+    document.getElementById('infoBuild').textContent=m?m[1]:'—';
+  }).catch(function(){});
 })();
 </script>
 <script src="../rf-nmea.js"></script>

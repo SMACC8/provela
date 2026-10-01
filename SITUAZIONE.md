@@ -7092,3 +7092,177 @@ schermo.
 - **Il cambio di tratto** con la vista che ruota di colpo sulle curve strette.
 - **L'audio**: codice non toccato, non ascoltato.
 - Il nuovo indicatore nei temi giorno e notte e a 1000 px in orizzontale.
+
+---
+
+## 01/10/2026 — Revisione di Sergio: il giro delle correzioni piccole
+
+Dopo la chiusura del programma Sergio ha fatto un giro su tutta l'app e ha
+mandato dodici note. Qui le piccole; le tre grosse (Partenza su tablet, stile
+di Impostazioni, pagina info del Meteo) vanno con lo schizzo, in quest'ordine;
+la Traversata con punto intermedio e andata/ritorno è una funzione nuova, per
+dopo.
+
+### Il vento a barca ferma (hub, Cruscotto, Carta, Ancoraggio)
+
+Domanda di Sergio: «non si può mettere il vento previsto se quello da
+strumenti non c'è? A barca ferma mancherebbe sempre la direzione».
+
+Il ripiego sulla previsione c'era già. Il buco era più sottile: **senza
+bussola sul bus**, `rf-nmea.js` ricava il TWD dal COG, e sotto 1,5 kn tiene
+l'**ultimo TWD buono**, anche per ore all'ancora (scelta del 22/09, giusta
+per il pozzetto: «fermo da 20 s» si sa usare). `rf-strumenti.js` lo prendeva
+per buono e non passava mai alla previsione. E se la barca non si era mossa da
+quando era acceso il gateway, il TWD mancava del tutto e si saltava alla
+previsione intera, perdendo l'intensità misurata.
+
+Ora (scelta di Sergio fra due):
+- direzione **fresca** = aggiornata negli ultimi 2 minuti;
+- con intensità dagli strumenti e direzione non fresca: **vento misto**
+  (`ventoDa: "misto"`), intensità misurata e direzione della previsione;
+- senza rete, si resta all'ultima direzione buona con la sua età, come prima.
+
+Scartato: tutto dalla previsione quando manca la direzione, più semplice ma
+butta via una misura.
+
+**Scritte per intero**: «prev.» → «previsto», «man.» → «manuale» (Sergio non
+ricordava più cosa volesse dire «prev.»). Nel misto l'intensità non porta
+scritte e la direzione dice «previsto» (Carta), «dir. prevista» sui
+riquadri derivati del Cruscotto (TWD, TWA, VMG, % polare), «· direzione
+prevista» in Ancoraggio, «Intensità dagli strumenti, direzione prevista»
+nell'hub. Nel Cruscotto in modalità solo strumenti il misto è accettato:
+la direzione dichiara da dove viene.
+
+### Le altre
+
+- **Sole & Luna**: il grafico «Altezza sull'orizzonte» non si trascina più;
+  il tempo si sposta solo col cursore, e il dito sul grafico scorre la pagina.
+- **Carta, Disegna traccia**: punti da 3 a 7 px con bordo bianco spesso,
+  l'ultimo da 10 px in ambra (da lì riparte il tocco successivo); linea da 3
+  a 4 px.
+- **XTE**: cerchio e triangoli più spessi (3,5 e 4 px); le punte dei
+  triangoli si fermano 10 px prima del cerchio (erano sovrapposte).
+- **Percorso, scheda Regata**: nel riquadro del vento il campo del valore
+  viene prima del cursore ed è largo 72 px (era 56): i valori a tre cifre
+  uscivano dal campo e spaginavano la riga.
+- **Impostazioni, Guida**: tolto il capitolo «Gli strumenti» (ripeteva la
+  barra in basso, con nomi superati); le **Abbreviazioni** passano nel
+  Prontuario come sezione «Sigle degli strumenti». Restano «Sole, Luna e
+  maree» e «Come sono fatti i dati».
+- **Impostazioni, box Info**: il pallino giallo è la decorazione del titolo
+  (ogni riquadro ha il suo colore). Resta «Versione v1.0», che è quella
+  dell'uscita; aggiunte **«Build»**, la versione vera del service worker
+  dell'hub letta da `sw.js` (funziona anche senza rete), e **«Gira come»**:
+  app Android, app installata o browser. Utile quando si riferisce un difetto.
+
+Service worker: **`dritta-hub-v36`** (index, `rf-strumenti.js`, Sole & Luna,
+Prontuario), **`anchor-v27`** (`rf-strumenti.js`, pagina), **`xte-v20`**.
+Carta, Cruscotto, Percorso e Impostazioni non sono in nessun precache.
+
+### Verificato
+
+Nel browser, dal worktree:
+- **vento** con `rfNmea.dati` sostituita: TWD fermo da 900 s → «9 kt, da E ·
+  094°, Intensità dagli strumenti, direzione prevista»; TWD assente → idem;
+  TWD fresco da bussola → «da SSW · 200°, Dagli strumenti di bordo»; senza
+  strumenti → la previsione. In `rfStrumenti.calcola` nel misto: nota
+  dell'intensità vuota, della direzione «previsto»;
+- **Sole & Luna**: `mousedown` e `touchstart` sul grafico non spostano l'ora;
+- **Carta**: cinque punti disegnati, visibili, l'ultimo in ambra;
+- **Percorso**: 359 e 25,5 stanno nei campi, la riga non sborda a 600 px;
+- **Prontuario**: «Sigle degli strumenti», 16 righe, tutte visibili;
+- **Impostazioni**: Build «dritta-hub-v36», Gira come «browser», Guida con
+  due capitoli;
+- **XTE**: barca 15 m a destra, triangolo destro arancio staccato dal cerchio;
+- sintassi con `jsc` di tutti gli script toccati.
+
+APK costruito dal worktree e installato sul tablet via adb, senza toccare lo
+schermo.
+
+### Non verificato
+
+- Il gateway vero all'ancora, che è il caso per cui nasce il vento misto.
+- «Gira come: app Android» dentro l'APK.
+- Il Cruscotto a schermo con le scritte nuove (controllato il codice).
+
+---
+
+## 01/10/2026 (2) — Partenza sul tablet in verticale: una griglia sola
+
+Nota di Sergio: «su tablet avendo parecchio spazio rivedrei il layout; la
+sensazione è che siano un po' ammassati».
+
+### Cosa c'era
+
+Da 600 px la riorganizzazione del 29/09 metteva due colonne. Sul tablet in
+verticale (600 px CSS) sono due colonne da circa 290 px:
+- a sinistra tutto stretto: le note sotto Dist/TTL/TTK tagliate («alla l…»,
+  «non av…», «time t…»), il distintivo «MANUALE» fuori dal riquadro del
+  vento, «INFO» sovrapposto all'etichetta;
+- a destra la carta della linea larga 290 px e, sotto, circa **500 px
+  vuoti**.
+
+### Fatto (schizzo approvato)
+
+Solo CSS, solo da 560 a 899 px; nessun elemento nuovo, nessun `id` toccato.
+- Le due `.col` diventano `display:contents` e la pagina una griglia a
+  quattro colonne, alta esattamente lo spazio fra le due barre
+  (`100dvh - --rf-barra - --rf-sotto`).
+- **Conto alla rovescia** su tutta la larghezza: cifre a sinistra, − + Avvia
+  Sync suoni a destra.
+- **Dist / TTL / TTK** larghi un terzo ciascuno: note intere.
+- **PIN qui, RC qui, Vento da, Intensità** su una riga; nel vento etichetta e
+  sorgente vanno una sotto l'altra.
+- **Carta della linea** su tutta la larghezza, nella riga che prende
+  l'altezza rimasta.
+- **SOG/VMG/COG** e **Linea › / Archivio ›** su una riga in fondo, poi il
+  piede (non nascosto: è uno dei quattro allineati).
+
+Telefono (sotto 560) e orizzontale (da 900) restano come prima.
+
+Service worker: nessuno da alzare, `partenza/` non è nel precache.
+
+### Verificato
+
+Nel browser, con una linea d'esempio poi cancellata:
+- **600 × 960**: tutto in una schermata (pagina 960 = finestra), carta della
+  linea 522–719, «favorito» e Archivio sopra la barra in basso, le tre note
+  intere;
+- **800 × 1280**: una schermata, carta alta 478 px;
+- **375** e **1000 px**: come prima (una colonna che scorre; due colonne);
+- niente sborda in larghezza.
+
+### Non verificato
+
+- Sul tablet vero, con il conto alla rovescia in corso e il GPS che si muove.
+- PIN e RC sono ora alti quanto la riga del vento (circa 150 px): grandi per
+  i guanti, forse troppo. Da vedere in acqua.
+
+### Dopo: «PIN/RC invertiti?» che compariva e spariva
+
+Domanda di Sergio, guardando la Partenza: quando compare «PIN/RC
+invertiti»? Sembrava casuale.
+
+Il controllo (`computeNav`) assume il percorso **sopravvento** alla linea e
+avvisa quando il vento arriva dal lato di partenza. Ma il confine era il vento
+**esattamente parallelo** alla linea: con il vento quasi parallelo bastavano
+pochi gradi di oscillazione (strumenti, o direzione stimata dal COG) per
+accenderlo e spegnerlo; e un vento manuale scritto per prova lo accendeva
+subito.
+
+Ora:
+- serve un sospetto **netto**: vento dal lato di partenza di almeno 30°
+  oltre il parallelo (`n·wu < -0,5`);
+- e che **duri 20 s** di fila (`SWAP_DA`); una rilettura ogni 5 s, solo
+  mentre il sospetto è in corso, lo fa comparire anche senza GPS né altri
+  eventi;
+- l'avviso ha una riga sua sotto «favorito», con il perché: «Vento dal lato
+  di partenza: PIN e RC invertiti?» (prima stava in fondo all'intestazione,
+  «PIN/RC invertiti?»).
+
+Verificato (orologio fatto avanzare a mano), linea a 76°: vento da 346°
+nessun avviso; da 86° (quasi parallelo) nessun avviso nemmeno dopo 25 s; da
+166° nessun avviso subito né a 10 s, avviso a 22 s; tornando a 346° sparisce.
+
+Resta vero un limite noto: nelle partenze in poppa (percorso sottovento)
+l'avviso compare comunque, perché la pagina non sa che tipo di partenza è.

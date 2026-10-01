@@ -157,7 +157,6 @@ body{font-family:var(--sans);color:var(--ink);background:var(--bg);padding-top:4
 .col{display:flex;flex-direction:column;gap:11px;}
 @media (min-width:600px){
   .pv{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start;padding:10px 14px 16px;}
-  .pv .foot{grid-column:1 / -1;}
 }
 html:root .rf-instr{background:var(--dp);padding:0;border:1px solid var(--line);border-radius:10px;box-shadow:none;}
 html:root .rf-dp{box-shadow:none;}
@@ -217,6 +216,44 @@ html:root .rf-dp{box-shadow:none;}
 .toast.on{opacity:1;}
 /* Notte: niente alone intorno alle cifre, come nel Cruscotto */
 html.night .rf-num{text-shadow:none!important;}
+
+/* ── 01/10/2026: tablet in verticale (Sergio: «un po' ammassati») ──────────
+   Da 560 a 899 px le due colonne da ~290 px tagliavano le note dei numeri,
+   facevano uscire «manuale» dal riquadro del vento, e lasciavano mezzo
+   schermo vuoto sotto la carta della linea. Qui una griglia unica a quattro
+   colonne: le colonne .col spariscono (display:contents), gli elementi sono
+   gli stessi. Conto con i comandi a fianco; Dist/TTL/TTK larghi; PIN, RC e
+   vento su una riga; la carta della linea prende l'altezza che resta.
+   Telefono (sotto 560) e orizzontale (da 900) restano come prima. */
+@media (min-width:560px) and (max-width:899px){
+  .pv{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:auto auto auto minmax(0,1fr) auto auto;
+    gap:10px;align-items:stretch;padding:10px 14px 12px;
+    /* altezza esatta fra le due barre: cosi' la riga 1fr della carta prende il resto e non di piu' */
+    height:calc(100dvh - var(--rf-barra,40px) - var(--rf-sotto,74px));box-sizing:border-box;}
+  .pv .col{display:contents;}
+  .pv > .col > *{grid-column:span 4;min-width:0;}
+  .pv .ping{grid-column:span 2;grid-template-columns:1fr 1fr;}
+  .pv .ping .rf-btn{min-height:0;height:100%;flex-direction:column;gap:6px;}
+  .pv .col.a > .rf-g2{grid-column:span 2;}
+  .pv .sogrow{grid-column:span 2;}
+  .pv .apri{grid-column:span 2;}
+  /* conto: cifre a sinistra, comandi a destra */
+  .pv .col.a > .rf-instr:first-child{display:grid;grid-template-columns:minmax(0,1fr) 230px;grid-template-rows:auto auto;align-items:center;}
+  .pv .col.a > .rf-instr:first-child #cdDp{grid-row:1 / 3;}
+  .pv .col.a > .rf-instr:first-child .cd-min{grid-column:2;padding:10px 10px 0;}
+  .pv .col.a > .rf-instr:first-child .cd-ctl{grid-column:2;}
+  .rf-num.lg{font-size:min(19vw,140px);}
+  /* vento: etichetta e sorgente una sotto l'altra, niente piu' sbordare */
+  .pv .col.a > .rf-g2 .rf-card h3{flex-wrap:wrap;gap:4px 8px;}
+  .pv .col.a > .rf-g2 .numwrap input{font-size:30px;}
+  /* la carta della linea si allunga fino in fondo */
+  .pv .col.b > .rf-card:first-child{display:flex;flex-direction:column;}
+  #lineSvg{flex:1 1 0;max-height:none;min-height:160px;height:auto!important;}
+  .pv .col.b > .rf-card:first-child{min-height:0;}
+  .pv .foot{grid-column:1 / -1;}
+}
+/* avviso PIN/RC invertiti: una riga sua, con il perche' (01/10/2026) */
+.swapw{color:var(--coral);font-size:14px;text-align:center;margin-top:4px;line-height:1.35;}
 </style>
 </head>
 <body>
@@ -315,6 +352,7 @@ html.night .rf-num{text-shadow:none!important;}
     <h3><span>Linea</span><span class="r" id="lineHdr">incompleta</span></h3>
     <svg id="lineSvg" viewBox="0 0 420 290" style="width:100%;height:auto;display:block;background:var(--dp);border-radius:8px"></svg>
     <div class="fav neu" id="favLine">linea incompleta</div>
+    <div class="swapw" id="swapWarn" hidden>Vento dal lato di partenza: PIN e RC invertiti?</div>
   </div>
 
   <!-- SOG e VMG: una riga, non un riquadro -->
@@ -482,6 +520,7 @@ function toXY(lat,lon){var l0=refLat(); return {x:(lon-lon0())*111320*Math.cos(l
 var _lon0=null; function lon0(){ if(LINE.pin)return LINE.pin.lon; if(LINE.rc)return LINE.rc.lon; if(GPS.lon!=null)return GPS.lon; return 13; }
 
 /* ---------- geometria nav ---------- */
+var SWAP_DA=0;   /* da quando dura il sospetto di PIN/RC invertiti */
 function computeNav(){
   var pinXY=LINE.pin?toXY(LINE.pin.lat,LINE.pin.lon):null;
   var rcXY =LINE.rc ?toXY(LINE.rc.lat,LINE.rc.lon):null;
@@ -506,8 +545,15 @@ function computeNav(){
      risultava invertito. */
   var n={x:-u.y,y:u.x};
   /* se il vento dice che la corsa sta dall altra parte, i due estremi sono stati
-     puntati al contrario: si avvisa, non si corregge in silenzio */
-  var endsSwapped = !!twoOk && (PREF.tws>0) && ((n.x*wu.x+n.y*wu.y)<0);
+     puntati al contrario: si avvisa, non si corregge in silenzio.
+     01/10/2026 (Sergio: «quando appare?»): il confine era il vento esattamente
+     parallelo alla linea, e con qualche grado di oscillazione l'avviso si
+     accendeva e spegneva. Ora serve un sospetto netto: vento dal lato di
+     partenza di almeno 30 gradi oltre il parallelo (n.wu < -sin 30), e per
+     almeno 20 s di fila. */
+  var sospetto = !!twoOk && (PREF.tws>0) && ((n.x*wu.x+n.y*wu.y) < -0.5);
+  if(!sospetto) SWAP_DA=0; else if(!SWAP_DA) SWAP_DA=Date.now();
+  var endsSwapped = sospetto && (Date.now()-SWAP_DA >= 20000);
 
   var b={x:GPS.lat!=null?toXY(GPS.lat,GPS.lon).x:A.x, y:GPS.lat!=null?toXY(GPS.lat,GPS.lon).y:A.y};
   var haveBoat=GPS.lat!=null;
@@ -628,7 +674,8 @@ function render(){
 
   /* favorito + header linea */
   $("lineHdr").innerHTML=nav.haveLine?((nav.lengthKnown?("L "+Math.round(nav.ll)+" m · "):"")+Math.round(nav.lineBrg)+"°"
-    +(nav.endsSwapped?' · <span style="color:var(--coral)">PIN/RC invertiti?</span>':"")):"incompleta";
+):"incompleta";
+  $("swapWarn").hidden=!(nav.haveLine&&nav.endsSwapped);
   var fav=$("favLine");
   if(!nav.haveLine){ fav.className="fav neu"; fav.textContent="linea incompleta"; }
   else if(nav.favored==="neutra"){ fav.className="fav neu"; fav.textContent="linea neutra — nessun lato favorito"; }
@@ -1066,6 +1113,9 @@ $("twdSorg").addEventListener("click",function(){
 });
 
 setInterval(ventoDaStrumenti,1000);
+/* il sospetto PIN/RC invertiti matura in 20 s: senza altri eventi (vento
+   manuale, niente GPS) qualcuno deve ridisegnare per farlo comparire */
+setInterval(function(){ if(SWAP_DA) render(); },5000);
 
   $("twdIn").addEventListener("input",function(){ var n=Number(this.value); if(this.value===""){PREF.twd=0;} else if(isFinite(n)){PREF.twd=((n%360)+360)%360;}
     /* chi scrive comanda: si torna a manuale senza chiedere */

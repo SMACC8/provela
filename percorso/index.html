@@ -172,10 +172,13 @@ html.day #svPlot, html.night #svPlot{background:#040c14;}
 .wb-sl::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--panel);border:2px solid var(--teal);cursor:pointer;}
 .wb-sl.tws::-webkit-slider-thumb{border-color:var(--amber);}
 .wb-sl.tws::-moz-range-thumb{border-color:var(--amber);}
-.wb-in{-webkit-appearance:none;appearance:none;background:var(--dp);border:1px solid var(--line);border-radius:8px;font:inherit;font-size:17px;font-weight:700;text-align:right;width:56px;padding:5px 6px;color:var(--teal);font-variant-numeric:tabular-nums;}
+/* 01/10/2026: campi prima dello slider e piu' larghi, perche' i valori a tre
+   cifre uscivano dal campo e spaginavano la riga */
+.wb-in{-webkit-appearance:none;appearance:none;background:var(--dp);border:1px solid var(--line);border-radius:8px;font:inherit;font-size:17px;font-weight:700;text-align:right;width:72px;flex:none;padding:5px 6px;color:var(--teal);font-variant-numeric:tabular-nums;}
 .wb-in.tws{color:var(--amber);}
 .wb-in::-webkit-inner-spin-button,.wb-in::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
-.wb-u{font-size:12px;color:var(--sub);width:18px;flex:none;}
+.wb-u{font-size:13px;color:var(--sub);width:22px;flex:none;}
+.wb-sl{min-width:0;}
 
 svg text{font-family:var(--mono);}
 
@@ -432,13 +435,13 @@ html:root .rf-instr .rf-dp{box-shadow:none;background:transparent;}
       </div>
       <div class="wb-row">
         <span class="wb-k">Dir</span>
-        <input type="range" id="twdSl" min="0" max="359" step="1" value="0" class="wb-sl">
         <input type="number" id="twdIn" min="0" max="359" step="1" class="wb-in" inputmode="numeric"><span class="wb-u">°</span>
+        <input type="range" id="twdSl" min="0" max="359" step="1" value="0" class="wb-sl">
       </div>
       <div class="wb-row">
         <span class="wb-k">Int</span>
-        <input type="range" id="twsSl" min="0" max="40" step="0.5" value="12" class="wb-sl tws">
         <input type="number" id="twsIn" min="0" max="40" step="0.5" class="wb-in tws" inputmode="decimal"><span class="wb-u">kt</span>
+        <input type="range" id="twsSl" min="0" max="40" step="0.5" value="12" class="wb-sl tws">
       </div>
     </div></div>
 

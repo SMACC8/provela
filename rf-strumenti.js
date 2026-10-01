@@ -99,8 +99,17 @@
     if (dash.wind === "manual" && dash.mw && num(+dash.mw.tws) && num(+dash.mw.twd) && dash.mw.tws !== null && dash.mw.twd !== null)
       return { tws: +dash.mw.tws, twd: +dash.mw.twd, da: "manuale" };
     var n = nmea();
-    if (n && n.tws != null && n.twd != null) return { tws: n.tws, twd: n.twd, da: "strumenti", twdDa: n.twdDa };
+    /* Direzione «fresca»: aggiornata negli ultimi 2 minuti. Senza bussola il
+       TWD si ricava dal COG, che sotto 1,5 kn e' rumore: rf-nmea tiene
+       l'ULTIMO buono, anche per ore all'ancora. Da qui la strada mista
+       (01/10/2026, Sergio): intensita' dagli strumenti, direzione prevista. */
+    var fresco = n && n.twd != null && (n.twdEta == null || n.twdEta <= 120);
+    if (n && n.tws != null && fresco) return { tws: n.tws, twd: n.twd, da: "strumenti", twdDa: n.twdDa };
     aggiornaPrevisione(pos);
+    if (n && n.tws != null) {
+      if (PREV) return { tws: n.tws, twd: PREV.twd, da: "misto", ora: PREV.ora };
+      if (n.twd != null) return { tws: n.tws, twd: n.twd, da: "strumenti", twdDa: n.twdDa };   /* senza rete: l'ultima buona, con la sua eta' */
+    }
     if (PREV) return { tws: PREV.tws, twd: PREV.twd, da: "previsione", raff: PREV.raff, ora: PREV.ora };
     return { tws: null, twd: null, da: null };
   }
@@ -154,14 +163,17 @@
   function hm(h) { if (h == null || !isFinite(h)) return "—"; var t = Math.round(h * 60); return Math.floor(t / 60) + ":" + ("0" + (t % 60)).slice(-2); }
   function clk(d) { return ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2); }
   function lato(a) { return a == null ? "" : (a < 0 ? "sx" : "dx"); }
-  function daVento(E) { return E.ventoDa === "previsione" ? "prev." : E.ventoDa === "manuale" ? "man." : E.ventoDa === "strumenti" ? "" : ""; }
+  /* scritte per intero (01/10/2026: «prev.» non si capiva). Nel vento misto
+     l'intensita' e' misurata e la direzione prevista. */
+  function daVento(E) { return E.ventoDa === "previsione" ? "previsto" : E.ventoDa === "manuale" ? "manuale" : ""; }
+  function daDirezione(E) { return (E.ventoDa === "previsione" || E.ventoDa === "misto") ? "previsto" : E.ventoDa === "manuale" ? "manuale" : ""; }
 
   var CAMPI = [
     { id: "sog", nome: "SOG", unita: uVel, val: function (E) { return vel(E.sog); } },
     { id: "cog", nome: "COG", unita: "°", val: function (E) { return E.cog == null ? "—" : pad3(E.cog); } },
     { id: "stw", nome: "STW", unita: uVel, val: function (E) { return vel(E.stw); } },
     { id: "tws", nome: "Vento", unita: uVel, val: function (E) { return vel(E.tws); }, nota: daVento },
-    { id: "twd", nome: "Da", unita: "°", val: function (E) { return E.twd == null ? "—" : pad3(E.twd); }, nota: daVento },
+    { id: "twd", nome: "Da", unita: "°", val: function (E) { return E.twd == null ? "—" : pad3(E.twd); }, nota: daDirezione },
     { id: "twa", nome: "TWA", unita: "°", val: function (E) { return E.twa == null ? "—" : String(Math.round(Math.abs(E.twa))); },
       nota: function (E) { return lato(E.twa); } },
     { id: "aws", nome: "AWS", unita: uVel, val: function (E) { return vel(E.aws); } },
