@@ -192,6 +192,22 @@ html.day [fill="#46d68a"]{fill:#12894f;} html.night [fill="#46d68a"]{fill:#c23a3
   .tv-punto .v{font-size:var(--t-testo);font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;}
   .tv-punto .d{width:10px;height:10px;border-radius:50%;display:inline-block;}
   .tv-punto .d.a{background:var(--teal);} .tv-punto .d.b{background:var(--coral);}
+  /* tappa e ritorno: una riga compatta, solo quando servono */
+  .tv-extra{grid-column:1 / -1;display:flex;flex-direction:column;gap:6px;}
+  .tv-extra[hidden],.tv-xrow[hidden]{display:none;}
+  .tv-xrow{display:flex;gap:6px;align-items:stretch;}
+  .tv-chip{flex:1;min-width:0;display:flex;align-items:center;gap:8px;min-height:44px;padding:4px 12px;border-radius:12px;border:1.5px solid var(--line);
+    background:var(--panel);color:var(--ink);font:inherit;font-size:var(--t-piccolo);text-align:left;}
+  .tv-chip .k{color:var(--lab);font-size:var(--t-etichetta);text-transform:uppercase;letter-spacing:.06em;font-weight:650;flex:none;}
+  .tv-chip b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tv-chip .d.v{width:10px;height:10px;border-radius:50%;background:var(--amber);flex:none;}
+  .tv-chip .sos{margin-left:auto;display:flex;align-items:center;gap:6px;color:var(--lab);}
+  .tv-chip .sos button{width:40px;height:36px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-size:18px;}
+  .tv-chip .sos b{min-width:52px;text-align:center;color:var(--ink);}
+  .tv-x{width:44px;min-height:44px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--lab);font-size:16px;flex:none;}
+  /* telefono: la riga del ritorno deve stare con i suoi tre comandi */
+  @media (max-width:430px),(min-width:960px) and (max-width:1279px){.tv-chip .lungo{display:none;}.tv-chip{padding:4px 8px;gap:6px;}.tv-chip .sos button{width:36px;}.tv-chip .sos b{min-width:40px;}}
+  .tv-tappe{grid-column:1 / -1;margin:6px 0 0;font-size:var(--t-piccolo);color:var(--ink);line-height:1.4;}
   .tv-punto.parte{grid-column:1 / -1;flex-direction:row;align-items:center;justify-content:space-between;gap:10px;}
   .tv-punto.parte>span:first-child{display:flex;flex-direction:column;gap:2px;min-width:0;}
   .tv-agg{font-size:var(--t-piccolo);color:var(--teal);white-space:nowrap;}
@@ -321,6 +337,7 @@ html.day [fill="#46d68a"]{fill:#12894f;} html.night [fill="#46d68a"]{fill:#c23a3
 <script src="../rf-topbar.js" defer></script>
 <script src="../rf-live.js"></script>
 <script src="../rf-astro.js"></script>
+<script src="../rf-report.js"></script>
 <!-- ===== /rf-topbar ===== -->
 
 <div class="wrap">
@@ -336,8 +353,20 @@ html.day [fill="#46d68a"]{fill:#12894f;} html.night [fill="#46d68a"]{fill:#c23a3
 
   <div class="tv-grid">
     <div class="tv-punti">
-      <button type="button" class="tv-punto" id="tvA" data-punto="A"><span class="k"><i class="d a"></i>Da</span><span class="v" id="tvAv">—</span></button>
-      <button type="button" class="tv-punto" id="tvB" data-punto="B"><span class="k"><i class="d b"></i>A</span><span class="v" id="tvBv">—</span></button>
+      <button type="button" class="tv-punto" id="tvA" data-punto="A"><span class="k"><i class="d a"></i>Da «A»</span><span class="v" id="tvAv">—</span></button>
+      <button type="button" class="tv-punto" id="tvB" data-punto="B"><span class="k"><i class="d b"></i>A «B»</span><span class="v" id="tvBv">—</span></button>
+      <!-- tappa e ritorno (01/10/2026): compaiono solo quando sono attivi; si attivano dal menu «⋯» -->
+      <div class="tv-extra" id="tvExtra" hidden>
+        <div class="tv-xrow" id="tvViaRow" hidden>
+          <button type="button" class="tv-chip" id="tvVia"><i class="d v"></i><span class="k">Via «V»</span><b id="tvViaV">—</b></button>
+          <button type="button" class="tv-x" id="tvViaX" aria-label="Togli la tappa">✕</button>
+        </div>
+        <div class="tv-xrow" id="tvRitRow" hidden>
+          <div class="tv-chip rit"><span class="k">⟲ Ritorno</span><span class="sos"><span class="lungo">sosta</span>
+            <button type="button" id="tvSosM" aria-label="Sosta piu' corta">−</button><b id="tvSosV">1 h</b><button type="button" id="tvSosP" aria-label="Sosta piu' lunga">+</button></span></div>
+          <button type="button" class="tv-x" id="tvRitX" aria-label="Togli il ritorno">✕</button>
+        </div>
+      </div>
       <button type="button" class="tv-punto parte" id="tvT"><span><span class="k">Partenza</span><span class="v" id="tvTv">—</span></span><span class="tv-agg">miglior orario ›</span></button>
     </div>
 
@@ -376,6 +405,7 @@ html.day [fill="#46d68a"]{fill:#12894f;} html.night [fill="#46d68a"]{fill:#c23a3
         <div><span class="k">Durata</span><span class="n" id="rDur">—</span></div>
         <div><span class="k">Rotta</span><span class="m" id="rDist">—</span></div>
         <div><span class="k">Vento</span><span class="m" id="rVento">—</span></div>
+        <p class="tv-tappe" id="rTappe" hidden></p>
         <p class="tv-nota" id="rNota" hidden></p>
       </div>
       <div class="read luce" id="luceArr" style="display:none"></div>
@@ -385,6 +415,8 @@ html.day [fill="#46d68a"]{fill:#12894f;} html.night [fill="#46d68a"]{fill:#c23a3
         <div class="tv-altro-wrap">
           <button type="button" class="tv-altro-btn" id="tvAltroBtn" aria-label="Altre azioni" aria-expanded="false">⋯</button>
           <div class="tv-altro" id="tvAltro" hidden>
+            <button class="go" id="viaBtn">＋ Tappa intermedia</button>
+            <button class="go" id="ritBtn">⟲ Andata e ritorno</button>
             <button class="go" id="saveTrkBtn">⤓ Salva in Carta</button>
             <button class="go" id="gpxBtn">⬇ Esporta GPX</button>
             <button class="go" id="recalcBtn">↻ Ricalcola</button>
@@ -740,7 +772,7 @@ function bearing(p,q){var cl=cosLat(FIELD.area),dx=(q.lon-p.lon)*60*cl,dy=(q.lat
 function moveTo(p,h,dnm){var cl=cosLat(FIELD.area),rad=h*Math.PI/180;return{lat:p.lat+dnm*Math.cos(rad)/60,lon:p.lon+dnm*Math.sin(rad)/(60*cl)};}
 function hitsLand(p,q){var n=Math.max(2,Math.ceil(dist(p,q)/0.4));for(var i=0;i<=n;i++){var t=i/n;if(isLand(p.lat+(q.lat-p.lat)*t,p.lon+(q.lon-p.lon)*t))return true;}return false;}
 
-var STATE={dep:2,motorOn:false,mot:5.5,maxWind:0,coastBuf:0,tackPen:12,polarEff:1,A:null,B:null};
+var STATE={dep:2,motorOn:false,mot:5.5,maxWind:0,coastBuf:0,tackPen:12,polarEff:1,A:null,B:null,V:null,ritorno:false,sosta:1};
 /* Fermate del buffer costa: lo slider e' un INDICE, non le miglia. Serviva
    scendere sotto il miglio, e con un passo fisso di 0,5 le fermate sarebbero
    cadute su 0,7 / 1,2 / 1,7. Con l'indice si scelgono i valori che hanno senso e
@@ -764,7 +796,7 @@ function coastStepIndex(nm){
   for(var i=0;i<COAST_STEPS.length;i++)if(COAST_STEPS[i]>=nm-1e-9)return i;
   return COAST_STEPS.length-1;}
 function setCoastLabel(){var e=document.getElementById('coastV');if(e)e.textContent=coastStepValue();}
-function resetAB(area){var a=AREAS[area];STATE.A={lat:a.A[0],lon:a.A[1]};STATE.B={lat:a.B[0],lon:a.B[1]};}
+function resetAB(area){var a=AREAS[area];STATE.A={lat:a.A[0],lon:a.A[1]};STATE.B={lat:a.B[0],lon:a.B[1]};STATE.V=null;if(typeof placeMarkers==='function')placeMarkers();}
 function clampToArea(area,lat,lon){var a=AREAS[area];return{lat:clamp(lat,a.latS+0.01,a.latN-0.01),lon:clamp(lon,a.lonW+0.01,a.lonE-0.01)};}
 function route(){
   var A=AREAS[FIELD.area],Sp={lat:STATE.A.lat,lon:STATE.A.lon},Gp={lat:STATE.B.lat,lon:STATE.B.lon};
@@ -810,6 +842,66 @@ function route(){
   var path=[];while(node){path.push(node);node=node.prev;}path.reverse();
   return{path:path,layers:layers,finished:!!finish,eta:finish?finish.t:(path.length?path[path.length-1].t:0),start:Sp,goal:Gp};}
 
+/* ---------- il viaggio: tappa intermedia e andata e ritorno (01/10/2026) ----------
+   route() calcola UNA tratta e non si tocca. Qui il viaggio e' una sequenza di
+   tratte: A->V e V->B se c'e' la tappa, altrimenti A->B; poi, se c'e' il
+   ritorno, B->A con partenza all'arrivo a B piu' la sosta. Ogni tratta parte
+   (STATE.dep decimale: windAt interpola) quando arriva la precedente; i
+   risultati si cuciono in uno solo con la stessa forma di route(), cosi'
+   overlay, riquadro, diario, Salva in Carta e GPX non devono saperlo.
+   Scartato: far passare route() per un punto. Le isocrone sono verificate
+   in mare, e un errore li' sarebbe silenzioso. */
+function routeTrip(){
+  var A0=STATE.A,B0=STATE.B,dep0=STATE.dep,V=STATE.V||null,legs=[];
+  if(V){legs.push({da:'A',a:'V',P:A0,Q:V});legs.push({da:'V',a:'B',P:V,Q:B0});}
+  else legs.push({da:'A',a:'B',P:A0,Q:B0});
+  if(STATE.ritorno)legs.push({da:'B',a:'A',P:B0,Q:A0,sosta:Math.max(0,+STATE.sosta||0)});
+  var nOre=(FIELD.slices&&FIELD.slices.length)?FIELD.slices.length-1:28;
+  var out={path:[],layers:[],finished:true,eta:0,start:A0,goal:B0,legs:[],diag:[],maneuvers:[],summary:null};
+  var t0=0,ok=true,somme=[];
+  try{
+    for(var i=0;i<legs.length;i++){var L=legs[i];
+      if(L.sosta)t0+=L.sosta;
+      var info={da:L.da,a:L.a,dep:dep0+t0,t0:t0,eta:null,finished:false,iFrom:out.path.length,iTo:out.path.length,sosta:L.sosta||0,motivo:''};
+      if(!ok){info.motivo='precedente';out.legs.push(info);out.finished=false;continue;}
+      if(dep0+t0>=nOre){info.motivo='previsione';out.legs.push(info);out.finished=false;ok=false;continue;}
+      STATE.A=L.P;STATE.B=L.Q;STATE.dep=dep0+t0;
+      var r=route();
+      /* tempi globali del viaggio: il diario e il riquadro leggono t dal via */
+      for(var k=0;k<r.path.length;k++)r.path[k].t+=t0;
+      r.eta+=t0;STATE.dep=dep0;diagnose(r);
+      var cuci=out.path.length?r.path.slice(1):r.path;   /* il primo punto e' l'ultimo della tratta prima */
+      if(L.sosta&&out.path.length)cuci=r.path;            /* dopo una sosta il punto di ripartenza ha il suo t */
+      /* la tratta comincia dal punto in comune con la precedente (serve alla guida) */
+      info.iFrom=(cuci===r.path)?out.path.length:out.path.length-1;
+      for(var c=0;c<cuci.length;c++)out.path.push(cuci[c]);
+      for(var l=0;l<r.layers.length;l++)out.layers.push(r.layers[l]);
+      var meta=L.a==='V'?'alla tappa':L.a==='A'?'ad A':'a B';
+      if(legs.length>1&&r.diag)for(var d0=0;d0<r.diag.length;d0++){var e0=r.diag[d0];e0.meta=meta;
+        e0.tx=String(e0.tx).replace('Arrivo a <b>B</b>.',L.a==='V'?'Arrivo alla <b>tappa</b>.':L.a==='A'?'Rientro ad <b>A</b>.':'Arrivo a <b>B</b>.')
+          .replace('prima di <b>B</b>',L.a==='V'?'prima della <b>tappa</b>':L.a==='A'?'prima di <b>A</b>':'prima di <b>B</b>');}
+      if(i>0&&r.diag&&r.diag.length){var tag=L.da==='V'?'Dalla tappa si riparte verso <b>B</b>.':(L.sosta?('Dopo la sosta a B ('+fmtH(L.sosta).replace('h',' h ')+') si torna verso <b>A</b>.'):'');
+        if(tag)out.diag.push({t:r.diag[0].t,clock:r.diag[0].clock,tag:L.sosta?'sosta':'tappa',cls:'tag-info',tx:tag});}
+      if(r.diag)for(var d=0;d<r.diag.length;d++)out.diag.push(r.diag[d]);
+      if(r.maneuvers)for(var m=0;m<r.maneuvers.length;m++)out.maneuvers.push(r.maneuvers[m]);
+      if(r.summary)somme.push(r.summary);
+      info.finished=r.finished;info.eta=r.eta;info.iTo=out.path.length-1;
+      if(!r.finished){info.motivo=(r.eta>=nOre-dep0-0.5)?'previsione':'costa';ok=false;out.finished=false;}
+      out.legs.push(info);t0=r.eta;
+    }
+  }finally{STATE.A=A0;STATE.B=B0;STATE.dep=dep0;}
+  out.eta=out.path.length?out.path[out.path.length-1].t:0;
+  /* sintesi: con una tratta sola e' la sua; con piu' tratte si sommano distanze,
+     tempi di navigazione (la sosta non conta nella media) e andature */
+  if(somme.length===1)out.summary=somme[0];
+  else if(somme.length){var S={dist:0,eta:out.eta,avg:0,wmin:1e9,wmax:-1e9,wavg:0,andat:{bolina:0,traverso:0,lasco:0,poppa:0},tdur:0,motorPct:0,tacks:0,gybes:0},nav=0,mot=0;
+    somme.forEach(function(x){S.dist+=x.dist;S.wmin=Math.min(S.wmin,x.wmin);S.wmax=Math.max(S.wmax,x.wmax);S.wavg+=x.wavg*x.tdur;
+      for(var k in S.andat)S.andat[k]+=(x.andat&&x.andat[k])||0;S.tdur+=x.tdur;mot+=x.motorPct*x.tdur;S.tacks+=x.tacks||0;S.gybes+=x.gybes||0;});
+    out.legs.forEach(function(g){if(g.eta!=null)nav+=g.eta-g.t0;});
+    S.dist=+S.dist.toFixed(1);S.avg=+(nav>0?S.dist/nav:0).toFixed(1);S.wavg=Math.round(S.tdur>0?S.wavg/S.tdur:0);S.motorPct=Math.round(S.tdur>0?mot/S.tdur:0);
+    out.summary=S;}
+  return out;}
+
 // ---------- overlay drawing (projection-agnostic: P(lat,lon)->{x,y}) ----------
 function speedColor(t){if(t<7)return'#2BD9C4';if(t<13)return'#7BD88A';if(t<18)return'#FFC24B';return'#FF6B6B';}
 var R_CACHE=null;
@@ -836,8 +928,8 @@ function diagnose(R){
   function sideLbl(s){return s>0?'mura a dritta':'mura a sinistra';}
   function push(t,tag,cls,tx,wn){R.diag.push({t:fmtElapsed(t),clock:clk(t),tag:tag,cls:cls,tx:tx,data:wn?ctx(wn):null});}
   var f=win[0];
-  if(f.motor)push(0,'motore','tag-mot','Parti a <b>motore</b>.',f);
-  else push(0,f.side>0?'mura dritta':'mura sinistra',f.side>0?'tag-dx':'tag-sx','Parti di <b>'+f.andat+'</b>, <b>'+sideLbl(f.side)+'</b>.',f);
+  if(f.motor)push(P[0].t,'motore','tag-mot','Parti a <b>motore</b>.',f);
+  else push(P[0].t,f.side>0?'mura dritta':'mura sinistra',f.side>0?'tag-dx':'tag-sx','Parti di <b>'+f.andat+'</b>, <b>'+sideLbl(f.side)+'</b>.',f);
   var lastTwd=f.twd,lastAnd=f.andat,lastSide=f.motor?0:f.side,lastMotor=f.motor;
   for(var i=1;i<win.length;i++){var cur=win[i],prev=win[i-1];
     if(cur.motor!==lastMotor){
@@ -879,14 +971,15 @@ function diagnose(R){
 // Il sorgente del worker è generato dalle STESSE funzioni del motore: una sola definizione, zero duplicati.
 var RF_WORKER=null,rfBusy=false,rfPending=false,rfReqs=0,rfApplied=0;
 function rfWorkerSource(){
-  var fns=[clamp,adiff,idx,polarSpeed,deg2uv,uv2dir,sampleSlice,windAt,isLand,coastDist,cosLat,dist,bearing,moveTo,hitsLand,andatura,fmtElapsed,route,diagnose];
+  var fns=[clamp,adiff,idx,polarSpeed,deg2uv,uv2dir,sampleSlice,windAt,isLand,coastDist,cosLat,dist,bearing,moveTo,hitsLand,andatura,fmtElapsed,fmtH,route,diagnose,routeTrip];
   var consts='var NX='+NX+',NY='+NY+';var TWS='+JSON.stringify(TWS)+';var TWA='+JSON.stringify(TWA)+';var PV='+JSON.stringify(PV)+';var FIELD,AREAS,MED_MASKS,STATE;';
   var clean='function cleanResult(R){return{start:R.start,goal:R.goal,finished:R.finished,eta:R.eta,'+
     'path:R.path.map(function(n){return{lat:n.lat,lon:n.lon,motor:n.motor,t:n.t};}),'+
     'layers:R.layers.map(function(L){return L.map(function(n){return{lat:n.lat,lon:n.lon};});}),'+
-    'diag:R.diag,maneuvers:R.maneuvers,summary:R.summary};}';
+    'diag:R.diag,maneuvers:R.maneuvers,summary:R.summary,legs:R.legs};}';
   var onmsg='onmessage=function(e){var d=e.data;FIELD=d.field;STATE=d.state;AREAS={};AREAS[d.area]=d.areaObj;MED_MASKS={};MED_MASKS[d.area]=d.mask;'+
-    'var R=route();diagnose(R);var c=cleanResult(R);c.seq=d.seq;c.area=d.area;postMessage(c);};';
+    'if(d.scan){var res=[];for(var dd=d.scan.d0;dd<=d.scan.N;dd++){STATE.dep=dd;var Rs=routeTrip();res.push({dep:dd,eta:Rs.finished?Rs.eta:null});}postMessage({scan:res});return;}'+
+    'var R=routeTrip();var c=cleanResult(R);c.seq=d.seq;c.area=d.area;postMessage(c);};';
   return consts+'\n'+fns.map(function(f){return f.toString();}).join('\n')+'\n'+clean+'\n'+onmsg;
 }
 function initWorker(){if(typeof Worker==='undefined'||typeof Blob==='undefined'||typeof URL==='undefined'||!URL.createObjectURL)return;
@@ -899,8 +992,9 @@ function initWorker(){if(typeof Worker==='undefined'||typeof Blob==='undefined'|
     RF_WORKER=w;}catch(err){RF_WORKER=null;}}
 function rebuildWorker(){if(RF_WORKER){try{RF_WORKER.terminate();}catch(e){}}RF_WORKER=null;rfBusy=false;rfPending=false;if(typeof initWorker==='function')initWorker();}
 function jobParams(){if(STATE.coastBuf>0)coastDistField(MED_MASKS[FIELD.area]);return {seq:++rfReqs,area:FIELD.area,areaObj:AREAS[FIELD.area],field:FIELD,mask:MED_MASKS[FIELD.area],
-  state:{dep:STATE.dep,motorOn:STATE.motorOn,mot:STATE.mot,maxWind:STATE.maxWind,coastBuf:STATE.coastBuf,tackPen:STATE.tackPen,polarEff:STATE.polarEff,A:{lat:STATE.A.lat,lon:STATE.A.lon},B:{lat:STATE.B.lat,lon:STATE.B.lon}}};}
-function routeSync(){R_CACHE=route();R_CACHE.area=FIELD.area;diagnose(R_CACHE);refreshAfterRoute();}
+  state:{dep:STATE.dep,motorOn:STATE.motorOn,mot:STATE.mot,maxWind:STATE.maxWind,coastBuf:STATE.coastBuf,tackPen:STATE.tackPen,polarEff:STATE.polarEff,A:{lat:STATE.A.lat,lon:STATE.A.lon},B:{lat:STATE.B.lat,lon:STATE.B.lon},
+  V:STATE.V?{lat:STATE.V.lat,lon:STATE.V.lon}:null,ritorno:!!STATE.ritorno,sosta:STATE.sosta}};}
+function routeSync(){R_CACHE=routeTrip();R_CACHE.area=FIELD.area;refreshAfterRoute();}
 var GG_SETT=['dom','lun','mar','mer','gio','ven','sab'];
 function windClock(idx){var t=(FIELD.times&&FIELD.times[clamp(Math.round(idx),0,(FIELD.times.length||1)-1)])||'';
   if(!t)return '+'+Math.round(idx)+'h';
@@ -1091,6 +1185,8 @@ function parseOraLocale(t){
   if(!m)return null;
   return new Date(+m[1],+m[2]-1,+m[3],+m[4],+m[5],0,0);
 }
+/* la meta dell'ultima tratta: B, oppure A se c'e' il ritorno */
+function metaFinale(R){var g=R&&R.legs&&R.legs[R.legs.length-1];return (g&&g.a==='A')?R.start:R.goal;}
 function renderLuceArrivo(R,t){
   var box=document.getElementById('luceArr');
   if(!box)return;
@@ -1100,8 +1196,9 @@ function renderLuceArrivo(R,t){
      un orario inventato sull'ultimo punto raggiunto. */
   if(!RFA||!dep||!R||!R.finished||!R.goal){box.style.display='none';return;}
   var arr=new Date(dep.getTime()+R.eta*3600000);
-  var L=RFA.lightAt(arr,R.goal.lat,R.goal.lon);
-  var ST_=RFA.sunTimes(arr,R.goal.lat,R.goal.lon);
+  var fin=metaFinale(R);
+  var L=RFA.lightAt(arr,fin.lat,fin.lon);
+  var ST_=RFA.sunTimes(arr,fin.lat,fin.lon);
   var th=RFA.nextThreshold(ST_,L.level,arr.getTime());
   var col=(document.documentElement.classList.contains('day')&&L.level<2)
         ? ['#2b3840','#b58100'][L.level] : L.col;
@@ -1122,12 +1219,24 @@ function renderLuceArrivo(R,t){
 }
 function scanDepartures(){var saved=STATE.dep,d0=idxAdesso(),N=Math.min(d0+48,depMax()),res=[];
   if(STATE.coastBuf>0&&typeof coastDistField==='function')coastDistField(MED_MASKS[FIELD.area]);
-  for(var d=d0;d<=N;d++){STATE.dep=d;var R=route();res.push({dep:d,eta:R.finished?R.eta:null});}
+  /* il miglior orario e' quello del viaggio intero (tappa e ritorno compresi) */
+  for(var d=d0;d<=N;d++){STATE.dep=d;var R=routeTrip();res.push({dep:d,eta:R.finished?R.eta:null});}
   STATE.dep=saved;return res;}
-function renderScan(){var el=document.getElementById('scanRes');if(!el)return;
-  var res=scanDepartures(),fin=res.filter(function(r){return r.eta!=null;});
+/* Il miglior orario (01/10/2026): con tappa e ritorno sono fino a 3 tratte per
+   ciascuna delle 49 partenze; sul Mac 7,7 s di pagina bloccata. Ora gira in un
+   worker a parte, dallo stesso sorgente del motore; senza worker, come prima. */
+function scanAsync(cb){
+  var d0=idxAdesso(),N=Math.min(d0+48,depMax());
+  if(typeof Worker==='undefined'||typeof Blob==='undefined'||!URL.createObjectURL){cb(scanDepartures());return;}
+  try{var w=new Worker(URL.createObjectURL(new Blob([rfWorkerSource()],{type:'application/javascript'})));
+    w.onmessage=function(e){try{w.terminate();}catch(_){}cb(e.data&&e.data.scan?e.data.scan:scanDepartures());};
+    w.onerror=function(){try{w.terminate();}catch(_){}cb(scanDepartures());};
+    var j=jobParams();j.scan={d0:d0,N:N};w.postMessage(j);
+  }catch(err){cb(scanDepartures());}}
+function renderScan(res0){var el=document.getElementById('scanRes');if(!el)return;
+  var res=res0||scanDepartures(),fin=res.filter(function(r){return r.eta!=null;});
   function tlabel(d){return windClock(d);}
-  if(!fin.length){el.innerHTML='<div class="scan-h">Nessuna partenza raggiunge B nell\'orizzonte disponibile.</div>';el.classList.add('on');return;}
+  if(!fin.length){el.innerHTML='<div class="scan-h">'+((STATE.V||STATE.ritorno)?'Con nessuna partenza il viaggio si chiude entro la previsione.':'Nessuna partenza raggiunge B nell\'orizzonte disponibile.')+'</div>';el.classList.add('on');return;}
   var best=fin.reduce(function(a,b){return b.eta<a.eta?b:a;}),maxE=Math.max.apply(null,fin.map(function(r){return r.eta;})),minE=best.eta;
   var W=300,H=96,padL=4,padB=16,bw=(W-2*padL)/res.length,bars='';
   for(var i=0;i<res.length;i++){var r=res[i],x=padL+i*bw;
@@ -1185,7 +1294,7 @@ function fmtH(h){var hh=Math.floor(h),mm=Math.round((h-hh)*60);if(mm===60){hh++;
 function renderDiag(R){var body=document.getElementById('diagBody'),cnt=document.getElementById('diagCount'),sumEl=document.getElementById('diagSum');if(!body)return;
   var ev=R.diag||[],html='';
   for(var i=0;i<ev.length;i++){var e=ev[i],d=e.data,
-    sub=d?('<span class="dsub">vento '+d.tws+' kt · '+d.twd+'° · prua '+d.hdg+'°'+(d.motor?' · a motore':(' · barca '+d.spd+' kt · VMG '+d.vmg+' kt'))+' · a B '+d.dtg+' NM</span>'):'',
+    sub=d?('<span class="dsub">vento '+d.tws+' kt · '+d.twd+'° · prua '+d.hdg+'°'+(d.motor?' · a motore':(' · barca '+d.spd+' kt · VMG '+d.vmg+' kt'))+' · '+(e.meta||'a B')+' '+d.dtg+' NM</span>'):'',
     tcell='<span class="dt"><b>'+(e.clock||e.t)+'</b><i>'+e.t+'</i></span>';
     html+='<div class="drow">'+tcell+'<span class="dtag '+e.cls+'">'+e.tag+'</span><span class="dtx">'+e.tx+sub+'</span></div>';}
   if(!ev.length)html='<div class="drow"><span class="dt">—</span><span class="dtag tag-info">—</span><span class="dtx">Nessuna rotta da raccontare.</span></div>';
@@ -1217,68 +1326,83 @@ function exportDiarioCSV(){var R=R_CACHE;if(!R||!R.diag||!R.diag.length){toast('
       d.dtg!=null?d.dtg:'',d.motor?'si':'no'].map(cell).join(SEP));});
   downloadBlob(new Blob(['\uFEFF'+rows.join('\r\n')],{type:'text/csv;charset=utf-8'}),diarioName('csv'));
   toast('Diario CSV salvato in Download');}
-function wrapPush(arr,txt,w){txt=String(txt);while(txt.length>w){var cut=txt.lastIndexOf(' ',w);if(cut<40)cut=w;arr.push(txt.slice(0,cut));txt='   '+txt.slice(cut).trim();}arr.push(txt);}
-function pdfFold(x){x=String(x).replace(/\u2192/g,'->').replace(/\u2194/g,'<->').replace(/\u2013/g,'-').replace(/\u2019/g,"'").replace(/[\u201C\u201D]/g,'"').replace(/\u2026/g,'...');
-  var o='';for(var i=0;i<x.length;i++){var c=x.charCodeAt(i);o+=(c<256)?x[i]:'?';}return o;}
-function pdfEsc(x){return pdfFold(x).replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)');}
-// -- impaginazione tabellare (Courier monospace, colonne allineate) --
-function padR(s,w){s=String(s);return s.length>=w?s.slice(0,w):s+' '.repeat(w-s.length);}
-function padLp(s,w){s=String(s);return s.length>=w?s.slice(0,w):' '.repeat(w-s.length)+s;}
-function cenP(s,w){s=String(s);if(s.length>=w)return s.slice(0,w);var t=w-s.length,l=Math.floor(t/2);return ' '.repeat(l)+s+' '.repeat(t-l);}
-function truncP(s,w){s=String(s);return s.length>w?s.slice(0,w-1)+'.':s;}
-function diarioRow(c){
-  return padR(c.ora,5)+' '+padR(truncP(c.evento,44),44)+' '+padLp(c.tws,4)+' '+padLp(c.twd,4)+' '+padLp(c.hdg,5)+' '+padLp(c.spd,5)+' '+padLp(c.vmg,5)+' '+padLp(c.dtg,6)+' '+cenP(c.mot,3);}
-var DIARIO_HEAD=diarioRow({ora:'Ora',evento:'Evento',tws:'Vnt',twd:'Dir',hdg:'Prua',spd:'Brc',vmg:'VMG',dtg:'a B',mot:'Mot'});
-function buildDiarioPDF(meta,summary,rows){
-  var PW=595,PH=842,ML=40,MR=40,rightX=PW-MR,FS=8.5,LH=12,BOT=52,GRAY='0.62 0.62 0.62',DK='0.09 0.13 0.18';
-  var pages=[];
-  function newPage(){var p={ops:[]};pages.push(p);return p;}
-  function T(p,x,y,size,bold,str){p.ops.push('BT /'+(bold?'F2':'F1')+' '+size+' Tf '+DK+' rg 1 0 0 1 '+x.toFixed(1)+' '+y.toFixed(1)+' Tm ('+pdfEsc(str)+') Tj ET');}
-  function RULE(p,x1,y,x2){p.ops.push('0.8 w '+GRAY+' RG '+x1.toFixed(1)+' '+y.toFixed(1)+' m '+x2.toFixed(1)+' '+y.toFixed(1)+' l S');}
-  function tableHeader(pg,yy){T(pg,ML,yy,FS,true,DIARIO_HEAD);RULE(pg,ML,yy-4,rightX);return yy-4-LH;}
-  var p=newPage(),y=800;
-  T(p,ML,y,16,true,'Dritta');T(p,ML+78,y,11,false,'Diario di bordo');y-=6;RULE(p,ML,y,rightX);y-=18;
-  var m1=[];if(meta.boat)m1.push(meta.boat);if(meta.model)m1.push(meta.model);if(meta.zone)m1.push('zona '+meta.zone);
-  T(p,ML,y,9,false,m1.join('  \u00B7  '));if(meta.date)T(p,rightX-118,y,9,false,meta.date);y-=16;
-  if(summary){T(p,ML,y,9,true,summary);y-=14;}
-  T(p,ML,y,7.5,false,'Vnt/Brc/VMG in kt  \u00B7  Dir/Prua in gradi  \u00B7  a B = distanza a destinazione (NM)');y-=16;
-  y=tableHeader(p,y);
-  rows.forEach(function(r){if(y<BOT){p=newPage();y=800;y=tableHeader(p,y);}T(p,ML,y,FS,false,diarioRow(r));y-=LH;});
-  var N=pages.length;
-  pages.forEach(function(pg,i){RULE(pg,ML,44,rightX);T(pg,ML,33,7.5,false,'Dritta \u00B7 stime da validare in mare');T(pg,rightX-46,33,7.5,false,'pag. '+(i+1)+'/'+N);});
-  var out='%PDF-1.4\n%\u00E2\u00E3\u00CF\u00D3\n',xref=[],nextObj=5,contentRefs=[],pageObjNums=[];
-  pages.forEach(function(){contentRefs.push(nextObj++);pageObjNums.push(nextObj++);});
-  function put(num,body){xref[num]=out.length;out+=num+' 0 obj\n'+body+'\nendobj\n';}
-  put(1,'<< /Type /Catalog /Pages 2 0 R >>');
-  put(2,'<< /Type /Pages /Kids ['+pageObjNums.map(function(n){return n+' 0 R';}).join(' ')+'] /Count '+pages.length+' >>');
-  put(3,'<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>');
-  put(4,'<< /Type /Font /Subtype /Type1 /BaseFont /Courier-Bold /Encoding /WinAnsiEncoding >>');
-  pages.forEach(function(pg,i){var st=pg.ops.join('\n');
-    put(contentRefs[i],'<< /Length '+st.length+' >>\nstream\n'+st+'\nendstream');
-    put(pageObjNums[i],'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+PW+' '+PH+'] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents '+contentRefs[i]+' 0 R >>');});
-  var total=nextObj,xrefPos=out.length;out+='xref\n0 '+total+'\n0000000000 65535 f \n';
-  for(var o=1;o<total;o++)out+=(''+(xref[o]||0)).padStart(10,'0')+' 00000 n \n';
-  out+='trailer\n<< /Size '+total+' /Root 1 0 R >>\nstartxref\n'+xrefPos+'\n%%EOF';
-  var buf=new Uint8Array(out.length);for(var b=0;b<out.length;b++)buf[b]=out.charCodeAt(b)&0xff;return buf;}
+/* ---------- diario in PDF (01/10/2026) ----------
+   Prima: un PDF scritto a mano istruzione per istruzione (buildDiarioPDF),
+   con i soli due caratteri di base del formato, niente colore e colonne fatte
+   di spazi. Sergio: «sono proprio poveri». Ora una pagina HTML dal modello
+   comune rf-report.js, stampata in PDF: carattere di sistema, riquadri coi
+   numeri, schema della rotta, grafico del vento, tabella con le etichette
+   colorate. Nell'APK la stampa passa dal plugin nativo Stampa. */
+function diarioTono(cls){return {'tag-vir':'blu','tag-str':'viola','tag-mot':'ambra','tag-rif':'arancio','tag-alz':'teal','tag-dx':'verde','tag-sx':'rosso'}[cls]||'grigio';}
+function diarioNomi(){var u={};try{u=JSON.parse(localStorage.getItem(UIKEY)||'{}')||{};}catch(e){}return {A:u.nomeA||'A',B:u.nomeB||'B',V:u.nomeV||'tappa'};}
+function diarioSchema(R){var P=R.path;if(!P||P.length<2)return '';
+  var cl=cosLat(FIELD.area),xs=P.map(function(n){return n.lon*cl;}),ys=P.map(function(n){return n.lat;});
+  var x0=Math.min.apply(null,xs),x1=Math.max.apply(null,xs),y0=Math.min.apply(null,ys),y1=Math.max.apply(null,ys);
+  var W=300,H=200,m=18,k=Math.min((W-2*m)/Math.max(1e-6,x1-x0),(H-2*m)/Math.max(1e-6,y1-y0));
+  var ox=(W-(x1-x0)*k)/2,oy=(H-(y1-y0)*k)/2;
+  function X(n){return (ox+(n.lon*cl-x0)*k).toFixed(1);}function Y(n){return (H-oy-(n.lat-y0)*k).toFixed(1);}
+  var legs=(R.legs&&R.legs.length)?R.legs:[{a:'B',iFrom:0,iTo:P.length-1}],g='';
+  legs.forEach(function(L){if(L.iTo<=L.iFrom)return;var pts=[];for(var i=L.iFrom;i<=L.iTo;i++)pts.push(X(P[i])+','+Y(P[i]));
+    var rit=L.a==='A'&&legs.length>1;
+    g+='<polyline points="'+pts.join(' ')+'" fill="none" stroke="'+(rit?'#0b6fb3':'#0a9e90')+'" stroke-width="2.6" stroke-linejoin="round"'+(rit?' stroke-dasharray="6 4"':'')+'/>';});
+  function pin(n,t,col){return '<circle cx="'+X(n)+'" cy="'+Y(n)+'" r="7" fill="'+col+'"/><text x="'+X(n)+'" y="'+(+Y(n)+3)+'" font-size="8" font-weight="700" fill="#fff" text-anchor="middle" font-family="system-ui,Roboto,sans-serif">'+t+'</text>';}
+  g+=pin(R.start,'A','#0a9e90');
+  if(STATE.V&&legs.length>1&&legs[0].a==='V')g+=pin(P[legs[0].iTo],'V','#d99a00');
+  g+=pin(R.goal,'B','#e0504a');
+  g+='<g transform="translate('+(W-16)+',16)"><path d="M0 -9 L4 3 L0 1 L-4 3 Z" fill="#5b6b78"/><text y="13" font-size="7" fill="#5b6b78" text-anchor="middle" font-family="system-ui,Roboto,sans-serif">N</text></g>';
+  return '<div class="rr-fig"><svg viewBox="0 0 '+W+' '+H+'">'+g+'</svg><div class="cap">schema della rotta'+(STATE.ritorno?' · ritorno tratteggiato':'')+' · nord in alto</div></div>';}
+function diarioVento(R){var P=R.path;if(!P||P.length<2)return '';
+  var n=P.length,st=Math.max(1,Math.ceil(n/120)),pt=[];
+  for(var i=0;i<n;i+=st){var w=windAt(P[i].lat,P[i].lon,STATE.dep+P[i].t);pt.push({t:P[i].t,v:w.tws});}
+  var w0=windAt(P[n-1].lat,P[n-1].lon,STATE.dep+P[n-1].t);pt.push({t:P[n-1].t,v:w0.tws});
+  var W=360,H=200,l=26,r=8,tp=10,bt=22,T=Math.max(0.1,P[n-1].t),vmax=Math.max(5,Math.ceil(Math.max.apply(null,pt.map(function(p){return p.v;}))/5)*5);
+  function X(t){return (l+(W-l-r)*t/T).toFixed(1);}function Y(v){return (tp+(H-tp-bt)*(1-v/vmax)).toFixed(1);}
+  var g='';for(var v=0;v<=vmax;v+=5){g+='<line x1="'+l+'" x2="'+(W-r)+'" y1="'+Y(v)+'" y2="'+Y(v)+'" stroke="#dfe5ea"/><text x="'+(l-4)+'" y="'+(+Y(v)+3)+'" font-size="8" fill="#5b6b78" text-anchor="end" font-family="system-ui,Roboto,sans-serif">'+v+'</text>';}
+  [0,T/2,T].forEach(function(t,i){g+='<text x="'+X(t)+'" y="'+(H-8)+'" font-size="8" fill="#5b6b78" text-anchor="'+(i===0?'start':i===2?'end':'middle')+'" font-family="system-ui,Roboto,sans-serif">'+windClock(STATE.dep+t)+'</text>';});
+  g+='<polyline points="'+pt.map(function(p){return X(p.t)+','+Y(p.v);}).join(' ')+'" fill="none" stroke="#0b6fb3" stroke-width="2.2" stroke-linejoin="round"/>';
+  return '<div class="rr-fig"><svg viewBox="0 0 '+W+' '+H+'">'+g+'</svg><div class="cap">vento lungo la rotta (kt) · previsione del modello</div></div>';}
 function exportDiarioPDF(){var R=R_CACHE;if(!R||!R.diag||!R.diag.length){toast('Nessun diario da esportare');return;}
-  var prof={};try{prof=JSON.parse(localStorage.getItem('raffyca-profile')||'{}');}catch(e){}
-  var dt=new Date(),pz=function(n){return(n<10?'0':'')+n;};
-  var meta={boat:prof.boat||'',model:prof.model||'',zone:diarioZone(),
-    date:dt.getFullYear()+'-'+pz(dt.getMonth()+1)+'-'+pz(dt.getDate())+' '+pz(dt.getHours())+':'+pz(dt.getMinutes())};
-  var s=R.summary,summary='';
-  if(s)summary='Rotta '+s.dist+' NM  \u00B7  durata '+fmtH(s.eta)+'  \u00B7  media '+s.avg+' kt  \u00B7  vento '+s.wmin+'-'+s.wmax+' kt';
-  var rows=R.diag.map(function(e){var d=e.data||{},mot=!!d.motor;
-    return {ora:e.clock||e.t||'',evento:String(e.tag||'').toUpperCase()+(e.tag?': ':'')+stripHtml(e.tx),
-      tws:d.tws!=null?d.tws:'',twd:d.twd!=null?d.twd:'',hdg:d.hdg!=null?d.hdg:'',
-      spd:mot?'':(d.spd!=null?d.spd:''),vmg:mot?'':(d.vmg!=null?d.vmg:''),
-      dtg:d.dtg!=null?d.dtg:'',mot:mot?'si':'no'};});
-  downloadBlob(new Blob([buildDiarioPDF(meta,summary,rows)],{type:'application/pdf'}),diarioName('pdf'));
-  toast('Diario PDF salvato in Download');}
+  if(!window.rfReport){toast('Modello del documento non caricato');return;}
+  var RR=window.rfReport,esc=RR.esc,prof={};try{prof=JSON.parse(localStorage.getItem('raffyca-profile')||'{}');}catch(e){}
+  var nomi=diarioNomi(),s=R.summary||{},dep=parseOraLocale(depT()),oggi=new Date(),pz=function(n){return(n<10?'0':'')+n;};
+  function quando(h){if(!dep)return windClock(STATE.dep+h);var d=new Date(dep.getTime()+h*3600000);
+    return (d.toDateString()===oggi.toDateString()?'':GG_SETT[d.getDay()]+' ')+pz(d.getHours())+':'+pz(d.getMinutes());}
+  var area=(AREAS[FIELD.area]&&AREAS[FIELD.area].name)||diarioZone()||FIELD.area;
+  var h=RR.testata({titolo:'Diario di traversata',
+    sottotitolo:[prof.boat,prof.model,area].filter(Boolean).join(' · '),
+    destra:['calcolato il '+oggi.toLocaleString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}),
+      'vento: '+(FIELD.source==='live'?('previsione '+MODELN):'campo sintetico di prova')]});
+  function punto(l,col,nome){return '<span class="rr-punto" style="background:'+col+'">'+l+'</span>'+esc(nome);}
+  h+='<div class="rr-punti">'+punto('A','#0a9e90',nomi.A)+(STATE.V?'<span class="rr-freccia">→</span>'+punto('V','#d99a00',nomi.V):'')+
+    '<span class="rr-freccia">→</span>'+punto('B','#e0504a',nomi.B)+
+    (STATE.ritorno?'<span class="rr-freccia">⟲ ritorno ad A, sosta '+esc(fmtH(STATE.sosta||0).replace('h',' h ').replace(' h 00',' h'))+'</span>':'')+'</div>';
+  h+=RR.kpi([{k:'Partenza',v:quando(0)},{k:R.finished?'Arrivo':'Arrivo',v:R.finished?quando(R.eta):'non chiude',tono:R.finished?null:'rosso'},
+    {k:'Durata',v:R.finished?fmtH(R.eta).replace('h',' h '):'—'},{k:'Rotta',v:(s.dist!=null?String(s.dist).replace('.',','):'—')+' NM'},
+    {k:'Media',v:(s.avg!=null?String(s.avg).replace('.',','):'—')+' kt'},{k:'Vento',v:(s.wmin!=null?s.wmin+'–'+s.wmax:'—')+' kt'}]);
+  if(R.legs&&R.legs.length>1){h+='<p class="rr-nota">'+R.legs.map(function(g){var nm=g.a==='V'?nomi.V:g.a==='A'?nomi.A:nomi.B;
+      return (g.sosta?'sosta '+fmtH(g.sosta).replace('h',' h ').replace(' h 00',' h')+' · ':'')+esc(nm)+' '+(g.finished?quando(g.eta):'—');}).join(' · ')+'</p>';}
+  var lu=document.getElementById('luceArr');
+  if(lu&&lu.style.display!=='none'&&lu.textContent.trim()){
+    /* le righe del riquadro sono blocchi: textContent le attaccherebbe («(68%)Nessun») */
+    var pz2=[].map.call(lu.children.length?lu.children:[lu],function(x){return x.textContent.trim().replace(/\s+/g,' ');}).filter(Boolean);
+    h+='<div class="rr-luce">'+pz2.map(esc).join('<br>')+'</div>';}
+  h+='<h2>Rotta e vento</h2><div class="rr-due">'+diarioSchema(R)+diarioVento(R)+'</div>';
+  var cs=document.getElementById('calcSum');if(cs&&cs.textContent)h+='<p class="rr-nota">Calcolo: '+esc(cs.textContent)+(prof.model?' · polare '+esc(document.getElementById('polStatus')?document.getElementById('polStatus').textContent:''):'')+'</p>';
+  h+='<h2>Diario</h2>';
+  var righe=R.diag.map(function(e){var d=e.data||null,mot=d&&d.motor;
+    return [esc(e.clock||e.t||''),RR.chip(e.tag||'',e.tag==='tappa'||e.tag==='sosta'?'ambra':diarioTono(e.cls))+' '+esc(stripHtml(e.tx)),
+      d?(d.tws+' kt · '+('00'+d.twd).slice(-3)+'°'):'',d?(('00'+d.hdg).slice(-3)+'°'):'',
+      d?(mot?'motore':String(d.spd).replace('.',',')+' kt'):'',d&&!mot?String(d.vmg).replace('.',',')+' kt':'',
+      d?(String(d.dtg).replace('.',',')+' NM'+(e.meta&&e.meta!=='a B'?'<div class="sotto">'+esc(e.meta)+'</div>':'')):''];});
+  h+=RR.tabella([{t:'Ora',w:'52px'},{t:'Evento'},{t:'Vento',num:true},{t:'Prua',num:true},{t:'Barca',num:true},{t:'VMG',num:true},{t:'Alla meta',num:true}],righe);
+  h+=RR.piede('Previsione del modello: le condizioni cambiano, ricalcola prima di partire.');
+  var dt=new Date();
+  RR.stampa(RR.documento('Diario di traversata',h),'Diario '+dt.getFullYear()+'-'+pz(dt.getMonth()+1)+'-'+pz(dt.getDate())+' '+area);}
 (function(){var c=document.getElementById('diagCsv'),p=document.getElementById('diagPdf');
   if(c)c.addEventListener('click',exportDiarioCSV);if(p)p.addEventListener('click',exportDiarioPDF);})();
 
 // ---------- Leaflet wiring ----------
-var map=null,baseLayer=null,seaLayer=null,markA=null,markB=null,activeAB='A',_toastT=null,AB_MOVE=false;
+var map=null,baseLayer=null,seaLayer=null,markA=null,markB=null,markV=null,activeAB='A',_toastT=null,AB_MOVE=false;
 var BASES=null,CURBASE='nautica';   /* basi mappa selezionabili + quella attiva (persistita) */
 /* Stato batimetria dichiarato QUI e non piu' in fondo al file. Stava dopo il boot: il
    ripristino delle impostazioni scatenava 'change' su tBathy (ISO_ON=true, legenda
@@ -1304,10 +1428,14 @@ function placeMarkers(){if(!map)return;
     markA.on('dragend',function(){var ll=markA.getLatLng();setAB('A',ll.lat,ll.lng);});}else markA.setLatLng([STATE.A.lat,STATE.A.lon]);
   if(!markB){markB=L.marker([STATE.B.lat,STATE.B.lon],{draggable:AB_MOVE,keyboard:false,icon:abIcon('B','#FF6B6B')}).addTo(map);
     markB.on('dragend',function(){var ll=markB.getLatLng();setAB('B',ll.lat,ll.lng);});}else markB.setLatLng([STATE.B.lat,STATE.B.lon]);
+  /* tappa intermedia (01/10/2026): «V» in ambra, solo se c'e' */
+  if(STATE.V){if(!markV){markV=L.marker([STATE.V.lat,STATE.V.lon],{draggable:AB_MOVE,keyboard:false,icon:abIcon('V','#FFC24B')}).addTo(map);
+      markV.on('dragend',function(){var ll=markV.getLatLng();setAB('V',ll.lat,ll.lng);});}else markV.setLatLng([STATE.V.lat,STATE.V.lon]);}
+  else if(markV){map.removeLayer(markV);markV=null;}
   applyAbMove();}
 /* Muovi A/B: quando OFF, i pin non si trascinano e il tocco sulla carta non sposta A/B (evita spostamenti accidentali su touch). */
 function applyAbMove(){
-  [markA,markB].forEach(function(m){if(m&&m.dragging){if(AB_MOVE)m.dragging.enable();else m.dragging.disable();}});
+  [markA,markB,markV].forEach(function(m){if(m&&m.dragging){if(AB_MOVE)m.dragging.enable();else m.dragging.disable();}});
   var b=document.getElementById('abMoveBtn');
   if(b){b.style.background=AB_MOVE?'var(--teal)':'';b.style.color=AB_MOVE?'#062018':'';b.style.borderColor=AB_MOVE?'var(--teal)':'';}
   var mp=document.getElementById('map');if(mp)mp.style.cursor=AB_MOVE?'crosshair':'';}
@@ -1315,6 +1443,7 @@ function toggleAbMove(){AB_MOVE=!AB_MOVE;applyAbMove();
   toast(AB_MOVE?'Muovi A/B ATTIVO — trascina i pin o tocca la carta':'Muovi A/B disattivato — pin bloccati');}
 function setAB(which,lat,lon){var c=clampToArea(FIELD.area,lat,lon);STATE[which]={lat:c.lat,lon:c.lon};
   if(which==='A'&&markA)markA.setLatLng([c.lat,c.lon]);if(which==='B'&&markB)markB.setLatLng([c.lat,c.lon]);
+  if(which==='V')placeMarkers();
   computeRoute();
   if(isLand(c.lat,c.lon))toast(which+' è a terra — trascinalo in mare');}
 /* Mette A o B su un punto scelto per nome o arrivato dal Meteo. Il punto
@@ -1431,26 +1560,40 @@ function fitAreaToAB(){
 }
 
 // ---------- Naviga: posizione reale via GPS, guida sulla rotta, ricalcolo dal vivo ----------
-var NAV={on:false,watch:null,pos:null,marker:null,lastReroute:0};
+var NAV={on:false,watch:null,pos:null,marker:null,lastReroute:0,leg:0};
 function xtePerp(pos,a,b){var cl=cosLat(FIELD.area),ax=a.lon*60*cl,ay=a.lat*60,bx=b.lon*60*cl,by=b.lat*60,px=pos.lon*60*cl,py=pos.lat*60;
   var dx=bx-ax,dy=by-ay,len2=dx*dx+dy*dy||1e-9,t=clamp(((px-ax)*dx+(py-ay)*dy)/len2,0,1),nx=ax+t*dx,ny=ay+t*dy,ex=px-nx,ey=py-ny;
   var cross=dx*(py-ay)-dy*(px-ax);return {d:Math.sqrt(ex*ex+ey*ey),t:t,side:cross>0?-1:1,nlat:ny/60,nlon:nx/(60*cl)};}
+/* Con la tappa o il ritorno il percorso ha piu' tratte, e il ritorno corre vicino
+   all'andata: cercare il segmento piu' vicino su tutto il percorso aggancerebbe
+   la tratta sbagliata. Si guida sulla tratta in corso (NAV.leg) e si passa alla
+   successiva a meno di 0,1 NM dalla sua fine. Con una tratta sola: come prima. */
 function routeGuidance(pos){var R=R_CACHE;if(!R||!R.path||R.path.length<2)return null;
-  var best=null,seg=1;for(var k=1;k<R.path.length;k++){var r=xtePerp(pos,R.path[k-1],R.path[k]);if(!best||r.d<best.d){best=r;seg=k;}}
-  return {xte:best.d,side:best.side,seg:seg,near:{lat:best.nlat,lon:best.nlon},dtg:dist(pos,R.goal),brg:bearing(pos,R.goal)};}
+  var legs=R.legs&&R.legs.length?R.legs:null,i0=1,i1=R.path.length-1,meta=R.goal,nome='B';
+  if(legs){if(NAV.leg>=legs.length)NAV.leg=legs.length-1;
+    var g=legs[NAV.leg];
+    if(g&&g.finished&&NAV.leg<legs.length-1&&dist(pos,R.path[g.iTo])<0.1){NAV.leg++;g=legs[NAV.leg];}
+    if(g&&g.iTo>g.iFrom){i0=g.iFrom+1;i1=g.iTo;}
+    if(g){meta=R.path[Math.min(g.iTo,R.path.length-1)];nome=g.a==='V'?'tappa':g.a;}}
+  var best=null,seg=i0;for(var k=i0;k<=i1;k++){var r=xtePerp(pos,R.path[k-1],R.path[k]);if(!best||r.d<best.d){best=r;seg=k;}}
+  if(!best)return null;
+  return {xte:best.d,side:best.side,seg:seg,near:{lat:best.nlat,lon:best.nlon},dtg:dist(pos,meta),brg:bearing(pos,meta),meta:nome};}
 function boatIcon(cog){return L.divIcon({className:'boat-pin',html:'<div class="boatdot" style="transform:rotate('+(cog||0)+'deg)"></div>',iconSize:[22,22],iconAnchor:[11,11]});}
 function navStartFrom(pos){ // applica una posizione (usata anche nei test)
   NAV.pos=pos;
   if(map){if(!NAV.marker){NAV.marker=L.marker([pos.lat,pos.lon],{icon:boatIcon(pos.cog),interactive:false,zIndexOffset:1000}).addTo(map);}else{NAV.marker.setLatLng([pos.lat,pos.lon]);NAV.marker.setIcon(boatIcon(pos.cog));}
     if(document.getElementById('navFollow').checked)map.panTo([pos.lat,pos.lon],{animate:false});}
-  if(document.getElementById('navReroute').checked){var now=Date.now();if(now-NAV.lastReroute>7000){NAV.lastReroute=now;STATE.A={lat:pos.lat,lon:pos.lon};computeRoute();}}
+  if(document.getElementById('navReroute').checked){var now=Date.now();if(now-NAV.lastReroute>7000){NAV.lastReroute=now;STATE.A={lat:pos.lat,lon:pos.lon};
+    /* superata la tappa, il nuovo calcolo non ci torna */
+    if(STATE.V&&R_CACHE&&R_CACHE.legs&&R_CACHE.legs[NAV.leg]&&R_CACHE.legs[NAV.leg].da!=='A'){STATE.V=null;if(typeof placeMarkers==='function')placeMarkers();}
+    NAV.leg=0;computeRoute();}}
   renderNav();}
 function renderNav(){var el=document.getElementById('navp');if(!el)return;
   if(!NAV.on||!NAV.pos){el.className='navp';el.innerHTML='';return;}
   var p=NAV.pos,gd=routeGuidance(p);el.className='navp on';
   var cog=(p.cog==null||isNaN(p.cog))?'—':Math.round(p.cog)+'°',sog=(p.sog==null||isNaN(p.sog))?'—':p.sog.toFixed(1)+' kt';
   var rr=document.getElementById('navReroute').checked,eta=(rr&&R_CACHE&&R_CACHE.finished)?fmtH(R_CACHE.eta):'—';
-  var g='<div class="ng"><span>a B</span> <b>'+(gd?gd.dtg.toFixed(1):'—')+' NM</b> · <span>rilev.</span> <b>'+(gd?Math.round(gd.brg):'—')+'°</b> · <span>COG</span> <b>'+cog+'</b> · <span>SOG</span> <b>'+sog+'</b> · <span>ETA</span> <b>'+eta+'</b></div>';
+  var g='<div class="ng"><span>'+(gd&&gd.meta==='tappa'?'alla tappa':gd&&gd.meta==='A'?'ad A':'a B')+'</span> <b>'+(gd?gd.dtg.toFixed(1):'—')+' NM</b> · <span>rilev.</span> <b>'+(gd?Math.round(gd.brg):'—')+'°</b> · <span>COG</span> <b>'+cog+'</b> · <span>SOG</span> <b>'+sog+'</b> · <span>ETA</span> <b>'+eta+'</b></div>';
   if(gd){var sd=gd.side>0?'dritta':'sinistra',ar=gd.side>0?'◀ accosta a sinistra':'accosta a dritta ▶';
     g+='<div class="xte">Fuori rotta <b>'+gd.xte.toFixed(2)+' NM</b> a '+sd+(gd.xte>0.05?' · <b style="color:#9fd8ff">'+ar+'</b>':' · <b style="color:#7BD88A">in rotta</b>')+'</div>';}
   el.innerHTML=g;}
@@ -1467,9 +1610,14 @@ function buildGPX(R){R=R||R_CACHE;if(!R||!R.path||R.path.length<1)return null;
   x+='<metadata><name>'+esc('Dritta — traversata '+area)+'</name></metadata>\n';
   x+='<wpt lat="'+f(R.start.lat)+'" lon="'+f(R.start.lon)+'"><name>A · partenza</name><sym>Flag, Green</sym></wpt>\n';
   x+='<wpt lat="'+f(R.goal.lat)+'" lon="'+f(R.goal.lon)+'"><name>B · arrivo</name><sym>Flag, Red</sym></wpt>\n';
-  x+='<trk><name>'+esc('Rotta Dritta '+area)+'</name><trkseg>\n';
-  for(var i=0;i<R.path.length;i++){x+='<trkpt lat="'+f(R.path[i].lat)+'" lon="'+f(R.path[i].lon)+'"></trkpt>\n';}
-  x+='</trkseg></trk>\n</gpx>\n';return x;}
+  if(STATE.V&&R.legs&&R.legs.length>1)x+='<wpt lat="'+f(STATE.V.lat)+'" lon="'+f(STATE.V.lon)+'"><name>V · tappa</name><sym>Flag, Blue</sym></wpt>\n';
+  x+='<trk><name>'+esc('Rotta Dritta '+area)+'</name>\n';
+  /* un segmento per tratta (tappa, ritorno); con una tratta sola, uno solo come prima */
+  var tr=(R.legs&&R.legs.length)?R.legs:[{iFrom:0,iTo:R.path.length-1}];
+  for(var j=0;j<tr.length;j++){if(tr[j].iTo<tr[j].iFrom)continue;x+='<trkseg>\n';
+    for(var i=tr[j].iFrom;i<=tr[j].iTo;i++){x+='<trkpt lat="'+f(R.path[i].lat)+'" lon="'+f(R.path[i].lon)+'"></trkpt>\n';}
+    x+='</trkseg>\n';}
+  x+='</trk>\n</gpx>\n';return x;}
 /* ---------- salva la rotta come traccia nella Carta Nautica ----------
    Contratto condiviso: raffyca-tracks [{id,name,ts,pts:[[lat,lon,ele]],dist,dur,tag,folder,note}]
    e raffyca-folders [{id,name,kind}]. Si scrive da qui: la Carta li rilegge al
@@ -1511,7 +1659,7 @@ function salvaInCarta(){
   var ora=(depT()||'').slice(11)||windClock(STATE.dep), oggi=new Date(), dP=parseOraLocale(depT())||oggi;
   /* la data e' quella della PARTENZA: col campo a 4 giorni puo' non essere oggi */
   var gg=('0'+dP.getDate()).slice(-2)+'/'+('0'+(dP.getMonth()+1)).slice(-2);
-  var nome='Rotta '+gg+' '+ora+' · '+area;
+  var nome='Rotta '+gg+' '+ora+' · '+area+(STATE.V?' · con tappa':'')+(STATE.ritorno?' · andata e ritorno':'');
   /* due rotte con la stessa partenza avrebbero lo stesso nome, e in lista
      diventano indistinguibili: numero solo i duplicati, senza sporcare il primo */
   var esistenti=lsJSON('raffyca-tracks').map(function(t){return t&&t.name;});
@@ -1521,6 +1669,7 @@ function salvaInCarta(){
     'Zona: '+area+' · campo vento: '+(FIELD.source==='live'?('live '+MODELN):'sintetico'),
     'Partenza impostata: '+gg+' '+ora,
     'ETA: '+(R.finished?fmtH(R.eta):'rotta non chiusa'),
+    (STATE.V?'Con tappa intermedia':'')+(STATE.ritorno?((STATE.V?' · ':'')+'Andata e ritorno, sosta a B '+fmtH(STATE.sosta||0)):''),
     'Buffer costa: '+(STATE.coastBuf||0)+' NM · perdita manovra: '+STATE.tackPen+'% · efficienza polare: '+Math.round(STATE.polarEff*100)+'%',
     (STATE.motorOn?('Motore consentito a '+STATE.mot+' kn'):'Solo vela'),
     (STATE.maxWind?('Evita vento oltre '+STATE.maxWind+' kn'):'Nessun limite di vento'),
@@ -1541,7 +1690,7 @@ function downloadGPX(){var gpx=buildGPX();if(!gpx){toast('Nessuna rotta da espor
   try{var blob=new Blob([gpx],{type:'application/gpx+xml'}),url=URL.createObjectURL(blob),a=document.createElement('a');
     a.href=url;a.download='dritta-'+(FIELD.area||'rotta')+'.gpx';document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(url);},1500);
     toast('GPX esportato ('+R_CACHE.path.length+' punti)');}catch(e){toast('Export non riuscito');}}function startNav(){if(typeof navigator==='undefined'||!navigator.geolocation){toast('Geolocalizzazione non supportata');return;}
-  NAV.on=true;document.getElementById('navBtn').classList.add('on');document.getElementById('navBtn').textContent='■ Ferma';
+  NAV.on=true;NAV.leg=0;document.getElementById('navBtn').classList.add('on');document.getElementById('navBtn').textContent='■ Ferma';
   try{NAV.watch=navigator.geolocation.watchPosition(onNavFix,onNavErr,rfGpsOpt({maximumAge:2000,timeout:15000}));}catch(e){onNavErr();}}
 /* Preferenza GPS condivisa (rf-topbar.js). Il ripiego serve perche' la
    barra e' caricata con defer: se questo script gira prima, si usa il
@@ -1668,7 +1817,8 @@ document.getElementById('coastOn').addEventListener('change',function(){var s=do
 document.getElementById('coastBuf').addEventListener('input',function(){setCoastLabel();if(document.getElementById('coastOn').checked){STATE.coastBuf=coastStepValue();computeRoute();}});
 document.getElementById('tackPen').addEventListener('input',function(){document.getElementById('tackV').textContent=this.value;STATE.tackPen=+this.value;computeRoute();});
 document.getElementById('polarEff').addEventListener('input',function(){document.getElementById('effV').textContent=this.value;STATE.polarEff=(+this.value)/100;computeRoute();});
-document.getElementById('scanBtn').addEventListener('click',function(){var b=this;b.textContent='calcolo…';setTimeout(function(){renderScan();b.textContent='Trova il miglior orario';},20);});
+document.getElementById('scanBtn').addEventListener('click',function(){var b=this;if(b.disabled)return;b.disabled=true;b.textContent='calcolo…';
+  scanAsync(function(res){renderScan(res);b.disabled=false;b.textContent='Trova il miglior orario';});});
 document.getElementById('tSea').addEventListener('change',function(){if(!map)return;if(this.checked)seaLayer.addTo(map);else map.removeLayer(seaLayer);});
 document.getElementById('tWind').addEventListener('change',redraw);
 document.getElementById('tCoast').addEventListener('change',redraw);
@@ -1731,6 +1881,7 @@ function saveUI(){if(!_uiReady)return;
     var u={v:1,
       A:STATE.A?{lat:STATE.A.lat,lon:STATE.A.lon}:null,
       B:STATE.B?{lat:STATE.B.lat,lon:STATE.B.lon}:null,
+      V:STATE.V?{lat:STATE.V.lat,lon:STATE.V.lon}:null,ritorno:!!STATE.ritorno,sosta:STATE.sosta,
       dep:STATE.dep,depT:depT(),mot:STATE.mot,maxWind:STATE.maxWind,coastBuf:STATE.coastBuf,tackPen:STATE.tackPen,polarEff:STATE.polarEff,
       motRaw:rv('mot'),windCapRaw:rv('windCap'),
       motorChk:cv('motorOn'),windCapChk:cv('windCapOn'),coastChk:cv('coastOn'),
@@ -1781,6 +1932,9 @@ function applySavedAB(){var u=SAVED_UI;if(!u||!u.A||!u.B)return;
   var a=clampToArea(FIELD.area,u.A.lat,u.A.lon),b=clampToArea(FIELD.area,u.B.lat,u.B.lon);
   STATE.A={lat:a.lat,lon:a.lon};STATE.B={lat:b.lat,lon:b.lon};
   if(markA)markA.setLatLng([a.lat,a.lon]);if(markB)markB.setLatLng([b.lat,b.lon]);
+  if(u.V){var v=clampToArea(FIELD.area,u.V.lat,u.V.lon);STATE.V={lat:v.lat,lon:v.lon};}
+  STATE.ritorno=!!u.ritorno;if(isFinite(+u.sosta))STATE.sosta=+u.sosta;
+  if(typeof placeMarkers==='function')placeMarkers();
   computeRoute();}
 
 /* Partenza passata dal Meteo («Pianifica la traversata da qui»): ?a=lat,lon.
@@ -1888,16 +2042,20 @@ function refreshIsobate(){
 (function(){
   "use strict";
   function $(id){return document.getElementById(id);}
-  var NOMI={A:'',B:''},TOCCA_1=false;
+  var NOMI={A:'',B:'',V:''},TOCCA_1=false;
   try{var u0=SAVED_UI||JSON.parse(localStorage.getItem(UIKEY)||'null');
-    if(u0){NOMI.A=u0.nomeA||'';NOMI.B=u0.nomeB||'';}}catch(e){}
+    if(u0){NOMI.A=u0.nomeA||'';NOMI.B=u0.nomeB||'';NOMI.V=u0.nomeV||'';}}catch(e){}
   if(typeof URL_A!=='undefined'&&URL_A)NOMI.A=URL_A.nome||'';
 
   function coord(p){if(!p)return '—';
     function g(v,a,b){var h=v>=0?a:b;v=Math.abs(v);var d=Math.floor(v),m=(v-d)*60;return d+'°'+m.toFixed(1).replace('.',',')+'′'+h;}
     return g(p.lat,'N','S')+' '+g(p.lon,'E','W');}
   function dipingiPunti(){$('tvAv').textContent=NOMI.A||coord(STATE.A);$('tvBv').textContent=NOMI.B||coord(STATE.B);
-    $('tvTv').textContent=(typeof windClock==='function')?windClock(STATE.dep):'—';}
+    $('tvTv').textContent=(typeof windClock==='function')?windClock(STATE.dep):'—';
+    /* riga compatta: tappa e ritorno, solo se attivi */
+    $('tvViaRow').hidden=!STATE.V;$('tvRitRow').hidden=!STATE.ritorno;$('tvExtra').hidden=!(STATE.V||STATE.ritorno);
+    if(STATE.V)$('tvViaV').textContent=NOMI.V||coord(STATE.V);
+    $('tvSosV').textContent=fmtH(STATE.sosta||0).replace('h',' h ').replace(' h 00',' h');}
 
   /* il nome resta finche' il punto non viene spostato in un altro modo */
   var _setAB=setAB;
@@ -1908,8 +2066,8 @@ function refreshIsobate(){
   mettiAB=function(w,lat,lon,nome){_mettiAB(w,lat,lon,nome);NOMI[w]=nome||'';dipingiPunti();saveUI();};
   var _saveUI=saveUI;
   saveUI=function(){_saveUI();try{var u=JSON.parse(localStorage.getItem(UIKEY)||'null');
-    if(u){u.nomeA=NOMI.A;u.nomeB=NOMI.B;localStorage.setItem(UIKEY,JSON.stringify(u));}}catch(e){}};
-  $('resetBtn').addEventListener('click',function(){NOMI.A=NOMI.B='';dipingiPunti();});
+    if(u){u.nomeA=NOMI.A;u.nomeB=NOMI.B;u.nomeV=NOMI.V;localStorage.setItem(UIKEY,JSON.stringify(u));}}catch(e){}};
+  $('resetBtn').addEventListener('click',function(){NOMI.A=NOMI.B=NOMI.V='';dipingiPunti();});
 
   /* ── riquadro della rotta ── */
   function riassunto(){var R=R_CACHE;dipingiPunti();if(!R||!R.path)return;
@@ -1919,12 +2077,24 @@ function refreshIsobate(){
       var hh=('0'+arr.getHours()).slice(-2)+':'+('0'+arr.getMinutes()).slice(-2);
       $('rArr').textContent=(arr.toDateString()===oggi.toDateString()?'':GG_SETT[arr.getDay()]+' ')+hh;
       $('rDur').textContent=fmtH(R.eta).replace('h',' h ');}
+    else if(R.legs&&R.legs.length>1){$('rArr').textContent='—';$('rDur').textContent='—';
+      var bad=R.legs.filter(function(g){return !g.finished&&g.motivo!=='precedente';})[0];
+      var nomeT=function(g){return g.a==='V'?'la tappa':g.a==='A'?'il ritorno':'l’arrivo a B';};
+      if(bad)nota.push(bad.motivo==='previsione'?('Non si arriva: '+nomeT(bad)+' va oltre la fine della previsione. Accorcia la sosta o parti prima.'):('Non si arriva: '+nomeT(bad)+' non chiude. Prova un’altra partenza o sposta i punti dalla riva.'));}
     else{$('rArr').textContent='—';$('rDur').textContent='—';nota.push(STATE.coastBuf>0?'La rotta non arriva a B: riduci «Stai lontano dalla costa» o allontana A e B dalla riva.':'La rotta non arriva a B: prova un’altra partenza o avvicina i punti.');}
-    var avg=R.eta>0?sailed/R.eta:0;
+    var avg=(R.legs&&R.legs.length>1&&R.summary)?R.summary.avg:(R.eta>0?sailed/R.eta:0);   /* con la sosta, la media e' sul tempo in mare */
+    var tp=$('rTappe');
+    if(R.legs&&R.legs.length>1&&dep){var pz=[],etic={V:NOMI.V||'tappa',B:NOMI.B||'B',A:NOMI.A||'A'};
+      R.legs.forEach(function(g){if(g.sosta)pz.push('sosta '+fmtH(g.sosta).replace('h',' h ').replace(' h 00',' h'));
+        if(g.finished){var a2=new Date(dep.getTime()+g.eta*3600000);pz.push(etic[g.a]+' '+('0'+a2.getHours()).slice(-2)+':'+('0'+a2.getMinutes()).slice(-2));}
+        else pz.push(etic[g.a]+' —');});
+      tp.textContent=pz.join(' · ');tp.hidden=false;}
+    else tp.hidden=true;
     $('rDist').textContent=sailed.toFixed(1).replace('.',',')+' NM · '+avg.toFixed(1).replace('.',',')+' kt';
     var s=R.summary;$('rVento').textContent=s?(s.wmin+'–'+s.wmax+' kt'):'—';
     if(isLand(R.start.lat,R.start.lon))nota.push('A è a terra: spostala in mare.');
     if(isLand(R.goal.lat,R.goal.lon))nota.push('B è a terra: spostalo in mare.');
+    if(STATE.V&&isLand(STATE.V.lat,STATE.V.lon))nota.push('La tappa è a terra: spostala in mare.');
     var n=$('rNota');n.textContent=nota.join(' ');n.hidden=!nota.length;
     riassuntoCalcolo();}
   var _upd=updateReadout;
@@ -1955,7 +2125,7 @@ function refreshIsobate(){
       .map(function(w){return{w:w,d:ref?dist({lat:ref.lat,lon:ref.lon},{lat:w.lat,lon:w.lon}):0};})
       .sort(function(a,b){return a.d-b.d;});}
   function apriPunto(w){activeAB=w;
-    $('spTitolo').textContent=w==='A'?'Partenza A':'Arrivo B';
+    $('spTitolo').textContent=w==='A'?'Partenza A':w==='V'?'Tappa intermedia':'Arrivo B';
     $('aGpsBtn').hidden=(w!=='A');$('aGpsBtn').textContent='📍 Dove sono adesso';
     var l=wpDistanza(),box=$('spWp');
     if(!l.length)box.innerHTML='<div class="vuoto">Nessun waypoint salvato in Carta.</div>';
@@ -1969,7 +2139,18 @@ function refreshIsobate(){
   $('abRis').addEventListener('click',function(e){if(e.target.closest('button[data-i]'))setTimeout(chiudi,0);});
   $('aGpsBtn').addEventListener('click',function(){setTimeout(chiudi,0);});
   $('spTocca').addEventListener('click',function(){TOCCA_1=true;AB_MOVE=true;applyAbMove();chiudi();
-    toast('Tocca la carta dove vuoi '+(activeAB==='A'?'la partenza A':'l’arrivo B'));});
+    toast('Tocca la carta dove vuoi '+(activeAB==='A'?'la partenza A':activeAB==='V'?'la tappa':'l’arrivo B'));});
+
+  /* ── tappa e ritorno (01/10/2026) ── */
+  $('viaBtn').addEventListener('click',function(){apriPunto('V');});
+  $('tvVia').addEventListener('click',function(){apriPunto('V');});
+  $('tvViaX').addEventListener('click',function(){STATE.V=null;NOMI.V='';placeMarkers();dipingiPunti();computeRoute();});
+  $('ritBtn').addEventListener('click',function(){STATE.ritorno=true;dipingiPunti();computeRoute();
+    toast('Andata e ritorno: sosta a B '+$('tvSosV').textContent);});
+  $('tvRitX').addEventListener('click',function(){STATE.ritorno=false;dipingiPunti();computeRoute();});
+  function sosta(d){STATE.sosta=Math.max(0,Math.min(24,(+STATE.sosta||0)+d));dipingiPunti();computeRoute();}
+  $('tvSosM').addEventListener('click',function(){sosta(-0.5);});
+  $('tvSosP').addEventListener('click',function(){sosta(0.5);});
   $('tvT').addEventListener('click',function(){apri($('tvSheetPart'));});
 
   /* ── strati e menu ── */

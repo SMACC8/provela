@@ -21,8 +21,10 @@ public class MainActivity extends BridgeActivity {
            Nmea: la socket verso il gateway di bordo.
            Salva: l'esportazione dei file, che in una WebView non esiste.
            Voce: la lettura vocale, che nella WebView non esiste nemmeno.
-           Veglia: l'ancora a schermo spento, col GPS in un servizio. */
+           Veglia: l'ancora a schermo spento, col GPS in un servizio.
+           Stampa: i documenti in PDF, perche' window.print() qui non fa niente. */
         registerPlugin(NmeaPlugin.class);
+        registerPlugin(StampaPlugin.class);
         registerPlugin(SalvaPlugin.class);
         registerPlugin(VocePlugin.class);
         registerPlugin(VegliaPlugin.class);

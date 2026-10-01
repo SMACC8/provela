@@ -1,13 +1,13 @@
 /* Dritta service worker — offline per la traversata.
    Strategia: navigazione network-first (niente trappola della cache vecchia),
    app-shell e dati statici cache-first, tile e forecast con fallback alla cache. */
-var VERSION = 'raffyca-rt-v34';
+var VERSION = 'raffyca-rt-v35';
 var SHELL = VERSION + '-shell';
 var TILES = VERSION + '-tiles';
 var DATA  = VERSION + '-data';
 var TILE_LIMIT = 600;
 
-var PRECACHE = ['../rf-topbar.js','../raffyca.css','../rf-live.js','../rf-astro.js', 
+var PRECACHE = ['../rf-topbar.js','../raffyca.css','../rf-live.js','../rf-astro.js','../rf-report.js', 
   './raffyca-traversata-map.html',
   './manifest.webmanifest',
   './mediterranean_land_10m.geojson',

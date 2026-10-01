@@ -7362,3 +7362,208 @@ Verificato a 600 px: barra in basso presente, nessuna scritta sotto i 12 px,
 niente sborda; temi scuro e giorno.
 
 Non verificato: tema notte; dentro l'APK.
+
+---
+
+## 01/10/2026 (5) — Traversata: una tappa intermedia e l'andata e ritorno
+
+Nota di revisione di Sergio: «sarebbe possibile aggiungere un punto
+intermedio tra A e B e/o andata e ritorno?», con un vincolo: «non vorrei
+diventasse troppo affollata la sezione». Prima un piano, approvato, con le
+sue scelte:
+- **una sola** tappa intermedia (scartato: fino a tre, una riga e un calcolo
+  in più ciascuna);
+- ritorno con **sosta a B in ore** (scartato: orario fisso di ripartenza);
+- ritorno **B → A diretto**, la rotta migliore col vento di quel momento
+  (scartato: ripassare dalla tappa);
+- comandi nel **menu «⋯»** (scartato: dentro i fogli di A e B).
+
+### Come è fatto
+
+**Il motore non è stato toccato.** `route()` calcola una tratta; la nuova
+`routeTrip()` la chiama una volta per tratta: A→V e V→B, oppure A→B; poi,
+col ritorno, B→A con partenza all'arrivo più la sosta. Ogni tratta parte con
+`STATE.dep` decimale (`windAt` interpola) e i risultati si cuciono in uno
+solo con la forma di sempre (`path` con tempi del viaggio, `layers`,
+`diag`, `summary`), più `legs` con indici, partenze, arrivi ed esito di
+ogni tratta. Overlay, riquadro, diario, Salva in Carta e GPX funzionano
+senza saperlo. Scartato: far passare `route()` per un punto: le isocrone
+sono verificate in mare, un errore lì sarebbe silenzioso.
+
+Due ritocchi minimi fuori da `routeTrip`, che lasciano identica la tratta
+singola:
+- `diagnose()`: il primo evento («Parti di…») al `t` del primo punto e non a
+  0, altrimenti la seconda tratta partiva all'orario del via;
+- nel diario la distanza alla meta dice la meta della tratta («alla
+  tappa», «ad A»), non sempre «a B».
+
+Il resto:
+- **worker**: esegue `routeTrip()`; `jobParams()` porta tappa, ritorno e
+  sosta;
+- **«Trova il miglior orario»**: considera il viaggio intero e gira **in un
+  worker a parte**. Con tre tratte il calcolo sincrono di prima teneva
+  ferma la pagina 7,7 s sul Mac; ora la pagina resta usabile (una pausa
+  sola di circa 2 s, probabilmente la copia dei dati verso il worker), e il
+  calcolo dura 14 s, contemporaneo a quello della rotta. Senza worker, il
+  calcolo di prima;
+- **navigazione**: `routeGuidance` guida sulla **tratta in corso**
+  (`NAV.leg`) e passa alla successiva a meno di 0,1 NM dalla sua fine.
+  Prima cercava il segmento più vicino su tutto il percorso, e il ritorno
+  corre vicino all'andata. Il pannello dice «alla tappa», «a B», «ad A».
+  «Ricalcola da dove sono», superata la tappa, non ci torna;
+- **luce all'arrivo**: all'arrivo finale (con il ritorno, in A);
+- **GPX**: un segmento per tratta, la tappa come waypoint;
+- **Salva in Carta**: una traccia sola; il nome e la nota dicono «con
+  tappa» e «andata e ritorno, sosta a B …».
+
+### Interfaccia
+
+- Menu «⋯»: «＋ Tappa intermedia» (apre il foglio di A e B, titolo «Tappa
+  intermedia», senza «Dove sono adesso») e «⟲ Andata e ritorno».
+- Sotto Da/A, **solo quando servono**: «Via · *nome* ✕» (un tocco riapre il
+  foglio) e «⟲ Ritorno · sosta − 2 h + ✕» (passi da mezz'ora, fino a 24
+  h). Su telefono e nella colonna stretta da 960 a 1279 px la parola
+  «sosta» si toglie, perché il «+» finiva sotto la ✕.
+- Carta: segnaposto «V» in ambra, trascinabile come A e B.
+- Riquadro della rotta: arrivo e durata del viaggio intero; la media è sul
+  tempo in mare, senza la sosta; sotto, una riga con le tappe («Boa Umago
+  07:43 · Rovigno 16:06 · sosta 2 h · Golfo di Trieste 02:33»). Se una
+  tratta non chiude, la nota dice quale e perché («il ritorno va oltre la
+  fine della previsione: accorcia la sosta o parti prima»).
+- Cambiando zona o con «Punti di esempio» la tappa si toglie (il ritorno
+  resta).
+
+**Nessuna chiave nuova**: tappa, nome, ritorno e sosta stanno in
+`raffyca-traversata-ui` (`V`, `nomeV`, `ritorno`, `sosta`).
+
+Service worker: **`raffyca-rt-v35`**.
+
+### Verificato
+
+Nel browser, dal worktree, con il vento reale (ECMWF), A nel Golfo di
+Trieste e B a Rovigno:
+- **senza tappa né ritorno**: `routeTrip()` dà lo stesso risultato di
+  `route()`+`diagnose()`, confrontati carattere per carattere (27 punti,
+  10 h 17);
+- **tappa** scelta dal menu e dal foglio (waypoint «Boa Umago»): il
+  percorso passa per la tappa (0,000 NM), la seconda tratta parte
+  all'arrivo della prima, diario «Arrivo alla tappa» e «Dalla tappa si
+  riparte verso B»;
+- **ritorno**: la ripartenza da B cade esattamente dopo la sosta (2,00 h);
+  sosta 1 h → arrivo ad A 01:10, 2 h → 02:18; con 90 h di sosta il ritorno
+  risulta «oltre la previsione»;
+- **memoria**: dopo la riapertura tornano tappa, nome, ritorno e sosta;
+- **miglior orario**: worker e calcolo sincrono danno gli stessi 49
+  risultati;
+- **guida simulata** lungo andata, tappa, B e ritorno: tratta giusta ogni
+  volta, cambio di tratta sulla tappa e a B; un punto del ritorno vicino
+  all'andata, mentre si è sull'andata, resta sull'andata;
+- **GPX**: 3 segmenti e la tappa; **larghezze** 375, 600, 1000 px, la riga
+  del ritorno intera;
+- sintassi con `jsc`; gli `id` che mancano sono i quattro noti dal 29/09,
+  protetti da un controllo.
+
+APK costruito dal worktree e installato sul tablet via adb.
+
+### Non verificato
+
+- **Salva in Carta** con tappa e ritorno: cambiati solo nome e nota.
+- **Il miglior orario sul tablet**: 14 s sul Mac, potrebbero essere molti di
+  più; il tasto dice «calcolo…» finché non finisce.
+- La navigazione con il GPS vero.
+- Temi giorno e notte della riga compatta.
+
+### Dopo: «Da» e «A» con la lettera
+
+Sergio: «cambierei i nomi dei due box Da/A in Da "A" / A "B". A da sola può
+generare confusione»: «A» era insieme la preposizione e il nome del punto.
+Ora «Da «A»», «A «B»» e, per la tappa, «Via «V»», come i segnaposto sulla
+carta. Sul miglior orario: «un po' lento ma niente di insopportabile».
+
+---
+
+## 01/10/2026 (6) — I PDF: un modello comune, e la stampa dentro l'APK
+
+Nota di Sergio, guardando i PDF del diario di Traversata e del dossier di
+Manutenzione: «onestamente sono proprio poveri. Si può usare un carattere
+moderno, l'organizzazione dei dati in tabelle, il colore per il testo
+quando serve, abbellimenti grafici?», con un suo rapporto di DistressIQ
+come esempio.
+
+### Com'erano
+
+- **Diario di Traversata**: un PDF scritto a mano istruzione per istruzione
+  (`buildDiarioPDF`), con i soli due caratteri di base del formato
+  (Helvetica), niente colore, colonne fatte di spazi.
+- **Dossier di Manutenzione**: una pagina HTML in Georgia, tabelle nere,
+  stampata con `window.print()`. **Nell'APK non usciva**: la WebView di
+  Android non ha la stampa, e nessun plugin dell'app la collegava (cercato
+  `PrintManager`: assente). Nessun errore, nessuna finestra.
+
+### Scelte di Sergio
+
+- **Pagina HTML stampata** (scartato: PDF generato in JavaScript con jsPDF,
+  un carattere incorporato da circa 300 kB in cache e meno libertà di
+  stile);
+- **carattere di sistema** (Roboto su Android, San Francisco su Apple;
+  scartato: Inter incorporato);
+- nel diario: **schema della rotta, grafico del vento, luce all'arrivo**.
+
+### Fatto
+
+- **`rf-report.js`** in radice, ES5, nessuna dipendenza: intestazione con
+  la barra colorata, riquadri dei numeri, titoli di sezione, tabelle con le
+  righe alternate e l'intestazione ripetuta a ogni pagina, etichette
+  colorate, piede con lo slogan; A4, numero di pagina nel margine. Tutto lo
+  stile è sotto `.rr`, così la stessa pagina fa anche da anteprima.
+  `stampa(html, nome)`:
+  - nel browser, un iframe nascosto e la finestra di stampa («Salva come
+    PDF»); il nome del PDF viene dal titolo della pagina, che per la
+    durata della stampa prende il nome del documento;
+  - nell'APK, il plugin nativo.
+- **`StampaPlugin.java`** (registrato in `MainActivity`): carica la pagina
+  in una WebView fuori schermo e la passa al servizio di stampa di Android
+  (A4), che offre «Salva come PDF». La WebView resta in un campo finché la
+  stampa non parte, altrimenti uscirebbe bianca. Nessun permesso nuovo.
+- **Diario di Traversata**: tolti `buildDiarioPDF` e le sue sette funzioni
+  di supporto. Il nuovo `exportDiarioPDF` mette: barca, modello e zona;
+  data del calcolo e fonte del vento; i punti A → V → B col ritorno e la
+  sosta; partenza, arrivo, durata, rotta, media e vento in riquadri; gli
+  arrivi di ogni tratta; la luce all'arrivo; lo **schema della rotta**
+  (andata piena, ritorno tratteggiato, A, V, B e il nord), il **grafico del
+  vento** lungo la rotta (`windAt` sui punti del percorso); le impostazioni
+  del calcolo; il diario in tabella. Etichette: virata blu, strambata
+  viola, motore ambra, rifiuto arancio, alzata teal; **verde e rosso solo
+  per le mure** (dritta e sinistra), come la convenzione di bordo.
+- **Dossier**: stessi contenuti e stessi interruttori (costi, allegati,
+  dismessi), con il modello comune; in più due riquadri, «Scadenze
+  superate» (rosso se ce ne sono) e «Lavori previsti»; nella colonna
+  «Prossima scadenza» l'etichetta rossa «scaduta» o ambra entro 60 giorni;
+  la priorità come etichetta. L'anteprima dentro il modulo usa lo stesso
+  stile.
+
+Service worker: **`dritta-hub-v37`** (`rf-report.js` nel precache:
+Manutenzione la serve l'hub), **`raffyca-rt-v35`** con `../rf-report.js`.
+
+### Verificato
+
+Nel browser, intercettando la stampa e aprendo la pagina generata:
+- **diario** con tappa e ritorno (vento reale ECMWF): una pagina e mezza,
+  riquadri, schema, grafico, 22 righe; corretti due difetti visti lì (le
+  frasi della luce attaccate, «(68%)Nessun»; l'ultima ora del grafico
+  tagliata);
+- **dossier** con dati finti (in un iframe di prova, il file non è
+  cambiato): categorie vere dal catalogo, scadenza superata in rosso,
+  prossima entro due mesi in ambra, dismesso in grigio, allegati sotto
+  l'intervento; nome «Dossier Te' Salt 2026-10-01»;
+- sintassi con `jsc`; l'APK si compila col plugin nuovo ed è installato
+  sul tablet.
+
+### Non verificato
+
+- **La finestra di stampa vera**, nel browser e soprattutto **nell'APK**:
+  il plugin compila, ma non l'ho fatto partire (sul tablet avrei dovuto
+  toccare lo schermo). Da provare: Traversata → Diario di rotta → PDF, e
+  Manutenzione → Dossier → PDF.
+- Il numero di pagina nel margine: dipende dalla versione della WebView.
+- Il dossier con i dati veri di Sergio.

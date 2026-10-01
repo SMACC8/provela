@@ -226,6 +226,9 @@ html.day .danger-full{color:#fff}
 #ovDossier .sheet{max-width:700px;max-height:100vh;border-radius:0;margin:0 auto}
 .doc{background:#fff;color:#14181c;font-family:Georgia,"Times New Roman",serif;
   font-size:11pt;line-height:1.45;padding:26px 24px}
+.doc.rr{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;font-size:10.5pt;line-height:1.4;}
+.doc.rr h2{text-transform:none;letter-spacing:0;border-bottom:0;padding-bottom:0;}
+.doc.rr th{text-transform:none;letter-spacing:0;border-bottom:0;}
 .doc h1{font-size:20pt;margin:0 0 2px;letter-spacing:-.2px}
 .doc h2{font-size:11pt;margin:22px 0 7px;padding-bottom:4px;
   border-bottom:1.5px solid #14181c;text-transform:uppercase;letter-spacing:1.1px}
@@ -293,6 +296,7 @@ html.day .danger-full{color:#fff}
 </div>
 <script src="../rf-topbar.js" defer></script>
 <script src="../rf-live.js"></script>
+<script src="../rf-report.js"></script>
 <!-- ===== /rf-topbar ===== -->
 
 <div class="mt-head">
@@ -490,7 +494,7 @@ html.day .danger-full{color:#fff}
     <button class="chip" id="dsPrint" style="border-color:var(--teal);background:var(--teal);color:var(--dp);font-weight:700">PDF</button>
   </div>
   <div style="overflow-y:auto;flex:1;min-height:0;-webkit-overflow-scrolling:touch">
-    <div class="doc" id="dossierBody"></div>
+    <div class="doc rr" id="dossierBody"></div>
   </div>
 </div></div>
 
@@ -1141,75 +1145,78 @@ function renderDossier(){
   }
   var perCat={}; visibili.forEach(function(c){ (perCat[c.cat]=perCat[c.cat]||[]).push(c); });
 
-  var B = ST.boat||{};
+  /* 01/10/2026: dal modello comune rf-report.js (Sergio: «i pdf sono proprio
+     poveri»). Prima: Georgia, tabelle nere, nessun colore; e window.print(),
+     che dentro l'APK non fa niente. Contenuti e interruttori invariati. */
+  var RR=window.rfReport, B = ST.boat||{};
   var ident = [B.cantiere,B.modello].filter(Boolean).join(" ");
   if(B.anno) ident += (ident?" · ":"")+B.anno;
   if(B.matricola) ident += (ident?" · ":"")+"matr. "+B.matricola;
-  var h = '<h1>'+esc(B.nome||"Barca")+'</h1>'+
-    '<p class="sottotitolo">'+esc(ident?ident+" · ":"")+
-    'Registro di manutenzione</p>'+
-    '<div class="meta-doc">'+
-      '<div><span>Interventi</span><strong>'+fatti.length+'</strong></div>'+
-      '<div><span>Periodo</span><strong>'+esc(periodo)+'</strong></div>'+
-      '<div><span>Componenti</span><strong>'+visibili.length+'</strong></div>'+
-      (DS.costi?'<div><span>Totale speso</span><strong>'+esc(eur(spesa))+'</strong></div>':'')+
-      '<div><span>Documenti</span><strong>'+ST.docs.length+'</strong></div>'+
-    '</div><h2>1 · Stato dei componenti</h2>';
-
-  CATEGORIE.forEach(function(cat){
-    var lista = perCat[cat.id]; if(!lista||!lista.length) return;
-    h += '<h3>'+esc(cat.label)+'</h3><table><thead><tr>'+
-      '<th style="width:40%">Componente</th><th>Marca e modello</th>'+
-      '<th class="num">Installato</th><th class="num">Prossima</th></tr></thead><tbody>';
-    lista.forEach(function(c){
-      var pr = prossima(c.id), ul = ultimoInt(c.id)||c.installato;
-      h += '<tr'+(c.archiviato?' class="arch"':'')+'>'+
-        '<td>'+esc(percorso(c.id))+(c.archiviato?" (dismesso)":"")+'</td>'+
-        '<td>'+esc([c.marca,c.modello].filter(Boolean).join(" ")||"—")+'</td>'+
-        '<td class="num">'+(ul?esc(String(ul).split("-").reverse().join("/")):"—")+'</td>'+
-        '<td class="num">'+(pr?esc(pr.toLocaleDateString("it-IT",{month:"2-digit",year:"numeric"})):"—")+'</td></tr>';
-    });
-    h += '</tbody></table>';
-  });
-
-  h += '<h2>2 · Cronologia degli interventi</h2><table><thead><tr>'+
-    '<th class="num" style="width:78px">Data</th><th>Intervento</th><th>Eseguito da</th>'+
-    (DS.costi?'<th class="num">Costo</th>':'')+'</tr></thead><tbody>';
-  crono.forEach(function(i){
-    var all="";
-    if(DS.alleg && i.docs && i.docs.length){
-      all = '<div class="allegati">'+i.docs.map(function(id){ var d=docById(id);
-        return d?('<span>'+esc(tipoLabel(d.tipo))+" · "+esc(d.nome)+'</span>'):""; }).join("")+'</div>';
-    }
-    h += '<tr><td class="num">'+(i.data?esc(String(i.data).split("-").reverse().join("/")):"—")+'</td>'+
-      '<td><strong>'+esc(i.titolo)+'</strong>'+
-      (i.comp&&compById(i.comp)?'<div class="sotto">'+esc(percorso(i.comp))+'</div>':'')+all+'</td>'+
-      '<td>'+esc(i.esecutore||"—")+'</td>'+
-      (DS.costi?'<td class="num">'+(i.costo!=null?esc(eur(i.costo)):"—")+'</td>':'')+'</tr>';
-  });
-  h += '</tbody></table>';
-
+  var oggi=new Date(), tra60=new Date(oggi.getTime()+60*864e5);
+  var scadute=0;
+  visibili.forEach(function(c){ var pr=prossima(c.id); if(pr&&pr<oggi) scadute++; });
   var previsti = ST.ints.filter(function(i){ return i.stato==="previsto"; })
     .sort(function(a,b){ return prio(a.priorita).rank-prio(b.priorita).rank; });
+  function data(iso){ return iso?esc(String(iso).split("-").reverse().join("/")):"—"; }
+
+  var h = RR.testata({titolo:B.nome||"Barca",sottotitolo:(ident?ident+" · ":"")+"Registro di manutenzione",
+    destra:["Dossier di bordo", oggi.toLocaleDateString("it-IT",{day:"numeric",month:"long",year:"numeric"})]});
+  h += RR.kpi([{k:"Interventi",v:fatti.length},{k:"Periodo",v:periodo},{k:"Componenti",v:visibili.length},
+    DS.costi?{k:"Totale speso",v:eur(spesa)}:null,
+    {k:"Scadenze superate",v:scadute,tono:scadute?"rosso":"teal"},
+    {k:"Lavori previsti",v:previsti.length,tono:previsti.length?"ambra":null},
+    {k:"Documenti",v:ST.docs.length}]);
+
+  h += '<h2>1 · Stato dei componenti</h2>';
+  CATEGORIE.forEach(function(cat){
+    var lista = perCat[cat.id]; if(!lista||!lista.length) return;
+    h += '<h3>'+esc(cat.label)+'</h3>';
+    h += RR.tabella([{t:"Componente",w:"40%"},{t:"Marca e modello"},{t:"Ultimo intervento",num:true},{t:"Prossima scadenza",num:true}],
+      lista.map(function(c){
+        var pr = prossima(c.id), ul = ultimoInt(c.id)||c.installato, ps="—";
+        if(pr){ var t=pr.toLocaleDateString("it-IT",{month:"2-digit",year:"numeric"});
+          ps = pr<oggi ? RR.chip("scaduta "+t,"rosso") : pr<tra60 ? RR.chip(t,"ambra") : esc(t); }
+        return {cls:c.archiviato?"spento":"",celle:[
+          esc(percorso(c.id))+(c.archiviato?' <span class="sotto">(dismesso)</span>':''),
+          esc([c.marca,c.modello].filter(Boolean).join(" ")||"—"), data(ul), ps]};
+      }));
+  });
+
+  h += '<h2>2 · Cronologia degli interventi</h2>';
+  var colC=[{t:"Data",w:"78px",num:true},{t:"Intervento"},{t:"Eseguito da"}]; if(DS.costi) colC.push({t:"Costo",num:true});
+  h += RR.tabella(colC, crono.map(function(i){
+    var all="";
+    if(DS.alleg && i.docs && i.docs.length){
+      all = '<div class="sotto">'+i.docs.map(function(id){ var d=docById(id);
+        return d?("▸ "+esc(tipoLabel(d.tipo))+" · "+esc(d.nome)):""; }).filter(Boolean).join("<br>")+'</div>';
+    }
+    var r=[data(i.data),'<strong>'+esc(i.titolo)+'</strong>'+
+      (i.comp&&compById(i.comp)?'<div class="sotto">'+esc(percorso(i.comp))+'</div>':'')+all, esc(i.esecutore||"—")];
+    if(DS.costi) r.push(i.costo!=null?esc(eur(i.costo)):"—");
+    return r;
+  }));
+
   if(previsti.length){
-    h += '<h2>3 · Lavori previsti</h2><table><thead><tr><th>Lavoro</th><th>Priorità</th>'+
-      '<th>Chi</th>'+(DS.costi?'<th class="num">Preventivo</th>':'')+'</tr></thead><tbody>';
-    previsti.forEach(function(i){
-      h += '<tr><td><strong>'+esc(i.titolo)+'</strong>'+
-        (i.comp&&compById(i.comp)?'<div class="sotto">'+esc(percorso(i.comp))+'</div>':'')+'</td>'+
-        '<td>'+esc(prio(i.priorita).label)+'</td><td>'+esc(i.esecutore||"—")+'</td>'+
-        (DS.costi?'<td class="num">'+(i.costoPrev!=null?esc(eur(i.costoPrev)):"—")+'</td>':'')+'</tr>';
-    });
-    h += '</tbody></table>';
+    h += '<h2>3 · Lavori previsti</h2>';
+    var colP=[{t:"Lavoro"},{t:"Priorità"},{t:"Chi"}]; if(DS.costi) colP.push({t:"Preventivo",num:true});
+    h += RR.tabella(colP, previsti.map(function(i){
+      var pr=prio(i.priorita);
+      var r=['<strong>'+esc(i.titolo)+'</strong>'+(i.comp&&compById(i.comp)?'<div class="sotto">'+esc(percorso(i.comp))+'</div>':''),
+        RR.chip(pr.label, pr.id==="urgente"?"rosso":pr.id==="stagione"?"ambra":"grigio"), esc(i.esecutore||"—")];
+      if(DS.costi) r.push(i.costoPrev!=null?esc(eur(i.costoPrev)):"—");
+      return r;
+    }));
   }
 
-  h += '<p class="chiusura">Documento generato da Dritta il '+
-    esc(new Date().toLocaleDateString("it-IT",{day:"numeric",month:"long",year:"numeric"}))+
-    '. Riporta quanto registrato dall\'armatore; i documenti elencati sono forniti a parte '+
+  h += '<p class="rr-nota" style="margin-top:16px">Riporta quanto registrato dall\'armatore; i documenti elencati sono forniti a parte '+
     'in formato originale. Non costituisce perizia né certificazione dello stato dell\'imbarcazione.</p>';
+  h += RR.piede('Documento generato da Dritta');
 
+  DOSSIER_HTML = h;
+  RR.stileAnteprima();
   $("dossierBody").innerHTML = h;
 }
+var DOSSIER_HTML = "";
 
 /* ══════════════════════════════════════════════════════════════════
    Storage: file su bucket Supabase
@@ -1962,7 +1969,11 @@ function wiring(){
     this.textContent=(DS[k]?"✓ ":"")+this.textContent.replace(/^✓\s*/,"");
     renderDossier(); }; }
   opz("dsCosti","costi"); opz("dsAlleg","alleg"); opz("dsArch","arch");
-  $("dsPrint").onclick=function(){ window.print(); };
+  /* PDF dal modello comune: nel browser la finestra di stampa, nell'APK il plugin Stampa */
+  $("dsPrint").onclick=function(){ if(!window.rfReport){ window.print(); return; }
+    var B=ST.boat||{}, d=new Date();
+    rfReport.stampa(rfReport.documento("Dossier di bordo",DOSSIER_HTML),
+      "Dossier "+(B.nome||"barca")+" "+d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate())); };
 }
 
 /* ══════════════════════════════════════════════════════════════════
