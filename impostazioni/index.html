@@ -306,6 +306,110 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
     </div>
   </div>
 
+  <style>
+  .sto{margin-top:6px;font-size:12.5px}
+  .sto .bar{height:8px;border-radius:5px;background:var(--display,#1a2228);overflow:hidden;border:1px solid var(--line,#2a343c);margin:6px 0 8px}
+  .sto .bar i{display:block;height:100%;background:var(--teal,#2BD9C4)}
+  .sto.warn .bar i{background:var(--amber,#f0b429)}
+  .sto.full .bar i{background:var(--coral,#e2603f)}
+  .sto .tot{color:var(--sub,#8fa0ad)}
+  .sto .rk{display:flex;justify-content:space-between;gap:10px;padding:3px 0;border-top:1px solid var(--line,#2a343c)}
+  .sto .rk b{font-weight:600;color:var(--ink,#e6edf3);font-family:var(--font-mono,ui-monospace,monospace);font-size:12px}
+  .sto .rk span{color:var(--sub,#8fa0ad);font-family:var(--font-mono,ui-monospace,monospace);flex:none}
+  .sto .avv{margin-top:8px;color:var(--coral,#e2603f);line-height:1.45}
+  </style>
+
+  <!-- POLARE -->
+  <style>
+  @keyframes rfGlow{0%,100%{box-shadow:0 0 0 0 rgba(43,217,196,0);}50%{box-shadow:0 0 0 3px rgba(43,217,196,.55),0 0 22px rgba(43,217,196,.35);}}
+  #polarSection.rf-highlight{animation:rfGlow 1.3s ease-in-out 3;border-color:#2BD9C4!important;}
+  </style>
+<style>
+  .gps-btn{font:600 13px/1 var(--font-mono);padding:9px 18px;border-radius:999px;cursor:pointer;
+    border:1px solid hsl(var(--teal));background:hsl(var(--teal) / .12);color:hsl(var(--teal));transition:.15s;}
+  .gps-btn.on{border-color:hsl(var(--coral));background:hsl(var(--coral) / .12);color:hsl(var(--coral));}
+  .gps-btn:active{transform:scale(.97);}
+  .gps-panel{margin-top:8px;}
+  .gps-panel[hidden]{display:none;}
+  .gps-fix{display:flex;align-items:center;gap:9px;font:700 14px/1 var(--font-mono);color:hsl(var(--ink));margin:2px 2px 12px;}
+  .gps-dot{width:11px;height:11px;border-radius:50%;flex:0 0 auto;background:hsl(var(--muted));box-shadow:0 0 0 3px hsl(var(--muted) / .18);}
+  .gps-dot.ok{background:hsl(var(--green));box-shadow:0 0 0 3px hsl(var(--green) / .22);}
+  .gps-dot.warn{background:hsl(var(--amber));box-shadow:0 0 0 3px hsl(var(--amber) / .22);}
+  .gps-dot.err{background:hsl(var(--coral));box-shadow:0 0 0 3px hsl(var(--coral) / .22);}
+  .gps-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .gps-cell{background:hsl(var(--display));border:1px solid hsl(var(--line));border-radius:10px;padding:8px 10px;}
+  .gps-cell .c-k{font:600 10px/1 var(--font-mono);letter-spacing:.06em;color:hsl(var(--muted));text-transform:uppercase;}
+  .gps-cell .c-v{font:700 15px/1.2 var(--font-mono);color:hsl(var(--ink));margin-top:5px;}
+  .gps-cell .c-q{font:600 11px/1 var(--font-mono);margin-top:3px;min-height:11px;}
+  .gps-cell .c-q.ok{color:hsl(var(--green));}
+  .gps-cell .c-q.warn{color:hsl(var(--amber));}
+  .gps-cell .c-q.err{color:hsl(var(--coral));}
+</style>
+
+
+<style>
+/* ── 01/10/2026: lo stile della suite (schizzo approvato da Sergio) ─────────
+   Era il primo mockup: viti agli angoli, campi «LCD» a righe, alone in alto,
+   scritte da 10-11 px e comandi da 29-35 px. Qui uno strato sopra, che non
+   tocca la logica: riquadri piatti, misure di raffyca.css (--tocco, testi),
+   due colonne da 900 px. raffyca.css non si collega: definisce anch'esso
+   .rf-instr, .rf-dp e .rf-num, e le due versioni si pesterebbero. */
+:root{--tocco:48px;--t-et:13px;--t-pic:14px;--t-txt:16px;}
+@media (min-width:560px){:root{--tocco:54px;--t-et:14px;--t-pic:15px;--t-txt:17px;}}
+body{background:hsl(var(--bg));}
+.wrap{max-width:760px;}
+.top-txt .eyebrow{font-size:12px;letter-spacing:.1em;}
+.boat{font-size:14px;}
+.foot{font-size:12px;}
+.idx{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 4px;padding:8px 0;position:sticky;top:var(--rf-barra,40px);z-index:5;background:hsl(var(--bg));}
+.idx a{min-height:44px;padding:0 16px;border:1px solid hsl(var(--line));border-radius:999px;display:inline-flex;align-items:center;
+  color:hsl(var(--ink));text-decoration:none;font-size:var(--t-pic);background:hsl(var(--surface));}
+.grp{scroll-margin-top:calc(var(--rf-barra,40px) + 70px);}
+.grp-h{font-size:var(--t-et);text-transform:uppercase;letter-spacing:.08em;color:hsl(var(--teal));margin:22px 2px 10px;font-weight:650;}
+.rf-instr{background:hsl(var(--surface));border:1px solid hsl(var(--line));box-shadow:none;border-radius:12px;padding:14px 16px;margin-bottom:12px;}
+.rf-viti::before,.rf-viti::after,.rf-viti > .rf-viti-b::before,.rf-viti > .rf-viti-b::after{display:none;}
+.rf-instr > .rf-title{font-size:var(--t-et);letter-spacing:.06em;font-weight:650;color:hsl(var(--ink));margin:0 0 8px;}
+.rf-instr > .rf-title::before{box-shadow:none!important;width:9px;height:9px;}
+.field{padding:12px 0;}
+.field .lbl .k{font-size:var(--t-txt);}
+.field .lbl .h{font-size:13px;line-height:1.4;}
+.rf-dp{background:hsl(var(--display));border:1px solid hsl(var(--line));box-shadow:none;}
+.rf-dp:focus-within{box-shadow:0 0 0 1px hsl(var(--teal) / .6);}
+input.rf-num,input.rf-txt,select.rf-sel{font-size:var(--t-pic);min-height:calc(var(--tocco) - 2px);}
+.seg{box-shadow:none;border-color:hsl(var(--line));}
+.seg button{min-height:calc(var(--tocco) - 8px);font-size:var(--t-pic);}
+.seg button[aria-pressed="true"]{box-shadow:inset 0 0 0 1px hsl(var(--teal) / .5)!important;}
+.seg[data-accent="amber"] button[aria-pressed="true"]{box-shadow:inset 0 0 0 1px hsl(var(--amber) / .5)!important;}
+.btn{min-height:var(--tocco);font-size:14px;}
+.gd>summary{font-size:var(--t-txt);min-height:44px;display:flex;align-items:center;}
+.gd-r,.gd-b p{font-size:14px!important;}
+.info-grid{font-size:14px;}
+.gps-cell .c-k{font-size:12px;} .gps-cell .c-v{font-size:17px;} .gps-cell .c-q{font-size:12px;}
+#orcQ{font-size:15px!important;min-height:var(--tocco);}
+#gpsToggle{min-height:var(--tocco);font-size:14px;}
+#polCsv{font-size:14px!important;}
+#polarInvite{font-size:14px!important;}
+.toast{font-size:14px;}
+/* spiegazioni lunghe: una riga breve resta, il resto si apre con ⓘ */
+.field .lbl .h.lunga{display:none;}
+.field .lbl .h.lunga.aperta{display:block;}
+.ii{border:0;background:none;color:hsl(var(--teal));font-size:18px;line-height:1;padding:4px 6px;margin-left:4px;cursor:pointer;vertical-align:middle;min-width:32px;min-height:32px;}
+@media (min-width:900px){
+  .wrap{max-width:1180px;}
+  .grps{column-count:2;column-gap:16px;}
+  .rf-instr{break-inside:avoid;}
+  .grp-h{break-after:avoid;}
+}
+</style>
+  <!-- 01/10/2026: indice e gruppi (schizzo approvato da Sergio). La pagina era
+       lunga quasi cinque schermate, nell'ordine in cui i riquadri erano nati. -->
+  <nav class="idx" aria-label="Sezioni">
+    <a href="#g-barca">Barca</a><a href="#g-schermo">Schermo</a><a href="#g-nav">Navigazione</a><a href="#g-dati">Dati</a><a href="#g-aiuto">Aiuto</a>
+  </nav>
+
+  <div class="grps">
+  <div class="grp" id="g-barca">
+  <h2 class="grp-h">Barca</h2>
   <!-- PROFILO -->
   <section class="rf-instr rf-viti" data-accent="teal">
     <span class="rf-viti-b"></span>
@@ -377,6 +481,44 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
     </div>
   </section>
 
+  <section id="polarSection" class="rf-instr rf-viti" data-accent="teal">
+    <span class="rf-viti-b"></span>
+    <div class="rf-title">Polare della barca</div>
+    <div id="polarInvite" hidden style="margin:2px 0 10px;padding:9px 11px;border-radius:9px;border:1px solid #2BD9C4;background:rgba(43,217,196,.10);font-size:12.5px;line-height:1.42">
+      <b>Benvenuto a bordo.</b> Per iniziare, cerca qui la polare della tua barca (o una simile): migliora rotte, cruscotto e stime di performance.
+    </div>
+    <div class="field">
+      <div class="lbl">
+        <div class="k">Polare condivisa</div>
+        <div class="h" id="polState">Nessuna polare caricata — i moduli usano quella integrata.</div>
+      </div>
+    </div>
+    <div class="field" style="margin-top:6px">
+      <div class="lbl">
+        <div class="k">Cerca la mia barca in ORC</div>
+        <div class="h">Database mediterraneo. Scrivi nome o tipo (es. <code>First 36.7</code>) e tocca il risultato.</div>
+      </div>
+    </div>
+    <input id="orcQ" type="search" autocomplete="off" placeholder="nome o tipo barca…" style="width:100%;font-family:var(--font-mono);font-size:13px;padding:9px 11px;border-radius:9px;border:1px solid hsl(var(--line));background:hsl(var(--bg));box-shadow:inset 0 2px 6px hsl(210 60% 1% / .55);color:hsl(var(--ink));outline:none;margin-top:4px;box-sizing:border-box">
+    <ul id="orcRes" hidden style="list-style:none;margin:6px 0 0;padding:0;border:1px solid hsl(var(--line));border-radius:9px;overflow:hidden;background:hsl(var(--surface))"></ul>
+    <div class="field" style="margin-top:10px">
+      <div class="lbl">
+        <div class="k">Carica da CSV</div>
+        <div class="h">Intestazione: <code>twa/tws;6;8;10;12;14;16;20</code> · righe: <code>angolo;vel;vel;…</code></div>
+      </div>
+    </div>
+    <textarea id="polCsv" rows="4" placeholder="twa/tws;6;8;10;12;14;16;20&#10;52;5.4;6.3;6.7;6.8;6.9;7.0;7.0" style="width:100%;font-family:var(--font-mono);font-size:12px;padding:9px 11px;border-radius:9px;border:1px solid hsl(var(--line));background:hsl(var(--surface));color:hsl(var(--ink));outline:none;margin-top:4px;resize:vertical;box-sizing:border-box"></textarea>
+    <div class="actions" style="margin-top:6px">
+      <button class="btn teal" id="btnPolLoad">Applica CSV</button>
+      <button class="btn" id="btnPolFile">Da file .csv</button>
+      <button class="btn coral" id="btnPolClear">Rimuovi</button>
+      <input type="file" id="polFile" accept=".csv,text/csv" hidden>
+    </div>
+  </section>
+  </div>
+
+  <div class="grp" id="g-schermo">
+  <h2 class="grp-h">Schermo</h2>
   <!-- ASPETTO -->
   <section class="rf-instr rf-viti" data-accent="amber">
     <span class="rf-viti-b"></span>
@@ -424,7 +566,10 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
       </div>
     </div>
   </section>
+  </div>
 
+  <div class="grp" id="g-nav">
+  <h2 class="grp-h">Navigazione</h2>
   <!-- NAVIGAZIONE -->
   <section class="rf-instr rf-viti" data-accent="teal">
     <span class="rf-viti-b"></span>
@@ -495,30 +640,10 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
       </div>
     </div>
 
-    <div class="field">
-      <div class="lbl">
-        <div class="k">Sorgente vento</div>
-        <div class="h">Predefinita per il Cruscotto</div>
-      </div>
-      <div class="ctl rf-dp dp-sel">
-        <select class="rf-sel" id="windSource">
-          <option value="stima">Stima</option>
-          <option value="signalk">Signal K</option>
-          <option value="manuale">Manuale</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="field" id="skRow">
-      <div class="lbl">
-        <div class="k">Endpoint Signal K</div>
-        <div class="h">URL del server (ws:// o http://)</div>
-      </div>
-      <div class="ctl rf-dp dp-txt">
-        <input class="rf-txt" id="signalkUrl" type="text" placeholder="ws://192.168.1.10:3000" autocomplete="off" spellcheck="false">
-      </div>
-    </div>
-
+    <!-- 01/10/2026: tolte «Sorgente vento» (Stima / Signal K / Manuale) ed
+         «Endpoint Signal K»: si salvavano in raffyca-settings ma nessun modulo
+         le leggeva. Il vento si sceglie dal tasto del Cruscotto, il gateway nel
+         riquadro Strumenti di bordo (NMEA). -->
     <div class="field">
       <div class="lbl">
         <div class="k">Fine countdown regata</div>
@@ -563,91 +688,6 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
       </div>
     </div>
   </section>
-
-  <!-- DATI -->
-  <section class="rf-instr rf-viti" data-accent="green">
-    <span class="rf-viti-b"></span>
-    <div class="rf-title">Dati</div>
-
-    <div class="field">
-      <div class="lbl">
-        <div class="k">Copia di sicurezza locale</div>
-        <div class="h" id="bkState">Controllo backup…</div>
-      </div>
-    </div>
-    <div class="field" style="margin-top:6px">
-      <div class="lbl">
-        <div class="k">Snapshot automatico</div>
-        <div class="h">A ogni apertura dell'app salvo una copia delle tue voci (barca, waypoint, tracce, polare, impostazioni…) in un archivio separato dal browser, che resiste a un azzeramento dei dati. Tengo gli ultimi 5. Se all'avvio i dati risultano spariti, Dritta propone il ripristino. Per una copia fuori dal telefono, esporta il file.</div>
-      </div>
-    </div>
-    <div class="actions" style="margin-top:6px">
-      <button class="btn teal" id="btnBkExport">Esporta backup (file)</button>
-      <button class="btn" id="btnBkImport">Importa da file</button>
-      <input type="file" id="bkFile" accept="application/json,.json" hidden>
-    </div>
-
-    <div class="field" style="margin-top:6px">
-      <div class="lbl">
-        <div class="k">Spazio usato</div>
-        <div class="h">Il browser concede circa 5 MB per l'intera app: oltre quel tetto i salvataggi falliscono</div>
-      </div>
-    </div>
-    <div id="stoBox" class="sto"></div>
-    <div class="actions" style="margin-top:4px">
-      <button class="btn" id="btnSto">Calcola</button>
-    </div>
-
-    <div class="field" style="margin-top:6px">
-      <div class="lbl">
-        <div class="k">Ripristino</div>
-        <div class="h">Azzera i dati locali di questo dispositivo</div>
-      </div>
-    </div>
-    <div class="actions" style="margin-top:4px">
-      <button class="btn coral" id="btnReset">Azzera dati…</button>
-    </div>
-  </section>
-
-  <style>
-  .sto{margin-top:6px;font-size:12.5px}
-  .sto .bar{height:8px;border-radius:5px;background:var(--display,#1a2228);overflow:hidden;border:1px solid var(--line,#2a343c);margin:6px 0 8px}
-  .sto .bar i{display:block;height:100%;background:var(--teal,#2BD9C4)}
-  .sto.warn .bar i{background:var(--amber,#f0b429)}
-  .sto.full .bar i{background:var(--coral,#e2603f)}
-  .sto .tot{color:var(--sub,#8fa0ad)}
-  .sto .rk{display:flex;justify-content:space-between;gap:10px;padding:3px 0;border-top:1px solid var(--line,#2a343c)}
-  .sto .rk b{font-weight:600;color:var(--ink,#e6edf3);font-family:var(--font-mono,ui-monospace,monospace);font-size:12px}
-  .sto .rk span{color:var(--sub,#8fa0ad);font-family:var(--font-mono,ui-monospace,monospace);flex:none}
-  .sto .avv{margin-top:8px;color:var(--coral,#e2603f);line-height:1.45}
-  </style>
-
-  <!-- POLARE -->
-  <style>
-  @keyframes rfGlow{0%,100%{box-shadow:0 0 0 0 rgba(43,217,196,0);}50%{box-shadow:0 0 0 3px rgba(43,217,196,.55),0 0 22px rgba(43,217,196,.35);}}
-  #polarSection.rf-highlight{animation:rfGlow 1.3s ease-in-out 3;border-color:#2BD9C4!important;}
-  </style>
-<style>
-  .gps-btn{font:600 13px/1 var(--font-mono);padding:9px 18px;border-radius:999px;cursor:pointer;
-    border:1px solid hsl(var(--teal));background:hsl(var(--teal) / .12);color:hsl(var(--teal));transition:.15s;}
-  .gps-btn.on{border-color:hsl(var(--coral));background:hsl(var(--coral) / .12);color:hsl(var(--coral));}
-  .gps-btn:active{transform:scale(.97);}
-  .gps-panel{margin-top:8px;}
-  .gps-panel[hidden]{display:none;}
-  .gps-fix{display:flex;align-items:center;gap:9px;font:700 14px/1 var(--font-mono);color:hsl(var(--ink));margin:2px 2px 12px;}
-  .gps-dot{width:11px;height:11px;border-radius:50%;flex:0 0 auto;background:hsl(var(--muted));box-shadow:0 0 0 3px hsl(var(--muted) / .18);}
-  .gps-dot.ok{background:hsl(var(--green));box-shadow:0 0 0 3px hsl(var(--green) / .22);}
-  .gps-dot.warn{background:hsl(var(--amber));box-shadow:0 0 0 3px hsl(var(--amber) / .22);}
-  .gps-dot.err{background:hsl(var(--coral));box-shadow:0 0 0 3px hsl(var(--coral) / .22);}
-  .gps-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-  .gps-cell{background:hsl(var(--display));border:1px solid hsl(var(--line));border-radius:10px;padding:8px 10px;}
-  .gps-cell .c-k{font:600 10px/1 var(--font-mono);letter-spacing:.06em;color:hsl(var(--muted));text-transform:uppercase;}
-  .gps-cell .c-v{font:700 15px/1.2 var(--font-mono);color:hsl(var(--ink));margin-top:5px;}
-  .gps-cell .c-q{font:600 11px/1 var(--font-mono);margin-top:3px;min-height:11px;}
-  .gps-cell .c-q.ok{color:hsl(var(--green));}
-  .gps-cell .c-q.warn{color:hsl(var(--amber));}
-  .gps-cell .c-q.err{color:hsl(var(--coral));}
-</style>
 
   <!-- CIELO GPS -->
   <section class="rf-instr rf-viti" data-accent="green">
@@ -718,46 +758,59 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
       <a class="btn" href="../strumenti.html">Diagnostica</a>
     </div>
   </section>
+  </div>
 
-  <section id="polarSection" class="rf-instr rf-viti" data-accent="teal">
+  <div class="grp" id="g-dati">
+  <h2 class="grp-h">Dati</h2>
+  <!-- DATI -->
+  <section class="rf-instr rf-viti" data-accent="green">
     <span class="rf-viti-b"></span>
-    <div class="rf-title">Polare della barca</div>
-    <div id="polarInvite" hidden style="margin:2px 0 10px;padding:9px 11px;border-radius:9px;border:1px solid #2BD9C4;background:rgba(43,217,196,.10);font-size:12.5px;line-height:1.42">
-      <b>Benvenuto a bordo.</b> Per iniziare, cerca qui la polare della tua barca (o una simile): migliora rotte, cruscotto e stime di performance.
-    </div>
+    <div class="rf-title">Dati</div>
+
     <div class="field">
       <div class="lbl">
-        <div class="k">Polare condivisa</div>
-        <div class="h" id="polState">Nessuna polare caricata — i moduli usano quella integrata.</div>
+        <div class="k">Copia di sicurezza locale</div>
+        <div class="h" id="bkState">Controllo backup…</div>
       </div>
     </div>
     <div class="field" style="margin-top:6px">
       <div class="lbl">
-        <div class="k">Cerca la mia barca in ORC</div>
-        <div class="h">Database mediterraneo. Scrivi nome o tipo (es. <code>First 36.7</code>) e tocca il risultato.</div>
+        <div class="k">Snapshot automatico</div>
+        <div class="h">A ogni apertura dell'app salvo una copia delle tue voci (barca, waypoint, tracce, polare, impostazioni…) in un archivio separato dal browser, che resiste a un azzeramento dei dati. Tengo gli ultimi 5. Se all'avvio i dati risultano spariti, Dritta propone il ripristino. Per una copia fuori dal telefono, esporta il file.</div>
       </div>
     </div>
-    <input id="orcQ" type="search" autocomplete="off" placeholder="nome o tipo barca…" style="width:100%;font-family:var(--font-mono);font-size:13px;padding:9px 11px;border-radius:9px;border:1px solid hsl(var(--line));background:hsl(var(--bg));box-shadow:inset 0 2px 6px hsl(210 60% 1% / .55);color:hsl(var(--ink));outline:none;margin-top:4px;box-sizing:border-box">
-    <ul id="orcRes" hidden style="list-style:none;margin:6px 0 0;padding:0;border:1px solid hsl(var(--line));border-radius:9px;overflow:hidden;background:hsl(var(--surface))"></ul>
-    <div class="field" style="margin-top:10px">
-      <div class="lbl">
-        <div class="k">Carica da CSV</div>
-        <div class="h">Intestazione: <code>twa/tws;6;8;10;12;14;16;20</code> · righe: <code>angolo;vel;vel;…</code></div>
-      </div>
-    </div>
-    <textarea id="polCsv" rows="4" placeholder="twa/tws;6;8;10;12;14;16;20&#10;52;5.4;6.3;6.7;6.8;6.9;7.0;7.0" style="width:100%;font-family:var(--font-mono);font-size:12px;padding:9px 11px;border-radius:9px;border:1px solid hsl(var(--line));background:hsl(var(--surface));color:hsl(var(--ink));outline:none;margin-top:4px;resize:vertical;box-sizing:border-box"></textarea>
     <div class="actions" style="margin-top:6px">
-      <button class="btn teal" id="btnPolLoad">Applica CSV</button>
-      <button class="btn" id="btnPolFile">Da file .csv</button>
-      <button class="btn coral" id="btnPolClear">Rimuovi</button>
-      <input type="file" id="polFile" accept=".csv,text/csv" hidden>
+      <button class="btn teal" id="btnBkExport">Esporta backup (file)</button>
+      <button class="btn" id="btnBkImport">Importa da file</button>
+      <input type="file" id="bkFile" accept="application/json,.json" hidden>
+    </div>
+
+    <div class="field" style="margin-top:6px">
+      <div class="lbl">
+        <div class="k">Spazio usato</div>
+        <div class="h">Il browser concede circa 5 MB per l'intera app: oltre quel tetto i salvataggi falliscono</div>
+      </div>
+    </div>
+    <div id="stoBox" class="sto"></div>
+    <div class="actions" style="margin-top:4px">
+      <button class="btn" id="btnSto">Calcola</button>
+    </div>
+
+    <div class="field" style="margin-top:6px">
+      <div class="lbl">
+        <div class="k">Ripristino</div>
+        <div class="h">Azzera i dati locali di questo dispositivo</div>
+      </div>
+    </div>
+    <div class="actions" style="margin-top:4px">
+      <button class="btn coral" id="btnReset">Azzera dati…</button>
     </div>
   </section>
 
-  <!-- MANUTENZIONE -->
+  <!-- DATABASE: era «Manutenzione», ma lo usano anche Carta e Posizione live -->
   <section class="rf-instr rf-viti" data-accent="teal">
     <span class="rf-viti-b"></span>
-    <div class="rf-title">Manutenzione</div>
+    <div class="rf-title">Database (Supabase)</div>
 
     <div class="field">
       <div class="lbl">
@@ -854,7 +907,10 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
       </div>
     </div>
   </section>
+  </div>
 
+  <div class="grp" id="g-aiuto">
+  <h2 class="grp-h">Aiuto</h2>
   <!-- GUIDA (ex pagina Info) -->
   <section class="rf-instr rf-viti" data-accent="amber">
     <span class="rf-viti-b"></span>
@@ -915,6 +971,8 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
       <dt>Suite</dt><dd>Dritta</dd>
     </dl>
   </section>
+  </div>
+  </div>
 
   <div class="foot">DRITTA · NAVIGAZIONE</div>
 </div>
@@ -932,7 +990,7 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
 
   /* chiavi possedute da QUESTO modulo dentro raffyca-settings.
      La scrittura è merge-safe: tocchiamo solo queste, il resto resta intatto. */
-  var OWNED = ["units", "trackInterval", "raceInterval", "voiceInterval", "windSource", "signalkUrl", "raceEndAction", "raceEndUrl", "speedSrc", "sogSmooth", "startDistG", "startDistY", "syncMapView"];
+  var OWNED = ["units", "trackInterval", "raceInterval", "voiceInterval", "raceEndAction", "raceEndUrl", "speedSrc", "sogSmooth", "startDistG", "startDistY", "syncMapView"];
 
   /* prefisso per backup/reset: tutto ciò che appartiene alla suite */
   var RF_PREFIX = "raffyca-";
@@ -1036,9 +1094,6 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
     $("trackInterval").value = (s.trackInterval != null) ? s.trackInterval : "";
     $("raceInterval").value = (s.raceInterval != null) ? s.raceInterval : "";
     $("voiceInterval").value = (s.voiceInterval != null) ? s.voiceInterval : "";
-    $("windSource").value = ["stima","signalk","manuale"].indexOf(s.windSource) >= 0 ? s.windSource : "stima";
-    $("signalkUrl").value = s.signalkUrl || "";
-    refreshSkRow();
     $("raceEnd").value = ["cruscotto","percorso","diretto","none","url"].indexOf(s.raceEndAction) >= 0 ? s.raceEndAction : "cruscotto";
     $("raceEndUrl").value = s.raceEndUrl || "";
     refreshRaceUrlRow();
@@ -1054,9 +1109,6 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
     $("boatLine").textContent = parts.length ? parts.join(" · ") : "Nessuna barca configurata";
   }
 
-  function refreshSkRow(){
-    $("skRow").style.display = ($("windSource").value === "signalk") ? "" : "none";
-  }
   function refreshRaceUrlRow(){
     $("raceUrlRow").style.display = ($("raceEnd").value === "url") ? "" : "none";
   }
@@ -1188,13 +1240,6 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
       patchSettings({voiceInterval: v}); toast("Voce: " + v + " s");
     });
 
-    // --- sorgente vento ---
-    $("windSource").addEventListener("change", function(){
-      patchSettings({windSource: this.value}); refreshSkRow(); toast("Sorgente vento aggiornata");
-    });
-    $("signalkUrl").addEventListener("change", function(){
-      patchSettings({signalkUrl: this.value.trim()}); toast("Endpoint salvato");
-    });
     $("raceEnd").addEventListener("change", function(){
       patchSettings({raceEndAction: this.value}); refreshRaceUrlRow(); toast("Fine countdown aggiornata");
     });
@@ -1768,6 +1813,23 @@ window.rfBackup=(function(){
     var m=t.match(/VERSION\s*=\s*'([^']+)'/);
     document.getElementById('infoBuild').textContent=m?m[1]:'—';
   }).catch(function(){});
+})();
+</script>
+<script>
+/* ⓘ (01/10/2026): le spiegazioni lunghe (piu' di 80 caratteri) si aprono a
+   richiesta. Restano sempre visibili quelle con un id, che sono stati
+   scritti dal codice (polare caricata, connessione, utente...). */
+(function(){
+  var hh=document.querySelectorAll('.field .lbl .h');
+  for(var i=0;i<hh.length;i++){
+    var h=hh[i]; if(h.id||h.querySelector('[id]')||h.textContent.trim().length<=80) continue;
+    h.classList.add('lunga');
+    var k=h.parentNode.querySelector('.k');
+    var b=document.createElement('button'); b.type='button'; b.className='ii'; b.textContent='ⓘ';
+    b.setAttribute('aria-label','Spiegazione');
+    (function(h,b){ b.addEventListener('click',function(){ var a=h.classList.toggle('aperta'); b.setAttribute('aria-expanded',a); }); })(h,b);
+    if(k) k.appendChild(b); else { var w=document.createElement('div'); w.className='k'; w.appendChild(document.createTextNode('Spiegazione')); w.appendChild(b); h.parentNode.insertBefore(w,h); }
+  }
 })();
 </script>
 <script src="../rf-nmea.js"></script>

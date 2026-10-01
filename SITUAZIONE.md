@@ -7266,3 +7266,99 @@ nessun avviso; da 86° (quasi parallelo) nessun avviso nemmeno dopo 25 s; da
 
 Resta vero un limite noto: nelle partenze in poppa (percorso sottovento)
 l'avviso compare comunque, perché la pagina non sa che tipo di partenza è.
+
+---
+
+## 01/10/2026 (3) — Impostazioni nello stile della suite
+
+Nota di Sergio: «Impostazioni: applicare stile generale». Era ancora il primo
+mockup (lo dice il commento in testa al file): colori propri in HSL, riquadri
+con le viti agli angoli, campi «LCD» a righe, alone sfumato in alto.
+
+### Cosa c'era
+
+A 600 px:
+- pagina lunga **4734 px**, dieci riquadri nell'ordine in cui erano nati;
+- **52 comandi sotto i 44 px** (campi 35 px, scelte a segmenti 29 px);
+- **37 testi d'aiuto a 10,5-11 px**, titoli dei riquadri a 10 px;
+- «Manutenzione» configurava il database che usano anche Carta e Posizione
+  live.
+
+### Fatto (schizzo approvato, «sì, tutto»)
+
+- **Indice in cima**, che resta in vista scorrendo: Barca, Schermo,
+  Navigazione, Dati, Aiuto.
+- **Gruppi**: Barca (profilo, polare), Schermo (aspetto), Navigazione
+  (navigazione, stato GPS, strumenti NMEA), Dati (dati, database), Aiuto
+  (guida, info). Riquadri spostati interi, `id` e logica invariati.
+- **«Manutenzione» → «Database (Supabase)»**.
+- **Spiegazioni lunghe dietro ⓘ**: ogni testo d'aiuto oltre gli 80 caratteri
+  si nasconde e si apre col tocco su ⓘ accanto al nome (11 in tutto). Restano
+  sempre visibili quelli con un `id`, che il codice riscrive con uno stato.
+- **Stile**: uno strato sopra il vecchio, senza toccarlo: riquadri piatti,
+  niente viti, campi senza righe LCD, niente alone; misure della suite
+  (`--tocco` 48/54 px, testi 13-17 px); da 900 px due colonne.
+  `raffyca.css` non è collegato: definisce anch'esso `.rf-instr`, `.rf-dp` e
+  `.rf-num`, e le due versioni si pesterebbero; i valori sono copiati.
+
+Service worker: nessuno, `impostazioni/` non è nel precache.
+
+### Trovate e tolte: due impostazioni che nessuno legge
+
+«**Sorgente vento**» (Stima / Signal K / Manuale) ed «**Endpoint Signal K**»
+vengono salvate in `raffyca-settings` (`windSource`, `signalkUrl`), ma
+nessun modulo le legge: il Cruscotto ha il suo tasto del vento (Auto /
+Strumenti / Manuale), e il gateway si imposta nel riquadro NMEA. «Stima»
+era il nome del vento inventato tolto il 29/09. **Tolte**, su conferma di
+Sergio: le due righe, il codice che le leggeva e scriveva, e i due nomi da
+`OWNED`. Sui dispositivi i due valori restano in `raffyca-settings`, inerti.
+Verificato: pagina senza errori, le altre impostazioni si salvano (prova con
+«Intervallo lettura vocale»).
+
+### Verificato
+
+Nel browser, dal worktree:
+- a 600 px **nessuna scritta sotto i 12 px** (erano 49) e un solo comando
+  sotto i 44 px, `gpsToggle`, portato a `--tocco`; pagina 5279 px (i comandi
+  sono più alti: per questo l'indice);
+- indice: «Navigazione» porta al gruppo, sotto la barra in alto;
+- ⓘ: si apre e si chiude («GPS diretto — il chip del telefono…»);
+- 1000 px, tema giorno: due colonne, niente sborda;
+- sintassi con `jsc`; ogni `id` riferito esiste.
+
+APK costruito dal worktree e installato sul tablet via adb.
+
+### Non verificato
+
+- Il flusso Supabase (accesso, dati della barca) con il progetto vero.
+- Tema notte.
+
+---
+
+## 01/10/2026 (4) — La pagina info del Meteo nello stile della suite
+
+Nota di Sergio: «Meteo: pagina info da rivedere con lo stile corrente».
+`meteo/presentazione.html` era una pagina vetrina: titolo da 104 px, sfondo
+sfumato, nastro del vento e icone animati senza fine, sempre scura (nessuno
+script del tema), e nessuna barra: si usciva solo da «Torna a Meteo».
+
+I contenuti sono ancora veri e non sono stati toccati: le quattro viste
+(Nastro, Rosa, Temporali, Diagrammi) sono le schede di oggi, e i cinque
+modelli (ECMWF, ICON-EU, ICON-D2, GFS, ARPEGE) sono quelli che il Meteo
+scarica.
+
+Fatto (proposta approvata):
+- script del tema e **barra in alto** canonica; la barra in basso arriva da
+  `rf-topbar.js`; «‹ Meteo» in cima;
+- `raffyca.css` collegato per `--lab`, `--tocco` e i testi; colori della suite
+  nei tre temi;
+- titolo a `--t-grande`, testi da 13-17 px, riquadri piatti;
+- **il nastro si disegna una volta e resta fermo**; le icone non oscillano
+  più (l'animazione continua girava finché la pagina restava aperta).
+
+Service worker: nessuno, la pagina non è nel precache del Meteo.
+
+Verificato a 600 px: barra in basso presente, nessuna scritta sotto i 12 px,
+niente sborda; temi scuro e giorno.
+
+Non verificato: tema notte; dentro l'APK.

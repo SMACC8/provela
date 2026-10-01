@@ -2,6 +2,8 @@
 <html lang="it"><head>
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <title>Dritta Meteo · Il Nastro del Vento</title>
+<script>(function(){try{var t=localStorage.getItem('raffyca-theme');if(t==='sun')t='day';if(t==='day'||t==='night')document.documentElement.classList.add(t);if(t==='night'){var v=localStorage.getItem('raffyca-notte-velo');v=[0,.35,.55,.75][v==null?2:+v];if(v){document.documentElement.style.setProperty('--rf-velo',v);var s=document.createElement('style');s.textContent='html.night::after{content:"";position:fixed;inset:0;background:#000;opacity:var(--rf-velo,0);pointer-events:none;z-index:2147483000}';document.head.appendChild(s);}}}catch(e){}})();</script>
+<link rel="stylesheet" href="../raffyca.css">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%230A1628'/><path d='M6 36 Q20 20 32 36 T58 36' stroke='%232BD9C4' stroke-width='6' fill='none' stroke-linecap='round'/><path d='M6 44 Q20 28 32 44 T58 44' stroke='%23FFC24B' stroke-width='5' fill='none' stroke-linecap='round' opacity='.85'/></svg>">
 <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%230A1628'/><path d='M6 36 Q20 20 32 36 T58 36' stroke='%232BD9C4' stroke-width='6' fill='none' stroke-linecap='round'/><path d='M6 44 Q20 28 32 44 T58 44' stroke='%23FFC24B' stroke-width='5' fill='none' stroke-linecap='round' opacity='.85'/></svg>">
 <style>
@@ -46,9 +48,58 @@
   @keyframes sway{0%,100%{transform:rotate(-6deg);}50%{transform:rotate(6deg);}}
   @keyframes drift{0%,100%{transform:translateX(-1.5px);}50%{transform:translateX(1.5px);}}
   .glAnim{transform-box:fill-box;transform-origin:center;}
+
+/* ── 01/10/2026: nello stile della suite (Sergio: «pagina info da rivedere
+   con lo stile corrente»). Era una pagina vetrina: titolo da 104 px, sfondo
+   sfumato, nastro e icone animati senza fine, sempre scura, nessuna barra.
+   Testi invariati. ── */
+:root{--bg0:#060e18;--ink:#deedf5;--muted:var(--lab);--dim:var(--lab);--panel:#0e2036;--line:#1a3248;}
+html.day{--bg0:#eef1f4;--ink:#0a1420;--panel:#ffffff;--line:#c2ccd6;--teal:#067d70;--amber:#8f5600;--coral:#c62020;--violet:#7a3fb0;}
+html.night{--bg0:#0a0202;--ink:#ff5b5b;--panel:#160404;--line:#3a1010;--teal:#ff4d4d;--amber:#ff7a45;--coral:#ff3b3b;--violet:#c04a6a;}
+body{background:var(--bg0);color:var(--ink);}
+.wrap{max-width:760px;padding:14px var(--margine,16px) 40px;}
+.indietro{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border:1px solid var(--line);border-radius:999px;
+  color:var(--teal);text-decoration:none;font-size:15px;margin-bottom:6px;}
+.eyebrow{font-size:13px;letter-spacing:.08em;}
+h1{font-size:var(--t-grande,34px);letter-spacing:0;margin:4px 0 8px;}
+.tag{font-size:var(--t-testo,17px);letter-spacing:0;}
+.lede{font-size:var(--t-testo,17px);color:var(--ink);opacity:.92;}
+.lede b{color:var(--teal);}
+.ribbon{height:70px;}
+.cta{border-radius:12px;min-height:var(--tocco,48px);padding:0 22px;font-size:15px;}
+.cta:hover,.cta:hover .ar{transform:none;}
+.sec{margin-top:30px;}
+.kicker{font-size:13px;letter-spacing:.08em;color:var(--lab);}
+.lead2{font-size:var(--t-testo,17px);}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;}
+.card h3{font-size:16px;}
+.card p{font-size:14px;color:var(--lab);}
+.chip{font-size:14px;color:var(--ink);border-color:var(--line);}
+.note{font-size:14px;color:var(--lab);}
+.credit{font-size:12px;color:var(--lab);}
+.foot a{font-size:14px;}
+.glAnim{animation:none!important;}
+html.day .card [stroke="#3A5B7E"]{stroke:#9aaebe;}
 </style></head>
 <body>
+<!-- ===== rf-topbar: markup canonico. CSS e logica stanno in ../rf-topbar.js
+     (un solo file per tutta la suite). Il link alla home resta QUI, inline:
+     e' l'unico modo per uscire da un modulo e non deve dipendere da nulla. ===== -->
+<div class="rf-topbar" role="banner">
+  <a class="rf-home" href="../" aria-label="Menu Dritta" title="Menu Dritta">
+    <svg viewBox="0 0 64 64" width="19" height="19" aria-hidden="true"><path d="M32 8 L32 56 L10 56 Z" fill="#2BD9C4" opacity=".95"/><path d="M32 26 L54 56 L32 56 Z" fill="#2BD9C4" opacity=".45"/><line x1="32" y1="6" x2="32" y2="58" stroke="#1a4a42" stroke-width="3"/></svg>
+  </a>
+  <span class="rf-boat" id="rfBoat"></span>
+  <span class="rf-gps" id="rfGps" title="Stato GPS"><span class="gdot"></span></span>
+  <span class="rf-pol" id="rfPol" title=""></span>
+  <span class="rf-spacer"></span>
+  <span class="rf-status" id="rfStatus"></span>
+</div>
+<script src="../rf-topbar.js" defer></script>
+<script src="../rf-live.js"></script>
+<!-- ===== /rf-topbar ===== -->
 <div class="wrap">
+  <a class="indietro" href="index.html">‹ Meteo</a>
 
   <div class="hero">
     <div class="eyebrow">IL METEO PER LA VELA</div>
@@ -109,8 +160,9 @@
   var svg=document.getElementById('ribbon'),W=880,H=120,N=74,reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   function ramp(t){var s=[[0,[43,217,196]],[.5,[255,194,75]],[1,[255,107,77]]];for(var i=0;i<2;i++){if(t>=s[i][0]&&t<=s[i+1][0]){var f=(t-s[i][0])/(s[i+1][0]-s[i][0]),a=s[i][1],b=s[i+1][1];return'rgb('+Math.round(a[0]+(b[0]-a[0])*f)+','+Math.round(a[1]+(b[1]-a[1])*f)+','+Math.round(a[2]+(b[2]-a[2])*f)+')';}}return'rgb(43,217,196)';}
   function draw(ph){var bw=W/N,out='';for(var i=0;i<N;i++){var t=i/(N-1);var base=H*.5+Math.sin(t*6.0+ph)*20+Math.sin(t*13+ph*1.7)*7;var h=26+ (Math.sin(t*5+ph*1.3)*.5+.5)*40;var x=i*bw;out+='<rect x="'+x.toFixed(1)+'" y="'+(base-h/2).toFixed(1)+'" width="'+(bw*.74).toFixed(1)+'" height="'+h.toFixed(1)+'" rx="2" fill="'+ramp(t)+'" opacity="'+(0.55+0.4*(Math.sin(t*5+ph*1.3)*.5+.5)).toFixed(2)+'"/>';}svg.innerHTML=out;}
-  if(reduce){draw(0);return;}
-  var ph=0;function loop(){ph+=0.025;draw(ph);requestAnimationFrame(loop);}loop();
+  /* 01/10/2026: disegnato una volta e fermo. L'animazione continua girava
+     finche' la pagina restava aperta, e in barca la batteria conta. */
+  draw(0.8);
 })();
 </script>
 </body></html>
