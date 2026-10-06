@@ -276,6 +276,7 @@ select,button,input,textarea{font-family:var(--sans);color:var(--ink);}
 <script src="../rf-live.js"></script>
 <script src="../rf-nmea.js"></script>
 <script src="../rf-strumenti.js"></script>
+<script src="../rf-coord.js"></script>
 <!-- ===== /rf-topbar ===== -->
 
 <div class="wrap c-grid">
@@ -1838,6 +1839,7 @@ function rvVerdetto(r){
   $('rVerd').innerHTML=t;
 }
 function fmtCoord(la,lo){
+  if(window.rfCoord)return rfCoord.ll(la,lo,' ');   /* formato scelto in Impostazioni */
   function f(v,lat){var h=lat?(v>=0?'N':'S'):(v>=0?'E':'W');v=Math.abs(v);
     var d=Math.floor(v);return d+'\u00b0'+((v-d)*60).toFixed(3)+'\u2019'+h;}
   return f(la,true)+' '+f(lo,false);

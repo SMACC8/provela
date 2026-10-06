@@ -118,6 +118,7 @@ a.link{font-size:13px}
 <script src="../rf-topbar.js" defer></script>
 <!-- ===== /rf-topbar ===== -->
 <script src="../rf-live.js"></script>
+<script src="../rf-coord.js"></script>
 
 <main class="pz">
  <div class="pz-colA">
@@ -209,7 +210,8 @@ function brng(a,b){var y=Math.sin(rad(b[1]-a[1]))*Math.cos(rad(b[0])),
   return (deg(Math.atan2(y,x))+360)%360;}
 function fmtDur(s){if(s==null||!isFinite(s)||s<0)return "—";s=Math.round(s);
   var h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return h>0?h+"h "+m+"m":m+"m";}
-function fmtPos(la,lo){function d(v,pos,neg){var h=v>=0?pos:neg;v=Math.abs(v);
+function fmtPos(la,lo){if(window.rfCoord)return rfCoord.ll(la,lo);   /* formato scelto in Impostazioni */
+  function d(v,pos,neg){var h=v>=0?pos:neg;v=Math.abs(v);
   var dd=Math.floor(v),mm=((v-dd)*60).toFixed(2);return dd+"°"+mm+"' "+h;}
   return d(la,"N","S")+"  "+d(lo,"E","W");}
 

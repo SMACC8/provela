@@ -343,6 +343,7 @@ html.night [fill="#5a7a94"]{fill:#b04040;} html.night [stroke="#5a7a94"]{stroke:
 <script src="./rf-maree.js"></script>
 <script src="./rf-nmea.js"></script>
 <script src="./rf-strumenti.js"></script>
+<script src="./rf-coord.js"></script>
 
 <script>
 "use strict";
@@ -429,7 +430,7 @@ function dipingiPos(){
   $('stGps').hidden=!!p;
   if(!p){$('stPos').textContent='Posizione sconosciuta';
     $('stPosNota').textContent='Senza una posizione non si calcolano vento, sole e marea.';return;}
-  $('stPos').textContent=gp(p.lat,'N','S',2)+'  '+gp(p.lon,'E','W',3);
+  $('stPos').textContent=window.rfCoord?rfCoord.ll(p.lat,p.lon):gp(p.lat,'N','S',2)+'  '+gp(p.lon,'E','W',3);   /* formato scelto in Impostazioni */
   var recente=p.ts&&Date.now()-p.ts<60000, t=p.ts?fa(p.ts):'';
   var n=recente?'GPS '+t:(p.ts?'Ultima posizione nota, '+t:'Ultima posizione nota');
   if(recente&&isFinite(p.sog))n+=' · '+p.sog.toFixed(1).replace('.',',')+' kt'+(isFinite(p.cog)?' · '+('00'+Math.round(p.cog)%360).slice(-3)+'°':'');

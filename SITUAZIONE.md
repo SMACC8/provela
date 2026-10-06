@@ -7567,3 +7567,104 @@ Nel browser, intercettando la stampa e aprendo la pagina generata:
   Manutenzione → Dossier → PDF.
 - Il numero di pagina nel margine: dipende dalla versione della WebView.
 - Il dossier con i dati veri di Sergio.
+
+---
+
+## 06/10/2026 — Il PDF del diario rivisto, e il formato delle coordinate
+
+### PDF del diario di Traversata
+
+Note di Sergio (memo del 01/10 e conferma di oggi):
+- **data di partenza**: in alto, sotto l'intestazione, «Partenza martedì 6
+  ottobre 2026, ore 07:00»; e nei riquadri e nella riga delle tappe ogni
+  orario porta il giorno («mar 6/10 07:00»), perché il PDF si legge anche
+  un altro giorno;
+- **«Rotta» → «Percorso»** nel riquadro della distanza;
+- **via la colonna VMG**, **dentro «Raffica»**;
+- **raffiche nel grafico**: curva arancio tratteggiata, con legenda;
+- **qualcosa di carta nello schema**: la terra, i nomi di A, V e B, la scala
+  in miglia (scelte di Sergio; scartato il reticolo di lat/lon).
+
+**Le raffiche non c'erano proprio**: il campo di vento della Traversata
+chiedeva a Open-Meteo solo intensità e direzione. Ora chiede anche
+`wind_gusts_10m`, e le raffiche stanno in un campo **a parte**
+(`FIELD.gusts`) letto da una funzione nuova, `gustAt()`: `windAt()` e il
+calcolo della rotta non le vedono. Se un punto della griglia non le ha, o
+il campo è quello sintetico di prova, `gustAt()` dà null: nel diario un
+trattino, nel grafico niente curva. Scartato: inventare le raffiche del
+campo di prova come multiplo del vento.
+
+Le righe del diario ora portano anche posizione e ora (`ctx()` in
+`diagnose()`: `lat`, `lon`, `t`), per leggere la raffica dove e quando
+succede l'evento. Il CSV non cambia.
+
+**La terra nello schema viene dalla maschera della zona** (`MED_MASKS`,
+`maskLand`), la stessa del router: le land polygons di OSM. Scartata la
+costa 10m che la Traversata carica per le maschere fatte sul momento:
+troppo grossolana, e la regola del progetto è che la costa buona sono le
+land polygons. Campionata ogni 3 px; le celle di terra contigue di una
+riga diventano un rettangolo solo. Lo schema prende un margine attorno alla
+rotta (almeno 2 NM) per far vedere la costa. La scala sceglie la misura
+tonda (0,5-50 NM) vicina a un quarto della larghezza.
+
+Corretto strada facendo: **la luce all'arrivo nel PDF usciva spezzata**
+(«Pieno giorno / 07:58 / 7°»): la correzione del 01/10 prendeva i `<b>` del
+riquadro come righe e perdeva il testo intorno. Ora si riusa l'HTML del
+riquadro, che è nostro e ha già gli a capo giusti.
+
+### Il formato delle coordinate
+
+Richiesta di Sergio: la scelta in Impostazioni (gradi, gradi e primi,
+gradi primi e secondi). Prima ogni modulo aveva la sua funzione, tutte
+diverse: virgola o punto, primi con 2 o 3 decimali, ' o ′, longitudine con
+o senza lo zero, e il Cruscotto in gradi decimali.
+
+- **`rf-coord.js`** in radice: un formato solo, da
+  `raffyca-settings.coordFmt` (`dd`, `ddm` predefinito, `dms`), virgola
+  decimale, longitudine sempre a tre cifre come sulle carte, arrotondamento
+  che non scrive mai «60». Caricato **senza defer**, così è pronto alla
+  prima pittura; se manca, ogni pagina ripiega sul suo modo di prima.
+- **Impostazioni → Navigazione → Coordinate**: tre bottoni, sotto l'esempio
+  nel formato scelto. Campo nuovo in `raffyca-settings` (`coordFmt`), non
+  una chiave nuova.
+- **Lo seguono**: hub, pannello GPS di Impostazioni, riquadro «Coordinate»
+  del Cruscotto (anche il sottotitolo), Sole & Luna, Carta, Percorso,
+  Posizione live (pagina di bordo), Traversata (Da/A/Via senza nome).
+- **Partenza** (segnalato da Sergio dopo il primo giro: «controlla in
+  Partenza il formato»): i campi PIN e RC del foglio Linea erano in gradi
+  decimali col punto, e sono campi che si scrivono anche a mano. Mostrarli
+  nel formato scelto non bastava: `parseLL` separava sulla virgola, e
+  «45°37,800′» si sarebbe spezzato in due. Ora `parseLL` legge i tre
+  formati (con gli emisferi N/S/E/W) e i modi vecchi senza emisferi
+  («45.64 13.74», «45.64, 13.74», «45,64 13,74»). Provato con `jsc`: il giro
+  scrivi-rileggi torna nei tre formati (coi secondi ~1 m, il decimo di
+  secondo); rifiutati testo vuoto, «abc», mezze coordinate, latitudine 95.
+  Nella pagina: PIN e RC mostrati in gradi e primi, un PIN scritto a mano
+  (45°38,000′) riletto giusto e la linea ricalcolata.
+- **Restano fissi, di proposito**: il messaggio MOB/VHF e quello del
+  Prontuario (gradi e primi: è quello che si legge alla radio; scelta di
+  Sergio), il convertitore del Prontuario (mostra tutti e tre), la pagina
+  pubblica di chi segue (non ha le Impostazioni), i campi dove le
+  coordinate si scrivono.
+
+Service worker: **`dritta-hub-v38`** (`rf-coord.js` nel precache),
+**`raffyca-rt-v36`** (`../rf-coord.js`).
+
+### Verificato
+
+- PDF con vento reale (ECMWF), tappa e ritorno: raffiche nella tabella (38
+  valori) e nel grafico, VMG assente, «Percorso», data di partenza, terra e
+  nomi nello schema, scala «20 NM», luce intera; senza raffiche nessun
+  errore, niente curva, trattini;
+- `rf-coord.js` con `jsc` su quattro punti nei tre formati, compresi
+  45,999999 (→ 46°00,000′) e sud/ovest;
+- nelle pagine, con «g. p. s.» scelto: esempio in Impostazioni e valore
+  salvato, hub, Sole & Luna, Traversata («45°36′00,0″ N 013°30′00,0″
+  E»), sottotitolo del Cruscotto;
+- sintassi con `jsc` di tutte le pagine toccate.
+
+### Non verificato
+
+- A schermo: riquadro «Coordinate» del Cruscotto, Carta, Percorso,
+  Posizione con un GPS vivo.
+- La stampa vera del PDF nuovo.

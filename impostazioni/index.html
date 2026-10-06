@@ -294,6 +294,7 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
 </div>
 <script src="../rf-topbar.js" defer></script>
 <script src="../rf-live.js"></script>
+<script src="../rf-coord.js"></script>
 <!-- ===== /rf-topbar ===== -->
 
 <div class="wrap">
@@ -574,6 +575,21 @@ input.rf-num,input.rf-txt,select.rf-sel{font-size:var(--t-pic);min-height:calc(v
   <section class="rf-instr rf-viti" data-accent="teal">
     <span class="rf-viti-b"></span>
     <div class="rf-title">Navigazione</div>
+
+    <!-- 06/10/2026: formato delle coordinate per tutta la suite (rf-coord.js) -->
+    <div class="field">
+      <div class="lbl">
+        <div class="k">Coordinate</div>
+        <div class="h" id="coordEs">45°37,800′ N</div>
+      </div>
+      <div class="ctl">
+        <div class="seg" role="group" aria-label="Formato delle coordinate">
+          <button type="button" id="coordDd" aria-pressed="false">gradi</button>
+          <button type="button" id="coordDdm" aria-pressed="true">gradi e primi</button>
+          <button type="button" id="coordDms" aria-pressed="false">g. p. s.</button>
+        </div>
+      </div>
+    </div>
 
     <div class="field">
       <div class="lbl">
@@ -990,7 +1006,7 @@ input.rf-num,input.rf-txt,select.rf-sel{font-size:var(--t-pic);min-height:calc(v
 
   /* chiavi possedute da QUESTO modulo dentro raffyca-settings.
      La scrittura è merge-safe: tocchiamo solo queste, il resto resta intatto. */
-  var OWNED = ["units", "trackInterval", "raceInterval", "voiceInterval", "raceEndAction", "raceEndUrl", "speedSrc", "sogSmooth", "startDistG", "startDistY", "syncMapView"];
+  var OWNED = ["units", "coordFmt", "trackInterval", "raceInterval", "voiceInterval", "raceEndAction", "raceEndUrl", "speedSrc", "sogSmooth", "startDistG", "startDistY", "syncMapView"];
 
   /* prefisso per backup/reset: tutto ciò che appartiene alla suite */
   var RF_PREFIX = "raffyca-";
@@ -1056,6 +1072,11 @@ input.rf-num,input.rf-txt,select.rf-sel{font-size:var(--t-pic);min-height:calc(v
   }
 
   /* ---------- segmented helper ---------- */
+  /* formato delle coordinate: tre bottoni, uno premuto; sotto, l'esempio */
+  function segCoord(f){
+    [["dd","coordDd"],["ddm","coordDdm"],["dms","coordDms"]].forEach(function(x){ $(x[1]).setAttribute("aria-pressed", x[0]===f?"true":"false"); });
+    if(window.rfCoord) $("coordEs").textContent = rfCoord.uno(45.63, true, f)+"  "+rfCoord.uno(13.75, false, f);
+  }
   function setSeg(pressedBtn, otherBtn){
     pressedBtn.setAttribute("aria-pressed","true");
     otherBtn.setAttribute("aria-pressed","false");
@@ -1084,6 +1105,7 @@ input.rf-num,input.rf-txt,select.rf-sel{font-size:var(--t-pic);min-height:calc(v
     var units = (s.units === "kmh") ? "kmh" : "kn";
     if(units === "kmh") setSeg($("unitKmh"), $("unitKn"));
     else setSeg($("unitKn"), $("unitKmh"));
+    segCoord(["dd","ddm","dms"].indexOf(s.coordFmt) >= 0 ? s.coordFmt : "ddm");
 
     setSeg(s.syncMapView ? $("mvOn") : $("mvOff"), s.syncMapView ? $("mvOff") : $("mvOn"));
     var spd = (s.speedSrc === "stw") ? "stw" : "sog";
@@ -1180,6 +1202,10 @@ input.rf-num,input.rf-txt,select.rf-sel{font-size:var(--t-pic);min-height:calc(v
     window.addEventListener("storage", function(e){ if(e.key === "raffyca-notte-velo") veloSeg(); });
 
     // --- unità ---
+    [["dd","coordDd"],["ddm","coordDdm"],["dms","coordDms"]].forEach(function(x){
+      $(x[1]).addEventListener("click", function(){ patchSettings({coordFmt:x[0]}); segCoord(x[0]);
+        toast("Coordinate: "+(window.rfCoord?rfCoord.NOMI[x[0]]:x[0])); });
+    });
     $("unitKn").addEventListener("click", function(){
       setSeg(this, $("unitKmh")); patchSettings({units:"kn"}); toast("Unità: nodi");
     });
@@ -1496,8 +1522,8 @@ input.rf-num,input.rf-txt,select.rf-sel{font-size:var(--t-pic);min-height:calc(v
     var a=c.accuracy, Q=accQual(a);
     q('gpsAcc').textContent='\u00b1 '+(a<10?a.toFixed(1):Math.round(a))+' m';
     var qe=q('gpsAccQ'); qe.textContent=Q.t; qe.className='c-q '+Q.c;
-    q('gpsLat').textContent=fmtLL(c.latitude,'N','S');
-    q('gpsLon').textContent=fmtLL(c.longitude,'E','W');
+    q('gpsLat').textContent=window.rfCoord?rfCoord.uno(c.latitude,true):fmtLL(c.latitude,'N','S');
+    q('gpsLon').textContent=window.rfCoord?rfCoord.uno(c.longitude,false):fmtLL(c.longitude,'E','W');
     q('gpsAlt').textContent=(c.altitude!=null&&isFinite(c.altitude))?(Math.round(c.altitude)+' m'+(c.altitudeAccuracy!=null&&isFinite(c.altitudeAccuracy)?(' \u00b1'+Math.round(c.altitudeAccuracy)):'')):'\u2014';
     q('gpsSpd').textContent=(c.speed!=null&&isFinite(c.speed))?((c.speed*1.94384).toFixed(1)+' kn'):'\u2014';
     q('gpsHdg').textContent=(c.heading!=null&&isFinite(c.heading)&&c.speed!=null&&c.speed>0.3)?(Math.round(c.heading)+'\u00b0'):'\u2014';

@@ -322,6 +322,7 @@ body{padding:0 var(--margine) 28px;max-width:1280px;margin-inline:auto;width:100
 <script src="../rf-live.js"></script>
 <!-- ===== /rf-topbar ===== -->
 <script src="../rf-astro.js"></script>
+<script src="../rf-coord.js"></script>
 <script src="../rf-maree.js"></script>
 
 <div class="sl-top">
@@ -777,7 +778,7 @@ function renderSourceBar() {
   });
   if (!CUR.site) { document.getElementById('srcCoord').textContent = ''; return; }
   var lat = CUR.site.lat, lon = CUR.site.lon;
-  document.getElementById('srcCoord').textContent =
+  document.getElementById('srcCoord').textContent = window.rfCoord ? rfCoord.ll(lat, lon, ' · ') :
     Math.abs(lat).toFixed(3) + '° ' + (lat >= 0 ? 'N' : 'S') + ' · ' + Math.abs(lon).toFixed(3) + '° ' + (lon >= 0 ? 'E' : 'W');
 }
 

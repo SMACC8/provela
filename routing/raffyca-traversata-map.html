@@ -338,6 +338,7 @@ html.day [fill="#46d68a"]{fill:#12894f;} html.night [fill="#46d68a"]{fill:#c23a3
 <script src="../rf-live.js"></script>
 <script src="../rf-astro.js"></script>
 <script src="../rf-report.js"></script>
+<script src="../rf-coord.js"></script>
 <!-- ===== /rf-topbar ===== -->
 
 <div class="wrap">
@@ -572,10 +573,13 @@ var NX=11,NY=8;
 var MODEL="ecmwf_ifs025",MODELN="ECMWF IFS";
 var FIELD={area:'adriatico',times:[],slices:[],source:'demo'};
 function gridPoints(area){var A=AREAS[area],lat=[],lon=[];for(var j=0;j<NY;j++)for(var i=0;i<NX;i++){lat.push(+(A.latN-(A.latN-A.latS)*j/(NY-1)).toFixed(4));lon.push(+(A.lonW+(A.lonE-A.lonW)*i/(NX-1)).toFixed(4));}return{lat:lat,lon:lon};}
-function buildURL(area){var g=gridPoints(area);return "https://api.open-meteo.com/v1/forecast?latitude="+g.lat.join(",")+"&longitude="+g.lon.join(",")+"&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=kn&forecast_days=4&timezone=auto&models="+MODEL;}
+function buildURL(area){var g=gridPoints(area);return "https://api.open-meteo.com/v1/forecast?latitude="+g.lat.join(",")+"&longitude="+g.lon.join(",")+"&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m&wind_speed_unit=kn&forecast_days=4&timezone=auto&models="+MODEL;}
 function parseField(json,area){var arr=Array.isArray(json)?json:[json],times=arr[0].hourly.time,H=times.length,slices=[];
   for(var h=0;h<H;h++){var u=[],v=[];for(var j=0;j<NY;j++){var ru=[],rv=[];for(var i=0;i<NX;i++){var pt=arr[j*NX+i],sp=pt.hourly.wind_speed_10m[h],dr=pt.hourly.wind_direction_10m[h];if(sp==null||dr==null){ru.push(0);rv.push(0);continue;}var w=deg2uv(dr,sp);ru.push(w.u);rv.push(w.v);}u.push(ru);v.push(rv);}slices.push({u:u,v:v});}
-  FIELD.area=area;FIELD.times=times;FIELD.slices=slices;FIELD.source='live';}
+  /* raffiche (06/10/2026, per il diario): un campo a parte, letto da gustAt().
+     windAt() e il calcolo della rotta non le vedono. Un buco nei dati -> null. */
+  var gusts=[],ok=true;for(var h2=0;h2<H;h2++){var G=[];for(var j2=0;j2<NY;j2++){var rg=[];for(var i2=0;i2<NX;i2++){var gp=arr[j2*NX+i2].hourly.wind_gusts_10m;var gv=gp?gp[h2]:null;if(gv==null)ok=false;rg.push(gv==null?0:gv);}G.push(rg);}gusts.push(G);}
+  FIELD.area=area;FIELD.times=times;FIELD.slices=slices;FIELD.gusts=ok?gusts:null;FIELD.source='live';}
 function smooth(s){return s*s*(3-2*s);}
 /* Ore del campo sintetico in ORA LOCALE, come quelle di Open-Meteo con
    timezone=auto. Prima erano toISOString(), cioe' UTC: la mezzanotte locale
@@ -589,7 +593,7 @@ function synthField(area){var times=[],slices=[],base=new Date();base.setHours(0
     var hd=h%24,s=clamp((hd-8)/8,0,1),baseDir=45+175*smooth(s),baseSpd=4.5+9*Math.sin(Math.PI*clamp((hd-6)/12,0,1));
     for(var j=0;j<NY;j++){var ru=[],rv=[],fy=j/(NY-1);for(var i=0;i<NX;i++){var fx=i/(NX-1);
       var dir=baseDir+(fx-0.5)*28,spd=Math.max(1.5,baseSpd+(fy-0.5)*5+fx*2.5);var w=deg2uv(((dir%360)+360)%360,spd);ru.push(w.u);rv.push(w.v);}u.push(ru);v.push(rv);}slices.push({u:u,v:v});}
-  FIELD.area=area;FIELD.times=times;FIELD.slices=slices;FIELD.source='demo';}
+  FIELD.area=area;FIELD.times=times;FIELD.slices=slices;FIELD.gusts=null;FIELD.source='demo';}   /* nel campo di prova niente raffiche: meglio un trattino che un numero inventato */
 function sampleSlice(S,lat,lon){var A=AREAS[FIELD.area];var fx=clamp((lon-A.lonW)/(A.lonE-A.lonW),0,1)*(NX-1),fy=clamp((A.latN-lat)/(A.latN-A.latS),0,1)*(NY-1);
   var i=Math.min(Math.floor(fx),NX-2),j=Math.min(Math.floor(fy),NY-2),ti=fx-i,tj=fy-j;
   var u=(S.u[j][i]*(1-ti)+S.u[j][i+1]*ti)*(1-tj)+(S.u[j+1][i]*(1-ti)+S.u[j+1][i+1]*ti)*tj;
@@ -597,6 +601,9 @@ function sampleSlice(S,lat,lon){var A=AREAS[FIELD.area];var fx=clamp((lon-A.lonW
 function windAt(lat,lon,t){var N=FIELD.slices.length,tc=clamp(t,0,N-1),h0=Math.floor(tc),h1=Math.min(h0+1,N-1),f=tc-h0;
   var a=sampleSlice(FIELD.slices[h0],lat,lon),b=sampleSlice(FIELD.slices[h1],lat,lon);return uv2dir(a.u+(b.u-a.u)*f,a.v+(b.v-a.v)*f);}
 
+/* raffica (kt) in un punto e a un'ora, o null se il campo non la porta */
+function gustAt(lat,lon,t){var G=FIELD.gusts;if(!G||!G.length)return null;var N=G.length,tc=clamp(t,0,N-1),h0=Math.floor(tc),h1=Math.min(h0+1,N-1),f=tc-h0;
+  var a=sampleSlice({u:G[h0],v:G[h0]},lat,lon).u,b=sampleSlice({u:G[h1],v:G[h1]},lat,lon).u;return a+(b-a)*f;}
 // ---------- land mask ----------
 function isLand(lat,lon){var m=(typeof MED_MASKS!=='undefined')&&MED_MASKS[FIELD.area];if(!m)return false;if(lat>m.latN||lat<m.latS||lon<m.lonW||lon>m.lonE)return false;
   var col=Math.floor((lon-m.lonW)/(m.lonE-m.lonW)*m.w),row=Math.floor((m.latN-lat)/(m.latN-m.latS)*m.h);
@@ -924,7 +931,7 @@ function diagnose(R){
     if(b>=N-1)break;}
   var baseMin=(function(){var t=(FIELD.times&&FIELD.times[clamp(Math.round(STATE.dep),0,FIELD.times.length-1)])||'',hm=t.slice(11),p=hm.split(':');return p.length===2?(+p[0]*60+ +p[1]):null;})();
   function clk(h){if(baseMin==null)return'';var tot=baseMin+h*60,day=Math.floor(tot/1440),m=((tot%1440)+1440)%1440,hh=Math.floor(m/60),mm=Math.round(m%60);if(mm===60){hh=(hh+1)%24;mm=0;}return(hh<10?'0':'')+hh+':'+(mm<10?'0':'')+mm+(day>0?(' +'+day+'g'):'');}
-  function ctx(wn){return{tws:Math.round(wn.tws),twd:Math.round(wn.twd),spd:+wn.spd.toFixed(1),vmg:+wn.vmg.toFixed(1),dtg:+wn.dtg.toFixed(1),hdg:Math.round(wn.head),motor:wn.motor};}
+  function ctx(wn){return{tws:Math.round(wn.tws),twd:Math.round(wn.twd),spd:+wn.spd.toFixed(1),vmg:+wn.vmg.toFixed(1),dtg:+wn.dtg.toFixed(1),hdg:Math.round(wn.head),motor:wn.motor,lat:wn.lat,lon:wn.lon,t:wn.t};}
   function sideLbl(s){return s>0?'mura a dritta':'mura a sinistra';}
   function push(t,tag,cls,tx,wn){R.diag.push({t:fmtElapsed(t),clock:clk(t),tag:tag,cls:cls,tx:tx,data:wn?ctx(wn):null});}
   var f=win[0];
@@ -1335,66 +1342,98 @@ function exportDiarioCSV(){var R=R_CACHE;if(!R||!R.diag||!R.diag.length){toast('
    colorate. Nell'APK la stampa passa dal plugin nativo Stampa. */
 function diarioTono(cls){return {'tag-vir':'blu','tag-str':'viola','tag-mot':'ambra','tag-rif':'arancio','tag-alz':'teal','tag-dx':'verde','tag-sx':'rosso'}[cls]||'grigio';}
 function diarioNomi(){var u={};try{u=JSON.parse(localStorage.getItem(UIKEY)||'{}')||{};}catch(e){}return {A:u.nomeA||'A',B:u.nomeB||'B',V:u.nomeV||'tappa'};}
+/* Schema della rotta (06/10/2026: con la terra, i nomi e la scala).
+   La terra viene dalla maschera della zona (MED_MASKS), la stessa con cui il
+   router ha calcolato: le land polygons di OSM, non la costa 10m grossolana.
+   Si campiona su una griglia e le celle di terra contigue di ogni riga
+   diventano un rettangolo solo. */
 function diarioSchema(R){var P=R.path;if(!P||P.length<2)return '';
   var cl=cosLat(FIELD.area),xs=P.map(function(n){return n.lon*cl;}),ys=P.map(function(n){return n.lat;});
   var x0=Math.min.apply(null,xs),x1=Math.max.apply(null,xs),y0=Math.min.apply(null,ys),y1=Math.max.apply(null,ys);
-  var W=300,H=200,m=18,k=Math.min((W-2*m)/Math.max(1e-6,x1-x0),(H-2*m)/Math.max(1e-6,y1-y0));
-  var ox=(W-(x1-x0)*k)/2,oy=(H-(y1-y0)*k)/2;
-  function X(n){return (ox+(n.lon*cl-x0)*k).toFixed(1);}function Y(n){return (H-oy-(n.lat-y0)*k).toFixed(1);}
-  var legs=(R.legs&&R.legs.length)?R.legs:[{a:'B',iFrom:0,iTo:P.length-1}],g='';
+  var W=300,H=200,pad=Math.max((x1-x0),(y1-y0))*0.18+2/60;   /* un margine attorno alla rotta, almeno 2 NM */
+  x0-=pad;x1+=pad;y0-=pad;y1+=pad;
+  var k=Math.min(W/Math.max(1e-6,x1-x0),H/Math.max(1e-6,y1-y0)),cx=(x0+x1)/2,cy=(y0+y1)/2;
+  function X(n){return (W/2+(n.lon*cl-cx)*k).toFixed(1);}function Y(n){return (H/2-(n.lat-cy)*k).toFixed(1);}
+  var g='<rect width="'+W+'" height="'+H+'" fill="#eaf3f8"/>';
+  var m=(typeof MED_MASKS!=='undefined')&&MED_MASKS[FIELD.area];
+  if(m&&m._bits){var C=3,terra='';
+    for(var py=0;py<H;py+=C){var lat=cy-((py+C/2)-H/2)/k,run=-1;
+      for(var px=0;px<=W;px+=C){var lon=(cx+((px+C/2)-W/2)/k)/cl,land=px<W&&maskLand(m,lat,lon);
+        if(land&&run<0)run=px;
+        if(!land&&run>=0){terra+='M'+run+' '+py+'h'+(px-run)+'v'+C+'h'+(run-px)+'z';run=-1;}}}
+    if(terra)g+='<path d="'+terra+'" fill="#d9d4c7" stroke="#d9d4c7" stroke-width=".4"/>';}
+  var legs=(R.legs&&R.legs.length)?R.legs:[{a:'B',iFrom:0,iTo:P.length-1}];
   legs.forEach(function(L){if(L.iTo<=L.iFrom)return;var pts=[];for(var i=L.iFrom;i<=L.iTo;i++)pts.push(X(P[i])+','+Y(P[i]));
     var rit=L.a==='A'&&legs.length>1;
     g+='<polyline points="'+pts.join(' ')+'" fill="none" stroke="'+(rit?'#0b6fb3':'#0a9e90')+'" stroke-width="2.6" stroke-linejoin="round"'+(rit?' stroke-dasharray="6 4"':'')+'/>';});
-  function pin(n,t,col){return '<circle cx="'+X(n)+'" cy="'+Y(n)+'" r="7" fill="'+col+'"/><text x="'+X(n)+'" y="'+(+Y(n)+3)+'" font-size="8" font-weight="700" fill="#fff" text-anchor="middle" font-family="system-ui,Roboto,sans-serif">'+t+'</text>';}
-  g+=pin(R.start,'A','#0a9e90');
-  if(STATE.V&&legs.length>1&&legs[0].a==='V')g+=pin(P[legs[0].iTo],'V','#d99a00');
-  g+=pin(R.goal,'B','#e0504a');
-  g+='<g transform="translate('+(W-16)+',16)"><path d="M0 -9 L4 3 L0 1 L-4 3 Z" fill="#5b6b78"/><text y="13" font-size="7" fill="#5b6b78" text-anchor="middle" font-family="system-ui,Roboto,sans-serif">N</text></g>';
-  return '<div class="rr-fig"><svg viewBox="0 0 '+W+' '+H+'">'+g+'</svg><div class="cap">schema della rotta'+(STATE.ritorno?' · ritorno tratteggiato':'')+' · nord in alto</div></div>';}
+  var nomi=diarioNomi(),FONT=' font-family="system-ui,Roboto,sans-serif"';
+  function pin(n,t,col,nome){var x=+X(n),y=+Y(n),dx=x>W*0.62?-10:10,anc=dx<0?'end':'start';
+    return '<circle cx="'+x+'" cy="'+y+'" r="7" fill="'+col+'" stroke="#fff" stroke-width="1.2"/><text x="'+x+'" y="'+(y+3)+'" font-size="8" font-weight="700" fill="#fff" text-anchor="middle"'+FONT+'>'+t+'</text>'+
+      '<text x="'+(x+dx)+'" y="'+(y+3)+'" font-size="8.5" font-weight="600" fill="#14202b" text-anchor="'+anc+'" stroke="#fff" stroke-width="2.6" paint-order="stroke"'+FONT+'>'+rfReport.esc(nome)+'</text>';}
+  g+=pin(R.start,'A','#0a9e90',nomi.A);
+  if(STATE.V&&legs.length>1&&legs[0].a==='V')g+=pin(P[legs[0].iTo],'V','#d99a00',nomi.V);
+  g+=pin(R.goal,'B','#e0504a',nomi.B);
+  /* scala: la misura «tonda» piu' vicina a un quarto della larghezza */
+  var nmPx=k/60,scel=[0.5,1,2,5,10,20,50].filter(function(v){return v*nmPx<=W*0.3;}).pop()||0.5,lw=scel*nmPx;
+  g+='<g transform="translate(10,'+(H-12)+')"><rect x="-4" y="-11" width="'+(lw+8)+'" height="17" rx="3" fill="#fff" fill-opacity=".8"/>'+
+    '<path d="M0 0h'+lw.toFixed(1)+'M0 -3v6M'+lw.toFixed(1)+' -3v6" stroke="#14202b" stroke-width="1.2"/>'+
+    '<text x="'+(lw/2).toFixed(1)+'" y="-4" font-size="7.5" fill="#14202b" text-anchor="middle"'+FONT+'>'+String(scel).replace('.',',')+' NM</text></g>';
+  g+='<g transform="translate('+(W-16)+',16)"><path d="M0 -9 L4 3 L0 1 L-4 3 Z" fill="#5b6b78"/><text y="13" font-size="7" fill="#5b6b78" text-anchor="middle"'+FONT+'>N</text></g>';
+  return '<div class="rr-fig"><svg viewBox="0 0 '+W+' '+H+'" style="border-radius:6px">'+g+'</svg><div class="cap">schema della rotta'+(STATE.ritorno?' · ritorno tratteggiato':'')+' · terra dalla maschera della zona</div></div>';}
 function diarioVento(R){var P=R.path;if(!P||P.length<2)return '';
   var n=P.length,st=Math.max(1,Math.ceil(n/120)),pt=[];
-  for(var i=0;i<n;i+=st){var w=windAt(P[i].lat,P[i].lon,STATE.dep+P[i].t);pt.push({t:P[i].t,v:w.tws});}
-  var w0=windAt(P[n-1].lat,P[n-1].lon,STATE.dep+P[n-1].t);pt.push({t:P[n-1].t,v:w0.tws});
-  var W=360,H=200,l=26,r=8,tp=10,bt=22,T=Math.max(0.1,P[n-1].t),vmax=Math.max(5,Math.ceil(Math.max.apply(null,pt.map(function(p){return p.v;}))/5)*5);
+  function campione(q){var w=windAt(q.lat,q.lon,STATE.dep+q.t);return {t:q.t,v:w.tws,r:gustAt(q.lat,q.lon,STATE.dep+q.t)};}
+  for(var i=0;i<n;i+=st)pt.push(campione(P[i]));pt.push(campione(P[n-1]));
+  var conR=pt.every(function(p){return p.r!=null;});
+  var W=360,H=200,l=26,r=8,tp=10,bt=22,T=Math.max(0.1,P[n-1].t),vmax=Math.max(5,Math.ceil(Math.max.apply(null,pt.map(function(p){return conR?Math.max(p.v,p.r):p.v;}))/5)*5);
   function X(t){return (l+(W-l-r)*t/T).toFixed(1);}function Y(v){return (tp+(H-tp-bt)*(1-v/vmax)).toFixed(1);}
   var g='';for(var v=0;v<=vmax;v+=5){g+='<line x1="'+l+'" x2="'+(W-r)+'" y1="'+Y(v)+'" y2="'+Y(v)+'" stroke="#dfe5ea"/><text x="'+(l-4)+'" y="'+(+Y(v)+3)+'" font-size="8" fill="#5b6b78" text-anchor="end" font-family="system-ui,Roboto,sans-serif">'+v+'</text>';}
   [0,T/2,T].forEach(function(t,i){g+='<text x="'+X(t)+'" y="'+(H-8)+'" font-size="8" fill="#5b6b78" text-anchor="'+(i===0?'start':i===2?'end':'middle')+'" font-family="system-ui,Roboto,sans-serif">'+windClock(STATE.dep+t)+'</text>';});
+  if(conR)g+='<polyline points="'+pt.map(function(p){return X(p.t)+','+Y(p.r);}).join(' ')+'" fill="none" stroke="#e08a00" stroke-width="1.8" stroke-dasharray="5 3" stroke-linejoin="round"/>';
   g+='<polyline points="'+pt.map(function(p){return X(p.t)+','+Y(p.v);}).join(' ')+'" fill="none" stroke="#0b6fb3" stroke-width="2.2" stroke-linejoin="round"/>';
-  return '<div class="rr-fig"><svg viewBox="0 0 '+W+' '+H+'">'+g+'</svg><div class="cap">vento lungo la rotta (kt) · previsione del modello</div></div>';}
+  /* legenda */
+  g+='<g transform="translate('+(l+6)+','+(tp+6)+')" font-size="7.5" fill="#14202b" font-family="system-ui,Roboto,sans-serif"><path d="M0 0h14" stroke="#0b6fb3" stroke-width="2.2"/><text x="18" y="2.5">vento</text>'+
+    (conR?'<path d="M48 0h14" stroke="#e08a00" stroke-width="1.8" stroke-dasharray="5 3"/><text x="66" y="2.5">raffiche</text>':'')+'</g>';
+  return '<div class="rr-fig"><svg viewBox="0 0 '+W+' '+H+'">'+g+'</svg><div class="cap">vento'+(conR?' e raffiche':'')+' lungo la rotta (kt) · previsione del modello</div></div>';}
 function exportDiarioPDF(){var R=R_CACHE;if(!R||!R.diag||!R.diag.length){toast('Nessun diario da esportare');return;}
   if(!window.rfReport){toast('Modello del documento non caricato');return;}
   var RR=window.rfReport,esc=RR.esc,prof={};try{prof=JSON.parse(localStorage.getItem('raffyca-profile')||'{}');}catch(e){}
   var nomi=diarioNomi(),s=R.summary||{},dep=parseOraLocale(depT()),oggi=new Date(),pz=function(n){return(n<10?'0':'')+n;};
+  /* giorno sempre scritto: il PDF si legge anche un altro giorno, «oggi» non vuol dire niente */
   function quando(h){if(!dep)return windClock(STATE.dep+h);var d=new Date(dep.getTime()+h*3600000);
-    return (d.toDateString()===oggi.toDateString()?'':GG_SETT[d.getDay()]+' ')+pz(d.getHours())+':'+pz(d.getMinutes());}
+    return GG_SETT[d.getDay()]+' '+d.getDate()+'/'+(d.getMonth()+1)+' '+pz(d.getHours())+':'+pz(d.getMinutes());}
   var area=(AREAS[FIELD.area]&&AREAS[FIELD.area].name)||diarioZone()||FIELD.area;
   var h=RR.testata({titolo:'Diario di traversata',
     sottotitolo:[prof.boat,prof.model,area].filter(Boolean).join(' · '),
     destra:['calcolato il '+oggi.toLocaleString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}),
       'vento: '+(FIELD.source==='live'?('previsione '+MODELN):'campo sintetico di prova')]});
+  /* 06/10/2026: la data di partenza in evidenza (Sergio: «manca») */
+  if(dep)h+='<p style="margin:-6px 0 10px;font-size:11pt"><b>Partenza '+esc(dep.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'}))+', ore '+pz(dep.getHours())+':'+pz(dep.getMinutes())+'</b></p>';
   function punto(l,col,nome){return '<span class="rr-punto" style="background:'+col+'">'+l+'</span>'+esc(nome);}
   h+='<div class="rr-punti">'+punto('A','#0a9e90',nomi.A)+(STATE.V?'<span class="rr-freccia">→</span>'+punto('V','#d99a00',nomi.V):'')+
     '<span class="rr-freccia">→</span>'+punto('B','#e0504a',nomi.B)+
     (STATE.ritorno?'<span class="rr-freccia">⟲ ritorno ad A, sosta '+esc(fmtH(STATE.sosta||0).replace('h',' h ').replace(' h 00',' h'))+'</span>':'')+'</div>';
   h+=RR.kpi([{k:'Partenza',v:quando(0)},{k:R.finished?'Arrivo':'Arrivo',v:R.finished?quando(R.eta):'non chiude',tono:R.finished?null:'rosso'},
-    {k:'Durata',v:R.finished?fmtH(R.eta).replace('h',' h '):'—'},{k:'Rotta',v:(s.dist!=null?String(s.dist).replace('.',','):'—')+' NM'},
+    {k:'Durata',v:R.finished?fmtH(R.eta).replace('h',' h '):'—'},{k:'Percorso',v:(s.dist!=null?String(s.dist).replace('.',','):'—')+' NM'},
     {k:'Media',v:(s.avg!=null?String(s.avg).replace('.',','):'—')+' kt'},{k:'Vento',v:(s.wmin!=null?s.wmin+'–'+s.wmax:'—')+' kt'}]);
   if(R.legs&&R.legs.length>1){h+='<p class="rr-nota">'+R.legs.map(function(g){var nm=g.a==='V'?nomi.V:g.a==='A'?nomi.A:nomi.B;
       return (g.sosta?'sosta '+fmtH(g.sosta).replace('h',' h ').replace(' h 00',' h')+' · ':'')+esc(nm)+' '+(g.finished?quando(g.eta):'—');}).join(' · ')+'</p>';}
   var lu=document.getElementById('luceArr');
   if(lu&&lu.style.display!=='none'&&lu.textContent.trim()){
-    /* le righe del riquadro sono blocchi: textContent le attaccherebbe («(68%)Nessun») */
-    var pz2=[].map.call(lu.children.length?lu.children:[lu],function(x){return x.textContent.trim().replace(/\s+/g,' ');}).filter(Boolean);
-    h+='<div class="rr-luce">'+pz2.map(esc).join('<br>')+'</div>';}
+    /* il riquadro e' HTML nostro (renderLuceArrivo), con <br> e <b>: si riusa
+       com'e'. textContent attaccava le righe, i figli perdevano il testo intorno. */
+    h+='<div class="rr-luce">'+lu.innerHTML.replace(/var\(--coral\)/g,'#b42c26')
+      .replace('<span class="disc">','<br><span class="rr-nota">')+'</div>';}
   h+='<h2>Rotta e vento</h2><div class="rr-due">'+diarioSchema(R)+diarioVento(R)+'</div>';
   var cs=document.getElementById('calcSum');if(cs&&cs.textContent)h+='<p class="rr-nota">Calcolo: '+esc(cs.textContent)+(prof.model?' · polare '+esc(document.getElementById('polStatus')?document.getElementById('polStatus').textContent:''):'')+'</p>';
   h+='<h2>Diario</h2>';
   var righe=R.diag.map(function(e){var d=e.data||null,mot=d&&d.motor;
     return [esc(e.clock||e.t||''),RR.chip(e.tag||'',e.tag==='tappa'||e.tag==='sosta'?'ambra':diarioTono(e.cls))+' '+esc(stripHtml(e.tx)),
       d?(d.tws+' kt · '+('00'+d.twd).slice(-3)+'°'):'',d?(('00'+d.hdg).slice(-3)+'°'):'',
-      d?(mot?'motore':String(d.spd).replace('.',',')+' kt'):'',d&&!mot?String(d.vmg).replace('.',',')+' kt':'',
+      d?(mot?'motore':String(d.spd).replace('.',',')+' kt'):'',
+      (function(){var r=d&&d.lat!=null?gustAt(d.lat,d.lon,STATE.dep+d.t):null;return r!=null?Math.round(r)+' kt':'';})(),
       d?(String(d.dtg).replace('.',',')+' NM'+(e.meta&&e.meta!=='a B'?'<div class="sotto">'+esc(e.meta)+'</div>':'')):''];});
-  h+=RR.tabella([{t:'Ora',w:'52px'},{t:'Evento'},{t:'Vento',num:true},{t:'Prua',num:true},{t:'Barca',num:true},{t:'VMG',num:true},{t:'Alla meta',num:true}],righe);
+  h+=RR.tabella([{t:'Ora',w:'52px'},{t:'Evento'},{t:'Vento',num:true},{t:'Prua',num:true},{t:'Barca',num:true},{t:'Raffica',num:true},{t:'Alla meta',num:true}],righe);
   h+=RR.piede('Previsione del modello: le condizioni cambiano, ricalcola prima di partire.');
   var dt=new Date();
   RR.stampa(RR.documento('Diario di traversata',h),'Diario '+dt.getFullYear()+'-'+pz(dt.getMonth()+1)+'-'+pz(dt.getDate())+' '+area);}
@@ -2048,6 +2087,7 @@ function refreshIsobate(){
   if(typeof URL_A!=='undefined'&&URL_A)NOMI.A=URL_A.nome||'';
 
   function coord(p){if(!p)return '—';
+    if(window.rfCoord)return rfCoord.ll(p.lat,p.lon,' ');   /* formato scelto in Impostazioni */
     function g(v,a,b){var h=v>=0?a:b;v=Math.abs(v);var d=Math.floor(v),m=(v-d)*60;return d+'°'+m.toFixed(1).replace('.',',')+'′'+h;}
     return g(p.lat,'N','S')+' '+g(p.lon,'E','W');}
   function dipingiPunti(){$('tvAv').textContent=NOMI.A||coord(STATE.A);$('tvBv').textContent=NOMI.B||coord(STATE.B);

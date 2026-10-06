@@ -273,6 +273,7 @@ html.night .rf-num{text-shadow:none!important;}
 <script src="../rf-topbar.js" defer></script>
 <script src="../rf-nmea.js"></script>
 <script src="../rf-live.js"></script>
+<script src="../rf-coord.js"></script>
 <!-- ===== /rf-topbar ===== -->
 
 <!-- de-registrazione del vecchio Service Worker Workbox (scope /partenza/) + purge cache -->
@@ -387,11 +388,11 @@ html.night .rf-num{text-shadow:none!important;}
     <div class="rf-g2">
       <div class="field">
         <label>PIN</label>
-        <input class="rf-input" id="pinTxt" placeholder="lat lon" spellcheck="false" autocomplete="off">
+        <input class="rf-input" id="pinTxt" placeholder="45°37,800′ N  013°45,000′ E" spellcheck="false" autocomplete="off">
       </div>
       <div class="field">
         <label>RC</label>
-        <input class="rf-input" id="rcTxt" placeholder="lat lon" spellcheck="false" autocomplete="off">
+        <input class="rf-input" id="rcTxt" placeholder="45°37,800′ N  013°45,000′ E" spellcheck="false" autocomplete="off">
       </div>
     </div>
     <div id="dirRow" style="margin-top:10px;display:none">
@@ -621,10 +622,32 @@ function fmtDist(m){ m=Math.abs(m); if(m<999.5)return{v:String(Math.round(m)),u:
 function adatta(el){ if(!el)return; var r=el.parentNode; el.style.fontSize="";
   var fs=parseFloat(getComputedStyle(el).fontSize);
   for(var i=0;i<12&&r.scrollWidth>r.clientWidth&&fs>14;i++){ fs*=0.9; el.style.fontSize=fs+"px"; } }
-function xyLL(o){ return o?(o.lat.toFixed(5)+" "+o.lon.toFixed(5)):""; }
-function parseLL(str){ var m=String(str).trim().split(/[ ,]+/).map(Number);
-  if(m.length<2||!isFinite(m[0])||!isFinite(m[1])||Math.abs(m[0])>90||Math.abs(m[1])>180)return null;
-  return {lat:m[0],lon:m[1]}; }
+/* 06/10/2026: PIN e RC nel formato scelto in Impostazioni (rf-coord.js), e il
+   campo li rilegge in tutti i formati. Prima: gradi decimali col punto, e un
+   parser che con la virgola decimale avrebbe spezzato «45°37,800′» in due. */
+function xyLL(o){ if(!o)return ""; return window.rfCoord?rfCoord.ll(o.lat,o.lon,"  "):(o.lat.toFixed(5)+" "+o.lon.toFixed(5)); }
+function parseLL(str){
+  str=String(str).trim(); if(!str)return null;
+  var lat,lon;
+  if(/[NSEWnsew]/.test(str)){
+    /* con gli emisferi: «45°37,800′ N 013°45,000′ E», «45,63° N 13,75° E», «45 37 48 N 13 45 0 E» */
+    var parti=str.match(/[^NSEWnsew]*[NSEWnsew]/g);
+    if(!parti||parti.length<2)return null;
+    var v=parti.slice(0,2).map(function(t){
+      var h=t.slice(-1).toUpperCase(), n=(t.slice(0,-1).match(/\d+(?:[.,]\d+)?/g)||[]).map(function(x){return parseFloat(x.replace(",","."));});
+      if(!n.length)return null;
+      var g=n[0]+(n[1]||0)/60+(n[2]||0)/3600;
+      return {h:h,v:(h==="S"||h==="W")?-g:g};});
+    if(!v[0]||!v[1])return null;
+    for(var i=0;i<2;i++){ if(v[i].h==="N"||v[i].h==="S")lat=v[i].v; else lon=v[i].v; }
+  } else {
+    /* senza emisferi: gradi decimali. Col punto, virgola o spazio separano;
+       senza punto, la virgola e' quella decimale e separa lo spazio. */
+    var m=(str.indexOf(".")>=0?str.split(/[\s,;]+/):str.split(/[\s;]+/).map(function(x){return x.replace(",",".");})).map(Number);
+    if(m.length<2)return null; lat=m[0]; lon=m[1];
+  }
+  if(lat==null||lon==null||!isFinite(lat)||!isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180)return null;
+  return {lat:lat,lon:lon}; }
 
 /* ---------- render ---------- */
 function setNum(el,txt,cls){ el.textContent=txt; el.className="rf-num md "+(cls||""); }

@@ -229,6 +229,7 @@ html:root .rf-instr .rf-dp{box-shadow:none;background:transparent;}
 </div>
 <script src="../rf-topbar.js" defer></script>
 <script src="../rf-live.js"></script>
+<script src="../rf-coord.js"></script>
 <!-- ===== /rf-topbar ===== -->
 
 <main class="rf-main">
@@ -644,6 +645,7 @@ function parseCoord(s){s=String(s||"").trim();if(!s)return NaN;
   var p=s.split(/\s+/).map(parseFloat).filter(function(x){return !isNaN(x);});if(!p.length)return NaN;
   var v=Math.abs(p[0])+(p[1]||0)/60+(p[2]||0)/3600;return neg?-v:v;}
 function fmtCo(p){if(!p)return "—";
+  if(window.rfCoord)return rfCoord.ll(p.lat,p.lon);   /* formato scelto in Impostazioni */
   function f(v,lat){var h=lat?(v>=0?"N":"S"):(v>=0?"E":"W");v=Math.abs(v);
     var d=Math.floor(v), m=(v-d)*60;return d+"° "+m.toFixed(3)+"' "+h;}
   return f(p.lat,true)+"  "+f(p.lon,false);}

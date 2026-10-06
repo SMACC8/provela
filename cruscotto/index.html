@@ -296,6 +296,7 @@ html.night .slot .num{text-shadow:none;}
 <script src="../rf-topbar.js" defer></script>
 <script src="../rf-nmea.js"></script>
 <script src="../rf-strumenti.js"></script>
+<script src="../rf-coord.js"></script>
 <script src="../rf-live.js"></script>
 <!-- ===== /rf-topbar ===== -->
 
@@ -478,7 +479,7 @@ const METRICS=[
   {id:'heel',lbl:'Sbandamento',sub:'',   unit:'\u00b0', color:'', fmt:E=>HEEL.ready?Math.round(Math.abs(HEEL.val)):'\u2014',
     tag:E=>!HEEL.ready?null:(HEEL.val<0?{t:'\u25c4 Sx',c:'p'}:{t:'Dx \u25ba',c:'s'})},
   {id:'clk',lbl:'Data e ora',sub:'',     unit:'',  color:'', fmt:E=>{var d=new Date();return ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+' '+fmtClk(d);}},
-  {id:'pos',lbl:'Coordinate',sub:'gradi decimali',unit:'',color:'',fmt:E=>{var p=cruPos();return p?fmtDM(p.lat,['N','S'])+' '+fmtDM(p.lon,['E','W']):'\u2014';}},
+  {id:'pos',lbl:'Coordinate',get sub(){return window.rfCoord?rfCoord.nome():'gradi decimali';},unit:'',color:'',fmt:E=>{var p=cruPos();return p?(window.rfCoord?rfCoord.ll(p.lat,p.lon,' '):fmtDM(p.lat,['N','S'])+' '+fmtDM(p.lon,['E','W'])):'\u2014';}},
   {id:'sun',lbl:'Alba / Tramonto',sub:'', unit:'', color:'amber',fmt:E=>{var p=cruPos();if(!p)return '\u2014';var st=sunTimes(new Date(),p.lat,p.lon);return (st.rise?fmtClk(st.rise):'\u2014')+'/'+(st.set?fmtClk(st.set):'\u2014');}},
 ];
 const M_BY={}; METRICS.forEach(m=>M_BY[m.id]=m);
