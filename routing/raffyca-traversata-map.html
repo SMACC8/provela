@@ -472,7 +472,7 @@ html.day [fill="#46d68a"]{fill:#12894f;} html.night [fill="#46d68a"]{fill:#c23a3
           <div class="diag-h"><b>Mure e rotazioni</b><span style="display:flex;gap:6px;align-items:center;margin-left:auto"><button class="go" id="diagCsv">CSV</button><button class="go" id="diagPdf">PDF</button></span></div>
           <div class="diag-sum" id="diagSum"></div>
           <div class="diag-body" id="diagBody"></div>
-          <div class="diag-leg"><b>virata</b> = cambio mure di prua · <b>strambata</b> = di poppa · <b>rifiuto</b> = vento contro · <b>alzata</b> = vento a favore.</div>
+          <div class="diag-leg"><b>virata</b> = cambio mure di prua · <b>strambata</b> = di poppa · <b>buono</b> = il vento ti lascia orzare · <b>scarso</b> = ti fa poggiare · in poppa si leggono al contrario.</div>
         </div>
       </details>
 
@@ -954,8 +954,16 @@ function diagnose(R){
     var d=adiff(cur.twd,lastTwd);
     if(Math.abs(d)>=8){
       var verso=d>0?'a destra (oraria)':'a sinistra (antioraria)',prod=d*cur.side,alz=prod>0;
-      var tail=alz?'è un\'<em>alzata</em>: puoi orzare.':'è un <em>rifiuto</em>'+(cur.andat==='bolina'?' — in bolina, valuta la virata.':'.');
-      push(cur.t,alz?'alzata':'rifiuto',alz?'tag-alz':'tag-rif',
+      /* 09/10/2026: «buono» e «scarso», come si dice in regata (prima «alzata» e
+         «rifiuto»: giusti, ma in banchina non li dice nessuno). Il buono lascia
+         orzare, lo scarso fa poggiare, a qualunque andatura; in poppa pero' si
+         leggono al contrario: il buono allontana dalla boa sottovento, lo scarso
+         aiuta. Prima il diario dava anche in poppa i consigli della bolina. */
+      var tail=alz?'è un <em>buono</em>':'è uno <em>scarso</em>';
+      if(cur.andat==='bolina')tail+=alz?': puoi orzare.':' — valuta la virata.';
+      else if(cur.andat==='poppa')tail+=alz?': in poppa ti allontana dalla boa, valuta la strambata.':': in poppa ti aiuta, puoi poggiare.';
+      else tail+=alz?': ti lascia orzare.':': ti fa poggiare.';
+      push(cur.t,alz?'buono':'scarso',alz?'tag-alz':'tag-rif',
         'Il vento ruota '+verso+' di ~'+Math.round(Math.abs(d))+'° → sulle '+sideLbl(cur.side)+' '+tail,cur);
       lastTwd=cur.twd;}
     if(cur.andat!==lastAnd){

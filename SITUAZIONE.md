@@ -7668,3 +7668,48 @@ Service worker: **`dritta-hub-v38`** (`rf-coord.js` nel precache),
 - A schermo: riquadro «Coordinate» del Cruscotto, Carta, Percorso,
   Posizione con un GPS vivo.
 - La stampa vera del PDF nuovo.
+
+---
+
+## 09/10/2026 — Diario: «buono» e «scarso», e la poppa letta al contrario
+
+Un amico di Sergio, esperto di regate, guardando il PDF del diario: «In
+gergo il rifiuto si dice *scarso* e l'alzata è un *buono*. Navigando in
+poppa si parla sempre di buono e scarso, solo che si devono interpretare al
+contrario. Un buono ti porta sempre con la prua al vento, sia di bolina che
+di poppa.»
+
+Le parole erano giuste ma non si usano: cambiate. Il punto vero però era la
+poppa. `diagnose()` classificava il salto bene (`d*cur.side`: il buono
+lascia orzare, lo scarso fa poggiare, a qualunque andatura), ma **in poppa
+dava i consigli della bolina**: «alzata: puoi orzare», come se fosse un
+vantaggio. In poppa il buono allontana dalla boa sottovento, ed è lo scarso
+che aiuta.
+
+Ora (in `diagnose()`, e quindi nel diario della pagina, nel PDF e nel CSV):
+- etichette **«buono»** e **«scarso»** (classi `tag-alz`/`tag-rif` e colori
+  invariati: teal e arancio);
+- **bolina**: buono → «puoi orzare»; scarso → «valuta la virata»;
+- **poppa**: buono → «in poppa ti allontana dalla boa, valuta la
+  strambata»; scarso → «in poppa ti aiuta, puoi poggiare»;
+- **traverso e lasco**: solo il fatto («ti lascia orzare», «ti fa
+  poggiare»): lì la rotta punta alla boa e il salto non cambia le mure;
+- legenda: «buono = il vento ti lascia orzare · scarso = ti fa poggiare ·
+  in poppa si leggono al contrario».
+
+Il calcolo della rotta non cambia. Service worker: **`raffyca-rt-v37`**.
+
+### Verificato
+
+- Prima e dopo sullo stesso campo di prova, stessi punti e ora: eventi di
+  salto identici (istanti, tipo, prua), cambiano solo le parole;
+- su rotte di bolina e di poppa: buono in bolina («puoi orzare»), scarso
+  in poppa («ti aiuta»), buono in poppa («valuta la strambata»); nessuna
+  «alzata» o «rifiuto» nel PDF, etichette teal e arancio;
+- sintassi con `jsc`.
+
+### Non verificato
+
+- Lo scarso in bolina non è capitato nelle rotte di prova (la sua frase è
+  quella di prima).
+- Il parere dell'amico sui consigli in poppa: da girargli.
